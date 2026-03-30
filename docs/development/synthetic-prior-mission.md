@@ -149,6 +149,70 @@ reward:
 The outer problem is therefore a prior-selection problem over $\phi$, not
 merely a training problem over $\theta$.
 
+## Current Implementation Status
+
+This section is not part of the mathematical statement. It records which
+pieces of the outer-objective story are implemented in the repo today and
+which pieces would still have to be built.
+
+### Built Today
+
+- one primary objective metric is persisted per task or loss-surface lane; the
+  runtime telemetry records `objective_metric` rather than a full weighted
+  objective specification
+- benchmark and registry artifacts already retain aggregate metrics that could
+  feed a future composite score, including BPC, log loss, Brier score, ROC
+  AUC, CRPS, pinball loss, and training-time summaries
+- sweep tooling already retains some guardrail-style telemetry such as clipped
+  step fraction and local stability diagnostics
+- current classification benchmark policy is implemented operationally as one
+  primary ranking metric plus guardrails; the active roadmap ranks rows by
+  `final_bpc_at_matched_regime_budget`, with calibration, runtime, and
+  stability treated as guardrails rather than folded into one weighted scalar
+
+### Not Built Yet
+
+- there is no repo-level $\lambda_{\mathrm{cal}}$, $\lambda_{\mathrm{stab}}$,
+  or $\lambda_{\mathrm{worst}}$
+  parameter surface today
+- there is no canonical composite-score engine that combines multiple metrics
+  into one weighted outer objective used for row ranking
+- $\operatorname{Cal}$, $\operatorname{Stab}$, and
+  $\operatorname{Worst}$ are not frozen as one canonical scalar each in the
+  current artifact contract
+- the benchmark registry does not currently persist an explicit worst-family or
+  per-task risk summary suitable for a true $\operatorname{Worst}$ term
+- the practical outer loop today is sweep-based keep/defer comparison, not an
+  automated optimizer over $\phi$
+
+### What Must Be True To Build Different Paths
+
+- To build a lightweight weighted scorer on top of the current benchmark
+  contract:
+  define one concrete metric for each term, define its direction and
+  normalization, decide how missing values are handled, and store the resulting
+  composite score plus its component breakdown in the registry or sweep row.
+- To make that weighted scorer the canonical ranking rule:
+  add an explicit objective-spec surface to the benchmark or sweep contract,
+  update matrix or reporting code to rank by the composite score
+  deterministically, and keep older runs interpretable when the score is not
+  present.
+- To build a real calibration term:
+  freeze one calibration scalar for the lane instead of treating calibration as
+  a generic guardrail category.
+- To build a real stability term:
+  freeze one stability scalar and collect enough repeatability evidence, such
+  as reruns or multi-seed summaries, for that scalar to be meaningful.
+- To build a real worst-family term:
+  persist per-task or per-family benchmark metrics, define the family
+  partition, and define the aggregation rule used to convert those retained
+  metrics into one worst-case penalty.
+- To build a true outer optimizer over $\phi$ rather than a sweep-based
+  decision process:
+  make the admissible prior space machine-readable, make evaluation
+  repeatable enough for noisy comparisons, and add search orchestration rather
+  than relying on fixed manual sweep rows.
+
 ## Interpreting $\phi$ Through Sandwich Demands
 
 The factorization of $\phi$ matters because different parts of the prior alter

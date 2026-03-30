@@ -33,6 +33,7 @@ from tab_foundry.data.dagzoo_handoff import (
     DAGZOO_HANDOFF_SCHEMA_NAME,
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,
+    stable_dagzoo_generated_corpus_id,
 )
 from tab_realdata_hub.manifest import build_manifest
 from tab_foundry.data.surface import resolve_data_surface
@@ -42,6 +43,12 @@ from tests.support import manifest_and_dataset_cases as cases
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+_TEST_GENERATE_RUN_ID = "1" * 32
+_TEST_DATASET_ID = "3" * 32
+_TEST_GENERATED_CORPUS_ID = stable_dagzoo_generated_corpus_id(
+    generate_run_id=_TEST_GENERATE_RUN_ID,
+    dataset_ids=[_TEST_DATASET_ID],
+)
 
 
 def test_corpus_default_paths_follow_shared_repo_root() -> None:
@@ -298,15 +305,21 @@ def _write_broken_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> No
     )
 
 
-def _write_handoff_manifest(handoff_root: Path, *, generated_dir_rel: str = "generated") -> Path:
+def _write_handoff_manifest(
+    handoff_root: Path,
+    *,
+    generated_dir_rel: str = "generated",
+    generate_run_id: str = _TEST_GENERATE_RUN_ID,
+    generated_corpus_id: str = _TEST_GENERATED_CORPUS_ID,
+) -> Path:
     handoff_root.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_name": DAGZOO_HANDOFF_SCHEMA_NAME,
         "schema_version": DAGZOO_HANDOFF_SCHEMA_VERSION,
         "identity": {
             "source_family": "dagzoo.fixed_layout_scm",
-            "generate_run_id": "1" * 32,
-            "generated_corpus_id": "2" * 32,
+            "generate_run_id": generate_run_id,
+            "generated_corpus_id": generated_corpus_id,
         },
         "artifacts_relative": {
             "run_root": ".",
@@ -323,7 +336,13 @@ def _write_handoff_manifest(handoff_root: Path, *, generated_dir_rel: str = "gen
     return handoff_manifest_path
 
 
-def _write_generated_dataset(generated_dir: Path, *, seed: int) -> None:
+def _write_generated_dataset(
+    generated_dir: Path,
+    *,
+    seed: int,
+    generate_run_id: str = _TEST_GENERATE_RUN_ID,
+    dataset_id: str = _TEST_DATASET_ID,
+) -> None:
     x_train, y_train, x_test, y_test = cases._classification_arrays(seed=seed)
     metadata = cases._classification_metadata(
         n_features=x_train.shape[1],
@@ -331,8 +350,8 @@ def _write_generated_dataset(generated_dir: Path, *, seed: int) -> None:
         filter_status="accepted",
         filter_accepted=True,
     )
-    metadata["dataset_id"] = "3" * 32
-    metadata["split_groups"] = {"request_run": "1" * 32}
+    metadata["dataset_id"] = dataset_id
+    metadata["split_groups"] = {"request_run": generate_run_id}
     cases._write_packed_shard(
         generated_dir / "shard_00000",
         datasets=[
@@ -354,6 +373,17 @@ def _fake_run_dagzoo_generate(config) -> object:
     generated_dir = handoff_root / "generated"
     _write_generated_dataset(generated_dir, seed=max(int(config.num_datasets), 1))
     handoff_manifest_path = _write_handoff_manifest(handoff_root)
+    return load_dagzoo_handoff_info(handoff_manifest_path)
+
+
+def _fake_run_dagzoo_generate_mismatched_handoff(config) -> object:
+    handoff_root = Path(str(config.handoff_root)).expanduser().resolve()
+    generated_dir = handoff_root / "generated"
+    _write_generated_dataset(generated_dir, seed=max(int(config.num_datasets), 1))
+    handoff_manifest_path = _write_handoff_manifest(
+        handoff_root,
+        generated_corpus_id="4" * 32,
+    )
     return load_dagzoo_handoff_info(handoff_manifest_path)
 
 
@@ -948,6 +978,43 @@ def test_materialize_corpus_recipe_reuses_complete_cached_corpus(
     assert Path(str(reused["manifest"]["manifest_path"])).exists()
 
 
+def test_materialize_corpus_recipe_rebuilds_when_recipe_contents_change(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    call_counter = [0]
+    _patch_dagzoo_generate(
+        monkeypatch,
+        _counting_fake_run_dagzoo_generate(call_counter),
+    )
+
+    original = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    recipe_path = repo_tmp_path / "reference" / "corpus_recipes" / "current_recipe.yaml"
+    payload = yaml.safe_load(recipe_path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    payload["dagzoo"]["num_datasets"] = 9
+    recipe_path.write_text(
+        yaml.safe_dump(payload, sort_keys=False, allow_unicode=False),
+        encoding="utf-8",
+    )
+
+    rebuilt = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert call_counter == [2]
+    assert rebuilt["corpus_ref"] != original["corpus_ref"]
+    assert rebuilt["recipe_identity"] != original["recipe_identity"]
+
+
 def test_materialize_corpus_recipe_rebuilds_when_cached_manifest_is_missing(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
@@ -1039,6 +1106,36 @@ def test_materialize_corpus_recipe_rebuilds_when_cached_invocation_artifact_is_m
     assert rebuilt["corpus_ref"] == record["corpus_ref"]
     assert Path(str(rebuilt["manifest"]["manifest_path"])).exists()
     assert Path(str(rebuilt["dagzoo_provenance"]["invocations"][0]["handoff"]["generated_dir"])).exists()
+
+
+def test_materialize_corpus_recipe_rejects_single_invocation_handoff_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_mismatched_handoff)
+
+    with pytest.raises(RuntimeError, match="generated_corpus_id"):
+        materialize_corpus_recipe(
+            recipe_id="current_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
+
+
+def test_materialize_corpus_recipe_rejects_multi_invocation_handoff_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_mismatched_handoff)
+
+    with pytest.raises(RuntimeError, match="generated_corpus_id"):
+        materialize_corpus_recipe(
+            recipe_id="size_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
 
 
 def test_corpus_compare_payload_reports_differences(
