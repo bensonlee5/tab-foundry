@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.5] - 2026-03-30
+
+### Changed
+
+- User-facing note: sandwich `cell_bpc` evaluation now rejects classification
+  tasks whose class count exceeds `many_class_base` instead of silently
+  collapsing overflow labels onto the final conditioning token.
+- User-facing note: corpus recipe materialization now keys reuse on stable
+  recipe contents and verifies DagZoo handoff identities against scanned
+  generated shards, preventing stale or mixed generated corpora from being
+  reused under the same recipe path.
+
 ## [0.15.4] - 2026-03-30
 
 ### Changed
