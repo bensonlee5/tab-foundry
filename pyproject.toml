@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.15.4"
+version = "0.15.3"
 description = "Tabular foundation model that generates its own training data via dagzoo, trains on it, and predicts on new tasks"
 readme = "README.md"
 license = "Apache-2.0"

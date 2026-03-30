@@ -55,7 +55,7 @@ _TOP_LEVEL_GRADIENT_MODULES = (
     "direct_head",
     "decoder",
 )
-_SANDWICH_SHARED_GRADIENT_MODULES = (
+_SANDWICH_CLASSIFICATION_GRADIENT_MODULES = (
     "tokenizer",
     "feature_encoder",
     "feature_type_film",
@@ -63,23 +63,36 @@ _SANDWICH_SHARED_GRADIENT_MODULES = (
     "row_summary_builder",
     "column_summary_builder",
     "y_conditioner",
+    "y_role_embedding",
+    "token_type_embedding",
     "latent_readout",
     "cell_readout",
     "test_row_pool",
+    "direct_head",
 )
-_SANDWICH_SHARED_GRADIENT_MODULE_LISTS = (
+_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS = (
     "pre_row_attention_blocks",
     "pre_column_attention_blocks",
     "perceiver_stages",
 )
-_SANDWICH_CLASSIFICATION_GRADIENT_MODULES = ("direct_head",)
 _SANDWICH_CELL_BPC_GRADIENT_MODULES = (
+    "tokenizer",
+    "feature_encoder",
+    "feature_type_film",
+    "feature_type_embedding",
+    "y_conditioner",
+    "y_role_embedding",
+    "token_type_embedding",
     "gaussian_head",
     "discrete_query",
     "discrete_oov",
     "integer_gate",
 )
-_SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = ("cell_decoder_blocks",)
+_SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = (
+    "pre_row_attention_blocks",
+    "pre_column_attention_blocks",
+    "cell_decoder_blocks",
+)
 _GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
 
 
@@ -246,11 +259,6 @@ def _append_module_list(
 
 def _sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
     modules: dict[str, nn.Module] = {}
-    for name in _SANDWICH_SHARED_GRADIENT_MODULES:
-        _append_named_module(modules, model, name=name)
-    for name in _SANDWICH_SHARED_GRADIENT_MODULE_LISTS:
-        _append_module_list(modules, model, name=name)
-
     loss_surface = str(getattr(model, "loss_surface", "classification")).strip().lower()
     if loss_surface == "cell_bpc":
         for name in _SANDWICH_CELL_BPC_GRADIENT_MODULES:
@@ -261,6 +269,8 @@ def _sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
 
     for name in _SANDWICH_CLASSIFICATION_GRADIENT_MODULES:
         _append_named_module(modules, model, name=name)
+    for name in _SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS:
+        _append_module_list(modules, model, name=name)
     return modules
 
 

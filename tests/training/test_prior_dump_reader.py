@@ -23,7 +23,8 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_prior_dump_reader_slices_tasks_from_batch",
-        "test_prior_dump_reader_uses_first_split_value_in_batch",
+        "test_prior_dump_reader_rejects_mixed_feature_widths",
+        "test_prior_dump_reader_rejects_mixed_split_positions",
         "test_prior_dump_reader_rejects_non_binary_dump",
         "test_prior_dump_reader_rejects_nan_or_inf_inputs_by_default",
         "test_prior_dump_reader_rejects_nonfinite_padded_batch_cells_by_default",

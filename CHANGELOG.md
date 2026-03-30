@@ -19,11 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cell-likelihood modules instead of surfacing inactive direct-head metrics.
 - User-facing note: prior-dump training now accepts `runtime.grad_clip <= 0`
   as the explicit no-clipping setting, matching the standard trainer contract.
-
-## [0.15.4] - 2026-03-30
-
-### Changed
-
+- User-facing note: prior-dump training now rejects mixed `num_features`
+  batches and mixed `single_eval_pos` batches instead of silently padding or
+  reusing the first split boundary across the batch.
+- User-facing note: sandwich `cell_bpc` gradient telemetry now reports only
+  the modules exercised by the cell-likelihood forward path, removing inactive
+  summary/perceiver/readout modules from those charts.
 - User-facing note: benchmark helpers no longer auto-shadow a sibling
   `tab-realdata-hub` checkout. `tab-foundry bench compare` and
   `tab-foundry bench env bootstrap` now accept `--tab-realdata-hub-root` as

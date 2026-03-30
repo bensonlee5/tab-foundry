@@ -869,6 +869,11 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
     module_names = set(gradient_history[0]["module_grad_norms"])
     assert {
         "feature_encoder",
+        "y_conditioner",
+        "y_role_embedding",
+        "token_type_embedding",
+        "pre_row_attention_blocks.0",
+        "pre_column_attention_blocks.0",
         "row_summary_builder",
         "column_summary_builder",
         "perceiver_stages.0",

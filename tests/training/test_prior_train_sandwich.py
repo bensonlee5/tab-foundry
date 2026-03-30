@@ -125,21 +125,28 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     module_names = set(gradient_history[0]["module_grad_norms"])
     assert {
         "feature_encoder",
-        "row_summary_builder",
-        "column_summary_builder",
-        "perceiver_stages.0",
-        "perceiver_stages.1",
+        "y_conditioner",
+        "y_role_embedding",
+        "token_type_embedding",
+        "pre_row_attention_blocks.0",
+        "pre_column_attention_blocks.0",
         "cell_decoder_blocks.0",
         "cell_decoder_blocks.1",
         "gaussian_head",
         "discrete_query",
         "discrete_oov",
         "integer_gate",
+    }.issubset(module_names)
+    assert {
+        "row_summary_builder",
+        "column_summary_builder",
+        "perceiver_stages.0",
+        "perceiver_stages.1",
         "latent_readout",
         "cell_readout",
         "test_row_pool",
-    }.issubset(module_names)
-    assert "direct_head" not in module_names
+        "direct_head",
+    }.isdisjoint(module_names)
     assert "feature_encoder_vs_direct_head" not in telemetry["diagnostics"]["module_balance"]
     assert telemetry["runtime_summary"].keys() == {
         "peak_vram_allocated",

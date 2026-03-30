@@ -100,7 +100,7 @@ def test_prior_dump_reader_slices_tasks_from_batch(tmp_path: Path) -> None:
     assert task1.y_test.tolist() == [1, 0]
 
 
-def test_prior_dump_reader_preserves_padded_batch_for_mixed_feature_widths(tmp_path: Path) -> None:
+def test_prior_dump_reader_rejects_mixed_feature_widths(tmp_path: Path) -> None:
     path = _write_prior_dump(
         tmp_path / "prior_mixed_feature_widths.h5",
         x=np.asarray(
@@ -122,17 +122,11 @@ def test_prior_dump_reader_preserves_padded_batch_for_mixed_feature_widths(tmp_p
         single_eval_pos=np.asarray([2, 2], dtype=np.int64),
     )
 
-    step = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
-
-    assert step.x_batch is not None
-    assert tuple(step.x_batch.shape) == (2, 4, 3)
-    assert step.tasks[0].x_train.shape == (2, 2)
-    assert step.tasks[0].x_test.shape == (2, 2)
-    assert step.tasks[1].x_train.shape == (2, 3)
-    assert step.tasks[1].x_test.shape == (2, 3)
+    with pytest.raises(RuntimeError, match="one num_features value across the whole batch"):
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
 
 
-def test_prior_dump_reader_uses_first_split_value_in_batch(tmp_path: Path) -> None:
+def test_prior_dump_reader_rejects_mixed_split_positions(tmp_path: Path) -> None:
     path = _write_prior_dump(
         tmp_path / "prior_bad_split.h5",
         x=np.zeros((2, 4, 2), dtype=np.float32),
@@ -142,17 +136,8 @@ def test_prior_dump_reader_uses_first_split_value_in_batch(tmp_path: Path) -> No
         single_eval_pos=np.asarray([2, 3], dtype=np.int64),
     )
 
-    step = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
-
-    assert step.train_test_split_index == 2
-    assert step.x_batch is not None
-    assert step.y_batch is not None
-    assert tuple(step.x_batch.shape) == (2, 4, 2)
-    assert tuple(step.y_batch.shape) == (2, 4)
-    assert step.tasks[0].metadata["raw_single_eval_pos"] == 2
-    assert step.tasks[1].metadata["raw_single_eval_pos"] == 3
-    assert step.tasks[1].x_train.shape[0] == 2
-    assert step.tasks[1].x_test.shape[0] == 2
+    with pytest.raises(RuntimeError, match="one single_eval_pos value across the whole batch"):
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
 
 
 def test_prior_dump_reader_loads_feature_types_metadata(tmp_path: Path) -> None:
@@ -874,7 +859,7 @@ def test_train_tabfoundry_sandwich_prior_passes_feature_types_to_forward_batched
     assert model.seen_feature_types == [[["floating", "integer"], ["bool", "string_binary"]]]
 
 
-def test_train_tabfoundry_sandwich_prior_pads_feature_types_for_mixed_feature_width_batch(
+def test_train_tabfoundry_sandwich_prior_rejects_mixed_feature_width_batch(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -961,17 +946,12 @@ def test_train_tabfoundry_sandwich_prior_pads_feature_types_for_mixed_feature_wi
         }
     )
 
-    result = prior_train_module.train_tabfoundry_simple_prior(
-        cfg,
-        prior_dump_path=path,
-        batch_size=2,
-    )
-
-    assert result.global_step == 1
-    assert model.seen_feature_types == [[
-        ["floating", "integer", "floating"],
-        ["bool", "string_binary", "unknown"],
-    ]]
+    with pytest.raises(RuntimeError, match="one num_features value across the whole batch"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=2,
+        )
 
 
 def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(

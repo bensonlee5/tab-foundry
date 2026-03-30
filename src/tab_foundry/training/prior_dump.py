@@ -138,6 +138,31 @@ def _advance_pointer(pointer: int, *, batch_size: int, dataset_count: int) -> in
     return next_pointer
 
 
+def _validate_homogeneous_batch_structure(
+    batch_dataset_indices: tuple[int, ...],
+    *,
+    num_features: np.ndarray,
+    split_values: np.ndarray,
+) -> tuple[int, int]:
+    resolved_num_features = sorted(
+        {int(value) for value in np.asarray(num_features).reshape(-1).tolist()}
+    )
+    if len(resolved_num_features) != 1:
+        raise RuntimeError(
+            "prior dump batch must use one num_features value across the whole batch: "
+            f"dataset_indices={batch_dataset_indices}, num_features={resolved_num_features}"
+        )
+    resolved_split_values = sorted(
+        {int(value) for value in np.asarray(split_values).reshape(-1).tolist()}
+    )
+    if len(resolved_split_values) != 1:
+        raise RuntimeError(
+            "prior dump batch must use one single_eval_pos value across the whole batch: "
+            f"dataset_indices={batch_dataset_indices}, single_eval_pos={resolved_split_values}"
+        )
+    return int(resolved_num_features[0]), int(resolved_split_values[0])
+
+
 def _materialize_legacy_feature_types_dataset(path: Path) -> bool:
     """Add explicit all-floating feature types to a legacy numeric-only prior dump."""
 
@@ -268,8 +293,11 @@ class PriorDumpTaskBatchReader:
                 split_values = np.asarray(split_ds[pointer:end], dtype=np.int64)
                 if split_values.size == 0:
                     raise RuntimeError("prior dump batch is empty")
-                first_split = int(split_values[0])
-                max_num_features = int(num_features.max())
+                max_num_features, first_split = _validate_homogeneous_batch_structure(
+                    batch_dataset_indices,
+                    num_features=num_features,
+                    split_values=split_values,
+                )
                 max_num_datapoints = int(num_datapoints.max())
                 x_batch_array = np.asarray(
                     x_ds[pointer:end, :max_num_datapoints, :max_num_features],

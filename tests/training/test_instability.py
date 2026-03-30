@@ -3,11 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from torch import nn
 
 from tab_foundry.training.instability import (
     build_regime_budget_summary,
     build_runtime_summary,
     build_training_telemetry,
+    gradient_module_map,
     history_loss_summary,
 )
 
@@ -223,6 +225,62 @@ def test_build_training_telemetry_omits_direct_head_balance_when_head_is_inactiv
 
     assert telemetry["diagnostics"]["module_balance"] == {}
     assert telemetry["gradient_summary"]["modules"]["gaussian_head"]["final_grad_norm"] == 0.4
+
+
+class _TinySandwichTelemetryModel(nn.Module):
+    def __init__(self, *, loss_surface: str) -> None:
+        super().__init__()
+        self.arch = "tabfoundry_sandwich"
+        self.loss_surface = loss_surface
+        self.tokenizer = nn.Linear(1, 1)
+        self.feature_encoder = nn.Linear(1, 1)
+        self.feature_type_film = nn.Linear(1, 1)
+        self.row_summary_builder = nn.Linear(1, 1)
+        self.column_summary_builder = nn.Linear(1, 1)
+        self.y_conditioner = nn.Linear(1, 1)
+        self.y_role_embedding = nn.Embedding(2, 1)
+        self.token_type_embedding = nn.Embedding(2, 1)
+        self.pre_row_attention_blocks = nn.ModuleList([nn.Linear(1, 1)])
+        self.pre_column_attention_blocks = nn.ModuleList([nn.Linear(1, 1)])
+        self.perceiver_stages = nn.ModuleList([nn.Linear(1, 1)])
+        self.latent_readout = nn.Linear(1, 1)
+        self.cell_readout = nn.Linear(1, 1)
+        self.test_row_pool = nn.Linear(1, 1)
+        self.direct_head = nn.Linear(1, 1)
+        self.cell_decoder_blocks = nn.ModuleList([nn.Linear(1, 1)])
+        self.gaussian_head = nn.Linear(1, 1)
+        self.discrete_query = nn.Linear(1, 1)
+        self.discrete_oov = nn.Linear(1, 1)
+        self.integer_gate = nn.Linear(1, 1)
+
+
+def test_gradient_module_map_tracks_only_active_cell_bpc_sandwich_modules() -> None:
+    modules = gradient_module_map(_TinySandwichTelemetryModel(loss_surface="cell_bpc"))
+
+    assert {
+        "tokenizer",
+        "feature_encoder",
+        "feature_type_film",
+        "y_conditioner",
+        "y_role_embedding",
+        "token_type_embedding",
+        "pre_row_attention_blocks.0",
+        "pre_column_attention_blocks.0",
+        "cell_decoder_blocks.0",
+        "gaussian_head",
+        "discrete_query",
+        "discrete_oov",
+        "integer_gate",
+    }.issubset(modules)
+    assert {
+        "row_summary_builder",
+        "column_summary_builder",
+        "perceiver_stages.0",
+        "latent_readout",
+        "cell_readout",
+        "test_row_pool",
+        "direct_head",
+    }.isdisjoint(modules)
 
 
 def test_build_training_telemetry_tracks_non_finite_global_grad_norm_kinds(tmp_path: Path) -> None:
