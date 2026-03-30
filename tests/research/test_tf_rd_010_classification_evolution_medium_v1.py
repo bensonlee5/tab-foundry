@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -11,10 +12,6 @@ from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ID = "tf_rd_010_classification_evolution_medium_v1"
-ANCHOR_RUN_ID = (
-    "sd_tf_rd_010_classification_evolution_medium_v1_01_"
-    "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
-)
 EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control",
     "delta_data_manifest_root_tf_rd_010_missingness_mcar",
@@ -43,8 +40,8 @@ def test_tf_rd_010_classification_evolution_medium_v1_is_registered() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
-        "status": "completed",
-        "anchor_run_id": ANCHOR_RUN_ID,
+        "status": "ready",
+        "anchor_run_id": None,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
@@ -52,14 +49,14 @@ def test_tf_rd_010_classification_evolution_medium_v1_is_registered() -> None:
     }
 
 
-def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medium_contract() -> None:
+def test_tf_rd_010_classification_evolution_medium_v1_records_the_reset_medium_contract() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
-    assert sweep["status"] == "completed"
-    assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
+    assert sweep["status"] == "ready"
+    assert sweep["anchor_run_id"] is None
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
@@ -70,19 +67,22 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medi
 
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
-    assert any("#178" in note for note in notes)
+    assert any("#202" in note for note in notes)
+    assert any("#205" in note for note in notes)
+    assert any("#204" in note for note in notes)
     assert any("tab-realdata-hub" in note for note in notes)
     assert any("sandwich_summary_tokens_per_axis=3" in note for note in notes)
     assert any("final_bpc_at_matched_regime_budget" in note for note in notes)
     assert any("broader classification pool" in note.lower() for note in notes)
     assert any("min_classes=2" in note for note in notes)
     assert any("max_missing_pct=20.0" in note for note in notes)
-    assert any("All four completed rows deferred" in note for note in notes)
-    assert any("stability guardrail" in note for note in notes)
+    assert any("no longer canonical" in note.lower() for note in notes)
+    assert any("trusted medium evidence" in note.lower() for note in notes)
 
     anchor_model = sweep["anchor_context"]["model"]
     assert anchor_model["arch"] == "tabfoundry_sandwich"
     assert anchor_model["module_selection"] is None
+    assert sweep["anchor_context"]["run_id"] is None
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "tf_rd_010_dagzoo_medium_control",
         "model": "tabfoundry_sandwich",
@@ -93,12 +93,13 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medi
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
-    assert [row["decision"] for row in rows] == ["defer"] * len(EXPECTED_ROWS)
-    assert all(row["run_id"] is not None for row in rows)
-    assert all(row["next_action"].startswith("Completed") for row in rows)
+    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
+    assert all(row["decision"] is None for row in rows)
+    assert all(row["run_id"] is None for row in rows)
+    assert all(row["interpretation_status"] == "pending" for row in rows)
+    assert all("issue `#205`" in row["next_action"] for row in rows)
     assert all(
-        any("stability=fail" in note for note in row["notes"]) for row in rows
+        any("non-canonical artifacts" in note for note in row["notes"]) for row in rows
     )
     assert all(row["model"]["feature_type_conditioning"] == "film" for row in rows)
     assert all(row["model"]["sandwich_summary_tokens_per_axis"] == 3 for row in rows)
@@ -108,13 +109,14 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medi
     assert all(row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400 for row in rows)
     assert all(row["data"]["train_row_cap"] == 64 for row in rows)
     assert all(row["data"]["test_row_cap"] == 32 for row in rows)
+    assert all("benchmark_metrics" not in row for row in rows)
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
-    assert materialized["anchor_run_id"] == ANCHOR_RUN_ID
+    assert materialized["anchor_run_id"] is None
     assert materialized["benchmark_manifest_path"] == (
         "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
     )
@@ -143,7 +145,7 @@ def test_tf_rd_010_classification_evolution_medium_v1_matrix_links_dagzoo_and_hu
 
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
-    assert "Sweep status: `completed`" in matrix
+    assert "Sweep status: `ready`" in matrix
     assert "final_bpc_at_matched_regime_budget" in matrix
     assert "tab-realdata-hub" in matrix
     assert "dagzoo" in matrix
@@ -151,18 +153,26 @@ def test_tf_rd_010_classification_evolution_medium_v1_matrix_links_dagzoo_and_hu
     assert "direct multiclass head" in matrix
     assert "min_classes=2" in matrix
     assert "max_missing_pct=20.0" in matrix
-    assert "Completed as the locked medium control anchor" in matrix
-    assert "Completed as mixed negative evidence" in matrix
-    assert "stability=fail" in matrix
+    assert "Anchor run id: `null`" in matrix
+    assert "pending trusted rerun" in matrix
+    assert "issue `#205`" in matrix
 
 
-def test_tf_rd_010_medium_registry_uses_renamed_hub_bundle() -> None:
-    registry_text = (
-        REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
-    ).read_text(encoding="utf-8")
+def test_tf_rd_010_medium_registry_is_reset_but_baselines_remain() -> None:
+    registry = json.loads(
+        (
+            REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    baselines = json.loads(
+        (
+            REPO_ROOT / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+        ).read_text(encoding="utf-8")
+    )
 
-    assert "openml_classification_medium_v1.json" in registry_text
-    assert "nanotabpfn_openml_classification_medium_v1.json" not in registry_text
+    assert not any(run_id.startswith("sd_tf_rd_010_") for run_id in registry["runs"])
+    assert "cls_benchmark_linear_multiclass_medium_v1" in baselines["baselines"]
+    assert "cls_benchmark_linear_multiclass_large_v1" in baselines["baselines"]
 
 
 def test_tf_rd_010_classification_evolution_medium_v1_inspection_resolves_sandwich_row() -> None:

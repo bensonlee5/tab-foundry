@@ -3,7 +3,7 @@ sweep_id: tf_rd_010_classification_evolution_medium_v1
 rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: completed
+  status: ready
   rationale: Establish the TF-RD-010 classification control front before reading any
     missingness harder-front effect on the smaller medium benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
@@ -54,50 +54,28 @@ rows:
     before treating any row outcome as a promotion or defer decision.
   - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration,
     runtime, and stability as guardrails.
-  next_action: Completed as the locked medium control anchor; keep this row as the
-    fixed TF-RD-010 reference and move any improvement attempts to TF-RD-021 or
-    later higher-budget follow-up instead of reopening baseline definition.
+  next_action: Rerun this row as the trusted medium anchor after issue `#204` lands,
+    then use it as the comparison point for the remaining medium rows under issue
+    `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
-  - This row is the fixed TF-RD-010 medium reference for missingness and class-imbalance
-    reporting on the medium validation pool.
-  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget;
-    treat it as the fixed short-screen anchor rather than promotion evidence.
-  run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+  - This row remains the intended TF-RD-010 medium reference for missingness and
+    class-imbalance reporting on the medium validation pool.
+  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
+    non-canonical artifacts.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
-  benchmark_metrics:
-    best_step: 400
-    max_grad_norm: 184.7556610107422
-    clipped_step_fraction: 0.975
-    best_bpc: 10.544807815551758
-    final_bpc: 10.544807815551758
-    best_bpf: 10.544808216094971
-    final_bpf: 10.544808216094971
-    best_log_loss: 1.0995553583156494
-    final_log_loss: 1.0995553583156494
-    best_brier_score: 0.6676038574829191
-    final_brier_score: 0.6676038574829191
-    best_roc_auc: 0.5045354578052786
-    final_roc_auc: 0.5045354578052786
-    final_minus_best_bpc: 0.0
-    final_minus_best_bpf: 0.0
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
+  decision: null
+  interpretation_status: pending
   confounders: []
 - order: 2
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: completed
+  status: ready
   rationale: Test whether moderate MCAR exposure improves robustness before structured
     missingness is considered on the medium validation pool.
-  hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family
+  hypothesis: MCAR may improve BPC and log-loss behavior on the evolved sandwich family
     without adding the stronger structure of MAR or MNAR.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
     and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
@@ -143,52 +121,25 @@ rows:
     skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check
     for any kept missingness front.
-  next_action: Completed as mixed negative evidence; despite the lower final BPC,
-    this row failed stability guardrails and degraded final ROC AUC, so keep the
-    clean control anchor and do not promote MCAR from this short-run pass.
+  next_action: Rerun this row after the trusted medium anchor is re-established,
+    then compare it directly against the anchor before carrying any missingness
+    front forward under issue `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
   - 'The medium validation pool follows the same hub bundle policy as the large
     rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
-  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget;
-    the better BPC read did not clear the promotion guardrails.
-  run_id: sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
+  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
+    non-canonical artifacts.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
-  benchmark_metrics:
-    best_step: 400
-    max_grad_norm: 249.59381103515625
-    clipped_step_fraction: 0.955
-    best_bpc: 7.974676952362061
-    final_bpc: 7.974676952362061
-    best_bpf: 7.974677085876465
-    final_bpf: 7.974677085876465
-    best_log_loss: 1.1094900810013424
-    final_log_loss: 1.1094900810013424
-    best_brier_score: 0.674234300830731
-    final_brier_score: 0.674234300830731
-    best_roc_auc: 0.45387078650870283
-    final_roc_auc: 0.45387078650870283
-    final_minus_best_bpc: 0.0
-    final_minus_best_bpf: 0.0
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
-    delta_final_bpc: -2.5701308631896973
-    delta_final_bpf: -2.570131130218506
-    delta_final_log_loss: 0.009934722685692954
-    delta_final_brier_score: 0.006630443347811932
-    delta_final_roc_auc: -0.050664671296575814
+  decision: null
+  interpretation_status: pending
   confounders: []
 - order: 3
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: completed
+  status: ready
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random
     masking from observed-feature-linked masking under the evolved benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
@@ -238,51 +189,24 @@ rows:
     skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check
     for any kept missingness front.
-  next_action: Completed as negative evidence; this row worsened both final BPC and
-    final ROC AUC versus the control anchor, so keep the clean control anchor and
-    do not promote MAR on the medium rung.
+  next_action: Rerun this row after the trusted medium anchor is re-established,
+    then compare it against the corrected control and MCAR reads under issue `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
   - 'The medium validation pool follows the same hub bundle policy as the large
     rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
-  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.
-  run_id: sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
+  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
+    non-canonical artifacts.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
-  benchmark_metrics:
-    best_step: 400
-    max_grad_norm: 175.35076904296875
-    clipped_step_fraction: 0.98
-    best_bpc: 24.548415718078612
-    final_bpc: 24.548415718078612
-    best_bpf: 24.548416881561284
-    final_bpf: 24.548416881561284
-    best_log_loss: 1.1154081254038184
-    final_log_loss: 1.1154081254038184
-    best_brier_score: 0.6779899944130533
-    final_brier_score: 0.6779899944130533
-    best_roc_auc: 0.4449842434842495
-    final_roc_auc: 0.4449842434842495
-    final_minus_best_bpc: 0.0
-    final_minus_best_bpf: 0.0
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
-    delta_final_bpc: 14.003607902526854
-    delta_final_bpf: 14.003608665466313
-    delta_final_log_loss: 0.015852767088168962
-    delta_final_brier_score: 0.010386136930134238
-    delta_final_roc_auc: -0.05955121432102917
+  decision: null
+  interpretation_status: pending
   confounders: []
 - order: 4
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: completed
+  status: ready
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
     can compare MCAR, MAR, and MNAR under the same benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least
@@ -332,45 +256,19 @@ rows:
     skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check
     for any kept missingness front.
-  next_action: Completed as negative evidence; this row had the worst medium-rung
-    BPC outcome and nonzero drift, so keep the clean control anchor and do not
-    promote MNAR on the medium rung.
+  next_action: Rerun this row after the trusted medium anchor is re-established,
+    then compare it against the corrected control, MCAR, and MAR reads under issue
+    `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
   - 'The medium validation pool follows the same hub bundle policy as the large
     rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
-  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.
-  run_id: sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1
+  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
+    non-canonical artifacts.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
-  benchmark_metrics:
-    best_step: 375
-    max_grad_norm: 151.3732452392578
-    clipped_step_fraction: 0.96
-    best_bpc: 30.174125061035156
-    final_bpc: 38.805387802124024
-    best_bpf: 30.174125900268553
-    final_bpf: 38.8053865814209
-    best_log_loss: 1.1184193559458953
-    final_log_loss: 1.118731927895141
-    best_brier_score: 0.6805274421793827
-    final_brier_score: 0.6807440813470611
-    best_roc_auc: 0.4256110159963824
-    final_roc_auc: 0.42896332258036207
-    final_minus_best_bpc: 8.631262741088868
-    final_minus_best_bpf: 8.631260681152344
-    final_minus_best_log_loss: 0.0003125719492458323
-    final_minus_best_brier_score: 0.00021663916767844515
-    final_minus_best_roc_auc: 0.0033523065839796695
-    drift: 8.631262741088868
-    delta_final_bpc: 28.260579986572267
-    delta_final_bpf: 28.260578365325927
-    delta_final_log_loss: 0.019176569579491654
-    delta_final_brier_score: 0.013140223864142042
-    delta_final_roc_auc: -0.07557213522491657
+  decision: null
+  interpretation_status: pending
   confounders: []

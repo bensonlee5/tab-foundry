@@ -3,8 +3,8 @@
 This is the canonical long-form evidence note for
 [TF-RD-010](../../docs/development/roadmap.md#tf-rd-010-benchmark-defined-multiclass-evolution-on-the-classification-first-sandwich-target).
 
-- Status: `completed`
-- Milestone: `Completed`
+- Status: `partial`
+- Milestone: `Next`
 - Dependency position: follows
   [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md), feeds
   [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
@@ -25,22 +25,27 @@ This is the canonical long-form evidence note for
 ## Repo-Local Evidence
 
 - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is the
-  umbrella for this lane, and issue
-  [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
-  execution issue; both now serve as historical handoff context for the
-  completed package
-- completed child issues
+  historical umbrella for this lane, issue
+  [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the historical
+  first execution issue, and issue
+  [#202](https://github.com/bensonlee5/tab-foundry/issues/202) is the active
+  trusted-rerun umbrella
+- historical child issues
   [#197](https://github.com/bensonlee5/tab-foundry/issues/197),
   [#198](https://github.com/bensonlee5/tab-foundry/issues/198),
   [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
   [#200](https://github.com/bensonlee5/tab-foundry/issues/200) define the
-  TF-RD-010 corpora, freeze the missing baselines, and execute the medium and
-  large validation packages
+  TF-RD-010 corpora and freeze the missing baselines
+- successor issues [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
+  and [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now own the
+  trusted medium and large reruns, and issue
+  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the required
+  sandwich refactor follow-up that lands before those reruns
 - `tab-realdata-hub` issue
   [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) is the
   canonical upstream dependency for medium and large classification validation
   bundles and materialized manifests
-- the completed sweep contracts now live in
+- the reset sweep contracts now live in
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v1/`
   and
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/`
@@ -85,12 +90,13 @@ This is the canonical long-form evidence note for
     `final_bpc_at_matched_regime_budget`
 - BPC is the normalized log-loss view for the first expanded classification regime;
   raw log loss, calibration, runtime, and stability remain supporting guardrails
-- The completed short-run package established the benchmark contract without
-  promoting a new carried front: all medium and large rows deferred, and every
-  row failed the short-run stability guardrail
-- MCAR gave the best BPC deltas on both rungs (`-2.5701` medium and
-  `-62725.0640` large), but it still degraded final ROC AUC and did not clear
-  the guardrails needed for promotion
+- The benchmark contract remains valid, but the previously recorded medium and
+  large executions are no longer trusted as canonical evidence after later
+  training and sandwich correctness fixes
+- Those old 400-step outcomes remain historical context only:
+  all medium and large rows deferred, every row failed the short-run stability
+  guardrail, and MCAR gave the best BPC deltas on both rungs (`-2.5701` medium
+  and `-62725.0640` large) without clearing the promotion guardrails
 - Missingness should be addressed in both places:
   - synthetic training fronts via control, MCAR, MAR, and MNAR corpora
   - validation via the medium and large hub bundles, both of which now permit
@@ -104,10 +110,21 @@ This is the canonical long-form evidence note for
   materialization flow, and `tab-foundry` consumes the resulting manifest
   parquet directly
 - the legacy medium and large TF-RD-010 control baselines are frozen in the
-  canonical
-  registry
-- the first medium and large benchmark packages have executed, with all rows
-  deferred under the short-run guardrails
+  canonical registry
+- the first medium and large benchmark packages were executed historically, but
+  that evidence has now been invalidated and reset out of the canonical sweep state
+
+## Open Evidence Gaps
+
+- the trusted TF-RD-010 medium rerun under
+  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) still needs to
+  re-establish canonical medium-rung evidence
+- the trusted TF-RD-010 large rerun under
+  [#203](https://github.com/bensonlee5/tab-foundry/issues/203) still needs to
+  re-establish canonical large-rung evidence
+- the sandwich refactor follow-up under
+  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) lands before any
+  new TF-RD-010 rerun is recorded as canonical evidence
 
 ## Exit Signals
 
@@ -119,3 +136,5 @@ This is the canonical long-form evidence note for
 - later steering, imbalance, runtime, and scaling lanes inherit a fixed
   `dagzoo -> tab-realdata-hub -> tab-foundry` contract rather than reopening
   regime selection
+- trusted medium and large reruns replace the invalidated historical executions
+  before later lanes treat TF-RD-010 execution as canonical again

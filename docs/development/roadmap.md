@@ -179,26 +179,28 @@ flowchart TD
     class RD012,RD015 later;
 ```
 
-Current path: **TF-RD-010 closeout → TF-RD-021 → TF-RD-022 → TF-RD-009**.
+Current path: **TF-RD-010 trusted rerun → TF-RD-021 → TF-RD-022 → TF-RD-009**.
 
 - TF-RD-016 is now completed historical context: issue
   [#178](https://github.com/bensonlee5/tab-foundry/issues/178) closes on the
   decision to evaluate the next sandwich phase through benchmark definition and
   modest head evolution rather than more simplification-only evidence.
-- TF-RD-010 is now completed historical context: issue
+- TF-RD-010 is active again: issue
   [#52](https://github.com/bensonlee5/tab-foundry/issues/52), issue
   [#99](https://github.com/bensonlee5/tab-foundry/issues/99), and child issues
   [#197](https://github.com/bensonlee5/tab-foundry/issues/197),
   [#198](https://github.com/bensonlee5/tab-foundry/issues/198),
   [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
-  [#200](https://github.com/bensonlee5/tab-foundry/issues/200) now define the
-  first benchmark-backed classification program with `dagzoo` training fronts,
-  `tab-realdata-hub` validation manifests, frozen medium and large legacy
-  control baselines, and completed medium/large short-run sweeps.
+  [#200](https://github.com/bensonlee5/tab-foundry/issues/200) remain historical
+  setup context, while issue [#202](https://github.com/bensonlee5/tab-foundry/issues/202)
+  plus issues [#205](https://github.com/bensonlee5/tab-foundry/issues/205),
+  [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and
+  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) now define the
+  trusted rerun and refactor path on the same benchmark contract.
 - TF-RD-010 still ranks rows by `final_bpc_at_matched_regime_budget`,
   treating BPC as the normalized log-loss view while calibration, runtime, and
-  stability remain guardrails, but the completed short-run package deferred all
-  rows rather than promoting a new carried front.
+  stability remain guardrails, but the reset state is now canonical until the
+  trusted reruns land on the corrected sandwich and training surface.
 - TF-RD-021 then decides whether any steering-derived dagzoo corpus front
   replaces the carried sandwich dagzoo training front before runtime/kernel
   tuning.
@@ -213,8 +215,8 @@ Parallel/later lanes are intentionally off that main path:
   many-class plus missingness gate rather than a blocker to the first scaling
   fit.
 - TF-RD-017 is the preferred side robustness lane during the many-class plus
-  missingness push now that TF-RD-010 has fixed the first carried contract, but
-  not a blocker for the first scaling fit.
+  missingness push now that TF-RD-010 has fixed the first carried contract,
+  but it is still not a blocker for the first scaling fit.
 - TF-RD-015 regression and TF-RD-012 inference handoff/later modalities remain
   later work.
 
@@ -226,10 +228,10 @@ Parallel/later lanes are intentionally off that main path:
 | Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed the new sandwich benchmark program | Freeze the benchmark-defined dagzoo training fronts, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe kernel/runtime policy on the carried sandwich dagzoo slice | `TF-RD-022` |
-| Benchmark-backed classification validation is the first completed anti-saturation slice | `implemented` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, and both TF-RD-010 sweeps executed with all rows deferred at the 400-step short-run budget | No contract-definition gap remains inside TF-RD-010; follow-on work moves to TF-RD-021 steering plus TF-RD-014 and TF-RD-017 robustness lanes on the fixed benchmark contract | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
+| Benchmark-backed classification validation contract is fixed, but trusted execution is reset | `partial` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, and successor issues [#202](https://github.com/bensonlee5/tab-foundry/issues/202), [#205](https://github.com/bensonlee5/tab-foundry/issues/205), [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and [#204](https://github.com/bensonlee5/tab-foundry/issues/204) now track the trusted rerun path | TF-RD-010 still needs trusted medium and large reruns before later lanes can inherit canonical benchmark evidence again | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains later missingness follow-up, while TF-RD-017 still needs an explicit side-lane imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
-| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata, and TF-RD-010 has fixed the first benchmark-defined classification contract | TF-RD-009 now waits on the TF-RD-021 steering decision and the TF-RD-022 runtime gate on that completed contract | `TF-RD-009`, `TF-RD-010`, `TF-RD-021`, `TF-RD-022` |
+| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata, and TF-RD-010 has fixed the first benchmark-defined classification contract | TF-RD-009 now waits on the TF-RD-010 trusted rerun, the TF-RD-021 steering decision, and the TF-RD-022 runtime gate on that contract | `TF-RD-009`, `TF-RD-010`, `TF-RD-021`, `TF-RD-022` |
 
 ## Current Implementation Baseline
 
@@ -272,24 +274,29 @@ Legacy wording note:
 
 ### TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target
 
-- Status: `completed`
-- Milestone: `Completed`
+- Status: `partial`
+- Milestone: `Next`
 - Goal: define the first benchmark-backed classification evaluation program for
   the evolved sandwich family using explicit hub-owned bundle policy rather
   than local fixture assumptions
 - Current state:
-  - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is the
-    epic for this lane, and issue
-    [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
-    execution issue; both now serve as historical handoff context for the
-    completed package
-  - completed child issues
+  - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) and issue
+    [#99](https://github.com/bensonlee5/tab-foundry/issues/99) now serve as
+    historical umbrella and execution context, while issue
+    [#202](https://github.com/bensonlee5/tab-foundry/issues/202) is the active
+    trusted-rerun umbrella
+  - historical child issues
     [#197](https://github.com/bensonlee5/tab-foundry/issues/197),
     [#198](https://github.com/bensonlee5/tab-foundry/issues/198),
     [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
     [#200](https://github.com/bensonlee5/tab-foundry/issues/200) define the
-    TF-RD-010 corpora, freeze the missing baselines, and execute the medium
-    and large validation packages
+    TF-RD-010 corpora and freeze the missing baselines; successor issues
+    [#205](https://github.com/bensonlee5/tab-foundry/issues/205) and
+    [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now own the
+    trusted medium and large reruns
+  - issue [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the
+    required sandwich refactor follow-up and lands before any trusted TF-RD-010
+    rerun is recorded as canonical evidence
   - `tab-realdata-hub` issue
     [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) is now the
     upstream dependency for medium and large classification validation bundles
@@ -304,7 +311,7 @@ Legacy wording note:
     benchmark-manifest output root, with the legacy local output ids
     `nanotabpfn_openml_classification_medium_v1` and
     `nanotabpfn_openml_classification_large_v1`
-- Completed outcomes:
+- What remains fixed:
   - `dagzoo` now owns the explicit TF-RD-010 control, MCAR, MAR, and MNAR
     corpora through `tf_rd_010_dagzoo_medium_control_v1`,
     `tf_rd_010_missingness_mcar_v1`, `tf_rd_010_missingness_mar_v1`, and
@@ -313,21 +320,28 @@ Legacy wording note:
     `cls_benchmark_linear_multiclass_medium_v1` and
     `cls_benchmark_linear_multiclass_large_v1` against the hub-backed medium
     and large manifests
-  - both benchmark sweeps executed on the evolved sandwich family, and all
-    eight completed rows deferred at the 400-step short-run budget
-  - MCAR produced the best BPC deltas on both rungs (`-2.5701` medium and
-    `-62725.0640` large), but it still failed stability guardrails and
-    degraded final ROC AUC, so this lane did not promote a missingness front
-  - later steering, runtime, imbalance, and missingness follow-up lanes now
-    inherit a fixed `dagzoo -> tab-realdata-hub -> tab-foundry` contract
-    instead of reopening benchmark definition
+  - the `dagzoo -> tab-realdata-hub -> tab-foundry` benchmark contract remains
+    fixed and does not need to be redefined
+- Reset state:
+  - the previously recorded medium and large sweep executions are invalidated by
+    later training and sandwich correctness fixes and are no longer canonical
+    evidence
+  - on-disk run directories, W&B runs, and old closed execution issues remain as
+    historical artifacts only
+  - the trusted rerun path now flows through issues
+    [#202](https://github.com/bensonlee5/tab-foundry/issues/202),
+    [#205](https://github.com/bensonlee5/tab-foundry/issues/205),
+    [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and
+    [#204](https://github.com/bensonlee5/tab-foundry/issues/204)
 - Exit criteria:
   - satisfied: the repo has one explicit medium-plus-large classification benchmark
-    program on the evolved sandwich family
+    contract on the evolved sandwich family
   - satisfied: the hub-backed classification contract is no longer only
     untested scaffolding on the first scaling path
-  - satisfied: later lanes can inherit a fixed dagzoo-to-hub benchmark
-    contract instead of reopening regime definition
+  - open: trusted medium and large reruns must re-establish canonical keep/defer
+    evidence on the corrected sandwich and training surface
+  - open: later lanes can inherit TF-RD-010 again only after those trusted
+    reruns land
 
 ### TF-RD-012: Inference Handoff And Later Modalities
 
@@ -576,16 +590,16 @@ Legacy wording note:
     successor synthetic-data epic after the first carried sandwich dagzoo
     many-class slice is established
   - TF-RD-020 already records the historical staged-control harder-front
-    winners, while TF-RD-010 now records the completed first sandwich dagzoo
-    carried slice
+    winners, while TF-RD-010 now records the fixed first sandwich benchmark
+    contract with trusted execution still pending
   - dagzoo issue
     [#246](https://github.com/bensonlee5/dagzoo/issues/246) now owns the
     upstream steering implementation, deterministic metadata, and
     coverage-movement diagnostics
 - Required work:
-  - reuse the completed TF-RD-010 carried sandwich many-class plus missingness
-    slice, and wait for dagzoo RD-008 to land enough of issue `#246` to make
-    steering fixed-seed reproducible and auditable
+  - reuse the TF-RD-010 carried sandwich many-class plus missingness contract
+    once the trusted rerun lands, and wait for dagzoo RD-008 to land enough of
+    issue `#246` to make steering fixed-seed reproducible and auditable
   - define one bounded first sweep under issue
     [#167](https://github.com/bensonlee5/tab-foundry/issues/167): one control
     row on the carried sandwich dagzoo slice plus `3-4` steering-derived
@@ -658,9 +672,9 @@ Legacy wording note:
   - the follow-on family is explicitly FiLM-conditioned, uses
     `sandwich_summary_tokens_per_axis=3`, raises `many_class_base` to `10`, and
     uses a direct multiclass head rather than reopening the staged line
-  - TF-RD-010 then executed the first benchmark program, with `dagzoo`
-    synthetic training fronts feeding `tab-realdata-hub` validation manifests
-    before steering, runtime, or scaling work continues
+  - TF-RD-010 then fixed the first benchmark program contract, with `dagzoo`
+    synthetic training fronts feeding `tab-realdata-hub` validation manifests,
+    while trusted execution is now being rerun on the corrected surface
 - Exit criteria:
   - satisfied: the repo has an explicit keep/defer decision that the sandwich
     architecture surface is adequate enough to move into benchmark-defined
@@ -702,9 +716,9 @@ Legacy wording note:
   - treat matched token budget as necessary but not sufficient; compare by
     matched regime budget using token budget, unique-task budget, fixed
     curriculum or SCM-mixture slice, and fixed task-complexity band
-  - reuse the completed TF-RD-010 benchmark contract, then finish the steering
-    decision under TF-RD-021 and the runtime policy under TF-RD-022 before
-    using scaling results as architecture evidence
+  - reuse the TF-RD-010 benchmark contract after the trusted rerun lands, then
+    finish the steering decision under TF-RD-021 and the runtime policy under
+    TF-RD-022 before using scaling results as architecture evidence
   - keep the other sandwich knobs frozen at the retained compact hybrid anchor
     values while fitting the first width-depth classification laws
   - use `final_bpc_at_matched_regime_budget` as the primary ranking objective

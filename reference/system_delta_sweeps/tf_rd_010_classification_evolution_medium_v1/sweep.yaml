@@ -1,9 +1,9 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_010_classification_evolution_medium_v1
 parent_sweep_id: tf_rd_021b_sandwich_feature_removal_v1
-status: completed
+status: ready
 complexity_level: classification_md
-anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
@@ -16,9 +16,12 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This completed TF-RD-010 medium sweep is the first benchmark-definition package
-    after TF-RD-016 closes via issue `#178`, executed through issues `#99`, `#197`,
-    `#199`, and `#200`.
+  - This TF-RD-010 medium sweep remains the active benchmark-definition package,
+    but its previously recorded execution was invalidated by later training and
+    sandwich correctness fixes; the trusted rerun now flows through issues `#202`,
+    `#205`, and `#204`.
+  - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup
+    context only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
     architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
@@ -34,12 +37,10 @@ anchor_surface:
     `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and
     `cls_benchmark_linear_multiclass_medium_v1` baseline id remain historical TF-RD-010
     identifiers for that broader classification pool.
-  - All four completed rows deferred at the 400-step short-run budget; MCAR improved
-    final BPC relative to the control anchor but degraded final log loss and final
-    ROC AUC, and every row failed the sweep stability guardrail.
-  - Keep the clean dagzoo control row as the medium anchor and carry any follow-on
-    attempts into TF-RD-021 steering or later higher-budget robustness work rather
-    than reopening this benchmark-definition package.
+  - The prior 400-step medium executions remain historical artifacts only and are
+    no longer canonical promotion or defer evidence.
+  - Keep the benchmark contract fixed while the successor rerun re-establishes
+    trusted medium evidence on the corrected sandwich and training surface.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
@@ -62,9 +63,10 @@ anchor_surface:
     upstream: Not applicable.
     anchor: Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`, materialized from `openml_classification_medium_v1.json`.
     interpretation: Keep the smaller hub-backed classification validation rung fixed
-      while the synthetic training front changes across rows.
+      while the synthetic training front reruns on the corrected sandwich and training
+      surface.
 anchor_context:
-  run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+  run_id: null
   experiment: cls_benchmark_sandwich_classification_evolution_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_v1
   model:
