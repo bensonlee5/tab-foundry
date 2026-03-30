@@ -22,6 +22,7 @@ answer:
 Use these alongside this page:
 
 - repo overview: [docs/what-is-tab-foundry.md](what-is-tab-foundry.md)
+- mathematical formulation: [docs/development/synthetic-prior-mission.md](development/synthetic-prior-mission.md)
 - research path: [docs/research-contributors.md](research-contributors.md)
 - ML engineering / infra path: [docs/ml-engineering.md](ml-engineering.md)
 - shared vocabulary: [docs/glossary.md](glossary.md)
@@ -35,6 +36,7 @@ Start here for a concise overview of the repo, what it produces, and how the
 main contributor paths fit together.
 
 - [docs/what-is-tab-foundry.md](what-is-tab-foundry.md)
+- [docs/development/synthetic-prior-mission.md](development/synthetic-prior-mission.md)
 
 ### Research Contributors
 

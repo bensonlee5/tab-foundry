@@ -6,7 +6,7 @@ architecture, repo structure, and compatibility boundaries.
 Use these alongside this page:
 
 - quickstart: `README.md`
-- dagzoo/sandwich mathematical formulation: `docs/development/synthetic-prior-mission.md`
+- problem formulation: `docs/development/synthetic-prior-mission.md`
 - workflow runbooks: `docs/workflows.md`
 - canonical roadmap: `docs/development/roadmap.md`
 - architecture reference: `docs/development/model-architecture.md`
