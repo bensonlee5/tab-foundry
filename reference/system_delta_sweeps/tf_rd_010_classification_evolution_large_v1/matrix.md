@@ -15,7 +15,7 @@ evidence.
 ## Locked Surface
 
 - Anchor run id: `null`
-- Benchmark manifest: `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`
+- Benchmark manifest: legacy local benchmark id `nanotabpfn_openml_classification_large_v1`, materialized from upstream bundle `openml_classification_large_v1.json`
 - Control baseline id: `cls_benchmark_linear_multiclass_large_v1`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_classification_evolution_v1`
