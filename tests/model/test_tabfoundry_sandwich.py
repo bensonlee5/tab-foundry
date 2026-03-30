@@ -880,6 +880,13 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_all_non_finite_targ
         _ = model.forward_cell_likelihood(batch)
 
 
+def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_num_classes_above_many_class_base() -> None:
+    model = _model(many_class_base=2)
+
+    with pytest.raises(RuntimeError, match="num_classes <= many_class_base=2"):
+        _ = model.forward_cell_likelihood(_batch(num_classes=3))
+
+
 def test_tabfoundry_sandwich_cell_bpc_honors_input_normalization() -> None:
     base_model = _model(input_normalization="none")
     normalized_model = _model(input_normalization="train_zscore_clip")

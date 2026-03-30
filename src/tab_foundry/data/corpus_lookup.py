@@ -14,6 +14,7 @@ from .corpus_loading import (
     _load_latest_pointer,
     _load_recipe_from_path,
     _optional_string,
+    _recipe_identity_payload,
     _recipe_storage_context,
     _repo_root,
     _sweep_recipe_paths,
@@ -82,26 +83,47 @@ def _record_matches_recipe(
     *,
     storage: CorpusRecipeStorageContext,
 ) -> bool:
+    expected_recipe_payload = _recipe_identity_payload(recipe)
     recorded_recipe_relative_path = _optional_string(record.get("recipe_relative_path"))
-    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is not None:
-        return recorded_recipe_relative_path == storage.recipe_relative_path
-    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is None:
-        return False
-
     recorded_recipe_identity = _optional_string(record.get("recipe_identity"))
+    raw_recorded_recipe = record.get("recipe")
+    recorded_recipe_payload = (
+        None
+        if not isinstance(raw_recorded_recipe, Mapping)
+        else {
+            str(key): value
+            for key, value in raw_recorded_recipe.items()
+            if str(key) != "recipe_path"
+        }
+    )
+    if recorded_recipe_relative_path is not None:
+        if storage.recipe_relative_path is None:
+            return False
+        if recorded_recipe_relative_path != storage.recipe_relative_path:
+            return False
+        if recorded_recipe_identity == storage.recipe_identity:
+            return True
+        return recorded_recipe_payload == expected_recipe_payload
+
     recorded_recipe_path = record.get("recipe_path")
     if not isinstance(recorded_recipe_path, str) or not recorded_recipe_path.strip():
         return False
     recipe_path_matches = (
         Path(recorded_recipe_path).expanduser().resolve() == recipe.recipe_path.expanduser().resolve()
     )
-    if recorded_recipe_identity is not None:
-        if recorded_recipe_identity == storage.recipe_identity:
-            return True
-        return recipe_path_matches
     if not recipe_path_matches:
         return False
-    return not storage.uses_scoped_identity
+    if storage.uses_scoped_identity and recorded_recipe_relative_path is None:
+        return False
+    if recorded_recipe_identity == storage.recipe_identity:
+        return True
+    if recorded_recipe_payload == expected_recipe_payload:
+        return True
+    return (
+        not storage.uses_scoped_identity
+        and recorded_recipe_identity is None
+        and recorded_recipe_relative_path is None
+    )
 
 
 def _load_record_from_latest_pointer(

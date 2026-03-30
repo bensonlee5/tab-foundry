@@ -728,6 +728,8 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
 
     def forward_cell_likelihood(self, batch: TaskBatch) -> CellLikelihoodOutput:
+        num_classes = self._task_num_classes(batch)
+        self._validate_num_classes(num_classes)
         x_all, y_train, y_test, train_test_split_index = self._prepare_task_inputs(batch)
         feature_type_ids = self._feature_type_ids_from_metadata(
             batch.metadata,
@@ -740,7 +742,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,
-            num_classes=self._task_num_classes(batch),
+            num_classes=num_classes,
             feature_type_ids=feature_type_ids,
         )
         feature_state = self._build_feature_state(raw_state)

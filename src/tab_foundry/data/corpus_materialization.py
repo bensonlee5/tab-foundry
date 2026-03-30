@@ -32,7 +32,12 @@ from .corpus_loading import (
     load_corpus_recipe,
 )
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
-from .dagzoo_handoff import load_dagzoo_handoff_info
+from .dagzoo_handoff import (
+    DagzooGeneratedIdentityAccumulator,
+    DagzooHandoffInfo,
+    load_dagzoo_handoff_info,
+    verify_dagzoo_handoff_matches_generated_corpus,
+)
 from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
 
 
@@ -71,6 +76,71 @@ def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in payload.items()
         if value is not None
     }
+
+
+def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdentityAccumulator:
+    resolved_generated_dir = generated_dir.expanduser().resolve()
+    metadata_paths = sorted(resolved_generated_dir.rglob("metadata.ndjson"))
+    if not metadata_paths:
+        raise RuntimeError(
+            "dagzoo generated directory does not contain metadata.ndjson: "
+            f"{resolved_generated_dir}"
+        )
+    scanned_identity = DagzooGeneratedIdentityAccumulator()
+    for metadata_path in metadata_paths:
+        for line_number, raw_line in enumerate(
+            metadata_path.read_text(encoding="utf-8").splitlines(),
+            start=1,
+        ):
+            if not raw_line.strip():
+                continue
+            try:
+                payload = json.loads(raw_line)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    "failed to parse dagzoo metadata record while verifying handoff: "
+                    f"path={metadata_path}, line={line_number}"
+                ) from exc
+            if not isinstance(payload, Mapping):
+                raise RuntimeError(
+                    "dagzoo metadata NDJSON record must decode to an object: "
+                    f"path={metadata_path}, line={line_number}"
+                )
+            dataset_index = payload.get("dataset_index")
+            metadata = payload.get("metadata")
+            if dataset_index is None:
+                raise RuntimeError(
+                    "dagzoo metadata record missing dataset_index while verifying handoff: "
+                    f"path={metadata_path}, line={line_number}"
+                )
+            if not isinstance(metadata, Mapping):
+                raise RuntimeError(
+                    "dagzoo metadata record missing object payload at key 'metadata' "
+                    f"while verifying handoff: path={metadata_path}, line={line_number}"
+                )
+            scanned_identity.add_metadata(
+                metadata,
+                metadata_path=metadata_path,
+                dataset_index=int(dataset_index),
+            )
+    return scanned_identity
+
+
+def _verified_invocation_handoff(
+    *,
+    corpus_root: Path,
+    spec: DagzooInvocationRecipe,
+) -> DagzooHandoffInfo:
+    _invocation_root, handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    handoff = load_dagzoo_handoff_info(handoff_manifest_path)
+    verify_dagzoo_handoff_matches_generated_corpus(
+        handoff,
+        scanned_identity=_scan_dagzoo_generated_identity(handoff.generated_dir),
+    )
+    return handoff
 
 
 def _invocation_paths(*, corpus_root: Path, invocation_id: str) -> tuple[Path, Path]:
@@ -324,12 +394,25 @@ def materialize_corpus_recipe(
                 corpus_root=stage_root,
                 spec=spec,
             )
-        generated_roots = [
-            load_dagzoo_handoff_info(
-                _invocation_paths(corpus_root=stage_root, invocation_id=spec.invocation_id)[1]
-            ).generated_dir
-            for spec in recipe.invocations
-        ]
+        if len(recipe.invocations) == 1:
+            single_handoff = load_dagzoo_handoff_info(
+                _invocation_paths(
+                    corpus_root=stage_root,
+                    invocation_id=recipe.invocations[0].invocation_id,
+                )[1]
+            )
+            generated_roots = [single_handoff.generated_dir]
+            dagzoo_handoff_manifest_path = single_handoff.handoff_manifest_path
+        else:
+            verified_handoffs = [
+                _verified_invocation_handoff(
+                    corpus_root=stage_root,
+                    spec=spec,
+                )
+                for spec in recipe.invocations
+            ]
+            generated_roots = [handoff.generated_dir for handoff in verified_handoffs]
+            dagzoo_handoff_manifest_path = None
         manifest_path = stage_root / "manifest.parquet"
         _ = build_manifest(
             data_roots=generated_roots,
@@ -338,6 +421,7 @@ def materialize_corpus_recipe(
             val_ratio=float(recipe.manifest_policy.val_ratio),
             filter_policy=str(recipe.manifest_policy.filter_policy),
             missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
+            dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
         )
         manifest_sha256 = sha256_path(manifest_path)
         corpus_id = corpus_id_for_manifest(

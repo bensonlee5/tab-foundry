@@ -525,6 +525,12 @@ def _stable_recipe_locator(
     return relative_path, relative_path
 
 
+def _recipe_identity_payload(recipe: CorpusRecipe) -> dict[str, Any]:
+    payload = recipe.to_dict()
+    payload.pop("recipe_path", None)
+    return payload
+
+
 def _recipe_storage_context(
     recipe: CorpusRecipe,
     *,
@@ -540,8 +546,18 @@ def _recipe_storage_context(
         global_recipe_path is None
         or global_recipe_path.expanduser().resolve() != resolved_recipe_path
     )
+    recipe_identity_payload = {
+        "locator": identity_source,
+        "recipe": _recipe_identity_payload(recipe),
+    }
     return CorpusRecipeStorageContext(
-        recipe_identity=sha256_text(identity_source)[:12],
+        recipe_identity=sha256_text(
+            json.dumps(
+                recipe_identity_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )[:12],
         recipe_relative_path=recipe_relative_path,
         uses_scoped_identity=uses_scoped_identity,
     )
