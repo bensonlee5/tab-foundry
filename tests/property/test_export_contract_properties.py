@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
 from tab_foundry.export.contracts import ExportModelSpec, InferenceConfig, validate_inference_config_dict
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.spec import (
@@ -117,7 +118,7 @@ def _valid_inference_payload(draw: st.DrawFn) -> tuple[dict[str, object], str | 
     return payload, expected_stage
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(case=_exportable_model_spec())
 def test_export_model_spec_roundtrips_supported_build_spec_fields(
     case: tuple[str, object],
@@ -130,7 +131,7 @@ def test_export_model_spec_roundtrips_supported_build_spec_fields(
     assert ExportModelSpec.from_build_spec(roundtrip_spec).to_dict() == export_spec.to_dict()
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(case=_valid_inference_payload())
 def test_validate_inference_config_dict_normalizes_supported_payloads(
     case: tuple[dict[str, object], str | None],
@@ -155,7 +156,7 @@ def test_validate_inference_config_dict_normalizes_supported_payloads(
     assert "quantile_levels" not in rendered
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(
     arch=st.sampled_from(SUPPORTED_MODEL_ARCHES),
     feature_group_size=st.integers(min_value=1, max_value=16),

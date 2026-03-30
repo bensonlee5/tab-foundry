@@ -7,7 +7,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from tests.data.manifest_and_dataset_cases import (
+from tests.support.manifest_and_dataset_cases import (
     _classification_arrays,
     _classification_metadata,
     _write_packed_shard,

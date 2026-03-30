@@ -4,13 +4,15 @@ from pathlib import Path
 import string
 import tempfile
 
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
 import tab_foundry.benchmark_registry as read_registry_module
 import tab_foundry.bench.registry.run_derivation as run_validation_module
 import tab_foundry.bench.registry.summary_metrics as summary_metrics_module
+from tests.support.hypothesis_profiles import HYPOTHESIS_CI
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
 
 
 _REL_PATH = st.text(
@@ -116,7 +118,7 @@ def _valid_run_entry(run_id: str = "run_001") -> dict[str, object]:
     }
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(rel_path=_REL_PATH)
 def test_registry_path_roundtrips_repo_relative_paths(
     rel_path: str,
@@ -131,7 +133,7 @@ def test_registry_path_roundtrips_repo_relative_paths(
         assert read_registry_module.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(rel_path=_REL_PATH)
 def test_registry_path_roundtrips_absolute_paths_outside_repo(
     rel_path: str,
@@ -148,7 +150,7 @@ def test_registry_path_roundtrips_absolute_paths_outside_repo(
         assert read_registry_module.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(value=st.one_of(st.none(), st.integers(), st.floats(allow_nan=False, allow_infinity=False, width=32)))
 def test_optional_finite_number_accepts_finite_numbers_or_none(value: int | float | None) -> None:
     resolved = summary_metrics_module.ensure_optional_finite_number(value, context="value")
@@ -158,14 +160,14 @@ def test_optional_finite_number_accepts_finite_numbers_or_none(value: int | floa
         assert resolved == float(value)
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(value=st.sampled_from([float("nan"), float("inf"), float("-inf")]))
 def test_optional_finite_number_rejects_nan_and_infinity(value: float) -> None:
     with pytest.raises(RuntimeError, match="must be finite when present"):
         _ = summary_metrics_module.ensure_optional_finite_number(value, context="value")
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     location=st.sampled_from(
         [
@@ -194,7 +196,7 @@ def test_validate_run_entry_rejects_missing_required_fields(
         run_validation_module.validate_run_entry(entry, run_id="run_001")
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(other_run_id=st.text(alphabet=string.ascii_letters + string.digits + "_-", min_size=1, max_size=16))
 def test_validate_run_entry_rejects_run_id_mismatch(other_run_id: str) -> None:
     entry = _valid_run_entry()

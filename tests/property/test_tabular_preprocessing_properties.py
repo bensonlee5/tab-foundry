@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra import numpy as hnp
 
+from tests.support.hypothesis_profiles import HYPOTHESIS_CI
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
@@ -85,7 +87,7 @@ def _all_nan_column_case(
     return x_train, y_train, x_test, y_test, col_idx, all_nan_fill
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(case=_regression_case())
 def test_regression_fit_apply_imputes_with_fitted_fill_values(
     case: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float],
@@ -127,7 +129,7 @@ def test_regression_fit_apply_imputes_with_fitted_fill_values(
     np.testing.assert_allclose(processed.y_test, y_test.astype(np.float32), atol=1.0e-6, rtol=1.0e-6)
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(case=_all_nan_column_case())
 def test_all_nan_train_columns_use_all_nan_fill(
     case: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, float],
@@ -169,7 +171,7 @@ def test_all_nan_train_columns_use_all_nan_fill(
     )
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(case=_classification_case())
 def test_classification_fit_apply_remaps_labels_and_filters_unseen_test_targets(
     case: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
@@ -207,7 +209,7 @@ def test_classification_fit_apply_remaps_labels_and_filters_unseen_test_targets(
         assert int(processed.y_test.max()) < processed.num_classes
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     task=st.sampled_from(("classification", "regression")),
     train_rows=st.integers(min_value=1, max_value=6),
@@ -228,7 +230,7 @@ def test_fit_preprocessor_rejects_mismatched_train_rows(
         _ = fit_fitted_preprocessor(task=task, x_train=x_train, y_train=y_train)
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     task=st.sampled_from(("classification", "regression")),
     train_rows=st.integers(min_value=1, max_value=6),

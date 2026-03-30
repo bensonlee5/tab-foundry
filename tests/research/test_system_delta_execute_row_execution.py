@@ -1,0 +1,19 @@
+from __future__ import annotations
+
+# ruff: noqa: F401
+
+from tests.support_research.system_delta_execute import (
+    test_archive_incomplete_train_dir_moves_partial_history_aside,
+    test_completed_train_artifacts_exist_accepts_prior_dump_alias_for_legacy_prior,
+    test_completed_train_artifacts_exist_accepts_stage_scoped_latest_checkpoint,
+    test_completed_train_artifacts_exist_rejects_backend_mismatch,
+    test_completed_train_artifacts_exist_rejects_missing_backend_marker,
+    test_completed_train_artifacts_exist_rejects_unsuccessful_telemetry,
+    test_resolve_training_backend_rejects_unsupported_source,
+    test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment,
+    test_run_row_requires_prior_dump_for_legacy_prior_rows,
+    test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows,
+    test_run_row_screen_only_updates_queue_without_benchmark,
+    test_run_row_uses_manifest_trainer_for_manifest_rows,
+    test_run_row_uses_prior_dump_trainer_for_prior_dump_rows,
+)

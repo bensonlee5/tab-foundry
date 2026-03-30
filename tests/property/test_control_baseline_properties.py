@@ -5,11 +5,13 @@ from pathlib import Path
 import string
 import tempfile
 
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
 import tab_foundry.control_baseline_registry as control_baseline_registry
+from tests.support.hypothesis_profiles import HYPOTHESIS_CI
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
 
 
 _REL_PATH = st.text(
@@ -64,7 +66,7 @@ def _write_registry(path: Path, *, baselines: dict[str, object], schema: str | N
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(rel_path=_REL_PATH)
 def test_control_baseline_paths_roundtrip_repo_relative_paths(rel_path: str) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -80,7 +82,7 @@ def test_control_baseline_paths_roundtrip_repo_relative_paths(rel_path: str) -> 
         assert control_baseline_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(rel_path=_REL_PATH)
 def test_control_baseline_paths_roundtrip_absolute_paths_outside_repo(rel_path: str) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -98,7 +100,7 @@ def test_control_baseline_paths_roundtrip_absolute_paths_outside_repo(rel_path: 
         assert control_baseline_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     location=st.sampled_from(
         [
@@ -123,7 +125,7 @@ def test_validate_baseline_entry_rejects_missing_required_fields(location: tuple
         control_baseline_registry._validate_baseline_entry(entry, baseline_id="baseline_v1")
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(other_baseline_id=st.text(alphabet=string.ascii_letters + string.digits + "_-", min_size=1, max_size=16))
 def test_validate_baseline_entry_rejects_baseline_id_mismatch(other_baseline_id: str) -> None:
     if other_baseline_id == "baseline_v1":
@@ -159,7 +161,7 @@ def test_load_control_baseline_entry_returns_deep_copy() -> None:
         assert reloaded["tab_foundry_metrics"]["final_roc_auc"] == pytest.approx(0.8)
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     mutation=st.sampled_from(
         [

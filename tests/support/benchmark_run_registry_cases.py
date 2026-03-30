@@ -14,8 +14,7 @@ import tab_foundry.data.corpus_lookup as corpus_lookup_module
 from tab_foundry.data.corpus_loading import CORPUS_LATEST_SCHEMA, CORPUS_RECORD_SCHEMA
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
+from tests.support.paths import REPO_ROOT
 
 
 def _write_checkpoint(

@@ -27,8 +27,7 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
+from tests.support.paths import REPO_ROOT
 
 
 def _build_model(task: str, model_cfg: dict[str, object]) -> torch.nn.Module:

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 import torch
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.extra import numpy as hnp
 
+from tests.support.hypothesis_profiles import HYPOTHESIS_STRESS
 from tab_foundry.input_normalization import (
     _CLIP_VALUE,
     _SMOOTH_TAIL_LIMIT,
@@ -66,7 +67,7 @@ def _train_and_two_tests(draw: st.DrawFn) -> tuple[np.ndarray, np.ndarray, np.nd
     return x_train, x_test_a, x_test_b
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays(), mode=st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES))
 def test_normalizers_preserve_shape_and_float32_dtype(
     data: tuple[np.ndarray, np.ndarray],
@@ -91,7 +92,7 @@ def test_normalizers_preserve_shape_and_float32_dtype(
     assert test_t.dtype == torch.float32
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays())
 def test_none_mode_matches_float32_cast_only(data: tuple[np.ndarray, np.ndarray]) -> None:
     x_train, x_test = data
@@ -109,7 +110,7 @@ def test_none_mode_matches_float32_cast_only(data: tuple[np.ndarray, np.ndarray]
     assert torch.equal(test_t, torch.from_numpy(np.asarray(x_test, dtype=np.float32)))
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(
     case=_train_and_two_tests(),
     mode=st.sampled_from(_MODES_WITH_TRAIN_STATS),
@@ -126,7 +127,7 @@ def test_train_normalization_depends_only_on_train_split(
     np.testing.assert_allclose(first_train, second_train, atol=1.0e-6, rtol=1.0e-6)
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(case=_constant_column_case(), mode=st.sampled_from(_MODES_WITH_TRAIN_STATS))
 def test_constant_train_columns_normalize_to_zero(
     case: tuple[np.ndarray, np.ndarray, int],
@@ -139,7 +140,7 @@ def test_constant_train_columns_normalize_to_zero(
     np.testing.assert_allclose(train_np[:, col_idx], np.zeros(x_train.shape[0], dtype=np.float32))
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays())
 def test_clipped_mode_stays_within_clip_bounds(data: tuple[np.ndarray, np.ndarray]) -> None:
     x_train, x_test = data
@@ -150,7 +151,7 @@ def test_clipped_mode_stays_within_clip_bounds(data: tuple[np.ndarray, np.ndarra
     assert float(np.max(np.abs(test_np))) <= _CLIP_VALUE + 1.0e-6
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays(), mode=st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES))
 def test_numpy_and_torch_normalizers_agree(
     data: tuple[np.ndarray, np.ndarray],
@@ -169,7 +170,7 @@ def test_numpy_and_torch_normalizers_agree(
     np.testing.assert_allclose(test_np, test_t.numpy(), atol=1.0e-5, rtol=1.0e-5)
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays())
 def test_rankgauss_output_bounded(data: tuple[np.ndarray, np.ndarray]) -> None:
     x_train, x_test = data
@@ -183,7 +184,7 @@ def test_rankgauss_output_bounded(data: tuple[np.ndarray, np.ndarray]) -> None:
     assert float(np.max(np.abs(test_np))) < 10.0
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays())
 def test_winsorize_clips_within_train_percentiles(data: tuple[np.ndarray, np.ndarray]) -> None:
     x_train, x_test = data
@@ -197,7 +198,7 @@ def test_winsorize_clips_within_train_percentiles(data: tuple[np.ndarray, np.nda
     assert np.all(np.isfinite(test_norm))
 
 
-@settings(deadline=None, max_examples=40)
+@HYPOTHESIS_STRESS
 @given(data=_train_test_arrays(), mode=st.sampled_from(("train_zscore_tanh", "train_robust_tanh")))
 def test_smooth_tail_modes_are_bounded(data: tuple[np.ndarray, np.ndarray], mode: str) -> None:
     x_train, x_test = data
