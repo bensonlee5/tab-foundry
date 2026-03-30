@@ -137,7 +137,7 @@ def _write_checkpoint(
 
 
 def _load_fixture(name: str) -> dict[str, object]:
-    fixture = Path(__file__).resolve().parent / "fixtures" / name
+    fixture = REPO_ROOT / "tests" / "export" / "fixtures" / name
     with fixture.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     assert isinstance(payload, dict)
