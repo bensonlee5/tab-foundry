@@ -214,7 +214,9 @@ def resolve_data_surface(
     if dagzoo_provenance_raw is None:
         dagzoo_provenance_raw = cfg.get("dagzoo_provenance")
     if corpus_record is not None:
-        dagzoo_provenance_raw = corpus_record.get("dagzoo_provenance")
+        dagzoo_provenance_raw = corpus_record.get("dagzoo_provenance_summary")
+        if dagzoo_provenance_raw is None:
+            dagzoo_provenance_raw = corpus_record.get("dagzoo_provenance")
     dagzoo_provenance = (
         None
         if dagzoo_provenance_raw is None

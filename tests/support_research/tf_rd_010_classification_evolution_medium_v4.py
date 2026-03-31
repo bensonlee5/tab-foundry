@@ -58,7 +58,7 @@ def test_tf_rd_010_classification_evolution_medium_v4_is_registered_and_medium_v
     assert entry["external_benchmarks"] == []
 
 
-def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_lr_pilot_contract() -> None:
+def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_lr_rerun_contract() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
@@ -72,9 +72,9 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert "medium_v3" in notes[0]
-    assert "batching/LR calibration pilot" in notes[0]
-    assert any("task_batch_size=8" in note for note in notes)
-    assert any("grad_accum_steps=8" in note for note in notes)
+    assert "active full medium rerun" in notes[0]
+    assert any("task_batch_size=16" in note for note in notes)
+    assert any("grad_accum_steps=4" in note for note in notes)
     assert any("optimizer.min_lr=1e-5" in note for note in notes)
     assert any("lr_max=1e-3" in note for note in notes)
 
@@ -86,10 +86,10 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert [row["decision"] for row in rows] == [None] * len(EXPECTED_ROWS)
     assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
     assert [row["data"]["corpus_ref"] for row in rows] == EXPECTED_CORPUS_REFS
-    assert "Execute only this row" in rows[0]["next_action"]
-    assert all("Do not execute this row yet" in row["next_action"] for row in rows[1:])
+    assert "Execute this anchor row first" in rows[0]["next_action"]
+    assert all("Execute this row after row 1 anchor promotion" in row["next_action"] for row in rows[1:])
     assert all(
-        any("task_batch_size=8" in note and "grad_accum_steps=8" in note for note in row["notes"])
+        any("task_batch_size=16" in note and "grad_accum_steps=4" in note for note in row["notes"])
         for row in rows
     )
     assert all(
@@ -106,10 +106,10 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
     assert all(row["training"]["overrides"]["runtime"]["max_steps"] == 2500 for row in materialized["rows"])
     assert all(
-        row["training"]["overrides"]["runtime"]["grad_accum_steps"] == 8
+        row["training"]["overrides"]["runtime"]["grad_accum_steps"] == 4
         for row in materialized["rows"]
     )
-    assert all(row["training"]["task_batch_size"] == 8 for row in materialized["rows"])
+    assert all(row["training"]["task_batch_size"] == 16 for row in materialized["rows"])
     assert all(
         row["training"]["overrides"]["optimizer"]["min_lr"] == 1.0e-5
         for row in materialized["rows"]
@@ -164,9 +164,9 @@ def test_tf_rd_010_classification_evolution_medium_v4_resolved_queue_captures_ru
     runtime = resolved_surface["runtime"]
     training = resolved_surface["training"]
     assert runtime["grad_clip"] == 0.0
-    assert runtime["grad_accum_steps"] == 8
+    assert runtime["grad_accum_steps"] == 4
     assert runtime["max_steps"] == 2500
-    assert training["task_batch_size"] == 8
+    assert training["task_batch_size"] == 16
     assert training["optimizer_min_lr"] == 1.0e-5
     assert training["schedule_stages"][0]["steps"] == 2500
     assert training["schedule_stages"][0]["lr_max"] == 1.0e-3
@@ -186,13 +186,13 @@ def test_tf_rd_010_classification_evolution_medium_v4_matrix_and_medium_v3_matri
     assert "Sweep status: `ready`" in v4_matrix
     assert "Anchor run id: `null`" in v4_matrix
     assert "Pending trusted rerun: no anchor is registered yet" in v4_matrix
-    assert "grad_accum_steps': 8" in v4_matrix
-    assert "task_batch_size=8" in v4_matrix
+    assert "grad_accum_steps': 4" in v4_matrix
+    assert "task_batch_size=16" in v4_matrix
     assert "optimizer.min_lr=1e-5" in v4_matrix
     assert "warmup_ratio=0.10" in v4_matrix
     assert "lr_max=1e-3" in v4_matrix
-    assert "This row is the only approved `medium_v4` execution until the pilot is reviewed." in v4_matrix
-    assert "Do not execute this row yet" in v4_matrix
+    assert "This row is the anchor row for the active `medium_v4` full rerun." in v4_matrix
+    assert "Execute this row after row 1 anchor promotion" in v4_matrix
 
     assert PREVIOUS_SWEEP_ID in v3_matrix
     assert "Sweep status: `superseded`" in v3_matrix

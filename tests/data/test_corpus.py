@@ -13,6 +13,7 @@ import tab_foundry.data.corpus_loading as corpus_loading_module
 import tab_foundry.data.corpus_lookup as corpus_lookup_module
 import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_loading import (
+    _generator_fingerprint,
     corpus_id_for_manifest,
     corpus_outputs_root,
     corpus_recipe_index_path,
@@ -139,6 +140,76 @@ def _write_recipe_registry(repo_root: Path) -> None:
                 "    seed: 1",
                 "    device: cpu",
                 "    hardware_policy: none",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_generator_recipe_registry(repo_root: Path) -> None:
+    recipe_root = repo_root / "reference" / "corpus_recipes"
+    recipe_root.mkdir(parents=True, exist_ok=True)
+    inputs = {
+        "invocation_dataset_counts": {
+            "benchmark_cpu": 1,
+            "default_medium": 2,
+            "large_shape": 1,
+        }
+    }
+    fingerprint, _module_path = _generator_fingerprint(
+        module_name="tab_foundry.data.corpus_generators.tf_rd_013",
+        callable_name="build_shape_aware_size_recipe",
+        inputs=inputs,
+    )
+    (recipe_root / "index.yaml").write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-index-v1",
+                "recipes:",
+                "  generated_recipe:",
+                "    path: generated_recipe.yaml",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (recipe_root / "generated_recipe.yaml").write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-v1",
+                "recipe_id: generated_recipe",
+                "kind: dagzoo_python_generated",
+                "description: Generated recipe fixture.",
+                "surface_label: generated_surface",
+                "manifest:",
+                "  train_ratio: 0.9",
+                "  val_ratio: 0.05",
+                "  filter_policy: include_all",
+                "  missing_value_policy: allow_any",
+                "provenance_labels:",
+                "  corpus_variant: generated_surface",
+                "  comparator_role: exploratory",
+                "generator:",
+                "  module: tab_foundry.data.corpus_generators.tf_rd_013",
+                "  callable: build_shape_aware_size_recipe",
+                "  inputs:",
+                "    invocation_dataset_counts:",
+                "      benchmark_cpu: 1",
+                "      default_medium: 2",
+                "      large_shape: 1",
+                f"  fingerprint: {fingerprint}",
+                "review_summary:",
+                "  config_refs:",
+                "  - configs/benchmark_cpu.yaml",
+                "  - configs/default.yaml",
+                "  - configs/benchmark_cuda_h100_large_shape.yaml",
+                "  invocation_count: 3",
+                "  manifest_record_count: 4",
+                "  invocation_dataset_counts:",
+                "    benchmark_cpu: 1",
+                "    default_medium: 2",
+                "    large_shape: 1",
             ]
         )
         + "\n",
@@ -530,6 +601,36 @@ def test_load_and_list_corpus_recipes(repo_tmp_path: Path) -> None:
     assert current.kind == "dagzoo_single_invocation"
     assert current.surface_label == "anchor_manifest_default"
     assert current.invocations[0].config_ref == "configs/default.yaml"
+
+
+def test_load_generator_backed_recipe_expands_checked_in_summary(repo_tmp_path: Path) -> None:
+    _write_generator_recipe_registry(repo_tmp_path)
+
+    recipe = load_corpus_recipe("generated_recipe", repo_root=repo_tmp_path)
+
+    assert recipe.kind == "dagzoo_python_generated"
+    assert recipe.generator is not None
+    assert recipe.generator["module"] == "tab_foundry.data.corpus_generators.tf_rd_013"
+    assert recipe.review_summary == {
+        "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/default.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+        ],
+        "invocation_count": 3,
+        "manifest_record_count": 4,
+        "invocation_dataset_counts": {
+            "benchmark_cpu": 1,
+            "default_medium": 2,
+            "large_shape": 1,
+        },
+    }
+    assert [invocation.invocation_id for invocation in recipe.invocations] == [
+        "benchmark_cpu",
+        "default_medium",
+        "large_shape",
+    ]
+    assert [invocation.num_datasets for invocation in recipe.invocations] == [1, 2, 1]
 
 
 def test_load_and_list_corpus_recipes_include_sweep_local_shadowing(repo_tmp_path: Path) -> None:
@@ -1325,6 +1426,20 @@ def test_resolve_data_surface_hydrates_corpus_ref(
     assert resolved.recipe_id == "current_recipe"
     assert resolved.manifest_path is not None and resolved.manifest_path.exists()
     assert resolved.allow_missing_values is True
+    assert resolved.dagzoo_provenance == {
+        "corpus_ref": resolved.corpus_ref,
+        "recipe_id": "current_recipe",
+        "corpus_id": resolved.corpus_id,
+        "recipe_kind": "dagzoo_single_invocation",
+        "surface_label": "anchor_manifest_default",
+        "corpus_variant": "current_corpus_default",
+        "comparator_role": "control",
+        "config_refs": ["configs/default.yaml"],
+        "provenance_labels": {
+            "corpus_variant": "current_corpus_default",
+            "comparator_role": "control",
+        },
+    }
 
 
 def test_resolve_data_surface_rejects_removed_row_cap_subsampling(

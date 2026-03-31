@@ -340,6 +340,8 @@ def test_build_training_surface_record_persists_corpus_identity(
     assert surface_record["data"]["recipe_id"] == "current_recipe"
     assert surface_record["data"]["corpus_id"] == record["corpus_id"]
     assert surface_record["data"]["corpus_record_path"] == record["corpus_record_path"]
+    assert surface_record["data"]["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+    assert "invocations" not in surface_record["data"]["dagzoo_provenance"]
 
 
 def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:

@@ -6,6 +6,8 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.data.corpus_loading import load_corpus_recipe
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECIPE_ROOT = REPO_ROOT / "reference" / "corpus_recipes"
@@ -36,6 +38,10 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     payload = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     assert isinstance(payload, dict)
     return payload
+
+
+def _load_recipe(recipe_id: str) -> dict[str, Any]:
+    return load_corpus_recipe(recipe_id, repo_root=REPO_ROOT).to_dict()
 
 
 def _grid_signature(
@@ -84,8 +90,8 @@ def _grid_signature(
         assert invocation["invocation_id"] == f"r{row_total:04d}_f{feature_count:02d}_c{class_count:02d}"
 
         if missingness is None:
-            assert "missing_rate" not in invocation
-            assert "missing_mechanism" not in invocation
+            assert invocation.get("missing_rate") is None
+            assert invocation.get("missing_mechanism") is None
         elif missingness == "mcar":
             assert invocation["missing_rate"] == 0.25
             assert invocation["missing_mechanism"] == "mcar"
@@ -125,12 +131,21 @@ def test_tf_rd_010_dagzoo_recipe_2500_v2_is_registered() -> None:
 
 
 def test_tf_rd_010_dagzoo_recipe_2500_v2_preserves_the_balanced_front_shape() -> None:
-    control = _load_yaml(RECIPE_ROOT / "tf_rd_010_dagzoo_medium_control_v2.yaml")
-    mcar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mcar_v2.yaml")
-    mar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mar_v2.yaml")
-    mnar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mnar_v2.yaml")
+    control_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_dagzoo_medium_control_v2.yaml")
+    mcar_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mcar_v2.yaml")
+    mar_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mar_v2.yaml")
+    mnar_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mnar_v2.yaml")
+    control = _load_recipe("tf_rd_010_dagzoo_medium_control_v2")
+    mcar = _load_recipe("tf_rd_010_missingness_mcar_v2")
+    mar = _load_recipe("tf_rd_010_missingness_mar_v2")
+    mnar = _load_recipe("tf_rd_010_missingness_mnar_v2")
 
-    for recipe in (control, mcar, mar, mnar):
+    for recipe, summary in (
+        (control, control_summary),
+        (mcar, mcar_summary),
+        (mar, mar_summary),
+        (mnar, mnar_summary),
+    ):
         assert recipe["provenance_labels"]["corpus_recipe_version"] == "v2"
         assert recipe["provenance_labels"]["synthetic_epoch_regime"] == (
             "one_epoch_159984_records_2500_steps"
@@ -140,6 +155,9 @@ def test_tf_rd_010_dagzoo_recipe_2500_v2_preserves_the_balanced_front_shape() ->
         assert recipe["provenance_labels"]["per_invocation_num_datasets"] == 1111
         assert "159984 manifest records/tasks" in recipe["description"]
         assert "2500-step regime" in recipe["description"]
+        assert summary["kind"] == "dagzoo_python_generated"
+        assert summary["review_summary"]["invocation_count"] == 144
+        assert summary["review_summary"]["manifest_record_count"] == 159984
 
     assert control["surface_label"] == "tf_rd_010_dagzoo_medium_control"
     assert mcar["surface_label"] == "tf_rd_010_missingness_mcar"

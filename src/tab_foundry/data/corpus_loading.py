@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import importlib
 import json
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Callable, Mapping, cast
 
 import yaml
 
-from tab_foundry.hashing import sha256_text
+from tab_foundry.hashing import sha256_path, sha256_text
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.timestamps import utc_now
 
@@ -20,9 +21,11 @@ CORPUS_RECORD_SCHEMA = "tab-foundry-corpus-record-v1"
 CORPUS_LATEST_SCHEMA = "tab-foundry-corpus-latest-v1"
 RECIPE_KIND_DAGZOO_SINGLE = "dagzoo_single_invocation"
 RECIPE_KIND_DAGZOO_MULTI = "dagzoo_multi_invocation_manifest"
+RECIPE_KIND_DAGZOO_PYTHON_GENERATED = "dagzoo_python_generated"
 _VALID_RECIPE_KINDS = {
     RECIPE_KIND_DAGZOO_SINGLE,
     RECIPE_KIND_DAGZOO_MULTI,
+    RECIPE_KIND_DAGZOO_PYTHON_GENERATED,
 }
 
 
@@ -219,10 +222,12 @@ class CorpusRecipe:
     manifest_policy: CorpusManifestPolicy
     invocations: tuple[DagzooInvocationRecipe, ...]
     provenance_labels: dict[str, Any]
+    generator: dict[str, Any] | None
+    review_summary: dict[str, Any] | None
     recipe_path: Path
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "schema": CORPUS_RECIPE_SCHEMA,
             "recipe_id": str(self.recipe_id),
             "kind": str(self.kind),
@@ -233,6 +238,11 @@ class CorpusRecipe:
             "invocations": [invocation.to_dict() for invocation in self.invocations],
             "recipe_path": str(self.recipe_path),
         }
+        if self.generator is not None:
+            payload["generator"] = _copy_jsonable(self.generator)
+        if self.review_summary is not None:
+            payload["review_summary"] = _copy_jsonable(self.review_summary)
+        return payload
 
 
 @dataclass(slots=True, frozen=True)
@@ -319,6 +329,164 @@ def _invocation_from_payload(
     )
 
 
+def _generator_fingerprint(
+    *,
+    module_name: str,
+    callable_name: str,
+    inputs: Mapping[str, Any],
+) -> tuple[str, Path]:
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise RuntimeError(f"failed to import corpus recipe generator module {module_name!r}") from exc
+    module_file = getattr(module, "__file__", None)
+    if not isinstance(module_file, str) or not module_file.strip():
+        raise RuntimeError(f"corpus recipe generator module {module_name!r} does not define __file__")
+    resolved_module_path = Path(module_file).expanduser().resolve()
+    fingerprint = sha256_text(
+        json.dumps(
+            {
+                "module": module_name,
+                "callable": callable_name,
+                "inputs": _copy_jsonable(inputs),
+                "module_sha256": sha256_path(resolved_module_path),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )[:12]
+    return fingerprint, resolved_module_path
+
+
+def _generator_callable(
+    *,
+    module_name: str,
+    callable_name: str,
+) -> Callable[..., Mapping[str, Any]]:
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise RuntimeError(f"failed to import corpus recipe generator module {module_name!r}") from exc
+    try:
+        generator = getattr(module, callable_name)
+    except AttributeError as exc:
+        raise RuntimeError(
+            f"corpus recipe generator module {module_name!r} does not define {callable_name!r}"
+        ) from exc
+    if not callable(generator):
+        raise RuntimeError(
+            f"corpus recipe generator target {module_name!r}.{callable_name} must be callable"
+        )
+    return cast(Callable[..., Mapping[str, Any]], generator)
+
+
+def _generator_invocation_payloads(
+    payload: Mapping[str, Any],
+    *,
+    recipe_id: str,
+) -> tuple[tuple[DagzooInvocationRecipe, ...], dict[str, Any], dict[str, Any]]:
+    generator_payload = _ensure_mapping(
+        payload.get("generator"),
+        context=f"recipe {recipe_id!r}.generator",
+    )
+    module_name = _ensure_non_empty_string(
+        generator_payload.get("module"),
+        context=f"recipe {recipe_id!r}.generator.module",
+    )
+    callable_name = _ensure_non_empty_string(
+        generator_payload.get("callable"),
+        context=f"recipe {recipe_id!r}.generator.callable",
+    )
+    inputs = _ensure_mapping(
+        generator_payload.get("inputs"),
+        context=f"recipe {recipe_id!r}.generator.inputs",
+    )
+    declared_fingerprint = _ensure_non_empty_string(
+        generator_payload.get("fingerprint"),
+        context=f"recipe {recipe_id!r}.generator.fingerprint",
+    )
+    computed_fingerprint, resolved_module_path = _generator_fingerprint(
+        module_name=module_name,
+        callable_name=callable_name,
+        inputs=inputs,
+    )
+    if declared_fingerprint != computed_fingerprint:
+        raise RuntimeError(
+            "generator fingerprint mismatch for "
+            f"recipe {recipe_id!r}: declared {declared_fingerprint!r}, computed {computed_fingerprint!r}"
+        )
+    declared_review_summary = _ensure_mapping(
+        payload.get("review_summary"),
+        context=f"recipe {recipe_id!r}.review_summary",
+    )
+    if "dagzoo" in payload or "invocations" in payload:
+        raise RuntimeError(
+            f"generator-backed recipe {recipe_id!r} must not define inline dagzoo/invocations payloads"
+        )
+    generated = _generator_callable(
+        module_name=module_name,
+        callable_name=callable_name,
+    )(
+        recipe_id=recipe_id,
+        description=_ensure_non_empty_string(
+            payload.get("description"),
+            context=f"recipe {recipe_id!r}.description",
+        ),
+        surface_label=_ensure_non_empty_string(
+            payload.get("surface_label"),
+            context=f"recipe {recipe_id!r}.surface_label",
+        ),
+        manifest=_copy_jsonable(_ensure_mapping(payload.get("manifest"), context=f"recipe {recipe_id!r}.manifest")),
+        provenance_labels=_copy_jsonable(
+            _ensure_mapping(payload.get("provenance_labels"), context=f"recipe {recipe_id!r}.provenance_labels")
+        ),
+        inputs=_copy_jsonable(inputs),
+        recipe_path=payload.get("recipe_path"),
+    )
+    if not isinstance(generated, Mapping):
+        raise RuntimeError(f"corpus recipe generator for {recipe_id!r} must return a mapping payload")
+    generated_review_summary = _ensure_mapping(
+        generated.get("review_summary"),
+        context=f"generated review summary for recipe {recipe_id!r}",
+    )
+    if generated_review_summary != declared_review_summary:
+        raise RuntimeError(
+            f"generated review_summary does not match checked-in summary for recipe {recipe_id!r}"
+        )
+    if "dagzoo" in generated:
+        dagzoo_payload = _ensure_mapping(
+            generated.get("dagzoo"),
+            context=f"generated dagzoo payload for recipe {recipe_id!r}",
+        )
+        invocations: tuple[DagzooInvocationRecipe, ...] = (
+            _invocation_from_payload(dagzoo_payload, default_invocation_id="default"),
+        )
+    else:
+        raw_invocations = generated.get("invocations")
+        if not isinstance(raw_invocations, list) or not raw_invocations:
+            raise RuntimeError(
+                f"corpus recipe generator for {recipe_id!r} must return a non-empty invocations list"
+            )
+        invocations = tuple(
+            _invocation_from_payload(
+                _ensure_mapping(item, context=f"generated invocations[{index}] for recipe {recipe_id!r}"),
+                default_invocation_id=f"invocation_{index + 1}",
+            )
+            for index, item in enumerate(raw_invocations)
+        )
+    return (
+        invocations,
+        {
+            "module": module_name,
+            "callable": callable_name,
+            "inputs": _copy_jsonable(inputs),
+            "fingerprint": declared_fingerprint,
+            "module_sha256": sha256_path(resolved_module_path),
+        },
+        declared_review_summary,
+    )
+
+
 def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> CorpusRecipe:
     schema = payload.get("schema")
     if schema != CORPUS_RECIPE_SCHEMA:
@@ -342,6 +510,8 @@ def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> Co
         payload.get("provenance_labels"),
         context=f"recipe {recipe_id!r}.provenance_labels",
     )
+    generator_summary: dict[str, Any] | None = None
+    review_summary: dict[str, Any] | None = None
     if kind == RECIPE_KIND_DAGZOO_SINGLE:
         dagzoo_payload = _ensure_mapping(
             payload.get("dagzoo"),
@@ -350,7 +520,7 @@ def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> Co
         invocations: tuple[DagzooInvocationRecipe, ...] = (
             _invocation_from_payload(dagzoo_payload, default_invocation_id="default"),
         )
-    else:
+    elif kind == RECIPE_KIND_DAGZOO_MULTI:
         raw_invocations = payload.get("invocations")
         if not isinstance(raw_invocations, list) or not raw_invocations:
             raise RuntimeError(f"recipe {recipe_id!r}.invocations must be a non-empty list")
@@ -361,6 +531,13 @@ def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> Co
             )
             for index, item in enumerate(raw_invocations)
         )
+    else:
+        generated_payload = dict(payload)
+        generated_payload["recipe_path"] = str(recipe_path.expanduser().resolve())
+        invocations, generator_summary, review_summary = _generator_invocation_payloads(
+            generated_payload,
+            recipe_id=recipe_id,
+        )
     return CorpusRecipe(
         recipe_id=recipe_id,
         kind=kind,
@@ -369,6 +546,8 @@ def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> Co
         manifest_policy=manifest_policy,
         invocations=invocations,
         provenance_labels=provenance_labels,
+        generator=generator_summary,
+        review_summary=review_summary,
         recipe_path=recipe_path.expanduser().resolve(),
     )
 

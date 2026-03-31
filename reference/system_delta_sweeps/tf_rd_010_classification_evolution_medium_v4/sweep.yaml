@@ -16,7 +16,7 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 medium successor sweep is the active batching/LR calibration pilot for the expanded one-epoch 2500-step regime. The preserved `tf_rd_010_classification_evolution_medium_v3` package is historical no-clipping evidence only after rows 1-3 hit very early best steps and then drifted badly; row 4 was intentionally stopped and that package should not be extended as canonical evidence.
+  - This TF-RD-010 medium successor sweep is the active full medium rerun for the expanded one-epoch 2500-step regime. The preserved `tf_rd_010_classification_evolution_medium_v3` package is historical no-clipping evidence only after rows 1-3 hit very early best steps and then drifted badly; row 4 was intentionally stopped and that package should not be extended as canonical evidence.
   - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
@@ -27,8 +27,8 @@ anchor_surface:
   - The medium validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and `cls_benchmark_linear_multiclass_medium_v1` baseline id remain historical TF-RD-010 identifiers for that broader classification pool.
   - 'Trusted executions now follow the expanded repo-default synthetic one-epoch policy for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps rather than the historical fixed 400-step, 3-step reset, or clipped medium_v2 contracts.'
   - The prior 400-step executions, the completed 3-step reset-contract rerun, and the completed clipped medium_v2 rerun remain historical artifacts only and are no longer the active execution path for promotion or defer evidence.
-  - Keep the benchmark contract fixed while this successor package tests exact-shape manifest batching plus a lower linear-decay learning-rate regime before any full medium rerun.
-  - The active pilot keeps `prior_dump_batch_size=64` and `runtime.grad_clip=0.0`, but now batches compatible manifest tasks with `task_batch_size=8` and `runtime.grad_accum_steps=8` so each optimizer update still covers `64` tasks under the same linear-decay schedule (`warmup_ratio=0.10`, `lr_max=1e-3`, `optimizer.min_lr=1e-5`).
+  - Keep the benchmark contract fixed while this successor package reruns the full medium ladder under exact-shape manifest batching plus the lower linear-decay learning-rate regime.
+  - The active rerun keeps `prior_dump_batch_size=64` and `runtime.grad_clip=0.0`, but now batches compatible manifest tasks with `task_batch_size=16` and `runtime.grad_accum_steps=4` so each optimizer update still covers `64` tasks under the same linear-decay schedule (`warmup_ratio=0.10`, `lr_max=1e-3`, `optimizer.min_lr=1e-5`).
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.

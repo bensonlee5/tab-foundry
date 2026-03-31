@@ -129,7 +129,7 @@ This is the canonical long-form evidence note for
   contract is preserved only as a superseded reference in
   `tf_rd_010_classification_evolution_large_v1`
 - the active large TF-RD-010 execution path is still defined by `large_v2`,
-  while the medium path now flows through the successor `medium_v4` pilot backed
+  while the medium path now flows through the successor `medium_v4` rerun backed
   by the shared `tf_rd_010_*_v2` corpus family
 - the preserved `medium_v3` no-clipping package is historical overfit evidence
   only: rows 1-3 reached very early best benchmark steps and then drifted
@@ -137,12 +137,12 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the active TF-RD-010 medium successor pilot under
-  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) still needs to
-  establish whether the `medium_v4` batching/LR patch removes the severe
-  early-best-step drift seen in `medium_v3` before any canonical medium-rung
-  evidence is recorded on the shared `tf_rd_010_*_v2` corpora and expanded
-  one-epoch `2500`-step synthetic contract
+- the active TF-RD-010 medium successor rerun under
+  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) now uses the
+  `task_batch_size=16`, `grad_accum_steps=4` contract and needs fresh four-row
+  evidence on the shared `tf_rd_010_*_v2` corpora to show that the batching/LR
+  patch removes the severe early-best-step drift seen in `medium_v3` under the
+  expanded one-epoch `2500`-step synthetic contract
 - the active TF-RD-010 large successor sweep under
   [#203](https://github.com/bensonlee5/tab-foundry/issues/203) still needs to
   establish canonical large-rung evidence on the refactored sandwich surface,
