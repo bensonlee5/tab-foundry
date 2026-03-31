@@ -13,6 +13,8 @@ from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_TABICLV2,
 )
 
+from .objective_metrics import objective_metric_from_run, preferred_drift_metric_keys
+
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
@@ -187,6 +189,9 @@ def queue_metrics(
         "max_grad_norm": max_grad_norm,
         "clipped_step_fraction": clipped_step_fraction(gradient_records),
     }
+    objective_metric = objective_metric_from_run(run_entry)
+    if objective_metric is not None:
+        metrics["objective_metric"] = objective_metric
     if primary_external_name is not None:
         metrics["primary_external_benchmark"] = primary_external_name
         metrics["primary_external_label"] = EXTERNAL_BENCHMARK_LABELS.get(
@@ -239,10 +244,11 @@ def queue_metrics(
         if value is not None:
             metrics[queue_key] = value
 
-    if metrics.get("final_minus_best_bpc") is not None:
-        metrics["drift"] = metrics["final_minus_best_bpc"]
-    elif metrics.get("final_minus_best_roc_auc") is not None:
-        metrics["drift"] = metrics["final_minus_best_roc_auc"]
+    for drift_key in preferred_drift_metric_keys(objective_metric):
+        drift_value = metrics.get(drift_key)
+        if drift_value is not None:
+            metrics["drift"] = drift_value
+            break
     if metrics.get("primary_external_best_roc_auc") is not None:
         metrics["primary_external_best"] = metrics["primary_external_best_roc_auc"]
     if metrics.get("primary_external_final_roc_auc") is not None:

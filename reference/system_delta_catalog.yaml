@@ -4708,7 +4708,7 @@ deltas:
       default_plan:
         - Keep the evolved sandwich architecture fixed at FiLM plus `sandwich_summary_tokens_per_axis=3` with the direct multiclass head.
         - Treat `dagzoo` as the synthetic training owner and `tab-realdata-hub` as the validation-manifest owner.
-        - Rank rows by `final_bpc_at_matched_regime_budget`, with raw log loss, calibration, runtime, and stability reported as guardrails.
+        - Rank rows by `final_log_loss_at_matched_regime_budget`, with calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics reported as guardrails.
       default_negative_decision: defer
       reject_requires:
         - isolated_change
@@ -4739,7 +4739,7 @@ deltas:
     adequacy_knobs:
       - explicit MCAR provenance in the dagzoo training front
       - fixed medium and large hub-owned validation manifests
-      - BPC/log-loss ranking under the direct multiclass head contract
+      - natural-log CE/log-loss ranking under the direct multiclass head contract
     parameter_adequacy_policy:
       default_plan:
         - Compare against the TF-RD-010 control corpus before preferring any missingness variant.
@@ -4775,7 +4775,7 @@ deltas:
     adequacy_knobs:
       - explicit MAR provenance in the dagzoo training front
       - fixed medium and large hub-owned validation manifests
-      - BPC/log-loss ranking under the direct multiclass head contract
+      - natural-log CE/log-loss ranking under the direct multiclass head contract
     parameter_adequacy_policy:
       default_plan:
         - Compare against the TF-RD-010 control corpus plus the MCAR and MNAR rows before preferring structured missingness.
@@ -4811,7 +4811,7 @@ deltas:
     adequacy_knobs:
       - explicit MNAR provenance in the dagzoo training front
       - fixed medium and large hub-owned validation manifests
-      - BPC/log-loss ranking under the direct multiclass head contract
+      - natural-log CE/log-loss ranking under the direct multiclass head contract
     parameter_adequacy_policy:
       default_plan:
         - Compare against the TF-RD-010 control corpus plus the MCAR and MAR rows before preferring the strongest self-masking option.

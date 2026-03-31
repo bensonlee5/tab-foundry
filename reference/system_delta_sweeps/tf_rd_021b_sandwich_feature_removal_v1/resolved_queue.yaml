@@ -1,0 +1,1187 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_021b_sandwich_feature_removal_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/matrix.md
+sweep_id: tf_rd_021b_sandwich_feature_removal_v1
+parent_sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
+sweep_status: completed
+complexity_level: binary_md
+anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_hybrid_prior
+training_config_profile: cls_benchmark_sandwich_hybrid_prior
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This completed `#184` sweep ran the four-row TF-RD-021B removal-first follow-up
+    on top of the locked compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`.
+  - The package tested `sandwich_self_attention_per_cross=0`, `sandwich_ff_expansion=1`,
+    both together, and both together plus `sandwich_summary_tokens_per_axis=1` without
+    adding new zero-valued FF or summary semantics.
+  - Do not rerun `sandwich_pre_row_attention_layers=0` or `sandwich_pre_column_attention_layers=0`;
+    the completed TF-RD-021B knob screen already supplied negative evidence for those
+    removals.
+  - Keep the medium binary bundle, prior-dump data surface, `runtime_default` preprocessing,
+    `prior_cosine_warmup` recipe, and `2500`-step budget fixed across all rows.
+  - All four completed rows underperformed the locked compact hybrid control on final
+    log loss and final ROC AUC, so this pass did not promote a simplified variant.
+  - The smallest removal-first package (`sandwich_self_attention_per_cross=0`, `sandwich_ff_expansion=1`,
+    `sandwich_summary_tokens_per_axis=1`) recovered meaningful training-time savings,
+    but not enough quality to replace the anchor.
+  - The repo therefore keeps the current compact hybrid anchor and its existing non-shape
+    defaults for follow-on dagzoo, missingness, and scaling-prep work.
+  - Only reopen local sandwich simplification if harder-surface evidence justifies
+    it; this pass closes the bounded removal-first package without promotion.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `openml_binary_medium` (10 tasks) with data surface label
+      `prior_dump`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+  experiment: cls_benchmark_sandwich_hybrid_prior
+  config_profile: cls_benchmark_sandwich_hybrid_prior
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: prior_dump
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_021b_sandwich_selfattn0_v1
+  status: completed
+  rationale: Replace the earlier self-attention-depth shrink row with a true removal-first
+    read on the locked compact hybrid control.
+  hypothesis: If stage-0 full-cell access and the final readout carry most of the
+    gain, setting `sandwich_self_attention_per_cross=0` should be only weakly harmful.
+  anchor_delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross`
+    from `4` to `0`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Treat this as the removal-first replacement for the earlier self-attention-depth
+    ablation.
+  - If the drop is weak, prefer removing this feature entirely rather than retaining
+    a reduced nonzero count.
+  execution_policy: benchmark_full
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep the
+    compact hybrid anchor and do not promote this row.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1`.
+  - This row underperformed the locked sweep anchor on final log loss and final ROC
+    AUC; keep the compact hybrid anchor and do not promote this row.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2375
+    max_grad_norm: 4.0695672035217285
+    clipped_step_fraction: 0.0124
+    best_log_loss: 0.48520637486441826
+    final_log_loss: 0.48645964753108917
+    best_brier_score: 0.32073816251754694
+    final_brier_score: 0.3220397636884507
+    best_roc_auc: 0.7077978703160934
+    final_roc_auc: 0.7042552494015691
+    final_minus_best_log_loss: 0.0012532726666709126
+    final_minus_best_brier_score: 0.0013016011709037767
+    final_minus_best_roc_auc: -0.003542620914524286
+    drift: -0.003542620914524286
+    delta_final_log_loss: 0.01926679797266495
+    delta_final_brier_score: 0.014811897976044652
+    delta_final_roc_auc: -0.03278606673920226
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_sensitivity
+  binary_applicable: true
+  description: Remove latent self-attention refinement entirely between cross-attention
+    reads while keeping the compact control otherwise fixed.
+  upstream_delta: The hybrid successor added repeated latent self-refinement between
+    cross-attention segments; this row tests whether that feature can be removed outright.
+  entangled_legacy_stage: none
+  expected_effect: If the structural gain comes from stage-0 full-cell access and
+    dual readout more than from latent recycling, removing the self-attention stack
+    may be only weakly harmful.
+  adequacy_knobs:
+  - Keep stage count, latent count, and FF expansion fixed so this row isolates removal
+    of the latent self-refinement feature.
+  - Compare directly against the compact control before collapsing self-attention
+    depth into later frozen defaults.
+  parameter_adequacy_policy:
+    default_plan:
+    - Treat this as the removal-first replacement for the earlier self-attention-depth
+      ablation.
+    - If the drop is weak, prefer removing this feature entirely rather than retaining
+      a reduced nonzero count.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: prior_dump
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 2
+      build_spec:
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 2
+        d_col: 128
+        d_icl: 60
+        tfcol_n_heads: 8
+        tfcol_n_layers: 3
+        tfcol_n_inducing: 128
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 4
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        tficl_ff_expansion: 2
+        head_hidden_dim: 96
+        use_digit_position_embed: true
+        stage: null
+        stage_label: null
+        module_overrides: null
+        staged_dropout: 0.0
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        task: classification
+        arch: tabfoundry_sandwich
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 4
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 0
+    data:
+      surface_label: prior_dump
+      source: prior_dump
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: null
+      recipe_id: null
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: prior_dump
+        manifest_path: null
+        surface_label: prior_dump
+        corpus_ref: null
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: cell_bpc
+      apply_schedule: true
+      task_batch_size: 1
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 0.004
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.004
+        lr_schedule: cosine
+        warmup_ratio: 0.05
+      overrides: {}
+      legacy_prior:
+        non_finite_policy: error
+        batch_size: 32
+        lr_scale_rule: none
+        batch_reference_size: 32
+        effective_lr_scale_factor: null
+      backend: legacy_prior
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 6513e32bb33fce1b84393696ab13ffe0dd13a0dc48f67efe0407324b30e2b00e
+- order: 2
+  delta_id: delta_tf_rd_021b_sandwich_ffexp1_v1
+  status: completed
+  rationale: Measure the smallest currently supported retained feed-forward setting
+    before combining it with wider removal candidates.
+  hypothesis: If extra trunk MLP capacity is mostly surplus on the compact hybrid
+    control, collapsing `sandwich_ff_expansion` from `2` to `1` should remain bounded.
+  anchor_delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion`
+    from `2` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Treat this as the minimal retained FF form for the removal-first follow-up.
+  - Do not add `sandwich_ff_expansion=0` in this pass; freeze work can only choose
+    between the anchor and the supported `=1` contraction.
+  execution_policy: benchmark_full
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep the
+    compact hybrid anchor and do not promote this row.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
+  - This row underperformed the locked sweep anchor on final log loss and final ROC
+    AUC; keep the compact hybrid anchor and do not promote this row.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2475
+    max_grad_norm: 13.200143814086914
+    clipped_step_fraction: 0.0204
+    best_log_loss: 0.4928854618963777
+    final_log_loss: 0.4931857252487455
+    best_brier_score: 0.3286325601109759
+    final_brier_score: 0.328904300617587
+    best_roc_auc: 0.7083812008656195
+    final_roc_auc: 0.7082477454391822
+    final_minus_best_log_loss: 0.0003002633523677689
+    final_minus_best_brier_score: 0.0002717405066111067
+    final_minus_best_roc_auc: -0.00013345542643727892
+    drift: -0.00013345542643727892
+    delta_final_log_loss: 0.02599287569032127
+    delta_final_brier_score: 0.021676434905180952
+    delta_final_roc_auc: -0.028793570701589166
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_sensitivity
+  binary_applicable: true
+  description: Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while
+    keeping the compact control otherwise fixed.
+  upstream_delta: FF expansion is one of the simplest capacity axes to simplify before
+    introducing broader scaling laws.
+  entangled_legacy_stage: none
+  expected_effect: If most of the current gain comes from attention structure rather
+    than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
+  adequacy_knobs:
+  - Keep latent count, stage count, and summary-token count fixed so this row isolates
+    FF capacity.
+  - Compare directly against the compact control before treating FF expansion as a
+    live scaling axis.
+  parameter_adequacy_policy:
+    default_plan:
+    - Treat this as the FF-capacity ablation in the first bounded sandwich screen.
+    - Freeze FF expansion to the simpler value if the ablation is clearly low-impact.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: prior_dump
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 2
+      build_spec:
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 2
+        d_col: 128
+        d_icl: 60
+        tfcol_n_heads: 8
+        tfcol_n_layers: 3
+        tfcol_n_inducing: 128
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 4
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        tficl_ff_expansion: 2
+        head_hidden_dim: 96
+        use_digit_position_embed: true
+        stage: null
+        stage_label: null
+        module_overrides: null
+        staged_dropout: 0.0
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        task: classification
+        arch: tabfoundry_sandwich
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 4
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 1
+        self_attention_per_cross: 4
+    data:
+      surface_label: prior_dump
+      source: prior_dump
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: null
+      recipe_id: null
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: prior_dump
+        manifest_path: null
+        surface_label: prior_dump
+        corpus_ref: null
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: cell_bpc
+      apply_schedule: true
+      task_batch_size: 1
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 0.004
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.004
+        lr_schedule: cosine
+        warmup_ratio: 0.05
+      overrides: {}
+      legacy_prior:
+        non_finite_policy: error
+        batch_size: 32
+        lr_scale_rule: none
+        batch_reference_size: 32
+        effective_lr_scale_factor: null
+      backend: legacy_prior
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: e2df1e335a608ffa9a3f50770af61b322fefedb1c1a7f3f4a5689f6715450845
+- order: 3
+  delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
+  status: completed
+  rationale: Test the first compound removal package after the isolated self-attention
+    removal row while keeping summary-token multiplicity fixed.
+  hypothesis: If the hybrid path is structurally adequate already, combining self-attention
+    removal with `sandwich_ff_expansion=1` may preserve most of the fit while simplifying
+    the trunk materially.
+  anchor_delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross`
+    from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Use this as the first compound removal candidate after the isolated removal row.
+  - Prefer this row over the anchor only if the combined simplification remains bounded
+    on final quality and stability.
+  execution_policy: benchmark_full
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep the
+    compact hybrid anchor and do not promote this row.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1`.
+  - This row underperformed the locked sweep anchor on final log loss and final ROC
+    AUC; keep the compact hybrid anchor and do not promote this row.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2475
+    max_grad_norm: 9.189810752868652
+    clipped_step_fraction: 0.0212
+    best_log_loss: 0.5191782391798194
+    final_log_loss: 0.5193674811074734
+    best_brier_score: 0.3489958047535241
+    final_brier_score: 0.34920000281649255
+    best_roc_auc: 0.6832086755783016
+    final_roc_auc: 0.6828093800985633
+    final_minus_best_log_loss: 0.00018924192765401582
+    final_minus_best_brier_score: 0.00020419806296845255
+    final_minus_best_roc_auc: -0.00039929547973827084
+    drift: -0.00039929547973827084
+    delta_final_log_loss: 0.05217463154904922
+    delta_final_brier_score: 0.04197213710408648
+    delta_final_roc_auc: -0.054231936042208106
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_sensitivity
+  binary_applicable: true
+  description: Remove latent self-attention refinement and collapse feed-forward expansion
+    to 1x while keeping the compact control otherwise fixed.
+  upstream_delta: After the completed single-knob screen, this row tests whether the
+    simplest acceptable parent can remove the self-refinement feature and retain only
+    minimal trunk MLP expansion.
+  entangled_legacy_stage: none
+  expected_effect: If the hybrid path is structurally adequate already, combining
+    self-attention removal with 1x FF expansion may preserve most of the fit while
+    simplifying the trunk materially.
+  adequacy_knobs:
+  - Keep summary-token multiplicity fixed so this row reads removal of latent refinement
+    plus minimal FF capacity only.
+  - Compare directly against the compact control before carrying this compound simplification
+    into harder-surface work.
+  parameter_adequacy_policy:
+    default_plan:
+    - Use this as the first compound removal candidate after the isolated removal
+      row.
+    - Prefer this row over the anchor only if the combined simplification remains
+      bounded on final quality and stability.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: prior_dump
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 2
+      build_spec:
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 2
+        d_col: 128
+        d_icl: 60
+        tfcol_n_heads: 8
+        tfcol_n_layers: 3
+        tfcol_n_inducing: 128
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 4
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        tficl_ff_expansion: 2
+        head_hidden_dim: 96
+        use_digit_position_embed: true
+        stage: null
+        stage_label: null
+        module_overrides: null
+        staged_dropout: 0.0
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        task: classification
+        arch: tabfoundry_sandwich
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 4
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 1
+        self_attention_per_cross: 0
+    data:
+      surface_label: prior_dump
+      source: prior_dump
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: null
+      recipe_id: null
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: prior_dump
+        manifest_path: null
+        surface_label: prior_dump
+        corpus_ref: null
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: cell_bpc
+      apply_schedule: true
+      task_batch_size: 1
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 0.004
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.004
+        lr_schedule: cosine
+        warmup_ratio: 0.05
+      overrides: {}
+      legacy_prior:
+        non_finite_policy: error
+        batch_size: 32
+        lr_scale_rule: none
+        batch_reference_size: 32
+        effective_lr_scale_factor: null
+      backend: legacy_prior
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 8604e7c6891f92389c577fa0a8aeedc206a6affcb687f72a2ba3158018a183c1
+- order: 4
+  delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
+  status: completed
+  rationale: Test the smallest currently supported removal-first parent before any
+    manual freeze decision is made.
+  hypothesis: If the hybrid architecture mainly needs the stage-0 full-cell path and
+    the final cell-stream readout, this compound simplification may preserve bounded
+    quality with the smallest remaining nonzero summary and FF settings.
+  anchor_delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross`
+    from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis`
+    from `4` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 1
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Use this as the smallest currently supported parent in the TF-RD-021B removal-first
+    screen.
+  - If this row is close enough to the anchor, the later freeze should prefer it over
+    larger retained-feature variants.
+  execution_policy: benchmark_full
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep the
+    compact hybrid anchor and do not promote this row.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1`.
+  - This was the smallest simplification package and the fastest row in the sweep,
+    but it still underperformed the locked sweep anchor; keep the compact hybrid anchor
+    and do not promote this row.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2450
+    max_grad_norm: 4.532970905303955
+    clipped_step_fraction: 0.0188
+    best_log_loss: 0.4936636211257254
+    final_log_loss: 0.494719909828638
+    best_brier_score: 0.3258566902835209
+    final_brier_score: 0.3269346732654667
+    best_roc_auc: 0.704194139824862
+    final_roc_auc: 0.7052832467160178
+    final_minus_best_log_loss: 0.0010562887029125778
+    final_minus_best_brier_score: 0.0010779829819458353
+    final_minus_best_roc_auc: 0.0010891068911558222
+    drift: 0.0010891068911558222
+    delta_final_log_loss: 0.027527060270213788
+    delta_final_brier_score: 0.019706807553060646
+    delta_final_roc_auc: -0.031758069424753566
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_sensitivity
+  binary_applicable: true
+  description: Remove latent self-attention refinement, collapse feed-forward expansion
+    to 1x, and reduce summary-token multiplicity to 1 while keeping the compact control
+    otherwise fixed.
+  upstream_delta: This is the smallest removal-first parent expressible on the current
+    sandwich surface without adding new zero-valued FF or summary-token semantics.
+  entangled_legacy_stage: none
+  expected_effect: If the hybrid architecture mainly needs the stage-0 full-cell path
+    and the final cell-stream readout, this compound simplification may preserve bounded
+    quality with the smallest remaining nonzero summary/FF settings.
+  adequacy_knobs:
+  - Treat this as the lower bound of the current expressible removal-first simplification
+    package.
+  - Compare directly against both the anchor and the simpler compound row before freezing
+    any defaults.
+  parameter_adequacy_policy:
+    default_plan:
+    - Use this as the smallest currently supported parent in the TF-RD-021B removal-first
+      screen.
+    - If this row is close enough to the anchor, the later freeze should prefer it
+      over larger retained-feature variants.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: prior_dump
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 2
+      build_spec:
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 2
+        d_col: 128
+        d_icl: 60
+        tfcol_n_heads: 8
+        tfcol_n_layers: 3
+        tfcol_n_inducing: 128
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 4
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        tficl_ff_expansion: 2
+        head_hidden_dim: 96
+        use_digit_position_embed: true
+        stage: null
+        stage_label: null
+        module_overrides: null
+        staged_dropout: 0.0
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 1
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        task: classification
+        arch: tabfoundry_sandwich
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 1
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 1
+        self_attention_per_cross: 0
+    data:
+      surface_label: prior_dump
+      source: prior_dump
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: null
+      recipe_id: null
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: prior_dump
+        manifest_path: null
+        surface_label: prior_dump
+        corpus_ref: null
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: cell_bpc
+      apply_schedule: true
+      task_batch_size: 1
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 0.004
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.004
+        lr_schedule: cosine
+        warmup_ratio: 0.05
+      overrides: {}
+      legacy_prior:
+        non_finite_policy: error
+        batch_size: 32
+        lr_scale_rule: none
+        batch_reference_size: 32
+        effective_lr_scale_factor: null
+      backend: legacy_prior
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 669968270ae99c94721d23699b2dcfcd1291c53f1016101bc3a8550fec7ba3dc
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
+inputs_fingerprint: 0da8444c8e61d0ff741d0b54ad1bf3c9cd403074cb9489f12bc714839bed395d

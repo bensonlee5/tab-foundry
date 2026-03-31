@@ -40,6 +40,11 @@ from . import training_state as _training_state
 from .artifacts import ExecutionPaths
 from .configuration import compose_cfg, resolve_training_backend, row_id_for_order
 from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS, SweepPayload
+from .objective_metrics import (
+    first_present_metric_key,
+    objective_metric_from_run,
+    preferred_final_metric_keys,
+)
 from .queue_updates import optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .reporting import result_card_text, write_research_package
 from .runtime_env import ensure_nanotabpfn_python
@@ -520,20 +525,19 @@ def run_row(
         conclusion=conclusion,
     )
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
-    final_metric_label = "final_bpc"
-    final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_log_loss"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_crps"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_roc_auc"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
+    objective_metric = objective_metric_from_run(run_entry)
+    final_metric_label = first_present_metric_key(
+        tab_foundry_summary,
+        preferred_final_metric_keys(objective_metric),
+    )
+    final_metric_value = (
+        None
+        if final_metric_label is None
+        else optional_metric(tab_foundry_summary, final_metric_label)
+    )
     final_metric_text = (
         f"{final_metric_label}={final_metric_value:.4f}"
-        if final_metric_value is not None
+        if final_metric_label is not None and final_metric_value is not None
         else "final_metric=n/a"
     )
     print(

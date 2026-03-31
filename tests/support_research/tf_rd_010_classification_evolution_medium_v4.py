@@ -77,6 +77,8 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert any("grad_accum_steps=4" in note for note in notes)
     assert any("optimizer.min_lr=1e-5" in note for note in notes)
     assert any("lr_max=1e-3" in note for note in notes)
+    assert any("final_log_loss_at_matched_regime_budget" in note for note in notes)
+    assert any("training.loss_surface=classification" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -86,15 +88,25 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert [row["decision"] for row in rows] == [None] * len(EXPECTED_ROWS)
     assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
     assert [row["data"]["corpus_ref"] for row in rows] == EXPECTED_CORPUS_REFS
-    assert "Execute this anchor row first" in rows[0]["next_action"]
-    assert all("Execute this row after row 1 anchor promotion" in row["next_action"] for row in rows[1:])
+    assert "Retune the active model" in rows[0]["next_action"]
+    assert "do not extend the stopped CE CPU pilot further" in rows[0]["next_action"]
+    assert all("Hold this row until the control-row retune closes" in row["next_action"] for row in rows[1:])
     assert all(
         any("task_batch_size=16" in note and "grad_accum_steps=4" in note for note in row["notes"])
         for row in rows
     )
     assert all(
+        any("training.loss_surface=classification" in note for note in row["notes"])
+        for row in rows
+    )
+    assert all(
         any("medium_v3" in note and "historical no-clipping evidence only" in note for note in row["notes"])
         for row in rows
+    )
+    assert any("step `1324`" in note and "step_001200.pt" in note for note in rows[0]["notes"])
+    assert all(
+        any("stays on hold until the stopped CE control-row pilot is replaced" in note for note in row["notes"])
+        for row in rows[1:]
     )
 
     materialized = load_system_delta_queue(
@@ -167,6 +179,7 @@ def test_tf_rd_010_classification_evolution_medium_v4_resolved_queue_captures_ru
     assert runtime["grad_accum_steps"] == 4
     assert runtime["max_steps"] == 2500
     assert training["task_batch_size"] == 16
+    assert training["loss_surface"] == "classification"
     assert training["optimizer_min_lr"] == 1.0e-5
     assert training["schedule_stages"][0]["steps"] == 2500
     assert training["schedule_stages"][0]["lr_max"] == 1.0e-3
@@ -191,8 +204,10 @@ def test_tf_rd_010_classification_evolution_medium_v4_matrix_and_medium_v3_matri
     assert "optimizer.min_lr=1e-5" in v4_matrix
     assert "warmup_ratio=0.10" in v4_matrix
     assert "lr_max=1e-3" in v4_matrix
-    assert "This row is the anchor row for the active `medium_v4` full rerun." in v4_matrix
-    assert "Execute this row after row 1 anchor promotion" in v4_matrix
+    assert "final_log_loss_at_matched_regime_budget" in v4_matrix
+    assert "step `1324`" in v4_matrix
+    assert "step_001200.pt" in v4_matrix
+    assert "Hold this row until the control-row retune closes" in v4_matrix
 
     assert PREVIOUS_SWEEP_ID in v3_matrix
     assert "Sweep status: `superseded`" in v3_matrix

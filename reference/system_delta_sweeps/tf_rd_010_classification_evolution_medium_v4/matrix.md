@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v3`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `3a6083b7d1cb6fb89c0ebc0d9646a96e0978f00538b3e189d055691cb9d6ab56`
+- Resolved queue inputs fingerprint: `5a984c467d825f0749ffbb70b4e92e0b440cf49f778c19b9e6febb4f9b6ff75f`
 
 ## Locked Surface
 
@@ -40,10 +40,10 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | ready | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Execute this anchor row first under issue `#205`, then continue rows 2-4 as part of the active medium 16x4 rerun. |
-| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | ready | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row after row 1 anchor promotion as part of the active medium 16x4 rerun under issue `#205`. |
-| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | ready | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row after row 1 anchor promotion as part of the active medium 16x4 rerun under issue `#205`. |
-| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | ready | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row after row 1 anchor promotion as part of the active medium 16x4 rerun under issue `#205`. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | ready | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Retune the active model under issue `#205`, then relaunch this anchor row from scratch; do not extend the stopped CE CPU pilot further. |
+| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | ready | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Hold this row until the control-row retune closes and a fresh anchor rerun is approved under issue `#205`. |
+| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | ready | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Hold this row until the control-row retune closes and a fresh anchor rerun is approved under issue `#205`. |
+| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | ready | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Hold this row until the control-row retune closes and a fresh anchor rerun is approved under issue `#205`. |
 
 ## Detailed Rows
 
@@ -60,13 +60,13 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned medium classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `30e07a7b1df53370b31352b3d3e7482b3541f46e826211a15bbfa9ceec4270b9`
+- Resolved surface fingerprint: `fa97c84ca396ec5cb53133ef5601cb00618720654fbbe23147b0d857e3f078d8`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v2'}`
 - Parameter adequacy plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest from `openml_classification_medium_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline before treating any row outcome as a promotion or defer decision.
-  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
+  - Rank by `final_log_loss_at_matched_regime_budget`, then inspect calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics as guardrails.
 - Adequacy knobs to dimension explicitly:
   - explicit dagzoo provenance for the classification control corpus
   - medium and large real-data validation separation via `tab-realdata-hub` manifests
@@ -82,8 +82,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
   - `tf_rd_010_classification_evolution_medium_v4` is the active medium rerun contract: exact-shape-compatible manifest tasks are batched with `task_batch_size=16`, `grad_accum_steps=4`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.
+  - `medium_v4` reruns the active sandwich benchmark path under `training.loss_surface=classification`, so matched-budget final log loss is the canonical ranking metric and `cell_bpc` is legacy-only historical context.
   - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.
-  - This row is the anchor row for the active `medium_v4` full rerun.
+  - The first CE control-row CPU pilot (`...medium_control_v3`) was intentionally stopped at step `1324`; sampled checkpoint benchmarking across steps `400/800/1050/1125/1200/1275` found the current best medium-manifest log loss at `step_001200.pt` (`0.9988591380293615`), so this row now needs a fresh retuned rerun rather than more steps on that pilot.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/result_card.md`
 - Benchmark metrics: pending
@@ -96,12 +97,12 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
 - Rationale: Test whether moderate MCAR exposure improves robustness before structured missingness is considered on the medium validation pool.
-- Hypothesis: MCAR may improve BPC and log-loss behavior on the evolved sandwich family without adding the stronger structure of MAR or MNAR.
+- Hypothesis: MCAR may improve label-target log loss and calibration on the evolved sandwich family without adding the stronger structure of MAR or MNAR.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `992dee54b173c407df20712d8dde3943028e9c4465137dd8e90caa692f3a71c7`
+- Resolved surface fingerprint: `7eb69c9ce2af32856993df2a1b9f9ee572eefb8a0c9818ed6fd85741e4b89638`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v2'}`
 - Parameter adequacy plan:
@@ -111,7 +112,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Adequacy knobs to dimension explicitly:
   - explicit MCAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
@@ -123,8 +124,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
   - `tf_rd_010_classification_evolution_medium_v4` is the active medium rerun contract: exact-shape-compatible manifest tasks are batched with `task_batch_size=16`, `grad_accum_steps=4`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.
+  - `medium_v4` reruns the active sandwich benchmark path under `training.loss_surface=classification`, so matched-budget final log loss is the canonical ranking metric and `cell_bpc` is legacy-only historical context.
   - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.
-  - This row is approved for the active `medium_v4` full rerun once row 1 establishes the anchor.
+  - This row stays on hold until the stopped CE control-row pilot is replaced by a fresh retuned anchor rerun.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mcar/result_card.md`
 - Benchmark metrics: pending
@@ -142,7 +144,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
 - Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `c72b4a51e9ee7e208bcfee2d90973c0413e6a742f92936ebfb76611fc03dd34c`
+- Resolved surface fingerprint: `30aa61d6e2df0b9baabc378362c45c075abb55beeba1923c748b0c0ddbc600b1`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v2'}`
 - Parameter adequacy plan:
@@ -152,7 +154,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Adequacy knobs to dimension explicitly:
   - explicit MAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
@@ -164,8 +166,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
   - `tf_rd_010_classification_evolution_medium_v4` is the active medium rerun contract: exact-shape-compatible manifest tasks are batched with `task_batch_size=16`, `grad_accum_steps=4`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.
+  - `medium_v4` reruns the active sandwich benchmark path under `training.loss_surface=classification`, so matched-budget final log loss is the canonical ranking metric and `cell_bpc` is legacy-only historical context.
   - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.
-  - This row is approved for the active `medium_v4` full rerun once row 1 establishes the anchor.
+  - This row stays on hold until the stopped CE control-row pilot is replaced by a fresh retuned anchor rerun.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mar/result_card.md`
 - Benchmark metrics: pending
@@ -183,7 +186,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
 - Expected effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `3ada4b119ceebdd3c7c1ff2f6707d8293e6ba192afe527e9dc823b98d3c00596`
+- Resolved surface fingerprint: `bb0dd74441e9fe74587510355d1ae34beef1eaf108e79c56b497b1f0bd79cc14`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v2'}`
 - Parameter adequacy plan:
@@ -193,7 +196,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Adequacy knobs to dimension explicitly:
   - explicit MNAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
@@ -205,8 +208,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
   - `tf_rd_010_classification_evolution_medium_v4` is the active medium rerun contract: exact-shape-compatible manifest tasks are batched with `task_batch_size=16`, `grad_accum_steps=4`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.
+  - `medium_v4` reruns the active sandwich benchmark path under `training.loss_surface=classification`, so matched-budget final log loss is the canonical ranking metric and `cell_bpc` is legacy-only historical context.
   - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.
-  - This row is approved for the active `medium_v4` full rerun once row 1 establishes the anchor.
+  - This row stays on hold until the stopped CE control-row pilot is replaced by a fresh retuned anchor rerun.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mnar/result_card.md`
 - Benchmark metrics: pending

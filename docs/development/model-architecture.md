@@ -295,7 +295,8 @@ staged family.
 - class count: `2 <= num_classes <= many_class_base`
 - feature metadata: explicit `feature_types` are required; see
   `Feature-Type Metadata Contract`
-- loss surfaces: classification and sandwich-only `cell_bpc`
+- loss surfaces: `classification` is the canonical active objective, while
+  sandwich-only `cell_bpc` is retained only for legacy generative reruns
 - cell-BPC metric: row-major cell negative log-likelihood in bits with
   `N_cells = rows * features`
 - integer likelihood: learned per-feature hybrid mixture of dynamic-support

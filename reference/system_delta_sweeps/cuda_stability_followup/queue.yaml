@@ -91,7 +91,7 @@ rows:
     final_minus_best_log_loss: 0.003803472929111873
     final_minus_best_brier_score: 0.003822740683664616
     final_minus_best_roc_auc: 0.01655162083334194
-    drift: 0.01655162083334194
+    drift: 0.003803472929111873
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.1892823244058287
@@ -185,7 +185,7 @@ rows:
     final_minus_best_log_loss: 0.030080322106115887
     final_minus_best_brier_score: 0.023796530095297752
     final_minus_best_roc_auc: -0.21591024772131573
-    drift: -0.21591024772131573
+    drift: 0.030080322106115887
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.21059327566478003
@@ -279,7 +279,7 @@ rows:
     final_minus_best_log_loss: 0.0026922543090593942
     final_minus_best_brier_score: 0.002674642791830273
     final_minus_best_roc_auc: -0.03372430442101193
-    drift: -0.03372430442101193
+    drift: 0.0026922543090593942
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.19600716658609174
@@ -375,7 +375,7 @@ rows:
     final_minus_best_log_loss: 0.006186607979660641
     final_minus_best_brier_score: 0.001908905987181353
     final_minus_best_roc_auc: 0.027650775619802004
-    drift: 0.027650775619802004
+    drift: 0.006186607979660641
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.19291312274531525

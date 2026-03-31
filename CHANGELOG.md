@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generation batches at `128` datasets per raw chunk during `tab-foundry`
   corpus builds, which keeps local corpus materialization memory bounded
   without changing the resulting manifest semantics.
+- User-facing note: the active sandwich benchmark path now uses
+  `training.loss_surface=classification` and ranks TF-RD-010 `medium_v4` by
+  matched-budget final log loss; the older `cell_bpc` / BPC objective remains
+  supported for legacy historical reruns but now emits a deprecation warning
+  when explicitly requested.
 
 ## [0.15.6] - 2026-03-31
 

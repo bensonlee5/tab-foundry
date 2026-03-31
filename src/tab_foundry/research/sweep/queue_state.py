@@ -6,6 +6,7 @@ from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import resolve_registry_path_value
 
+from .objective_metrics import objective_metric_from_run, preferred_drift_metric_keys
 from .queue_updates import append_note, stage_local_telemetry_metrics
 
 
@@ -61,10 +62,12 @@ def completed_queue_metrics_from_registry_run(run: Mapping[str, Any]) -> dict[st
         if best_value is None or final_value is None:
             continue
         expected[f"final_minus_best_{suffix}"] = final_value - best_value
-    if "final_minus_best_bpc" in expected:
-        expected["drift"] = expected["final_minus_best_bpc"]
-    elif "final_minus_best_roc_auc" in expected:
-        expected["drift"] = expected["final_minus_best_roc_auc"]
+    objective_metric = objective_metric_from_run(run)
+    for drift_key in preferred_drift_metric_keys(objective_metric):
+        drift_value = expected.get(drift_key)
+        if drift_value is not None:
+            expected["drift"] = drift_value
+            break
 
     comparison_keys = {
         "final_bpc_delta": "delta_final_bpc",

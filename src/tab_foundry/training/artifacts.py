@@ -279,6 +279,9 @@ def gradient_history_record(
         if train_acc is None or not math.isfinite(float(train_acc))
         else float(train_acc),
         "lr": float(lr),
+        # Keep the short alias aligned with train_history.jsonl for easier
+        # ad hoc inspection while preserving the explicit global name.
+        "grad_norm": resolved_global_grad_norm,
         "global_grad_norm": resolved_global_grad_norm,
         "global_grad_norm_kind": resolved_global_grad_norm_kind,
         "module_grad_norms": {

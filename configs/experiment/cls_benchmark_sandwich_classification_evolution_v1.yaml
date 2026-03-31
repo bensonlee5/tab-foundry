@@ -23,7 +23,7 @@ model:
   floating_likelihood: single_gaussian
   integer_likelihood: hybrid_mixture
 training:
-  loss_surface: cell_bpc
+  loss_surface: classification
 runtime:
   output_dir: outputs/cls_benchmark_sandwich_classification_evolution_v1
   trace_activations: false

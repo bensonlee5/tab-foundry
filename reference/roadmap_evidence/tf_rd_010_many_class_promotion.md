@@ -58,7 +58,7 @@ This is the canonical long-form evidence note for
   - `feature_type_conditioning=film`
   - `sandwich_summary_tokens_per_axis=3`
   - `many_class_base=10`
-  - `training.loss_surface=cell_bpc`
+  - `training.loss_surface=classification`
   - direct multiclass head
 - `dagzoo` remains the owner of the synthetic training fronts used by these
   sweeps
@@ -94,13 +94,14 @@ This is the canonical long-form evidence note for
     plus materialized manifests, with `min_classes=2`, `max_classes=10`, and
     `max_missing_pct=20.0`
   - `tab-foundry` consumes those manifests and ranks rows by
-    `final_bpc_at_matched_regime_budget`
+    `final_log_loss_at_matched_regime_budget`
 - The active successor sweeps now use one expanded synthetic corpus pass only:
   `prior_dump_batch_size=64`, budgeted over `159984` corpus manifest
   records/tasks per front, which resolves to `2500` optimizer steps instead of
   the historical fixed 400-step or reset-contract 3-step budgets
-- BPC is the normalized log-loss view for the first expanded classification regime;
-  raw log loss, calibration, runtime, and stability remain supporting guardrails
+- active classification-evolution reruns now optimize natural-log CE on label
+  targets and rank by matched-budget final log loss; the older `cell_bpc` /
+  BPC lane remains historical context only
 - The benchmark contract remains valid, but the previously recorded medium and
   large executions are no longer trusted as canonical evidence after later
   training and sandwich correctness fixes
@@ -131,6 +132,13 @@ This is the canonical long-form evidence note for
 - the active large TF-RD-010 execution path is still defined by `large_v2`,
   while the medium path now flows through the successor `medium_v4` rerun backed
   by the shared `tf_rd_010_*_v2` corpus family
+- the first `medium_v4` CE control-row CPU pilot
+  (`sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v3`)
+  was intentionally stopped at step `1324` after checkpoint benchmarking
+  showed the current best sampled medium-manifest log loss at
+  `step_001200.pt` (`0.9988591380293615`), beating both the frozen medium
+  control baseline (`1.1045793217810176`) and the preserved `medium_v3`
+  control row's best log loss (`1.086222860423438`)
 - the preserved `medium_v3` no-clipping package is historical overfit evidence
   only: rows 1-3 reached very early best benchmark steps and then drifted
   badly, and row 4 was intentionally stopped rather than extended
@@ -140,9 +148,13 @@ This is the canonical long-form evidence note for
 - the active TF-RD-010 medium successor rerun under
   [#205](https://github.com/bensonlee5/tab-foundry/issues/205) now uses the
   `task_batch_size=16`, `grad_accum_steps=4` contract and needs fresh four-row
-  evidence on the shared `tf_rd_010_*_v2` corpora to show that the batching/LR
-  patch removes the severe early-best-step drift seen in `medium_v3` under the
-  expanded one-epoch `2500`-step synthetic contract
+  evidence on the shared `tf_rd_010_*_v2` corpora under
+  `training.loss_surface=classification` to show that the batching/LR patch
+  plus CE-aligned objective remove the severe early-best-step drift seen in
+  `medium_v3` under the expanded one-epoch `2500`-step synthetic contract; the
+  next run should retune the model and relaunch from scratch rather than
+  extending the stopped `medium_v4` control-row CPU pilot past the sampled
+  `step_001200.pt` sweet spot
 - the active TF-RD-010 large successor sweep under
   [#203](https://github.com/bensonlee5/tab-foundry/issues/203) still needs to
   establish canonical large-rung evidence on the refactored sandwich surface,

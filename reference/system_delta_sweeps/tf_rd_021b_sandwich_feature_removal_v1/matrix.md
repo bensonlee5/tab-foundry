@@ -1,6 +1,6 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
 
 ## Sweep
 
@@ -8,6 +8,8 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 - Sweep status: `completed`
 - Parent sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
 - Complexity level: `binary_md`
+- Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml`
+- Resolved queue inputs fingerprint: `0da8444c8e61d0ff741d0b54ad1bf3c9cd403074cb9489f12bc714839bed395d`
 
 ## Locked Surface
 
@@ -62,7 +64,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor added repeated latent self-refinement between cross-attention segments; this row tests whether that feature can be removed outright.
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross` from `4` to `0`.
 - Expected effect: If the structural gain comes from stage-0 full-cell access and dual readout more than from latent recycling, removing the self-attention stack may be only weakly harmful.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `6513e32bb33fce1b84393696ab13ffe0dd13a0dc48f67efe0407324b30e2b00e`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Treat this as the removal-first replacement for the earlier self-attention-depth ablation.
@@ -78,7 +82,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - This row underperformed the locked sweep anchor on final log loss and final ROC AUC; keep the compact hybrid anchor and do not promote this row.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1` with final log loss `0.4865`, delta final log loss `+0.0193`, final Brier score `0.3220`, delta final Brier score `+0.0148`, best ROC AUC `0.7078`, final ROC AUC `0.7043`, final-minus-best `-0.0035`, delta final ROC AUC `-0.0328`, delta drift `-0.0035`, delta final training time `-53.2s`
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1` with final log loss `0.4865`, delta final log loss `+0.0193`, final Brier score `0.3220`, delta final brier score `+0.0148`, final ROC AUC `0.7043`, delta final roc auc `-0.0328`, best ROC AUC `0.7078`, delta final training time `-53.2s`
 
 ### 2. `delta_tf_rd_021b_sandwich_ffexp1_v1`
 
@@ -92,7 +96,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: FF expansion is one of the simplest capacity axes to simplify before introducing broader scaling laws.
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `e2df1e335a608ffa9a3f50770af61b322fefedb1c1a7f3f4a5689f6715450845`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Treat this as the minimal retained FF form for the removal-first follow-up.
@@ -108,7 +114,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - This row underperformed the locked sweep anchor on final log loss and final ROC AUC; keep the compact hybrid anchor and do not promote this row.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1` with final log loss `0.4932`, delta final log loss `+0.0260`, final Brier score `0.3289`, delta final Brier score `+0.0217`, best ROC AUC `0.7084`, final ROC AUC `0.7082`, final-minus-best `-0.0001`, delta final ROC AUC `-0.0288`, delta drift `-0.0001`, delta final training time `-8.7s`
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1` with final log loss `0.4932`, delta final log loss `+0.0260`, final Brier score `0.3289`, delta final brier score `+0.0217`, final ROC AUC `0.7082`, delta final roc auc `-0.0288`, best ROC AUC `0.7084`, delta final training time `-8.7s`
 
 ### 3. `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1`
 
@@ -122,7 +128,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: After the completed single-knob screen, this row tests whether the simplest acceptable parent can remove the self-refinement feature and retain only minimal trunk MLP expansion.
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If the hybrid path is structurally adequate already, combining self-attention removal with 1x FF expansion may preserve most of the fit while simplifying the trunk materially.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `8604e7c6891f92389c577fa0a8aeedc206a6affcb687f72a2ba3158018a183c1`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Use this as the first compound removal candidate after the isolated removal row.
@@ -138,7 +146,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - This row underperformed the locked sweep anchor on final log loss and final ROC AUC; keep the compact hybrid anchor and do not promote this row.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1` with final log loss `0.5194`, delta final log loss `+0.0522`, final Brier score `0.3492`, delta final Brier score `+0.0420`, best ROC AUC `0.6832`, final ROC AUC `0.6828`, final-minus-best `-0.0004`, delta final ROC AUC `-0.0542`, delta drift `-0.0004`, delta final training time `-64.5s`
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1` with final log loss `0.5194`, delta final log loss `+0.0522`, final Brier score `0.3492`, delta final brier score `+0.0420`, final ROC AUC `0.6828`, delta final roc auc `-0.0542`, best ROC AUC `0.6832`, delta final training time `-64.5s`
 
 ### 4. `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1`
 
@@ -152,7 +160,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: This is the smallest removal-first parent expressible on the current sandwich surface without adding new zero-valued FF or summary-token semantics.
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis` from `4` to `1`.
 - Expected effect: If the hybrid architecture mainly needs the stage-0 full-cell path and the final cell-stream readout, this compound simplification may preserve bounded quality with the smallest remaining nonzero summary/FF settings.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `669968270ae99c94721d23699b2dcfcd1291c53f1016101bc3a8550fec7ba3dc`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Use this as the smallest currently supported parent in the TF-RD-021B removal-first screen.
@@ -168,4 +178,4 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - This was the smallest simplification package and the fastest row in the sweep, but it still underperformed the locked sweep anchor; keep the compact hybrid anchor and do not promote this row.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1` with final log loss `0.4947`, delta final log loss `+0.0275`, final Brier score `0.3269`, delta final Brier score `+0.0197`, best ROC AUC `0.7042`, final ROC AUC `0.7053`, final-minus-best `+0.0011`, delta final ROC AUC `-0.0318`, delta drift `+0.0011`, delta final training time `-155.5s`
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1` with final log loss `0.4947`, delta final log loss `+0.0275`, final Brier score `0.3269`, delta final brier score `+0.0197`, final ROC AUC `0.7053`, delta final roc auc `-0.0318`, best ROC AUC `0.7042`, delta final training time `-155.5s`

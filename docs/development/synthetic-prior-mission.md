@@ -167,7 +167,7 @@ which pieces would still have to be built.
   step fraction and local stability diagnostics
 - current classification benchmark policy is implemented operationally as one
   primary ranking metric plus guardrails; the active roadmap ranks rows by
-  `final_bpc_at_matched_regime_budget`, with calibration, runtime, and
+  `final_log_loss_at_matched_regime_budget`, with calibration, runtime, and
   stability treated as guardrails rather than folded into one weighted scalar
 
 ### Not Built Yet

@@ -136,8 +136,8 @@ did not yet serialize every reconstruction field.
 | `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich full-cell read, summary-query, latent-write, latent, and dual-readout blocks. |
 | `sandwich_ff_expansion` | `int` | `2` | sandwich | Feedforward expansion factor used inside the sandwich cross-attention and self-attention blocks. |
 | `feature_type_conditioning` | `str` | `"film"` | sandwich | Feature-type conditioning path for sandwich cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
-| `floating_likelihood` | `str` | `"single_gaussian"` | sandwich | Floating-cell likelihood family for the sandwich `cell_bpc` lane. |
-| `integer_likelihood` | `str` | `"hybrid_mixture"` | sandwich | Integer-cell likelihood family for the sandwich `cell_bpc` lane. `hybrid_mixture` combines dynamic-support discrete likelihood with a single-Gaussian branch. |
+| `floating_likelihood` | `str` | `"single_gaussian"` | sandwich | Floating-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. Active classification benchmarks use `training.loss_surface=classification` instead. |
+| `integer_likelihood` | `str` | `"hybrid_mixture"` | sandwich | Integer-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. `hybrid_mixture` combines dynamic-support discrete likelihood with a single-Gaussian branch. Active classification benchmarks use `training.loss_surface=classification` instead. |
 
 ## Configuration Groups
 

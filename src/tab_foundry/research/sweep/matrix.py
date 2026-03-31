@@ -10,6 +10,13 @@ from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
 from .inspection_artifacts import queue_metadata_payload
 from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
+from .objective_metrics import (
+    first_present_metric_key,
+    objective_metric_from_queue_metrics,
+    objective_metric_from_run,
+    preferred_drift_metric_keys,
+    preferred_final_metric_keys,
+)
 from .paths_io import (
     _render_path,
     default_catalog_path,
@@ -140,14 +147,15 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
     anchor_final = _optional_float(anchor_metrics.get("final_roc_auc"))
     anchor_best_time = float(anchor_metrics["best_training_time"])
     anchor_final_time = float(anchor_metrics["final_training_time"])
-    drift = None if best_bpc is None or final_bpc is None else final_bpc - best_bpc
-    anchor_drift = (
-        None if anchor_best_bpc is None or anchor_final_bpc is None else anchor_final_bpc - anchor_best_bpc
+    objective_metric = objective_metric_from_run(run)
+    anchor_objective_metric = objective_metric_from_run(anchor)
+    drift_key = first_present_metric_key(metrics, preferred_drift_metric_keys(objective_metric))
+    anchor_drift_key = first_present_metric_key(
+        anchor_metrics,
+        preferred_drift_metric_keys(anchor_objective_metric),
     )
-    if drift is None:
-        drift = None if best is None or final is None else final - best
-    if anchor_drift is None:
-        anchor_drift = None if anchor_best is None or anchor_final is None else anchor_final - anchor_best
+    drift = None if drift_key is None else _optional_float(metrics.get(drift_key))
+    anchor_drift = None if anchor_drift_key is None else _optional_float(anchor_metrics.get(anchor_drift_key))
     return {
         "best_bpc": _format(best_bpc),
         "final_bpc": _format(final_bpc),
@@ -183,17 +191,38 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
 def _run_metric_parts_without_anchor(run: dict[str, Any]) -> list[str]:
     metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
     parts: list[str] = []
-    for label, key in (
-        ("final BPC", "final_bpc"),
-        ("final BPF", "final_bpf"),
-        ("final log loss", "final_log_loss"),
-        ("final Brier score", "final_brier_score"),
-        ("best ROC AUC", "best_roc_auc"),
-        ("final ROC AUC", "final_roc_auc"),
-        ("final CRPS", "final_crps"),
-        ("final avg pinball loss", "final_avg_pinball_loss"),
-        ("final PICP 90", "final_picp_90"),
-    ):
+    objective_metric = objective_metric_from_run(run)
+    key_labels = {
+        "final_bpc": "final BPC",
+        "final_bpf": "final BPF",
+        "final_log_loss": "final log loss",
+        "final_brier_score": "final Brier score",
+        "best_roc_auc": "best ROC AUC",
+        "final_roc_auc": "final ROC AUC",
+        "final_crps": "final CRPS",
+        "final_avg_pinball_loss": "final avg pinball loss",
+        "final_picp_90": "final PICP 90",
+    }
+    ordered_keys: list[str] = list(preferred_final_metric_keys(objective_metric))
+    ordered_keys.extend(
+        key
+        for key in (
+            "best_roc_auc",
+            "final_roc_auc",
+            "final_crps",
+            "final_avg_pinball_loss",
+            "final_picp_90",
+            "final_bpc",
+            "final_bpf",
+            "final_log_loss",
+            "final_brier_score",
+        )
+        if key not in ordered_keys
+    )
+    for key in ordered_keys:
+        label = key_labels.get(key)
+        if label is None:
+            continue
         raw_value = metrics.get(key)
         if raw_value is not None:
             parts.append(f"{label} `{float(raw_value):.4f}`")
@@ -539,7 +568,14 @@ def render_system_delta_matrix(
             inline_metrics = queue_row.get("benchmark_metrics")
             if inline_metrics:
                 lines.append("- Benchmark metrics:")
-                if inline_metrics.get("best_bpc") is not None and inline_metrics.get("final_bpc") is not None:
+                inline_objective_metric = objective_metric_from_queue_metrics(
+                    cast(Mapping[str, Any], inline_metrics)
+                )
+                if (
+                    inline_objective_metric != "final_log_loss_at_matched_regime_budget"
+                    and inline_metrics.get("best_bpc") is not None
+                    and inline_metrics.get("final_bpc") is not None
+                ):
                     best_bpc = float(inline_metrics["best_bpc"])
                     step = inline_metrics.get("best_step", "?")
                     final_bpc = float(inline_metrics["final_bpc"])
@@ -548,6 +584,22 @@ def render_system_delta_matrix(
                     lines.append(f"  - Final BPC: `{final_bpc:.4f}`")
                     if inline_metrics.get("final_bpf") is not None:
                         lines.append(f"  - Final BPF: `{float(inline_metrics['final_bpf']):.4f}`")
+                    lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                elif inline_metrics.get("best_log_loss") is not None and inline_metrics.get("final_log_loss") is not None:
+                    best_log_loss = float(inline_metrics["best_log_loss"])
+                    step = inline_metrics.get("best_step", "?")
+                    final_log_loss = float(inline_metrics["final_log_loss"])
+                    drift = float(inline_metrics["drift"])
+                    lines.append(f"  - Best log loss: `{best_log_loss:.4f}` (step {step})")
+                    lines.append(f"  - Final log loss: `{final_log_loss:.4f}`")
+                    if inline_metrics.get("final_brier_score") is not None:
+                        lines.append(
+                            f"  - Final Brier score: `{float(inline_metrics['final_brier_score']):.4f}`"
+                        )
+                    if inline_metrics.get("final_roc_auc") is not None:
+                        lines.append(
+                            f"  - Final ROC AUC: `{float(inline_metrics['final_roc_auc']):.4f}`"
+                        )
                     lines.append(f"  - Drift (final − best): `{drift:.4f}`")
                 else:
                     best = float(inline_metrics["best_roc_auc"])
@@ -582,28 +634,50 @@ def render_system_delta_matrix(
                 lines.append("")
                 continue
             metrics = metric_summary(run, anchor)
-            metric_parts = [
-                f"final BPC `{metrics['final_bpc']}`",
-                f"delta final BPC `{metrics['delta_final_bpc']}`",
-                f"final BPF `{metrics['final_bpf']}`",
-                f"delta final BPF `{metrics['delta_final_bpf']}`",
-                f"final log loss `{metrics['final_log_loss']}`",
-                f"delta final log loss `{metrics['delta_final_log_loss']}`",
-                f"final Brier score `{metrics['final_brier_score']}`",
-                f"delta final Brier score `{metrics['delta_final_brier_score']}`",
-                f"best ROC AUC `{metrics['best_roc_auc']}`",
-                f"final ROC AUC `{metrics['final_roc_auc']}`",
-                f"final-minus-best `{metrics['final_minus_best']}`",
-                f"delta final ROC AUC `{metrics['delta_final_roc_auc']}`",
-                f"delta drift `{metrics['delta_drift']}`",
-                f"final CRPS `{metrics['final_crps']}`",
-                f"delta final CRPS `{metrics['delta_final_crps']}`",
-                f"final avg pinball loss `{metrics['final_avg_pinball_loss']}`",
-                f"delta final avg pinball loss `{metrics['delta_final_avg_pinball_loss']}`",
-                f"final PICP 90 `{metrics['final_picp_90']}`",
-                f"delta final PICP 90 `{metrics['delta_final_picp_90']}`",
-                f"delta final training time `{metrics['delta_training_time']}`",
-            ]
+            objective_metric = objective_metric_from_run(run)
+            ordered_metric_keys = list(preferred_final_metric_keys(objective_metric))
+            ordered_metric_keys.extend(
+                key
+                for key in (
+                    "final_bpc",
+                    "final_bpf",
+                    "final_log_loss",
+                    "final_brier_score",
+                    "best_roc_auc",
+                    "final_roc_auc",
+                    "final_crps",
+                    "final_avg_pinball_loss",
+                    "final_picp_90",
+                )
+                if key not in ordered_metric_keys
+            )
+            metric_part_specs = {
+                "final_bpc": ("final BPC", "delta_final_bpc"),
+                "final_bpf": ("final BPF", "delta_final_bpf"),
+                "final_log_loss": ("final log loss", "delta_final_log_loss"),
+                "final_brier_score": ("final Brier score", "delta_final_brier_score"),
+                "best_roc_auc": ("best ROC AUC", None),
+                "final_roc_auc": ("final ROC AUC", "delta_final_roc_auc"),
+                "final_crps": ("final CRPS", "delta_final_crps"),
+                "final_avg_pinball_loss": ("final avg pinball loss", "delta_final_avg_pinball_loss"),
+                "final_picp_90": ("final PICP 90", "delta_final_picp_90"),
+            }
+            metric_parts: list[str] = []
+            for metric_key in ordered_metric_keys:
+                spec = metric_part_specs.get(metric_key)
+                if spec is None:
+                    continue
+                label, delta_key = spec
+                metric_parts.append(f"{label} `{metrics[metric_key]}`")
+                if delta_key is not None:
+                    metric_parts.append(f"delta {label.lower()} `{metrics[delta_key]}`")
+            metric_parts.extend(
+                [
+                    f"final-minus-best `{metrics['final_minus_best']}`",
+                    f"delta drift `{metrics['delta_drift']}`",
+                    f"delta final training time `{metrics['delta_training_time']}`",
+                ]
+            )
             filtered_metric_parts = [part for part in metric_parts if not part.endswith("`n/a`")]
             lines.append(f"- Registered run: `{run_id}` with {', '.join(filtered_metric_parts)}")
         lines.append("")
