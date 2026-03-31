@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
-from tab_foundry.data.validation import assert_no_non_finite_values
+from tab_realdata_hub.validation import assert_no_non_finite_values
 from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch

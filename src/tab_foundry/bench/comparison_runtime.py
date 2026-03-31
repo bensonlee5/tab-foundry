@@ -18,6 +18,21 @@ from tab_foundry.bench.comparison_contract import (
     BenchmarkComparisonConfig,
 )
 from tab_foundry.bench.comparison_reporting import finalize_benchmark_summary
+from tab_foundry.bench.external_runtime import (
+    fresh_nanotabpfn_execution_metadata as _fresh_nanotabpfn_execution_metadata,
+    nanotabpfn_helper_command as _nanotabpfn_helper_command,
+    nanotabpfn_python as _nanotabpfn_python,
+    resolve_reuse_curve_path as _resolve_reuse_curve_path,
+    resolve_reuse_nanotabpfn_error as _resolve_reuse_nanotabpfn_error,
+    reused_nanotabpfn_execution_metadata as _reused_nanotabpfn_execution_metadata,
+    resolved_tab_realdata_hub_root as _resolved_tab_realdata_hub_root,
+    tabiclv2_checkpoint_version as _tabiclv2_checkpoint_version,
+    tabiclv2_execution_metadata as _tabiclv2_execution_metadata,
+    tabiclv2_helper_command as _tabiclv2_helper_command,
+    tabiclv2_python as _tabiclv2_python,
+    validate_nanotabpfn_environment as _validate_nanotabpfn_environment,
+    validate_tabiclv2_environment as _validate_tabiclv2_environment,
+)
 from tab_foundry.bench.run_registration import derive_benchmark_run_record
 from tab_foundry.control_baseline_registry import load_control_baseline_entry
 from tab_foundry.external_benchmarks import (
@@ -64,14 +79,6 @@ _RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 3
 _LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 2
 
 
-def _nanotabpfn_python(root: Path) -> Path:
-    return root.expanduser().resolve() / ".venv" / "bin" / "python"
-
-
-def _nanotabpfn_prior_dump(root: Path, override: Path | None) -> Path:
-    return (override or (root / "300k_150x5_2.h5")).expanduser().resolve()
-
-
 def _helper_script_path() -> Path:
     return repo_root() / "scripts" / "bench" / "nanotabpfn_helper.py"
 
@@ -82,16 +89,6 @@ def _tabiclv2_helper_script_path() -> Path:
 
 def _src_root() -> Path:
     return repo_root() / "src"
-
-
-def _tabiclv2_python(root: Path) -> Path:
-    return root.expanduser().resolve() / ".venv" / "bin" / "python"
-
-
-def _resolved_tab_realdata_hub_root(config: BenchmarkComparisonConfig) -> Path | None:
-    if config.tab_realdata_hub_root is None:
-        return None
-    return config.tab_realdata_hub_root.expanduser().resolve()
 
 
 def _resolve_primary_external_benchmark(
@@ -108,307 +105,11 @@ def _resolve_primary_external_benchmark(
     return None
 
 
-def _nanotabpfn_helper_command(
-    *,
-    config: BenchmarkComparisonConfig,
-    benchmark_manifest: Path,
-    out_path: Path,
-    allow_missing_values: bool,
-) -> list[str]:
-    nanotab_root = config.nanotabpfn_root.expanduser().resolve()
-    command = [
-        str(_nanotabpfn_python(nanotab_root)),
-        str(_helper_script_path()),
-        "--tab-foundry-src",
-        str(_src_root()),
-        "--benchmark-manifest",
-        str(benchmark_manifest),
-        "--prior-dump",
-        str(_nanotabpfn_prior_dump(nanotab_root, config.nanotab_prior_dump)),
-        "--out-path",
-        str(out_path),
-        "--device",
-        str(config.device),
-        "--steps",
-        str(int(config.nanotabpfn_steps)),
-        "--eval-every",
-        str(int(config.nanotabpfn_eval_every)),
-        "--seeds",
-        str(int(config.nanotabpfn_seeds)),
-        "--batch-size",
-        str(int(config.nanotabpfn_batch_size)),
-        "--lr",
-        str(float(config.nanotabpfn_lr)),
-    ]
-    resolved_tab_realdata_hub_root = _resolved_tab_realdata_hub_root(config)
-    if resolved_tab_realdata_hub_root is not None:
-        command.extend(
-            ["--tab-realdata-hub-root", str(resolved_tab_realdata_hub_root)]
-        )
-    if allow_missing_values:
-        command.append("--allow-missing-values")
-    return command
-
-
 def _validate_tab_foundry_run_dir(path: Path) -> Path:
     tab_foundry_run_dir = path.expanduser().resolve()
     if not tab_foundry_run_dir.exists():
         raise RuntimeError(f"tab-foundry run dir does not exist: {tab_foundry_run_dir}")
     return tab_foundry_run_dir
-
-
-def _validate_nanotabpfn_environment(
-    config: BenchmarkComparisonConfig,
-) -> tuple[Path, Path]:
-    nanotabpfn_root = config.nanotabpfn_root.expanduser().resolve()
-    nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
-    prior_dump = _nanotabpfn_prior_dump(nanotabpfn_root, config.nanotab_prior_dump)
-
-    if not nanotabpfn_root.exists():
-        raise RuntimeError(f"nanoTabPFN root does not exist: {nanotabpfn_root}")
-    if not nanotabpfn_python.exists():
-        raise RuntimeError(
-            "missing nanoTabPFN interpreter at "
-            f"{nanotabpfn_python}; run `tab-foundry bench env bootstrap` first"
-        )
-    if not prior_dump.exists():
-        raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")
-    return nanotabpfn_root, prior_dump
-
-
-def _resolve_reuse_curve_path(config: BenchmarkComparisonConfig) -> Path | None:
-    if config.reuse_nanotabpfn_curve_path is None:
-        return None
-    return config.reuse_nanotabpfn_curve_path.expanduser().resolve()
-
-
-def _resolve_reuse_nanotabpfn_error(
-    config: BenchmarkComparisonConfig,
-) -> dict[str, Any] | None:
-    if config.reuse_nanotabpfn_error is None:
-        return None
-    return dict(config.reuse_nanotabpfn_error)
-
-
-def _validate_tabiclv2_environment(config: BenchmarkComparisonConfig) -> tuple[Path, Path]:
-    tabicl_root = config.tabicl_root.expanduser().resolve()
-    tabicl_python = _tabiclv2_python(tabicl_root)
-    if not tabicl_root.exists():
-        raise RuntimeError(f"TabICLv2 root does not exist: {tabicl_root}")
-    if not tabicl_python.exists():
-        raise RuntimeError(
-            "missing TabICLv2 interpreter at "
-            f"{tabicl_python}; run `tab-foundry bench env bootstrap` first"
-        )
-    return tabicl_root, tabicl_python
-
-
-def _tabiclv2_checkpoint_version(
-    *,
-    task_type: str,
-    config: BenchmarkComparisonConfig,
-) -> str:
-    checkpoint_version = (
-        config.tabicl_classifier_checkpoint_version
-        if task_type == "supervised_classification"
-        else config.tabicl_regressor_checkpoint_version
-    )
-    resolved = str(checkpoint_version).strip()
-    if not resolved:
-        raise RuntimeError(f"missing TabICLv2 checkpoint version for task_type={task_type!r}")
-    return resolved
-
-
-def _nanotabpfn_execution_metadata(
-    *,
-    requested_device: str,
-    resolved_device: str,
-    host_fingerprint: str,
-    nanotabpfn_root: Path | None,
-    nanotabpfn_python: Path | None,
-    prior_dump: Path | None,
-    tab_realdata_hub_root: Path | None,
-    steps: int,
-    eval_every: int,
-    seeds: int,
-    batch_size: int,
-    lr: float,
-    reuse_curve_path: Path | None,
-) -> dict[str, Any]:
-    return {
-        "root": None if nanotabpfn_root is None else str(nanotabpfn_root.expanduser().resolve()),
-        "python": None
-        if nanotabpfn_python is None
-        else str(nanotabpfn_python.expanduser().resolve()),
-        "num_seeds": int(seeds),
-        "device": str(requested_device),
-        "resolved_device": str(resolved_device),
-        "benchmark_host_fingerprint": str(host_fingerprint),
-        "prior_dump_path": None if prior_dump is None else str(prior_dump.expanduser().resolve()),
-        "tab_realdata_hub_root": (
-            None
-            if tab_realdata_hub_root is None
-            else str(tab_realdata_hub_root.expanduser().resolve())
-        ),
-        "steps": int(steps),
-        "eval_every": int(eval_every),
-        "batch_size": int(batch_size),
-        "lr": float(lr),
-        "curve_source_mode": "reused" if reuse_curve_path is not None else "fresh",
-        "reused_curve_path": (
-            None
-            if reuse_curve_path is None
-            else str(reuse_curve_path.expanduser().resolve())
-        ),
-    }
-
-
-def _fresh_nanotabpfn_execution_metadata(
-    *,
-    config: BenchmarkComparisonConfig,
-    nanotabpfn_root: Path,
-    nanotabpfn_python: Path,
-    prior_dump: Path,
-    reuse_curve_path: Path | None,
-) -> dict[str, Any]:
-    requested_device = str(config.device).strip()
-    return _nanotabpfn_execution_metadata(
-        requested_device=requested_device,
-        resolved_device=resolve_device(requested_device),
-        host_fingerprint=benchmark_host_fingerprint(),
-        nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=nanotabpfn_python,
-        prior_dump=prior_dump,
-        tab_realdata_hub_root=_resolved_tab_realdata_hub_root(config),
-        steps=int(config.nanotabpfn_steps),
-        eval_every=int(config.nanotabpfn_eval_every),
-        seeds=int(config.nanotabpfn_seeds),
-        batch_size=int(config.nanotabpfn_batch_size),
-        lr=float(config.nanotabpfn_lr),
-        reuse_curve_path=reuse_curve_path,
-    )
-
-
-def _tabiclv2_helper_command(
-    *,
-    config: BenchmarkComparisonConfig,
-    benchmark_manifest: Path,
-    out_path: Path,
-    task_type: str,
-    allow_missing_values: bool,
-) -> list[str]:
-    tabicl_root = config.tabicl_root.expanduser().resolve()
-    command = [
-        str(_tabiclv2_python(tabicl_root)),
-        str(_tabiclv2_helper_script_path()),
-        "--tab-foundry-src",
-        str(_src_root()),
-        "--benchmark-manifest",
-        str(benchmark_manifest),
-        "--out-path",
-        str(out_path),
-        "--task-type",
-        str(task_type),
-        "--checkpoint-version",
-        _tabiclv2_checkpoint_version(task_type=task_type, config=config),
-        "--device",
-        str(config.device),
-    ]
-    resolved_tab_realdata_hub_root = _resolved_tab_realdata_hub_root(config)
-    if resolved_tab_realdata_hub_root is not None:
-        command.extend(
-            ["--tab-realdata-hub-root", str(resolved_tab_realdata_hub_root)]
-        )
-    if allow_missing_values:
-        command.append("--allow-missing-values")
-    return command
-
-
-def _tabiclv2_execution_metadata(
-    *,
-    requested_device: str,
-    resolved_device: str,
-    host_fingerprint: str,
-    tabicl_root: Path,
-    tabicl_python: Path,
-    checkpoint_version: str,
-    tab_realdata_hub_root: Path | None,
-) -> dict[str, Any]:
-    return {
-        "root": str(tabicl_root.expanduser().resolve()),
-        "python": str(tabicl_python.expanduser().resolve()),
-        "checkpoint_version": str(checkpoint_version),
-        "device": str(requested_device),
-        "resolved_device": str(resolved_device),
-        "benchmark_host_fingerprint": str(host_fingerprint),
-        "tab_realdata_hub_root": (
-            None
-            if tab_realdata_hub_root is None
-            else str(tab_realdata_hub_root.expanduser().resolve())
-        ),
-    }
-
-
-def _required_reuse_metadata_string(
-    metadata: Mapping[str, Any],
-    key: str,
-) -> str:
-    value = metadata.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise RuntimeError(f"reuse_nanotabpfn_metadata.{key} must be a non-empty string")
-    return str(value).strip()
-
-
-def _optional_reuse_metadata_path(
-    metadata: Mapping[str, Any],
-    key: str,
-) -> Path | None:
-    value = metadata.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        raise RuntimeError(f"reuse_nanotabpfn_metadata.{key} must be a non-empty string when provided")
-    return Path(str(value)).expanduser().resolve()
-
-
-def _reused_nanotabpfn_execution_metadata(
-    *,
-    metadata: Mapping[str, Any],
-    reuse_curve_path: Path,
-) -> dict[str, Any]:
-    nanotabpfn_root = _optional_reuse_metadata_path(metadata, "root")
-    nanotabpfn_python = _optional_reuse_metadata_path(metadata, "python")
-    prior_dump = _optional_reuse_metadata_path(metadata, "prior_dump_path")
-    seeds = metadata.get("num_seeds", metadata.get("seeds"))
-    if not isinstance(seeds, int) or isinstance(seeds, bool):
-        raise RuntimeError("reuse_nanotabpfn_metadata.num_seeds must be an integer")
-    steps = metadata.get("steps")
-    if not isinstance(steps, int) or isinstance(steps, bool):
-        raise RuntimeError("reuse_nanotabpfn_metadata.steps must be an integer")
-    eval_every = metadata.get("eval_every")
-    if not isinstance(eval_every, int) or isinstance(eval_every, bool):
-        raise RuntimeError("reuse_nanotabpfn_metadata.eval_every must be an integer")
-    batch_size = metadata.get("batch_size")
-    if not isinstance(batch_size, int) or isinstance(batch_size, bool):
-        raise RuntimeError("reuse_nanotabpfn_metadata.batch_size must be an integer")
-    lr = metadata.get("lr")
-    if not isinstance(lr, (int, float)) or isinstance(lr, bool):
-        raise RuntimeError("reuse_nanotabpfn_metadata.lr must be numeric")
-    return _nanotabpfn_execution_metadata(
-        requested_device=_required_reuse_metadata_string(metadata, "device"),
-        resolved_device=_required_reuse_metadata_string(metadata, "resolved_device"),
-        host_fingerprint=_required_reuse_metadata_string(metadata, "benchmark_host_fingerprint"),
-        nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=nanotabpfn_python,
-        prior_dump=prior_dump,
-        tab_realdata_hub_root=_optional_reuse_metadata_path(metadata, "tab_realdata_hub_root"),
-        steps=int(steps),
-        eval_every=int(eval_every),
-        seeds=int(seeds),
-        batch_size=int(batch_size),
-        lr=float(lr),
-        reuse_curve_path=reuse_curve_path,
-    )
 
 
 def _load_runtime_benchmark_surface(
@@ -591,6 +292,8 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                 benchmark_manifest=benchmark_manifest_path,
                 out_path=nanotabpfn_curve_path,
                 allow_missing_values=allow_missing_values,
+                helper_script_path=_helper_script_path(),
+                src_root=_src_root(),
             )
             try:
                 subprocess.run(
@@ -621,6 +324,8 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                 out_path=tabiclv2_curve_path,
                 task_type=task_type,
                 allow_missing_values=allow_missing_values,
+                helper_script_path=_tabiclv2_helper_script_path(),
+                src_root=_src_root(),
             )
             try:
                 subprocess.run(
@@ -685,9 +390,11 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
             execution_metadata = _fresh_nanotabpfn_execution_metadata(
                 config=config,
                 nanotabpfn_root=nanotabpfn_root,
-                nanotabpfn_python=nanotabpfn_python,
+                nanotabpfn_python_path=nanotabpfn_python,
                 prior_dump=prior_dump,
                 reuse_curve_path=reuse_curve_path,
+                resolve_device_fn=resolve_device,
+                benchmark_host_fingerprint_fn=benchmark_host_fingerprint,
             )
         cast(dict[str, Any], nanotabpfn_summary).update(execution_metadata)
     if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks:
@@ -701,7 +408,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                     resolved_device=resolve_device(str(config.device).strip()),
                     host_fingerprint=benchmark_host_fingerprint(),
                     tabicl_root=tabiclv2_root,
-                    tabicl_python=tabiclv2_python,
+                    tabicl_python_path=tabiclv2_python,
                     checkpoint_version=_tabiclv2_checkpoint_version(
                         task_type=task_type,
                         config=config,

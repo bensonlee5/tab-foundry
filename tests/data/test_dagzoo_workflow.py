@@ -8,7 +8,7 @@ from typing import Any
 import pyarrow.parquet as pq
 import pytest
 
-from tab_foundry.data.dagzoo_handoff import (
+from tab_realdata_hub.dagzoo_handoff import (
     DAGZOO_HANDOFF_SCHEMA_NAME,
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,

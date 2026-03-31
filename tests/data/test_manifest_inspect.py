@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from tab_foundry.cli.data_inspect import manifest_inspect_payload
+from tab_foundry.config_inspection import resolve_config_payload
 from tab_realdata_hub.manifest import build_manifest
 
 from tests.support import manifest_and_dataset_cases as cases
@@ -266,3 +267,36 @@ def test_manifest_inspect_compatibility_reports_unmaterialized_corpus_ref(
     assert compatibility["manifest_path_matches"] is False
     assert compatibility["verdict"] == "incompatible"
     assert "resolved manifest data surface has no manifest_path" in compatibility["summary"]
+
+
+def test_manifest_inspect_reuses_shared_resolved_config_payload(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = cases._write_dataset(
+        shard_dir,
+        filter_status="accepted",
+        filter_accepted=True,
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    overrides = [
+        f"data.manifest_path={manifest_path}",
+        "model.stage=row_cls_pool",
+        "model.stage_label=row_cls_pool_manifest_test",
+    ]
+
+    payload = manifest_inspect_payload(
+        manifest_path,
+        experiment="cls_smoke",
+        overrides=overrides,
+    )
+    shared = resolve_config_payload(["experiment=cls_smoke", *overrides])
+
+    assert payload["resolved_config"]["experiment"] == shared["experiment"]
+    assert payload["resolved_config"]["task"] == shared["task"]
+    assert payload["resolved_config"]["data"] == shared["data"]
+    assert payload["resolved_config"]["preprocessing"] == shared["preprocessing"]
+    assert payload["resolved_config"]["training"] == shared["training"]
+    assert payload["resolved_config"]["model"]["arch"] == shared["model"]["arch"]
+    assert payload["resolved_config"]["model"]["stage"] == shared["model"]["stage"]
+    assert payload["resolved_config"]["model"]["stage_label"] == shared["model"]["stage_label"]
+    assert payload["resolved_config"]["model"]["task_contract"] == shared["model"]["task_contract"]

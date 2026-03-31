@@ -33,7 +33,7 @@ from .corpus_loading import (
 )
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
 from .manifest_characteristics import inspect_manifest_summary
-from .dagzoo_handoff import (
+from tab_realdata_hub.dagzoo_handoff import (
     DagzooGeneratedIdentityAccumulator,
     DagzooHandoffInfo,
     load_dagzoo_handoff_info,

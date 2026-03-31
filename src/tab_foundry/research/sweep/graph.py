@@ -18,7 +18,7 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import synthetic_forward_batch
 from tab_foundry.model.spec import ModelBuildSpec
 
-from tab_foundry.research.lane_contract import resolve_training_experiment
+from tab_foundry.research.lane_contract import resolve_training_surface_context
 
 from .materialize import (
     load_system_delta_queue,
@@ -206,7 +206,7 @@ def _build_targets(
     if not anchor and not all_rows and not orders and not delta_refs:
         raise RuntimeError("select at least one target with --anchor, --all-rows, --order, or --delta-ref")
 
-    training_experiment = resolve_training_experiment(queue)
+    training_experiment = resolve_training_surface_context(queue).training_experiment
     targets: list[GraphTarget] = []
     if anchor:
         model_spec, metadata = resolve_anchor_model_spec(

@@ -2,18 +2,66 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 from pathlib import Path
 import sys
 import time
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import torch
 
+from tab_foundry.training.artifacts import (
+    append_history_record,
+    append_jsonl_record,
+    assert_clean_training_output,
+    gradient_history_record,
+    history_path_from_cfg,
+    history_record,
+    save_checkpoint,
+    save_eval_mode_checkpoint,
+)
+from tab_foundry.training.instability import (
+    build_regime_budget_summary,
+    build_runtime_summary,
+    build_training_telemetry,
+    grad_norm_summary_from_running_totals,
+    gradient_history_path,
+    module_grad_norms,
+    normalize_grad_norm_value,
+    peak_device_memory_summary,
+    reset_peak_device_memory_stats,
+    telemetry_path,
+    tensor_batch_examples_seen,
+    tensor_batch_token_count,
+    total_grad_norm,
+    train_loss_delta,
+    update_loss_ema,
+    write_training_telemetry,
+)
+from tab_foundry.training.losses import classification_loss
+from tab_foundry.training.prior.io import stack_prior_step
+from tab_foundry.training.prior.missingness import (
+    _accumulate_missingness,
+    _accumulate_synthetic_missingness,
+    _apply_prior_missingness,
+    _initial_missingness_summary,
+    _prior_wandb_summary_payload,
+)
+from tab_foundry.training.prior.wandb import update_prior_wandb_summary
+from tab_foundry.training.prior_dump import PriorDumpNonFinitePolicy, PriorDumpTaskBatchReader
+from tab_foundry.training.schedule import stage_base_lr
 from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR
-from tab_foundry.training.instability import grad_norm_summary_from_running_totals
+from tab_foundry.training.surface import write_training_surface_record
+from tab_foundry.training.trainer_optimizer import _set_optimizer_base_lr, _set_optimizer_training_mode
+from tab_foundry.training.wandb import (
+    finish_wandb_run,
+    init_wandb_run,
+    log_wandb_metrics,
+    training_surface_wandb_summary_payload,
+    update_wandb_summary,
+    wandb_identity_payload,
+)
 from tab_foundry.types import TrainResult
 
 
@@ -28,55 +76,25 @@ def _global_grad_norm_kind(value: float) -> str:
     return "finite"
 
 
-@dataclass(frozen=True)
-class PriorTrainingDeps:
-    resolve_prior_training_device_name: Any
-    history_path_from_cfg: Any
-    assert_clean_training_output: Any
-    gradient_history_path: Any
-    telemetry_path: Any
-    build_model_from_spec: Any
-    resolve_training_loss_surface: Any
-    configure_model_loss_surface: Any
-    write_training_surface_record: Any
-    init_wandb_run: Any
-    finish_wandb_run: Any
-    log_wandb_metrics: Any
-    update_wandb_summary: Any
-    training_surface_wandb_summary_payload: Any
-    update_prior_wandb_summary: Any
-    wandb_identity_payload: Any
-    initial_missingness_summary: Any
-    build_optimizer: Any
-    optimizer_kwargs: Any
-    set_optimizer_training_mode: Any
-    set_optimizer_base_lr: Any
-    stage_base_lr: Any
-    accumulate_missingness: Any
-    apply_prior_missingness: Any
-    accumulate_synthetic_missingness: Any
-    prior_dump_task_batch_reader: Any
-    stack_prior_step: Any
-    classification_loss: Any
-    module_grad_norms: Any
-    total_grad_norm: Any
-    normalize_grad_norm_value: Any
-    train_loss_delta: Any
-    update_loss_ema: Any
-    history_record: Any
-    append_history_record: Any
-    gradient_history_record: Any
-    append_jsonl_record: Any
-    save_eval_mode_checkpoint: Any
-    build_runtime_summary: Any
-    build_regime_budget_summary: Any
-    build_training_telemetry: Any
-    objective_metric_for_task: Any
-    peak_device_memory_summary: Any
-    reset_peak_device_memory_stats: Any
-    tensor_batch_examples_seen: Any
-    tensor_batch_token_count: Any
-    write_training_telemetry: Any
+def _save_eval_mode_checkpoint(
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
+    *,
+    path: Path,
+    model: torch.nn.Module,
+    global_step: int,
+    cfg: DictConfig,
+    restore_training: bool,
+) -> None:
+    save_eval_mode_checkpoint(
+        prepared_opts,
+        path=path,
+        model_state_factory=model.state_dict,
+        global_step=global_step,
+        cfg=cfg,
+        restore_training=restore_training,
+        set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+        save_checkpoint_fn=save_checkpoint,
+    )
 
 
 def _merge_activation_norms(
@@ -96,7 +114,6 @@ def _merge_activation_norms(
 
 def _run_prior_step_with_microbatch_retry(
     *,
-    deps: PriorTrainingDeps,
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     x_batch: torch.Tensor,
@@ -166,7 +183,7 @@ def _run_prior_step_with_microbatch_retry(
                 if not isinstance(logits, torch.Tensor):
                     raise RuntimeError("prior-dump training requires tensor logits")
                 targets = y_all_batch[start:stop, train_test_split_index:].reshape(-1).to(torch.int64)
-                loss = deps.classification_loss(
+                loss = classification_loss(
                     logits.reshape(-1, int(logits.shape[-1])),
                     targets,
                 )
@@ -242,8 +259,11 @@ def run_prior_training(
     cfg: DictConfig,
     *,
     prior_dump_path: Path,
-    spec,
-    staged_surface,
+    device_name: str,
+    model: torch.nn.Module,
+    loss_surface: str,
+    optimizer_selection: Any,
+    training_surface_raw_cfg: Mapping[str, Any],
     max_steps: int,
     eval_every: int,
     checkpoint_every: int,
@@ -252,31 +272,19 @@ def run_prior_training(
     prior_batch_config,
     prior_stage,
     lr_min: float,
+    initial_lr: float,
     prior_missingness_config,
-    prior_dump_non_finite_policy: str,
-    deps: PriorTrainingDeps,
+    prior_dump_non_finite_policy: PriorDumpNonFinitePolicy,
+    spec,
 ) -> TrainResult:
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    history_path = deps.history_path_from_cfg(cfg)
-    deps.assert_clean_training_output(output_dir, history_path=history_path)
-    gradient_path = deps.gradient_history_path(output_dir)
-    telemetry_output_path = deps.telemetry_path(output_dir)
+    history_path = history_path_from_cfg(cfg)
+    assert_clean_training_output(output_dir, history_path=history_path)
+    gradient_path = gradient_history_path(output_dir)
+    telemetry_output_path = telemetry_path(output_dir)
 
-    device = torch.device(
-        deps.resolve_prior_training_device_name(
-            cfg,
-            spec=spec,
-            staged_surface=staged_surface,
-        )
-    )
-    model = deps.build_model_from_spec(spec)
-    loss_surface = deps.resolve_training_loss_surface(
-        getattr(cfg, "training", None),
-        model_spec=spec,
-        backend=TRAINING_BACKEND_LEGACY_PRIOR,
-    )
-    deps.configure_model_loss_surface(model, loss_surface=loss_surface)
+    device = torch.device(device_name)
     enable_activation_trace = getattr(model, "enable_activation_trace", None)
     flush_activation_trace = getattr(model, "flush_activation_trace", None)
     if trace_activations and callable(enable_activation_trace):
@@ -284,30 +292,6 @@ def run_prior_training(
     model.to(device)
     model.train()
 
-    raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
-    raw_training_cfg = raw_cfg.get("training")
-    if not isinstance(raw_training_cfg, dict):
-        raw_training_cfg = {}
-        raw_cfg["training"] = raw_training_cfg
-    raw_training_cfg["loss_surface"] = loss_surface
-    raw_legacy_prior_cfg = raw_cfg.get("legacy_prior")
-    if not isinstance(raw_legacy_prior_cfg, dict):
-        raw_legacy_prior_cfg = {}
-        raw_cfg["legacy_prior"] = raw_legacy_prior_cfg
-    raw_legacy_prior_cfg["batch_size"] = int(prior_batch_config.batch_size)
-    raw_legacy_prior_cfg["lr_scale_rule"] = str(prior_batch_config.lr_scale_rule)
-    raw_legacy_prior_cfg["batch_reference_size"] = int(prior_batch_config.reference_batch_size)
-    raw_legacy_prior_cfg["effective_lr_scale_factor"] = float(prior_batch_config.effective_lr_scale_factor)
-    raw_optimizer_cfg = raw_cfg.get("optimizer")
-    if isinstance(raw_optimizer_cfg, dict) and raw_optimizer_cfg.get("min_lr") is not None:
-        raw_optimizer_cfg["min_lr"] = float(lr_min)
-    raw_schedule_cfg = raw_cfg.get("schedule")
-    if isinstance(raw_schedule_cfg, dict):
-        raw_stages = raw_schedule_cfg.get("stages")
-        if isinstance(raw_stages, list):
-            for stage in raw_stages:
-                if isinstance(stage, dict) and stage.get("lr_max") is not None:
-                    stage["lr_max"] = float(stage["lr_max"]) * float(prior_batch_config.effective_lr_scale_factor)
     training_surface_path = output_dir / "training_surface_record.json"
     run = None
     training_surface_payload: dict[str, Any] | None = None
@@ -323,12 +307,6 @@ def run_prior_training(
     gradient_records: list[dict[str, Any]] = []
     checkpoint_snapshots: list[dict[str, Any]] = []
     missingness_summary: dict[str, Any] | None = None
-
-    initial_lr = (
-        float(deps.stage_base_lr(prior_stage, step=1, lr_min=lr_min))
-        if prior_stage is not None
-        else float(lr_min)
-    )
 
     prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
     optimizer: torch.optim.Optimizer | None = None
@@ -362,45 +340,34 @@ def run_prior_training(
     def _record_non_finite_batch(batch_missingness) -> None:
         if missingness_summary is None:
             raise RuntimeError("prior training setup did not initialize missingness state")
-        deps.accumulate_missingness(
+        _accumulate_missingness(
             missingness_summary,
             batch_missingness=batch_missingness,
             skipped=prior_dump_non_finite_policy == "skip",
         )
 
     try:
-        training_surface_payload = deps.write_training_surface_record(
+        training_surface_payload = write_training_surface_record(
             training_surface_path,
-            raw_cfg=raw_cfg,
+            raw_cfg=training_surface_raw_cfg,
             run_dir=output_dir,
             backend=TRAINING_BACKEND_LEGACY_PRIOR,
         )
-        run = deps.init_wandb_run(
+        run = init_wandb_run(
             cfg,
             enabled=bool(getattr(cfg.logging, "use_wandb", False)),
         )
-        deps.update_wandb_summary(
+        update_wandb_summary(
             run,
-            deps.training_surface_wandb_summary_payload(training_surface_payload),
+            training_surface_wandb_summary_payload(training_surface_payload),
         )
-        deps.reset_peak_device_memory_stats(device)
-        missingness_summary = deps.initial_missingness_summary(
+        reset_peak_device_memory_stats(device)
+        missingness_summary = _initial_missingness_summary(
             prior_dump_path,
             prior_missingness_config=prior_missingness_config,
             prior_dump_non_finite_policy=prior_dump_non_finite_policy,
         )
 
-        optimizer_selection = deps.build_optimizer(
-            model,
-            name=str(cfg.optimizer.name),
-            lr=initial_lr,
-            weight_decay=float(cfg.optimizer.weight_decay),
-            extra_kwargs=deps.optimizer_kwargs(cfg),
-            require_requested=bool(cfg.optimizer.require_requested),
-            muon_per_parameter_lr=bool(getattr(cfg.optimizer, "muon_per_parameter_lr", True)),
-            muon_lr_scale_base=float(getattr(cfg.optimizer, "muon_lr_scale_base", 0.2)),
-            muon_partition_non2d=bool(getattr(cfg.optimizer, "muon_partition_non2d", True)),
-        )
         if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
             raise RuntimeError(
                 "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
@@ -410,18 +377,18 @@ def run_prior_training(
             raise RuntimeError(
                 "exact-parity prior-dump training expects exactly one optimizer instance, "
                 f"got {len(optimizer_selection.optimizers)}"
-            )
+        )
         prepared_opts = list(optimizer_selection.optimizers)
         optimizer = prepared_opts[0][1]
-        deps.set_optimizer_training_mode(prepared_opts, training=True)
+        _set_optimizer_training_mode(prepared_opts, training=True)
         lr_scales = [1.0 for _ in optimizer.param_groups]
-        deps.set_optimizer_base_lr(
+        _set_optimizer_base_lr(
             optimizer,
             base_lr=initial_lr,
             scales=lr_scales,
         )
 
-        reader = deps.prior_dump_task_batch_reader(
+        reader = PriorDumpTaskBatchReader(
             prior_dump_path,
             num_steps=max_steps,
             batch_size=prior_batch_config.batch_size,
@@ -434,16 +401,16 @@ def run_prior_training(
             if optimizer is None or missingness_summary is None:
                 raise RuntimeError("prior training setup did not initialize optimizer and missingness state")
             if prior_step.missingness is not None:
-                deps.accumulate_missingness(
+                _accumulate_missingness(
                     missingness_summary,
                     batch_missingness=prior_step.missingness,
                 )
             step_train_start = time.perf_counter()
             if prior_stage is not None:
                 current_base_lr = float(
-                    deps.stage_base_lr(prior_stage, step=int(prior_step.step_index), lr_min=lr_min)
+                    stage_base_lr(prior_stage, step=int(prior_step.step_index), lr_min=lr_min)
                 )
-                deps.set_optimizer_base_lr(
+                _set_optimizer_base_lr(
                     optimizer,
                     base_lr=current_base_lr,
                     scales=lr_scales,
@@ -451,19 +418,19 @@ def run_prior_training(
             forward_batched = getattr(model, "forward_batched", None)
             if not callable(forward_batched):
                 raise RuntimeError("prior-dump training requires a model with forward_batched()")
-            x_batch, y_train_batch, y_all_batch, feature_types_batch = deps.stack_prior_step(
+            x_batch, y_train_batch, y_all_batch, feature_types_batch = stack_prior_step(
                 prior_step,
                 device=device,
             )
-            step_examples_seen = deps.tensor_batch_examples_seen(x_batch)
-            step_tokens_seen = deps.tensor_batch_token_count(x_batch)
-            x_batch, synthetic_missingness = deps.apply_prior_missingness(
+            step_examples_seen = tensor_batch_examples_seen(x_batch)
+            step_tokens_seen = tensor_batch_token_count(x_batch)
+            x_batch, synthetic_missingness = _apply_prior_missingness(
                 x_batch,
                 prior_step=prior_step,
                 generator=prior_missingness_generator,
                 prior_missingness_config=prior_missingness_config,
             )
-            deps.accumulate_synthetic_missingness(
+            _accumulate_synthetic_missingness(
                 missingness_summary,
                 batch_missingness=synthetic_missingness,
             )
@@ -474,7 +441,6 @@ def run_prior_training(
                 microbatch_size_used,
                 microbatch_count,
             ) = _run_prior_step_with_microbatch_retry(
-                deps=deps,
                 model=model,
                 optimizer=optimizer,
                 x_batch=x_batch,
@@ -498,8 +464,8 @@ def run_prior_training(
                     "train/nan_guard_triggered": True,
                     "train/nan_skip_count": float(nan_skip_count),
                 }
-                deps.log_wandb_metrics(run, nan_log, step=global_step)
-                history_payload = deps.history_record(
+                log_wandb_metrics(run, nan_log, step=global_step)
+                history_payload = history_record(
                     global_step=global_step,
                     stage_name=_PRIOR_STAGE_NAME,
                     train_loss=float("nan"),
@@ -516,15 +482,15 @@ def run_prior_training(
                 )
                 history_records.append(history_payload)
                 if history_path is not None:
-                    deps.append_history_record(history_path, history_payload)
+                    append_history_record(history_path, history_payload)
                 continue
 
-            pre_clip_module_grad_norms = deps.module_grad_norms(model)
-            local_grad_norm = deps.total_grad_norm(model.parameters())
+            pre_clip_module_grad_norms = module_grad_norms(model)
+            local_grad_norm = total_grad_norm(model.parameters())
             clipped_grad_norm = local_grad_norm
             if grad_clip > 0:
                 clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                clipped_grad_norm = deps.normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+                clipped_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
             local_grad_norm = float(clipped_grad_norm)
             global_grad_norm_kind = _global_grad_norm_kind(float(local_grad_norm))
             if global_grad_norm_kind != "finite":
@@ -536,8 +502,8 @@ def run_prior_training(
                     "train/non_finite_grad_kind": global_grad_norm_kind,
                     "train/nan_skip_count": float(nan_skip_count),
                 }
-                deps.log_wandb_metrics(run, non_finite_grad_log, step=global_step)
-                history_payload = deps.history_record(
+                log_wandb_metrics(run, non_finite_grad_log, step=global_step)
+                history_payload = history_record(
                     global_step=global_step,
                     stage_name=_PRIOR_STAGE_NAME,
                     train_loss=float("nan"),
@@ -554,8 +520,8 @@ def run_prior_training(
                 )
                 history_records.append(history_payload)
                 if history_path is not None:
-                    deps.append_history_record(history_path, history_payload)
-                gradient_payload = deps.gradient_history_record(
+                    append_history_record(history_path, history_payload)
+                gradient_payload = gradient_history_record(
                     global_step=global_step,
                     stage_name=_PRIOR_STAGE_NAME,
                     train_loss=float("nan"),
@@ -571,7 +537,7 @@ def run_prior_training(
                     grad_clip_triggered=False,
                 )
                 gradient_records.append(gradient_payload)
-                deps.append_jsonl_record(gradient_path, gradient_payload)
+                append_jsonl_record(gradient_path, gradient_payload)
                 continue
             grad_clip_triggered = bool(grad_clip > 0 and local_grad_norm > grad_clip)
             if grad_clip_triggered:
@@ -594,11 +560,11 @@ def run_prior_training(
             grad_norm_count += 1
             max_grad_norm = max(max_grad_norm, final_grad_norm)
 
-            loss_delta_value = deps.train_loss_delta(
+            loss_delta_value = train_loss_delta(
                 history_step_loss,
                 previous_train_loss=previous_train_loss,
             )
-            loss_ema = deps.update_loss_ema(history_step_loss, previous_ema=loss_ema)
+            loss_ema = update_loss_ema(history_step_loss, previous_ema=loss_ema)
             previous_train_loss = history_step_loss
             elapsed_seconds = time.perf_counter() - train_start
             prior_dump_missingness = cast(dict[str, Any], missingness_summary["prior_dump"])
@@ -636,8 +602,8 @@ def run_prior_training(
             if activation_norms is not None:
                 for activation_name, activation_value in activation_norms.items():
                     train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
-            deps.log_wandb_metrics(run, train_log, step=global_step)
-            history_payload = deps.history_record(
+            log_wandb_metrics(run, train_log, step=global_step)
+            history_payload = history_record(
                 global_step=global_step,
                 stage_name=_PRIOR_STAGE_NAME,
                 train_loss=history_step_loss,
@@ -654,9 +620,9 @@ def run_prior_training(
             )
             history_records.append(history_payload)
             if history_path is not None:
-                deps.append_history_record(history_path, history_payload)
+                append_history_record(history_path, history_payload)
 
-            gradient_payload = deps.gradient_history_record(
+            gradient_payload = gradient_history_record(
                 global_step=global_step,
                 stage_name=_PRIOR_STAGE_NAME,
                 train_loss=history_step_loss,
@@ -671,11 +637,11 @@ def run_prior_training(
                 grad_clip_triggered=grad_clip_triggered,
             )
             gradient_records.append(gradient_payload)
-            deps.append_jsonl_record(gradient_path, gradient_payload)
+            append_jsonl_record(gradient_path, gradient_payload)
 
             if global_step % checkpoint_every == 0:
                 checkpoint_path = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
-                deps.save_eval_mode_checkpoint(
+                _save_eval_mode_checkpoint(
                     prepared_opts,
                     path=checkpoint_path,
                     model=model,
@@ -706,7 +672,7 @@ def run_prior_training(
                 )
 
         latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
-        deps.save_eval_mode_checkpoint(
+        _save_eval_mode_checkpoint(
             prepared_opts,
             path=latest_checkpoint,
             model=model,
@@ -716,21 +682,21 @@ def run_prior_training(
         )
         artifacts["latest_checkpoint"] = str(latest_checkpoint.resolve())
         wall_elapsed_seconds = time.perf_counter() - train_start
-        runtime_summary = deps.build_runtime_summary(
+        runtime_summary = build_runtime_summary(
             train_elapsed_seconds=train_elapsed_seconds,
             wall_elapsed_seconds=wall_elapsed_seconds,
             examples_seen=examples_seen,
             tokens_seen=tokens_seen,
-            peak_memory_summary=deps.peak_device_memory_summary(device),
+            peak_memory_summary=peak_device_memory_summary(device),
         )
-        regime_budget = deps.build_regime_budget_summary(
+        regime_budget = build_regime_budget_summary(
             task=str(cfg.task),
             loss_surface=loss_surface,
             training_surface_record=training_surface_payload,
             global_step=global_step,
             tokens_seen=tokens_seen,
         )
-        telemetry_payload = deps.build_training_telemetry(
+        telemetry_payload = build_training_telemetry(
             run_dir=output_dir,
             task=str(cfg.task),
             global_step=global_step,
@@ -743,14 +709,16 @@ def run_prior_training(
             regime_budget=regime_budget,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
-            wandb=deps.wandb_identity_payload(run, cfg=cfg),
+            wandb=wandb_identity_payload(run, cfg=cfg),
         )
-        deps.write_training_telemetry(telemetry_output_path, telemetry_payload)
-        deps.update_prior_wandb_summary(
+        write_training_telemetry(telemetry_output_path, telemetry_payload)
+        update_prior_wandb_summary(
             run,
             output_dir=output_dir,
             global_step=global_step,
             telemetry_payload=telemetry_payload,
+            prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
+            update_wandb_summary_fn=update_wandb_summary,
         )
         return TrainResult(
             output_dir=output_dir,
@@ -775,21 +743,21 @@ def run_prior_training(
         )
     except Exception as exc:
         wall_elapsed_seconds = time.perf_counter() - train_start
-        runtime_summary = deps.build_runtime_summary(
+        runtime_summary = build_runtime_summary(
             train_elapsed_seconds=train_elapsed_seconds,
             wall_elapsed_seconds=wall_elapsed_seconds,
             examples_seen=examples_seen,
             tokens_seen=tokens_seen,
-            peak_memory_summary=deps.peak_device_memory_summary(device),
+            peak_memory_summary=peak_device_memory_summary(device),
         )
-        regime_budget = deps.build_regime_budget_summary(
+        regime_budget = build_regime_budget_summary(
             task=str(cfg.task),
             loss_surface=loss_surface,
             training_surface_record=training_surface_payload,
             global_step=global_step,
             tokens_seen=tokens_seen,
         )
-        telemetry_payload = deps.build_training_telemetry(
+        telemetry_payload = build_training_telemetry(
             run_dir=output_dir,
             task=str(cfg.task),
             global_step=global_step,
@@ -802,16 +770,18 @@ def run_prior_training(
             regime_budget=regime_budget,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
-            wandb=deps.wandb_identity_payload(run, cfg=cfg),
+            wandb=wandb_identity_payload(run, cfg=cfg),
             error=exc,
         )
-        deps.write_training_telemetry(telemetry_output_path, telemetry_payload)
-        deps.update_prior_wandb_summary(
+        write_training_telemetry(telemetry_output_path, telemetry_payload)
+        update_prior_wandb_summary(
             run,
             output_dir=output_dir,
             global_step=global_step,
             telemetry_payload=telemetry_payload,
+            prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
+            update_wandb_summary_fn=update_wandb_summary,
         )
         raise
     finally:
-        deps.finish_wandb_run(run)
+        finish_wandb_run(run)

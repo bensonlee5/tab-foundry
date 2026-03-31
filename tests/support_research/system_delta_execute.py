@@ -20,9 +20,10 @@ from tab_foundry.control_baseline_registry import (
     default_control_baseline_registry_path,
 )
 import tab_foundry.cli.research_execute as sweep_execute_cli_module
+from tab_foundry.research.lane_contract import TrainingSurfaceContext
 from tab_foundry.research.sweep.manage import create_sweep
 from tab_foundry.research.sweep.execute import execute_sweep
-from tab_foundry.research.sweep.artifacts import ExecutionPaths, result_card_text as _result_card_text
+from tab_foundry.research.sweep.artifacts import ExecutionPaths
 import tab_foundry.research.sweep.configuration as configuration_module
 from tab_foundry.research.sweep.configuration import compose_cfg as _compose_cfg
 import tab_foundry.research.sweep.curve_reuse as curve_reuse_module
@@ -31,10 +32,12 @@ import tab_foundry.research.sweep.row_dependencies as row_dependencies_module
 import tab_foundry.research.sweep.row_execution as runner_module
 import tab_foundry.research.sweep.row_sync as row_sync_module
 import tab_foundry.research.sweep.runtime_env as runtime_env_module
+from tab_foundry.research.sweep.reporting import result_card_text as _result_card_text
+from tab_foundry.research.sweep.reporting import write_research_package
 from tab_foundry.research.sweep.selection import select_queue_rows
 import tab_foundry.research.sweep.execute as sweep_execute_module
 import tab_foundry.research.sweep.training_state as training_state_module
-from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
+from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml
 from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
 from tests.data.test_corpus import (
     _fake_run_dagzoo_generate,
@@ -1725,9 +1728,10 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
     )
 
     assert observed_run_id == run_id
-    assert captured_research_package['training_experiment'] == 'cls_benchmark_staged'
-    assert captured_research_package['training_config_profile'] == 'cls_benchmark_staged'
-    assert captured_research_package['surface_role'] == 'architecture_screen'
+    training_surface = captured_research_package['training_surface']
+    assert training_surface.training_experiment == 'cls_benchmark_staged'
+    assert training_surface.training_config_profile == 'cls_benchmark_staged'
+    assert training_surface.surface_role == 'architecture_screen'
     assert queue_row['status'] == 'screened'
     assert queue_row['interpretation_status'] == 'screened'
     assert queue_row['decision'] == 'defer'
@@ -2754,10 +2758,14 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
     )
 
     assert observed_run_id == run_id
-    assert captured_compose_cfg['training_experiment'] == 'cls_benchmark_staged_prior'
-    assert captured_research_package['training_experiment'] == 'cls_benchmark_staged_prior'
-    assert captured_research_package['training_config_profile'] == 'cls_benchmark_staged_prior'
-    assert captured_research_package['surface_role'] == 'hybrid_diagnostic'
+    training_surface = captured_compose_cfg['training_surface']
+    assert training_surface.training_experiment == 'cls_benchmark_staged_prior'
+    assert training_surface.training_config_profile == 'cls_benchmark_staged_prior'
+    assert training_surface.surface_role == 'hybrid_diagnostic'
+    research_package_surface = captured_research_package['training_surface']
+    assert research_package_surface.training_experiment == 'cls_benchmark_staged_prior'
+    assert research_package_surface.training_config_profile == 'cls_benchmark_staged_prior'
+    assert research_package_surface.surface_role == 'hybrid_diagnostic'
 
 
 def test_run_row_uses_materialized_row_for_execution_cfg(
@@ -4830,9 +4838,11 @@ def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Pat
         sweep_id="legacy_sweep",
         anchor_run_id="anchor_v1",
         device="cuda",
-        training_experiment="cls_benchmark_staged_prior",
-        training_config_profile="cls_benchmark_staged_prior",
-        surface_role="hybrid_diagnostic",
+        training_surface=TrainingSurfaceContext(
+            training_experiment="cls_benchmark_staged_prior",
+            training_config_profile="cls_benchmark_staged_prior",
+            surface_role="hybrid_diagnostic",
+        ),
     )
 
     research_card = (delta_root / "research_card.md").read_text(encoding="utf-8")

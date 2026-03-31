@@ -8,6 +8,7 @@ from typing import Any, Mapping, cast
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
+from .inspection_artifacts import queue_metadata_payload
 from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
 from .paths_io import (
     _render_path,
@@ -271,10 +272,11 @@ def render_system_delta_matrix(
     *,
     registry_path: Path | None = None,
 ) -> str:
+    metadata = queue_metadata_payload(queue)
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
-    raw_anchor_run_id = queue.get("anchor_run_id")
+    sweep_id = _require_non_empty_string(metadata.get("sweep_id"), context="materialized queue sweep_id")
+    raw_anchor_run_id = metadata.get("anchor_run_id")
     anchor_run_id = (
         None
         if raw_anchor_run_id is None or not str(raw_anchor_run_id).strip()
@@ -287,7 +289,9 @@ def render_system_delta_matrix(
     upstream = cast(dict[str, Any], queue["upstream_reference"])
     anchor_surface = cast(dict[str, Any], queue["anchor_surface"])
     catalog_path = str(queue.get("catalog_path", _render_path(default_catalog_path())))
-    canonical_queue_path = str(queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
+    canonical_queue_path = str(
+        metadata.get("canonical_queue_path", queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
+    )
     raw_resolved_queue_path = queue.get("canonical_resolved_queue_path")
     canonical_resolved_queue_path = (
         str(raw_resolved_queue_path)
@@ -328,11 +332,11 @@ def render_system_delta_matrix(
     lines.append("## Locked Surface")
     lines.append("")
     lines.append(f"- Anchor run id: `{anchor_run_id if anchor_run_id is not None else 'null'}`")
-    benchmark_surface_path = str(queue["benchmark_manifest_path"])
+    benchmark_surface_path = str(metadata["benchmark_manifest_path"])
     benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
     lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
-    lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
-    raw_external_benchmarks = queue.get("external_benchmarks", [])
+    lines.append(f"- Control baseline id: `{metadata['control_baseline_id']}`")
+    raw_external_benchmarks = metadata.get("external_benchmarks", [])
     external_benchmarks = (
         [str(value) for value in raw_external_benchmarks]
         if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
@@ -346,10 +350,10 @@ def render_system_delta_matrix(
             else "`none`"
         )
     )
-    lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
-    lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
-    lines.append(f"- Surface role: `{queue.get('surface_role')}`")
-    lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
+    lines.append(f"- Training experiment: `{metadata.get('training_experiment')}`")
+    lines.append(f"- Training config profile: `{metadata.get('training_config_profile')}`")
+    lines.append(f"- Surface role: `{metadata.get('surface_role')}`")
+    lines.append(f"- Comparison policy: `{metadata['comparison_policy']}`")
     if anchor_metrics is None:
         lines.append("- Anchor metrics: `pending trusted rerun`")
     else:

@@ -16,6 +16,7 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
 import tab_foundry.cli.train_prior as train_prior_cli_module
+import tab_foundry.training.prior.loop as prior_loop_module
 import tab_foundry.training.prior_train as prior_train_module
 from tab_foundry.training.prior_dump import (
     PriorDumpBatchMissingness,
@@ -994,14 +995,14 @@ def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
         ),
     )
 
-    original_save_checkpoint = prior_train_module.save_checkpoint
+    original_save_checkpoint = prior_loop_module.save_checkpoint
 
     def _recording_save_checkpoint(path: Path, *, model_state, global_step: int, cfg) -> None:
         _ = (model_state, global_step, cfg)
         save_events.append(path.name)
         original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
 
-    monkeypatch.setattr(prior_train_module, "save_checkpoint", _recording_save_checkpoint)
+    monkeypatch.setattr(prior_loop_module, "save_checkpoint", _recording_save_checkpoint)
 
     cfg = OmegaConf.create(
         {
@@ -2208,11 +2209,11 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
         ),
     )
     monkeypatch.setattr(
-        prior_train_module,
+        prior_loop_module,
         "module_grad_norms",
         lambda _model: {"feature_encoder": 0.5, "direct_head": 2.0, "decoder": 0.25},
     )
-    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(prior_loop_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     cfg = _prior_cfg(
         tmp_path,
         max_steps=2,
@@ -2339,7 +2340,7 @@ def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
             fallback_reason=None,
         ),
     )
-    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(prior_loop_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     cfg = _prior_cfg(tmp_path, max_steps=1)
     cfg.logging.use_wandb = True
     cfg.logging.project = "test-project"
@@ -2393,8 +2394,8 @@ def test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps(
             fallback_reason=None,
         ),
     )
-    monkeypatch.setattr(prior_train_module, "classification_loss", _loss_with_one_nan)
-    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(prior_loop_module, "classification_loss", _loss_with_one_nan)
+    monkeypatch.setattr(prior_loop_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     cfg = _prior_cfg(tmp_path, max_steps=2)
     cfg.logging.use_wandb = True
     cfg.logging.project = "test-project"
@@ -2469,11 +2470,11 @@ def test_train_tabfoundry_simple_prior_skips_non_finite_gradient_steps(
         ),
     )
     monkeypatch.setattr(
-        prior_train_module,
+        prior_loop_module,
         "normalize_grad_norm_value",
         lambda *_args, **_kwargs: grad_norm_value,
     )
-    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(prior_loop_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     cfg = _prior_cfg(tmp_path, max_steps=1)
     cfg.logging.use_wandb = True
     cfg.logging.project = "test-project"
@@ -2532,9 +2533,9 @@ def test_train_tabfoundry_simple_prior_closes_wandb_for_setup_failures(
     )
     fake_run = _FakeWandbRun()
     monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
-    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(prior_loop_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     monkeypatch.setattr(
-        prior_train_module,
+        prior_loop_module,
         "_initial_missingness_summary",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("simulated setup failure")),
     )

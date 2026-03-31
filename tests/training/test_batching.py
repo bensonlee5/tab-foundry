@@ -16,7 +16,7 @@ import tab_foundry.training.trainer_metrics as trainer_metrics_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_foundry.data.factory import _ManifestTaskBatchSampler, build_task_loader
 from tab_foundry.model.outputs import ClassificationOutput
-from tab_foundry.training.batching import (
+from tab_foundry.task_batching import (
     collate_task_batch,
     move_batch,
     task_batch_diagnostics,

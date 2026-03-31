@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from omegaconf import OmegaConf
 import pytest
 
+import tab_foundry.research.sweep.configuration as configuration_module
 import tab_foundry.research.sweep.matrix as matrix_module
 import tab_foundry.research.sweep.materialize as materialize_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
@@ -16,9 +17,9 @@ from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_LANE,
     HYBRID_DIAGNOSTIC_LANE,
     PFN_CONTROL_LANE,
-    resolve_training_config_profile,
-    resolve_training_experiment,
-    resolve_surface_role,
+    resolve_new_sweep_training_surface,
+    resolve_sweep_semantics,
+    resolve_training_surface_context,
 )
 from tab_foundry.research.sweep.catalog import (
     load_system_delta_catalog,
@@ -365,10 +366,10 @@ def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref
 
 
 def test_resolve_surface_role_classifies_named_sweep_surfaces() -> None:
-    assert resolve_surface_role({"training_experiment": "cls_benchmark_linear_simple"}) == PFN_CONTROL_LANE
-    assert resolve_surface_role({"training_experiment": "cls_benchmark_linear_simple_prior"}) == PFN_CONTROL_LANE
-    assert resolve_surface_role({"training_experiment": "cls_benchmark_staged_prior"}) == HYBRID_DIAGNOSTIC_LANE
-    assert resolve_surface_role({"training_experiment": "cls_benchmark_staged"}) == ARCHITECTURE_SCREEN_LANE
+    assert resolve_training_surface_context({"training_experiment": "cls_benchmark_linear_simple"}).surface_role == PFN_CONTROL_LANE
+    assert resolve_training_surface_context({"training_experiment": "cls_benchmark_linear_simple_prior"}).surface_role == PFN_CONTROL_LANE
+    assert resolve_training_surface_context({"training_experiment": "cls_benchmark_staged_prior"}).surface_role == HYBRID_DIAGNOSTIC_LANE
+    assert resolve_training_surface_context({"training_experiment": "cls_benchmark_staged"}).surface_role == ARCHITECTURE_SCREEN_LANE
 
 
 def test_legacy_sweep_without_lane_contract_fields_uses_hybrid_defaults() -> None:
@@ -379,9 +380,42 @@ def test_legacy_sweep_without_lane_contract_fields_uses_hybrid_defaults() -> Non
         }
     }
 
-    assert resolve_training_experiment(legacy_sweep) == "cls_benchmark_staged_prior"
-    assert resolve_training_config_profile(legacy_sweep) == "cls_benchmark_staged_prior"
-    assert resolve_surface_role(legacy_sweep) == HYBRID_DIAGNOSTIC_LANE
+    training_surface = resolve_training_surface_context(legacy_sweep)
+
+    assert training_surface.training_experiment == "cls_benchmark_staged_prior"
+    assert training_surface.training_config_profile == "cls_benchmark_staged_prior"
+    assert training_surface.surface_role == HYBRID_DIAGNOSTIC_LANE
+
+
+def test_resolve_sweep_semantics_includes_training_surface_and_comparison_policy() -> None:
+    semantics = resolve_sweep_semantics(
+        {
+            "training_experiment": "cls_benchmark_staged",
+            "comparison_policy": "vs_parent_and_anchor",
+        }
+    )
+
+    assert semantics.training_surface.training_experiment == "cls_benchmark_staged"
+    assert semantics.training_surface.training_config_profile == "cls_benchmark_staged"
+    assert semantics.training_surface.surface_role == ARCHITECTURE_SCREEN_LANE
+    assert semantics.comparison_policy == "vs_parent_and_anchor"
+
+
+def test_resolve_new_sweep_training_surface_reuses_template_semantics() -> None:
+    training_surface = resolve_new_sweep_training_surface(
+        template_sweep={
+            "training_experiment": "cls_benchmark_staged",
+            "training_config_profile": "cls_benchmark_staged",
+            "surface_role": "architecture_screen",
+        },
+        training_experiment=None,
+        training_config_profile=None,
+        surface_role=None,
+    )
+
+    assert training_surface.training_experiment == "cls_benchmark_staged"
+    assert training_surface.training_config_profile == "cls_benchmark_staged"
+    assert training_surface.surface_role == "architecture_screen"
 
 
 def test_all_checked_in_sweep_manifests_declare_lane_contract_fields() -> None:
@@ -457,6 +491,32 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
         f"{training_row['status']} | {training_row.get('entangled_legacy_stage', 'none')} |"
         in matrix
     )
+
+
+def test_system_delta_matrix_render_uses_canonical_queue_metadata_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue = load_system_delta_queue(
+        sweep_id="binary_md_v1",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+    sentinel_metadata = matrix_module.queue_metadata_payload(queue)
+    sentinel_metadata["training_experiment"] = "sentinel_experiment"
+    sentinel_metadata["training_config_profile"] = "sentinel_profile"
+    sentinel_metadata["surface_role"] = "sentinel_role"
+    sentinel_metadata["comparison_policy"] = "sentinel_policy"
+    monkeypatch.setattr(matrix_module, "queue_metadata_payload", lambda _queue: dict(sentinel_metadata))
+
+    rendered = render_system_delta_matrix(
+        queue,
+        registry_path=REGISTRY_PATH,
+    )
+
+    assert "Training experiment: `sentinel_experiment`" in rendered
+    assert "Training config profile: `sentinel_profile`" in rendered
+    assert "Surface role: `sentinel_role`" in rendered
+    assert "Comparison policy: `sentinel_policy`" in rendered
 
 
 def test_grouped_tokenizer_guard_is_captured_historically_and_stage_native_grouped_tokens_are_ready() -> None:
@@ -874,12 +934,12 @@ def test_create_sweep_defaults_single_epoch_budget_for_new_synthetic_rows_withou
     catalog_path.write_text(OmegaConf.to_yaml(OmegaConf.create(catalog_payload), resolve=True), encoding="utf-8")
 
     monkeypatch.setattr(
-        materialize_module,
+        configuration_module,
         "load_corpus_record",
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("no local corpus")),
     )
     monkeypatch.setattr(
-        materialize_module,
+        configuration_module,
         "load_corpus_recipe",
         lambda *args, **kwargs: SimpleNamespace(
             invocations=(SimpleNamespace(num_datasets=80), SimpleNamespace(num_datasets=64))
@@ -1513,12 +1573,12 @@ def test_load_system_delta_queue_rejects_conflicting_synthetic_epoch_budget_step
     queue_path.write_text(OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True), encoding="utf-8")
 
     monkeypatch.setattr(
-        materialize_module,
+        configuration_module,
         "load_corpus_record",
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("no local corpus")),
     )
     monkeypatch.setattr(
-        materialize_module,
+        configuration_module,
         "load_corpus_recipe",
         lambda *args, **kwargs: SimpleNamespace(
             invocations=(SimpleNamespace(num_datasets=80), SimpleNamespace(num_datasets=64))

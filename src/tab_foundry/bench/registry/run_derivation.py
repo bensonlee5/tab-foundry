@@ -29,7 +29,7 @@ from tab_foundry.bench.registry.schema import (
     REGISTRY_SCHEMA,
     REGISTRY_VERSION,
 )
-from tab_foundry.bench.registry.storage import load_versioned_registry_payload
+from tab_foundry.registry.storage import load_versioned_registry_payload
 from tab_foundry.bench.registry.summary_metrics import (
     benchmark_bundle_payload_from_summary,
     ensure_mapping,
@@ -206,7 +206,7 @@ def derive_benchmark_run_record(
 
     resolved_run_dir = run_dir.expanduser().resolve()
     resolved_summary_path = comparison_summary_path.expanduser().resolve()
-    from tab_foundry.bench.registry_common import load_comparison_summary
+    from tab_foundry.registry.common import load_comparison_summary
 
     summary = load_comparison_summary(resolved_summary_path)
     tab_foundry = ensure_mapping(summary["tab_foundry"], context="comparison_summary.tab_foundry")

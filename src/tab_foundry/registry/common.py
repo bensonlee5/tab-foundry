@@ -1,4 +1,4 @@
-"""Shared helpers for bench registry-style modules."""
+"""Shared helpers for JSON-backed registry-style modules."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root, reso
 
 
 def project_root() -> Path:
-    """Return the repository root for repo-relative artifact paths."""
+    """Return the repository root for repo-relative registry paths."""
 
     return repo_root()
 
@@ -27,22 +27,22 @@ def normalize_path_value(path: Path, *, root: Path) -> str:
     return normalize_repo_relative_path(path, root=root)
 
 
-def resolve_registry_path_value(value: str, *, root: Path) -> Path:
-    """Resolve a registry path value to an absolute path."""
+def resolve_path_value(value: str, *, root: Path) -> Path:
+    """Resolve one registry path value to an absolute path."""
 
     return resolve_repo_relative_path(value, root=root)
 
 
 def resolve_config_path(raw_value: Any, *, root: Path) -> Path:
-    """Resolve the manifest path stored in a checkpoint config."""
+    """Resolve the manifest path stored in checkpoint-style config payloads."""
 
     if not isinstance(raw_value, str) or not raw_value.strip():
         raise RuntimeError("checkpoint config must include a non-empty data.manifest_path")
-    return resolve_registry_path_value(str(raw_value), root=root)
+    return resolve_path_value(str(raw_value), root=root)
 
 
 def load_comparison_summary(path: Path) -> dict[str, Any]:
-    """Load the standard comparison-summary payload used by bench registries."""
+    """Load the standard comparison-summary payload used by benchmark registries."""
 
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
@@ -55,3 +55,4 @@ def load_comparison_summary(path: Path) -> dict[str, Any]:
     if not isinstance(tab_foundry, dict):
         raise RuntimeError(f"comparison summary missing tab_foundry section: {path}")
     return cast(dict[str, Any], payload)
+

@@ -1,4 +1,4 @@
-"""Shared path helpers for registry modules."""
+"""Neutral path helpers for registry-stored repo-relative values."""
 
 from __future__ import annotations
 
@@ -25,3 +25,4 @@ def normalize_registry_path_value(
     """Normalize one absolute path into the repo-relative registry form when possible."""
 
     return normalize_repo_relative_path(path, root=root)
+

@@ -3,30 +3,24 @@
 Use this guide when you want to make a bounded change without reopening the
 entire system.
 
-Start with [docs/getting-started.md](docs/getting-started.md) for repo
-orientation, then choose the path that matches your work:
+Start with [README.md](README.md), then go directly to the owner docs that
+match your question:
 
-- [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) for a repo
-  overview
-- [docs/research-contributors.md](docs/research-contributors.md) for research
-  work
-- [docs/ml-engineering.md](docs/ml-engineering.md) for ML engineering / infra
-  work
+- [README.md](README.md) for the repo overview and quickstart
+- [docs/workflows.md](docs/workflows.md) for command examples and artifact
+  expectations
+- [program.md](program.md) for the active system-delta sweep contract
+- [docs/development/roadmap.md](docs/development/roadmap.md) for research
+  priorities and TF-RD sequencing
+- [docs/development/model-architecture.md](docs/development/model-architecture.md)
+  for the live model surface
+- [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md)
+  for package ownership and entrypoint boundaries
+- [docs/inference.md](docs/inference.md) for export/runtime handoff details
 - [docs/glossary.md](docs/glossary.md) for sweep and architecture vocabulary
 
-## Canonical Sources Of Truth
-
-Keep changes on the canonical source, not on generated views.
-
-- `README.md`: top-level routing and quickstart
-- `docs/getting-started.md`: researcher onboarding
-- `docs/workflows.md`: operational runbooks and command syntax
-- `program.md`: active system-delta sweep contract
-- `docs/development/roadmap.md`: planning state and TF-RD priorities
-- `docs/development/model-architecture.md`: architecture truth
-- `reference/README.md`: literature and evidence entry point
-- `site/`: Hugo publishing shell only; generated content under `site/.generated/`
-  is not canonical
+If a Markdown file and `.venv/bin/tab-foundry ... --help` disagree, trust the
+CLI and update the Markdown file.
 
 ## Choose The Right Unit Of Work
 
@@ -58,9 +52,12 @@ Use the smallest unit that matches the question you are trying to answer.
 ## Research Contributor Workflow
 
 1. Route yourself through the current canon.
-   - Read [docs/getting-started.md](docs/getting-started.md).
-   - Confirm whether your question is about architecture, sweep execution,
-     synthetic data, or model breadth.
+   - Read [README.md](README.md).
+   - Then read the smallest owner doc that actually matches the work:
+     [program.md](program.md), [docs/workflows.md](docs/workflows.md),
+     [docs/development/model-architecture.md](docs/development/model-architecture.md),
+     [docs/development/roadmap.md](docs/development/roadmap.md), or
+     [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md).
 1. Inspect before changing.
    - Prefer narrow inspection surfaces such as:
      - `.venv/bin/tab-foundry dev resolve-config ...`

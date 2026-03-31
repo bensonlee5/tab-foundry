@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.15.5] - 2026-03-30
+## [0.15.6] - 2026-03-31
 
 ### Added
 
@@ -46,6 +46,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-facing note: system-delta matrix rendering now handles sweeps with
   `anchor_run_id: null` without crashing, and renders pending-anchor state for
   successor sweeps before the trusted rerun is established.
+
+## [0.15.5] - 2026-03-31
+
+### Changed
+
+- Internal note: centralized shared config inspection under
+  `tab_foundry.config_inspection`, split external benchmark helper runtime
+  wiring into `tab_foundry.bench.external_runtime`, and moved shared registry
+  helpers under `tab_foundry.registry` so CLI, benchmark, and sweep flows stop
+  carrying duplicate semantic owners.
+- Internal note: sweep materialization, inspection, surface reconstruction, and
+  reporting now resolve shared metadata and artifact paths through canonical
+  helper surfaces, while prior-dump training no longer assembles a dependency
+  bag or mutates a dictified config overlay inside the training loop.
+- User-facing note: the published docs and repo docs now route directly to the
+  owner docs instead of maintaining parallel router/topic layers, and the
+  README now reflects the active sandwich embedding path plus the matched-budget
+  log-loss versus `cell_bpc` objective metric split.
 
 ## [0.15.4] - 2026-03-30
 

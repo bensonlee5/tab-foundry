@@ -13,6 +13,20 @@
 - Prior to declaring a branch ready for review, compare branch to main and verify that all intended changes are included and no unintended changes are included.
 - When you commit and push, watch for failing CI and address it and push a fix if needed.
 
+## Documentation Source Of Truth
+
+- Keep agent-facing documentation ownership guidance in this file, not in human-facing docs.
+- `README.md` owns repo overview and quickstart.
+- `docs/workflows.md` owns command examples and artifact expectations.
+- `program.md` owns sweep execution policy.
+- `docs/development/roadmap.md` owns planning state and TF-RD sequencing.
+- `docs/development/codebase-navigation.md` owns package and entrypoint ownership.
+- `docs/inference.md` owns export/runtime handoff details.
+- `docs/development/model-architecture.md` owns the live architecture reference.
+- `CONTRIBUTING.md` owns contributor workflow and review expectations.
+- Use `.venv/bin/tab-foundry --help`, `.venv/bin/tab-foundry <group> --help`, and `.venv/bin/tab-foundry <group> <command> --help` for live commands and flags.
+- Human-facing docs should explain the system and link to the owning docs directly; they should not carry agent-only ownership markers or routing taxonomies.
+
 ## Architecture and Implementation
 
 - Prefer breaking dependency cycles and centralizing shared wiring in the existing role-based library modules under `src/tab_foundry/`; avoid "legacy" pathways, duplicate pathways, and shims. Do not introduce parallel implementations of the same logic in different layers of the codebase.

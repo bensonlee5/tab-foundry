@@ -16,12 +16,12 @@ from tab_foundry.bench.registry.run_derivation import (
     validate_run_entry as _validate_run_entry_impl,
 )
 from tab_foundry.bench.registry.schema import ALLOWED_DECISIONS, DEFAULT_BUDGET_CLASS
-from tab_foundry.bench.registry.storage import (
+from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
+from tab_foundry.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
     upsert_registry_entry as _upsert_registry_entry_common,
     utc_now as _utc_now_common,
 )
-from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable
 from tab_foundry.repo_paths import repo_root
 
 __all__ = [

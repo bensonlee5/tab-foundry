@@ -12,6 +12,7 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = (
     "README.md",
+    "CONTRIBUTING.md",
     "docs",
     "reference",
     "program.md",

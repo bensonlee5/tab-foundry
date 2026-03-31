@@ -23,7 +23,8 @@ Read it when you need to know:
 - how to interpret a result without over-claiming
 
 This is not the right page if you only want a general repo overview. Start with
-`docs/getting-started.md` or `docs/research-contributors.md` for that.
+`README.md`, `docs/workflows.md`, or
+`docs/development/model-architecture.md` for that broader context.
 
 ## Objective
 

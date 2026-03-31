@@ -161,50 +161,17 @@ The end state should support:
 - comparison across depth and width choices
 - the ability to fit Chinchilla-like scaling trends for the model family
 
-## Package Roles And Target Boundaries
+## Operational Boundary Notes
 
-| Path | Intended role |
-| ---- | ------------- |
-| `src/tab_foundry/` | Stable top-level package namespace for CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
-| `src/tab_foundry/cli/` and `src/tab_foundry/cli/groups/` | User-facing command surfaces and nested argument parsing. |
-| `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
-| `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Manifest build/inspect/read ownership lives upstream in `tab_realdata_hub.manifest`; direct imports in this repo should target consumer modules such as `tab_foundry.data.dataset`, `tab_foundry.data.factory`, and `tab_foundry.data.sources.*`. The parquet manifest is the stable index layer, while richer evolving dataset semantics belong in `metadata.ndjson`. |
-| `src/tab_foundry/model/` | Model package namespace. Direct imports should target submodules such as `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family modules under `tab_foundry.model.architectures`. |
-| `src/tab_foundry/model/components/` | Reusable architectural pieces such as tokenization blocks, attention blocks, many-class helpers, and QASS primitives. |
-| `src/tab_foundry/model/architectures/` | Full model-family implementations assembled from reusable components. |
-| `src/tab_foundry/training/` | Family-agnostic training infrastructure such as schedules, optimizers, trainer loops, checkpointing, and history logging. |
-| `src/tab_foundry/export/` | Export package namespace for bundle contracts and compatibility handling. Direct imports should target modules such as `tab_foundry.export.contracts`, `tab_foundry.export.exporter`, and `tab_foundry.export.loader_ref`. |
-| `docs/development/` | Canonical planning, architecture rationale, codebase navigation, and dependency mapping for internal repo evolution. |
-| `docs/workflows.md` and `docs/inference.md` | Stable operational and contract docs that should remain easy to link for users and downstream repos. |
-| `site/` | Hugo + Docsy publishing shell for the docs site. Generated site inputs are derived from canonical repo Markdown. |
-| `tests/` | Coverage organized by role today across `tests/model/`, `tests/training/`, `tests/data/`, `tests/export/`, `tests/runtime/`, `tests/config/`, `tests/smoke/`, and `tests/benchmark/`. |
+Use the live owner docs for implementation-time boundaries:
 
-## Dependency Direction
-
-The intended dependency direction is:
-
-```text
-cli/groups -> cli
-cli/groups -> bench/research
-cli/groups -> training/data/export
-bench -> training/data/model/export
-research -> bench/model/config
-training -> model/data
-export -> model
-model/architectures -> model/components
-data/sources -> data
-```
-
-Notes:
-
-- `bench/` may depend on core library packages, but core library packages
-  should not depend on `bench/`.
-- `cli/groups/` may orchestrate both `bench/`, `research/`, and core packages.
-- `src/tab_foundry/model/` is a namespace package. Direct imports should target
-  stable submodules like `model.factory` and `model.spec`, while
-  `model/components` and `model/architectures` carry the internal split.
-- Current export compatibility constraints should follow the active staged and
-  simple classification surfaces, not a removed legacy family.
+- [Codebase Navigation](codebase-navigation.md) owns package and entrypoint
+  routing.
+- [Module Dependency Map](module-dependency-map.md) owns the current top-level
+  graph plus dependency-direction policy.
+- [Workflows](../workflows.md) owns command examples and artifact expectations.
+- [Inference Contract](../inference.md) owns the export/runtime handoff
+  contract.
 
 ## Naming And Compatibility Guidance
 

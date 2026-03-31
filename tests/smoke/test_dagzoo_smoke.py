@@ -6,7 +6,7 @@ from typing import Any
 
 import tab_foundry.bench.dagzoo_smoke as smoke_module
 import tab_foundry.cli.bench_smoke_dagzoo as smoke_cli_module
-from tab_foundry.data.dagzoo_handoff import DagzooHandoffInfo
+from tab_realdata_hub.dagzoo_handoff import DagzooHandoffInfo
 from tab_foundry.data.dagzoo_workflow import DagzooGenerateManifestResult
 from tab_realdata_hub.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult

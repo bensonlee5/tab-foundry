@@ -3,24 +3,16 @@
 from __future__ import annotations
 
 import json
-from math import ceil
 from pathlib import Path
 from typing import Any, Literal, Mapping, cast
 
 from omegaconf import OmegaConf
 from pydantic import ValidationError
 
-from tab_foundry.data.corpus_loading import load_corpus_recipe
 from tab_foundry.data.corpus_materialization import materialize_corpus_ref
-from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.external_benchmarks import normalize_external_benchmarks
 from tab_foundry.hashing import sha256_text
-from tab_foundry.repo_paths import repo_root_from_catalog_path, repo_root_from_sweeps_root
-from tab_foundry.research.lane_contract import (
-    resolve_surface_role,
-    resolve_training_config_profile,
-    resolve_training_experiment,
-)
+from tab_foundry.research.lane_contract import resolve_sweep_semantics
 from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
@@ -43,6 +35,7 @@ from .models import (
     SweepPayload,
     SweepQueuePayload,
 )
+from .configuration import _effective_queue_corpus_ref, _resolved_repo_root, apply_synthetic_epoch_budget
 from .paths_io import (
     _copy_jsonable,
     _render_path,
@@ -138,26 +131,6 @@ def _optional_parent_delta_ref(queue_row: QueueRowPayload | Mapping[str, Any]) -
             f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parent_delta_ref must be a non-empty string"
         )
     return normalized
-
-
-def _effective_queue_corpus_ref(data_payload: Mapping[str, Any]) -> str | None:
-    corpus_ref = data_payload.get("corpus_ref")
-    if isinstance(corpus_ref, str) and corpus_ref.strip():
-        return corpus_ref.strip()
-    surface_overrides = data_payload.get("surface_overrides")
-    if isinstance(surface_overrides, Mapping):
-        nested_corpus_ref = surface_overrides.get("corpus_ref")
-        if isinstance(nested_corpus_ref, str) and nested_corpus_ref.strip():
-            return nested_corpus_ref.strip()
-    return None
-
-
-def _resolved_repo_root(
-    *,
-    catalog_path: Path | None,
-    sweeps_root: Path | None,
-) -> Path | None:
-    return repo_root_from_sweeps_root(sweeps_root) or repo_root_from_catalog_path(catalog_path)
 
 
 def _json_fingerprint(payload: Mapping[str, Any]) -> str:
@@ -297,168 +270,6 @@ def _resolved_surface_payload(
     return normalize_training_surface_record(record), training_surface_record_fingerprint(record)
 
 
-def _positive_int(value: Any, *, context: str) -> int:
-    if value is None or isinstance(value, bool):
-        raise RuntimeError(f"{context} must be a positive integer")
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(f"{context} must be a positive integer") from exc
-    if parsed <= 0:
-        raise RuntimeError(f"{context} must be a positive integer")
-    return parsed
-
-
-def _corpus_task_count_from_record(
-    record: Mapping[str, Any],
-    *,
-    corpus_ref: str,
-) -> int:
-    manifest = record.get("manifest")
-    if not isinstance(manifest, Mapping):
-        raise RuntimeError(f"corpus record for {corpus_ref!r} is missing manifest metadata")
-    characteristics = manifest.get("characteristics")
-    if isinstance(characteristics, Mapping):
-        persisted_summary = characteristics.get("persisted_summary")
-        if isinstance(persisted_summary, Mapping) and persisted_summary.get("total_records") is not None:
-            return _positive_int(
-                persisted_summary.get("total_records"),
-                context=f"corpus record {corpus_ref!r}.manifest.characteristics.persisted_summary.total_records",
-            )
-    inspection = manifest.get("inspection")
-    if isinstance(inspection, Mapping) and inspection.get("total_records") is not None:
-        return _positive_int(
-            inspection.get("total_records"),
-            context=f"corpus record {corpus_ref!r}.manifest.inspection.total_records",
-        )
-    raise RuntimeError(f"corpus record for {corpus_ref!r} is missing manifest total_records")
-
-
-def _synthetic_task_count(
-    *,
-    corpus_ref: str,
-    repo_root: Path | None,
-    sweep_id: str,
-    sweeps_root: Path | None,
-) -> tuple[int, str]:
-    recipe_id = str(corpus_ref).split("/", 1)[0]
-    recipe = load_corpus_recipe(
-        recipe_id,
-        repo_root=repo_root,
-        sweep_id=sweep_id,
-        sweeps_root=sweeps_root,
-    )
-    recipe_task_count = sum(int(invocation.num_datasets) for invocation in recipe.invocations)
-    try:
-        record = load_corpus_record(
-            corpus_ref,
-            repo_root=repo_root,
-            sweep_id=sweep_id,
-            sweeps_root=sweeps_root,
-        )
-    except RuntimeError:
-        return recipe_task_count, "recipe_definition"
-    record_task_count = _corpus_task_count_from_record(record, corpus_ref=corpus_ref)
-    if record_task_count != recipe_task_count:
-        return recipe_task_count, "recipe_definition"
-    return record_task_count, "local_corpus_record"
-
-
-def _apply_synthetic_epoch_budget(
-    *,
-    row_payload: dict[str, Any],
-    repo_root: Path | None,
-    sweep_id: str,
-    sweeps_root: Path | None,
-) -> None:
-    training_payload = cast(dict[str, Any], row_payload.get("training", {}))
-    budget_payload = training_payload.get("synthetic_epoch_budget")
-    if not isinstance(budget_payload, Mapping):
-        return
-    data_payload = cast(Mapping[str, Any], row_payload.get("data", {}))
-    corpus_ref = _effective_queue_corpus_ref(data_payload)
-    if corpus_ref is None:
-        raise RuntimeError(
-            f"queue row {row_payload.get('delta_id', '<missing>')!r} enables training.synthetic_epoch_budget "
-            "but does not define data.corpus_ref"
-        )
-
-    epochs = _positive_int(budget_payload.get("epochs"), context="training.synthetic_epoch_budget.epochs")
-    if epochs != 1:
-        raise RuntimeError("training.synthetic_epoch_budget.epochs must be exactly 1")
-    budget_unit = str(budget_payload.get("budget_unit", "")).strip()
-    if budget_unit != "corpus_manifest_records":
-        raise RuntimeError(
-            "training.synthetic_epoch_budget.budget_unit must be 'corpus_manifest_records'"
-        )
-    allow_partial_final_batch = budget_payload.get("allow_partial_final_batch")
-    if not isinstance(allow_partial_final_batch, bool):
-        raise RuntimeError(
-            "training.synthetic_epoch_budget.allow_partial_final_batch must be a boolean"
-        )
-    prior_dump_batch_size = _positive_int(
-        budget_payload.get("prior_dump_batch_size"),
-        context="training.synthetic_epoch_budget.prior_dump_batch_size",
-    )
-    existing_batch_size = training_payload.get("prior_dump_batch_size")
-    if existing_batch_size is not None and int(existing_batch_size) != prior_dump_batch_size:
-        raise RuntimeError(
-            "training.prior_dump_batch_size must match training.synthetic_epoch_budget.prior_dump_batch_size"
-        )
-    training_payload["prior_dump_batch_size"] = prior_dump_batch_size
-
-    total_records, resolution_source = _synthetic_task_count(
-        corpus_ref=corpus_ref,
-        repo_root=repo_root,
-        sweep_id=sweep_id,
-        sweeps_root=sweeps_root,
-    )
-    derived_max_steps = int(ceil(total_records / prior_dump_batch_size))
-
-    overrides = training_payload.setdefault("overrides", {})
-    if not isinstance(overrides, dict):
-        raise RuntimeError("training.overrides must be a mapping when synthetic_epoch_budget is enabled")
-    runtime_overrides = overrides.setdefault("runtime", {})
-    if not isinstance(runtime_overrides, dict):
-        raise RuntimeError("training.overrides.runtime must be a mapping when synthetic_epoch_budget is enabled")
-    existing_max_steps = runtime_overrides.get("max_steps")
-    if existing_max_steps is not None and int(existing_max_steps) != derived_max_steps:
-        raise RuntimeError(
-            f"training.synthetic_epoch_budget resolved max_steps={derived_max_steps} but runtime.max_steps="
-            f"{existing_max_steps!r}"
-        )
-    runtime_overrides["max_steps"] = derived_max_steps
-
-    schedule_overrides = overrides.get("schedule")
-    if schedule_overrides is not None:
-        if not isinstance(schedule_overrides, dict):
-            raise RuntimeError(
-                "training.overrides.schedule must be a mapping when synthetic_epoch_budget is enabled"
-            )
-        stages = schedule_overrides.get("stages")
-        if stages is not None:
-            if not isinstance(stages, list) or not stages:
-                raise RuntimeError(
-                    "training.overrides.schedule.stages must be a non-empty list when provided with synthetic_epoch_budget"
-                )
-            first_stage = stages[0]
-            if not isinstance(first_stage, dict):
-                raise RuntimeError("training.overrides.schedule.stages[0] must be a mapping")
-            existing_stage_steps = first_stage.get("steps")
-            if existing_stage_steps is not None and int(existing_stage_steps) != derived_max_steps:
-                raise RuntimeError(
-                    f"training.synthetic_epoch_budget resolved first-stage steps={derived_max_steps} but "
-                    f"schedule.stages[0].steps={existing_stage_steps!r}"
-                )
-            first_stage["steps"] = derived_max_steps
-
-    resolved_budget = cast(dict[str, Any], _copy_jsonable(cast(dict[str, Any], budget_payload)))
-    resolved_budget["resolved_task_count"] = total_records
-    resolved_budget["resolved_max_steps"] = derived_max_steps
-    resolved_budget["resolution_source"] = resolution_source
-    training_payload["synthetic_epoch_budget"] = resolved_budget
-
-
 def inspection_row(
     *,
     queue_row: QueueRowPayload,
@@ -527,6 +338,8 @@ def inspection_system_delta_queue(
     sweeps_root: Path | None = None,
 ) -> MaterializedQueuePayload:
     sweep_id = sweep.sweep_id
+    semantics = resolve_sweep_semantics(sweep)
+    training_surface = semantics.training_surface
     anchor_context = cast(dict[str, Any], _copy_jsonable(sweep.anchor_context))
     rows = [
         inspection_row(queue_row=queue_row, anchor_context=anchor_context)
@@ -549,10 +362,10 @@ def inspection_system_delta_queue(
             "benchmark_manifest_path": sweep.benchmark_manifest_path,
             "control_baseline_id": sweep.control_baseline_id,
             "external_benchmarks": _resolved_external_benchmarks(sweep),
-            "training_experiment": resolve_training_experiment(sweep),
-            "training_config_profile": resolve_training_config_profile(sweep),
-            "surface_role": resolve_surface_role(sweep),
-            "comparison_policy": sweep.comparison_policy,
+            "training_experiment": training_surface.training_experiment,
+            "training_config_profile": training_surface.training_config_profile,
+            "surface_role": training_surface.surface_role,
+            "comparison_policy": semantics.comparison_policy,
             "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
             "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
             "anchor_context": anchor_context,
@@ -729,7 +542,7 @@ def materialize_row(
     parent_delta_ref = _optional_parent_delta_ref(queue_row)
     if parent_delta_ref is not None:
         payload["parent_delta_ref"] = parent_delta_ref
-    _apply_synthetic_epoch_budget(
+    apply_synthetic_epoch_budget(
         row_payload=payload,
         repo_root=repo_root,
         sweep_id=sweep_id,
@@ -747,6 +560,8 @@ def materialize_system_delta_queue(
     sweeps_root: Path | None = None,
 ) -> MaterializedQueuePayload:
     sweep_id = sweep.sweep_id
+    semantics = resolve_sweep_semantics(sweep)
+    training_surface = semantics.training_surface
     resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
     rows: list[MaterializedQueueRowPayload] = []
     for queue_row in sorted(queue_instance.rows, key=lambda row: (int(row.order), str(row.delta_ref))):
@@ -780,10 +595,10 @@ def materialize_system_delta_queue(
             "benchmark_manifest_path": sweep.benchmark_manifest_path,
             "control_baseline_id": sweep.control_baseline_id,
             "external_benchmarks": _resolved_external_benchmarks(sweep),
-            "training_experiment": resolve_training_experiment(sweep),
-            "training_config_profile": resolve_training_config_profile(sweep),
-            "surface_role": resolve_surface_role(sweep),
-            "comparison_policy": sweep.comparison_policy,
+            "training_experiment": training_surface.training_experiment,
+            "training_config_profile": training_surface.training_config_profile,
+            "surface_role": training_surface.surface_role,
+            "comparison_policy": semantics.comparison_policy,
             "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
             "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
             "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.anchor_context)),
@@ -808,7 +623,7 @@ def materialize_resolved_system_delta_queue(
         sweeps_root=sweeps_root,
     )
     resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
-    training_experiment = resolve_training_experiment(sweep)
+    training_experiment = resolve_sweep_semantics(sweep).training_surface.training_experiment
     resolved_rows: list[dict[str, Any]] = []
     for row in materialized.rows:
         resolved_surface, resolved_surface_fingerprint = _resolved_surface_payload(
@@ -1058,10 +873,7 @@ def materialize_sweep_corpora(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
-    resolved_repo_root = (
-        repo_root_from_sweeps_root(sweeps_root)
-        or repo_root_from_catalog_path(catalog_path)
-    )
+    resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
     resolved_sweep_id = str(queue["sweep_id"])
     requested_corpus_refs: list[str] = []
     seen_corpus_refs: set[str] = set()
