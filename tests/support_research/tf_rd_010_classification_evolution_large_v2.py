@@ -39,7 +39,7 @@ def test_tf_rd_010_classification_evolution_large_v2_is_registered() -> None:
     assert isinstance(sweeps, dict)
     entry = sweeps[SWEEP_ID]
     assert entry["parent_sweep_id"] == "tf_rd_010_classification_evolution_medium_v2"
-    assert entry["status"] == "ready"
+    assert entry["status"] == "blocked_on_synthetic_adequacy"
     assert entry["anchor_run_id"] is None
     assert entry["complexity_level"] == "classification_lg"
     assert entry["benchmark_manifest_path"] == (
@@ -55,7 +55,7 @@ def test_tf_rd_010_classification_evolution_large_v2_records_the_active_2500_ste
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
-    assert sweep["status"] == "ready"
+    assert sweep["status"] == "blocked_on_synthetic_adequacy"
     assert sweep["anchor_run_id"] is None
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
@@ -78,15 +78,16 @@ def test_tf_rd_010_classification_evolution_large_v2_records_the_active_2500_ste
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["blocked_on_synthetic_adequacy"] * len(EXPECTED_ROWS)
     assert [row["run_id"] for row in rows] == [None] * len(EXPECTED_ROWS)
     assert [row["decision"] for row in rows] == [None] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["blocked"] * len(EXPECTED_ROWS)
     assert [row["data"]["corpus_ref"] for row in rows] == EXPECTED_CORPUS_REFS
     assert all("159984" in " ".join(row["notes"]) for row in rows)
     assert all("2500" in " ".join(row["notes"]) for row in rows)
     assert all("large_v1" in " ".join(row["notes"]) for row in rows)
-    assert all("issue `#203`" in row["next_action"] for row in rows)
+    assert all("tf_rd_010_synthetic_adequacy_v1" in row["next_action"] for row in rows)
+    assert all("do not execute `large_v2` yet" in row["next_action"] for row in rows)
     assert all("benchmark_metrics" not in row for row in rows)
 
     materialized = load_system_delta_queue(
@@ -118,13 +119,15 @@ def test_tf_rd_010_classification_evolution_large_v2_matrix_records_the_pending_
 
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
-    assert "Sweep status: `ready`" in matrix
+    assert "Sweep status: `blocked_on_synthetic_adequacy`" in matrix
     assert "Anchor run id: `null`" in matrix
-    assert "pending trusted rerun" in matrix
+    assert "Block this row pending `tf_rd_010_synthetic_adequacy_v1`" in matrix
     assert "159984" in matrix
     assert "`2500` optimizer steps" in matrix
     assert "tf_rd_010_classification_evolution_large_v1" in matrix
     assert "tf_rd_010_dagzoo_medium_control_v2" in matrix
+    assert "final_log_loss_at_matched_regime_budget" in matrix
+    assert "label-target log loss per test cell" in matrix
 
 
 def test_tf_rd_010_classification_evolution_large_v2_inspection_resolves_the_2500_step_row() -> None:

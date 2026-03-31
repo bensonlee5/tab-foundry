@@ -23,7 +23,7 @@ generator:
     filter_max_attempts: 32
     missing_mode: mcar
     missing_rate: 0.2
-  fingerprint: 7c42b35ddeef
+  fingerprint: 029aa207372a
 review_summary:
   grid_family: aligned_feature_class_grid_v2
   config_refs:

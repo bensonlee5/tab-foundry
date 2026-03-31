@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import yaml
 
@@ -335,6 +335,13 @@ def _invocation_record_payload(
         write_rendered_config=False,
     )
     resolved_config_path = _resolve_from_root(dagzoo_root, generate_config.dagzoo_config)
+    raw_handoff_manifest = json.loads(handoff_manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(raw_handoff_manifest, Mapping):
+        raise RuntimeError(
+            "dagzoo handoff manifest must decode to a mapping for "
+            f"invocation {spec.invocation_id!r}: {handoff_manifest_path}"
+        )
+    handoff_provenance = raw_handoff_manifest.get("provenance")
     payload = {
         "invocation_id": str(spec.invocation_id),
         "requested_config_ref": _invocation_requested_config_ref(spec),
@@ -348,6 +355,8 @@ def _invocation_record_payload(
         "invocation_root": str(invocation_root.resolve()),
         "handoff": handoff.to_summary_dict(),
     }
+    if isinstance(handoff_provenance, Mapping):
+        payload["handoff_provenance"] = _copy_jsonable(cast(Mapping[str, Any], handoff_provenance))
     if spec.config_ref is not None:
         payload["config_ref"] = str(spec.config_ref)
     if spec.base_config_ref is not None:
@@ -478,10 +487,56 @@ def materialize_corpus_recipe(
             )
             for spec in recipe.invocations
         ]
+        posterior_predictive_factorizations = sorted(
+            {
+                str(factorization).strip()
+                for payload in invocation_payloads
+                for factorization in (
+                    cast(Mapping[str, Any], payload.get("handoff_provenance", {})).get(
+                        "posterior_predictive_factorization"
+                    ),
+                )
+                if isinstance(factorization, str) and factorization.strip()
+            }
+        )
+        teacher_conditional_exports = {
+            bool(export_enabled)
+            for payload in invocation_payloads
+            for export_enabled in (
+                cast(Mapping[str, Any], payload.get("handoff_provenance", {})).get(
+                    "teacher_conditional_export"
+                ),
+            )
+            if isinstance(export_enabled, bool)
+        }
+        resolved_teacher_conditional_export = (
+            next(iter(teacher_conditional_exports))
+            if len(teacher_conditional_exports) == 1
+            else None
+        )
         dagzoo_provenance_summary = build_dagzoo_provenance_summary(
             recipe=recipe,
             corpus_ref=corpus_ref,
             corpus_id=corpus_id,
+            provenance={
+                "invocations": invocation_payloads,
+                "posterior_predictive_factorization": (
+                    posterior_predictive_factorizations[0]
+                    if len(posterior_predictive_factorizations) == 1
+                    else None
+                ),
+                "posterior_predictive_factorizations": (
+                    posterior_predictive_factorizations
+                    if len(posterior_predictive_factorizations) > 1
+                    else None
+                ),
+                "teacher_conditional_export": resolved_teacher_conditional_export,
+                "teacher_conditional_metric_definition": (
+                    "label-target log loss per test cell"
+                    if resolved_teacher_conditional_export
+                    else None
+                ),
+            },
         )
         dagzoo_provenance = _drop_none_values(
             {
@@ -498,6 +553,41 @@ def materialize_corpus_recipe(
                 "curated_root_lineage": [],
                 "invocations": invocation_payloads,
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
+                "posterior_predictive_factorization": (
+                    posterior_predictive_factorizations[0]
+                    if len(posterior_predictive_factorizations) == 1
+                    else None
+                ),
+                "posterior_predictive_factorizations": (
+                    posterior_predictive_factorizations
+                    if len(posterior_predictive_factorizations) > 1
+                    else None
+                ),
+                "teacher_conditional_export": resolved_teacher_conditional_export,
+                "teacher_conditional_metric_definition": (
+                    "label-target log loss per test cell"
+                    if resolved_teacher_conditional_export
+                    else None
+                ),
+                "target_parent_prior": dagzoo_provenance_summary.get("target_parent_prior"),
+                "target_parent_regimes_present": dagzoo_provenance_summary.get(
+                    "target_parent_regimes_present"
+                ),
+                "target_parent_count_range": dagzoo_provenance_summary.get(
+                    "target_parent_count_range"
+                ),
+                "target_parent_fraction_range": dagzoo_provenance_summary.get(
+                    "target_parent_fraction_range"
+                ),
+                "target_parent_near_max_band_min_fraction": dagzoo_provenance_summary.get(
+                    "target_parent_near_max_band_min_fraction"
+                ),
+                "target_parent_below_sqrt_prob": dagzoo_provenance_summary.get(
+                    "target_parent_below_sqrt_prob"
+                ),
+                "target_parent_midrange_prob": dagzoo_provenance_summary.get(
+                    "target_parent_midrange_prob"
+                ),
             }
         )
         manifest_inspection = inspect_manifest_summary(resolved_manifest_path)

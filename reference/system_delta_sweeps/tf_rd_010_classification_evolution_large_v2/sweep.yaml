@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_010_classification_evolution_large_v2
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
-status: ready
+status: blocked_on_synthetic_adequacy
 complexity_level: classification_lg
 anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
@@ -16,18 +16,18 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 large successor sweep is the active harder-rung benchmark-definition package for the expanded one-epoch 2500-step regime. The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract package remains historical context only and should not be reused for new canonical evidence.
+  - This TF-RD-010 large successor sweep is blocked pending `tf_rd_010_synthetic_adequacy_v1` and a future factorization-correct medium successor. The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract package remains historical context only and should not be reused for new canonical evidence.
   - Treat issues `#52`, `#99`, `#197`, `#198`, and `#200` as historical setup context only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
   - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo front shape while expanding to `159984` corpus manifest records/tasks per front: `144` invocation cells x `1111` datasets, capped at `<=1024` total rows per synthetic dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and class counts covering every integer from `2` through `10`.'
   - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and large classification validation bundles plus their materialized manifest parquet outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
   - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct multiclass head.
-  - Rank rows by `final_bpc_at_matched_regime_budget`, treating BPC as the normalized log-loss view while still reporting raw log loss, calibration, runtime, and stability guardrails.
+  - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, while still reporting calibration, runtime, and stability guardrails.
   - The large validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and `cls_benchmark_linear_multiclass_large_v1` baseline id remain historical TF-RD-010 identifiers for that broader classification pool.
   - 'Trusted executions now follow the expanded repo-default synthetic one-epoch policy for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps rather than the historical fixed 400-step or 3-step reset contracts.'
   - The prior 400-step executions and the preserved 3-step reset-contract package remain historical artifacts only and are no longer the active execution path for promotion or defer evidence.
-  - Keep the benchmark contract fixed while this successor package establishes fresh 2500-step large evidence on the corrected sandwich and training surface.
+  - Keep the benchmark contract fixed while `dagzoo` factorization and medium learnability are being audited; do not execute this larger rung until the adequacy gate is interpreted and a fresh medium successor is trusted.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.

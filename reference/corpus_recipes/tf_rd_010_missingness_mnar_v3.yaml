@@ -1,9 +1,10 @@
 schema: tab-foundry-corpus-recipe-v1
-recipe_id: tf_rd_010_missingness_mnar_v2
+recipe_id: tf_rd_010_missingness_mnar_v3
 kind: dagzoo_python_generated
-description: TF-RD-010 balanced MNAR front expanded to 159984 manifest records/tasks
-  for the one-epoch 2500-step regime while preserving the explicit row, feature, and
-  class ladders capped at 1024 rows per synthetic dataset.
+description: TF-RD-010 balanced MNAR front refreshed for the equation-(1)
+  posterior-predictive factorization while preserving the explicit 159984-task
+  one-epoch 2500-step contract and enabling auditable teacher-conditional export
+  for the synthetic adequacy gate.
 surface_label: tf_rd_010_missingness_mnar
 manifest:
   train_ratio: 0.9
@@ -14,14 +15,22 @@ provenance_labels:
   corpus_variant: tf_rd_010_missingness_mnar
   comparator_role: tf_rd_010_candidate
   benchmark_family: tf_rd_010
-  downstream_issue: 99
+  downstream_issue: 205
   task_grid: balanced_rows_features_classes_v1
   missingness_mechanism: mnar
-  corpus_recipe_version: v2
+  corpus_recipe_version: v3
   synthetic_epoch_regime: one_epoch_159984_records_2500_steps
   balanced_front_shape: inherited_from_v1
   manifest_record_count: 159984
   per_invocation_num_datasets: 1111
+  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+  teacher_conditional_export: true
+  metric_definition: label-target log loss per test cell
+  target_parent_prior: near_max_mixture
+  target_parent_mode: max
+  target_parent_near_max_band_min_fraction: 0.75
+  target_parent_below_sqrt_prob: 0.05
+  target_parent_midrange_prob: 0.20
 generator:
   module: tab_foundry.data.corpus_generators.tf_rd_010
   callable: build_balanced_medium_recipe
@@ -31,7 +40,8 @@ generator:
     filter_max_attempts: 256
     missing_mode: mnar
     missing_rate: 0.25
-  fingerprint: 0c98b08d469c
+    teacher_conditional_export: true
+  fingerprint: 2e6885d9eaf6
 review_summary:
   grid_family: balanced_rows_features_classes_v1
   config_refs:
@@ -62,3 +72,11 @@ review_summary:
   missingness:
     mechanism: mnar
     rate: 0.25
+  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+  teacher_conditional_export: true
+  metric_definition: label-target log loss per test cell
+  target_parent_prior: near_max_mixture
+  target_parent_mode: max
+  target_parent_near_max_band_min_fraction: 0.75
+  target_parent_below_sqrt_prob: 0.05
+  target_parent_midrange_prob: 0.20
