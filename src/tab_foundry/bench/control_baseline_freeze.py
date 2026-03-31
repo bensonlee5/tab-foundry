@@ -11,7 +11,8 @@ import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
 from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
-from tab_foundry.bench.registry.storage import (
+from tab_foundry.registry.common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
+from tab_foundry.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
     load_versioned_registry_payload as _load_versioned_registry_payload,
     upsert_registry_entry as _upsert_registry_entry_common,
@@ -20,7 +21,6 @@ from tab_foundry.bench.registry.summary_metrics import (
     benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
-from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.repo_paths import repo_root
 

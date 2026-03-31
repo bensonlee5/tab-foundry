@@ -24,11 +24,7 @@ from tab_foundry.bench.comparison_runtime import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.bench.run_registration import register_benchmark_run
-from tab_foundry.research.lane_contract import (
-    resolve_surface_role,
-    resolve_training_config_profile,
-    resolve_training_experiment,
-)
+from tab_foundry.research.lane_contract import resolve_sweep_semantics
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.surface import (
     TRAINING_BACKEND_LEGACY_PRIOR,
@@ -40,10 +36,11 @@ from tab_foundry.training.wandb import posthoc_update_wandb_summary
 from . import curve_reuse as _curve_reuse
 from . import row_dependencies as _row_dependencies
 from . import training_state as _training_state
-from .artifacts import ExecutionPaths, result_card_text, write_research_package
+from .artifacts import ExecutionPaths
 from .configuration import compose_cfg, resolve_training_backend, row_id_for_order
 from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS, SweepPayload
 from .queue_updates import optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
+from .reporting import result_card_text, write_research_package
 from .runtime_env import ensure_nanotabpfn_python
 from .screening import screen_metrics
 
@@ -189,9 +186,8 @@ def run_row(
         materialized_row=materialized_row,
     )
     resolved_sweep_meta = sweep if sweep is not None else sweep_meta
-    training_experiment = resolve_training_experiment(resolved_sweep_meta)
-    training_config_profile = resolve_training_config_profile(resolved_sweep_meta)
-    surface_role = resolve_surface_role(resolved_sweep_meta)
+    sweep_semantics = resolve_sweep_semantics(resolved_sweep_meta)
+    training_surface = sweep_semantics.training_surface
     external_benchmarks = _sweep_external_benchmarks(sweep, sweep_meta=sweep_meta)
     existing_run_id = queue_row.get("run_id")
     run_id = row_id_for_order(
@@ -220,15 +216,13 @@ def run_row(
         sweep_id=sweep_id,
         anchor_run_id=anchor_run_id,
         device=device,
-        training_experiment=training_experiment,
-        training_config_profile=training_config_profile,
-        surface_role=surface_role,
+        training_surface=training_surface,
     )
     cfg = compose_cfg(
         row=queue_row,
         run_dir=train_dir,
         device=device,
-        training_experiment=training_experiment,
+        training_surface=training_surface,
         sweep_id=sweep_id,
         sweeps_root=paths.sweeps_root,
     )
@@ -406,8 +400,8 @@ def run_row(
     registration = register_benchmark_run(
         run_id=run_id,
         track=DEFAULT_TRACK,
-        experiment=training_experiment,
-        config_profile=training_config_profile,
+        experiment=training_surface.training_experiment,
+        config_profile=training_surface.training_config_profile,
         budget_class=DEFAULT_BUDGET_CLASS,
         run_dir=train_dir,
         comparison_summary_path=benchmark_dir / "comparison_summary.json",

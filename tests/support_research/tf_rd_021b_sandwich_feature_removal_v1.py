@@ -6,6 +6,7 @@ from typing import Any
 from omegaconf import OmegaConf
 
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+from tests.support_research.helpers import assert_training_surface_semantics
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -59,11 +60,13 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_records_the_completed_removal_fi
     assert sweep["parent_sweep_id"] == "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
     assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
-    assert sweep["external_benchmarks"] == []
-    assert sweep["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
-    assert sweep["training_config_profile"] == "cls_benchmark_sandwich_hybrid_prior"
-    assert sweep["surface_role"] == "architecture_screen"
-    assert sweep["comparison_policy"] == "anchor_only"
+    assert_training_surface_semantics(
+        sweep,
+        training_experiment="cls_benchmark_sandwich_hybrid_prior",
+        surface_role="architecture_screen",
+        comparison_policy="anchor_only",
+        external_benchmarks=[],
+    )
     assert sweep["upstream_reference"] == {
         "name": "PerceiverIO",
         "model_source": "https://openreview.net/forum?id=fILj7WpI-g",
@@ -119,10 +122,12 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_records_the_completed_removal_fi
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
-    assert materialized["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
-    assert materialized["training_config_profile"] == "cls_benchmark_sandwich_hybrid_prior"
-    assert materialized["surface_role"] == "architecture_screen"
-    assert materialized["external_benchmarks"] == []
+    assert_training_surface_semantics(
+        materialized,
+        training_experiment="cls_benchmark_sandwich_hybrid_prior",
+        surface_role="architecture_screen",
+        external_benchmarks=[],
+    )
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
 
 

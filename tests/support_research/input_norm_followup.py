@@ -6,6 +6,7 @@ from typing import Any
 from omegaconf import OmegaConf
 
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+from tests.support_research.helpers import assert_training_surface_semantics
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -74,9 +75,11 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert sweep["parent_sweep_id"] == "stability_followup"
     assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
-    assert sweep["training_experiment"] == "cls_benchmark_staged_prior"
-    assert sweep["training_config_profile"] == "cls_benchmark_staged_prior"
-    assert sweep["surface_role"] == "hybrid_diagnostic"
+    assert_training_surface_semantics(
+        sweep,
+        training_experiment="cls_benchmark_staged_prior",
+        surface_role="hybrid_diagnostic",
+    )
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID

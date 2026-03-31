@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from omegaconf import DictConfig, OmegaConf
 from pydantic import ValidationError
@@ -139,6 +139,46 @@ def _resolve_prior_dump_batch_config(
         reference_batch_size=reference_batch_size,
         effective_lr_scale_factor=float(factor),
     )
+
+
+def build_prior_training_surface_raw_cfg(
+    cfg: DictConfig,
+    *,
+    loss_surface: str,
+    prior_batch_config: _PriorDumpBatchConfig,
+    lr_min: float,
+) -> dict[str, Any]:
+    raw_cfg = OmegaConf.to_container(cfg, resolve=True)
+    if not isinstance(raw_cfg, dict):
+        raise RuntimeError("cfg must resolve to a mapping for prior training surface capture")
+    payload = cast(dict[str, Any], raw_cfg)
+    raw_training_cfg = payload.get("training")
+    if not isinstance(raw_training_cfg, dict):
+        raw_training_cfg = {}
+        payload["training"] = raw_training_cfg
+    raw_training_cfg["loss_surface"] = str(loss_surface)
+
+    raw_legacy_prior_cfg = payload.get("legacy_prior")
+    if not isinstance(raw_legacy_prior_cfg, dict):
+        raw_legacy_prior_cfg = {}
+        payload["legacy_prior"] = raw_legacy_prior_cfg
+    raw_legacy_prior_cfg["batch_size"] = int(prior_batch_config.batch_size)
+    raw_legacy_prior_cfg["lr_scale_rule"] = str(prior_batch_config.lr_scale_rule)
+    raw_legacy_prior_cfg["batch_reference_size"] = int(prior_batch_config.reference_batch_size)
+    raw_legacy_prior_cfg["effective_lr_scale_factor"] = float(prior_batch_config.effective_lr_scale_factor)
+
+    raw_optimizer_cfg = payload.get("optimizer")
+    if isinstance(raw_optimizer_cfg, dict) and raw_optimizer_cfg.get("min_lr") is not None:
+        raw_optimizer_cfg["min_lr"] = float(lr_min)
+
+    raw_schedule_cfg = payload.get("schedule")
+    if isinstance(raw_schedule_cfg, dict):
+        raw_stages = raw_schedule_cfg.get("stages")
+        if isinstance(raw_stages, list):
+            for stage in raw_stages:
+                if isinstance(stage, dict) and stage.get("lr_max") is not None:
+                    stage["lr_max"] = float(stage["lr_max"]) * float(prior_batch_config.effective_lr_scale_factor)
+    return payload
 
 
 def _resolve_prior_schedule(

@@ -1,5 +1,21 @@
 # Inference Contract
 
+**Owns**
+
+- the export-bundle schema and validation boundary
+- what this repo hands to downstream runtime systems
+- compatibility expectations for bundle readers and exporters
+
+**Does Not Own**
+
+- command discovery
+- package ownership or dependency direction
+- roadmap or sweep policy
+
+**If Stale vs Code**
+Trust the exporter, validator, and runtime tests under `src/tab_foundry/export/`
+over prose on this page.
+
 Use this contract when you need to know what this repo hands to downstream
 runtime systems and what must remain stable.
 

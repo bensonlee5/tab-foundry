@@ -1,5 +1,22 @@
 # Agent Program
 
+**Owns**
+
+- selected sweep execution policy
+- the locked comparison surface for the active anchor-only system-delta sweep
+- queue discipline, interpretation policy, and required research artifacts
+
+**Does Not Own**
+
+- live commands or flags
+- package ownership or dependency direction
+- repo-wide roadmap sequencing outside the selected sweep contract
+
+**If Stale vs Code**
+Trust the selected sweep metadata plus the `tab_foundry.research.sweep.*`
+library surfaces over prose, and use `docs/workflows.md` only for command
+examples.
+
 Use this contract when you are running or reviewing a selected anchor-only
 system-delta sweep in `tab-foundry`.
 

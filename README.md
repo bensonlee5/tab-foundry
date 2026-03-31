@@ -167,7 +167,7 @@ reference family. For the full architecture reference, see
 
 | If you want to... | Start here | Then go deeper |
 | --- | --- | --- |
-| Understand what this repo does | [What is tab-foundry?](docs/what-is-tab-foundry.md) | [Getting started](docs/getting-started.md) |
+| Understand what this repo does | [Getting started](docs/getting-started.md) | [Published docs site](https://bensonlee5.github.io/tab-foundry/) |
 | Run research sweeps | [Research contributors](docs/research-contributors.md) | [Research program](program.md) |
 | Work on artifacts or infra | [ML engineering](docs/ml-engineering.md) | [Inference & export](docs/inference.md) |
 

@@ -3,11 +3,11 @@
 Use this guide when you want to make a bounded change without reopening the
 entire system.
 
-Start with [docs/getting-started.md](docs/getting-started.md) for repo
-orientation, then choose the path that matches your work:
+Start with [README.md](README.md) for repo overview or
+[docs/getting-started.md](docs/getting-started.md) for routing, then choose the
+path that matches your work:
 
-- [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) for a repo
-  overview
+- [README.md](README.md) for the repo overview and quickstart
 - [docs/research-contributors.md](docs/research-contributors.md) for research
   work
 - [docs/ml-engineering.md](docs/ml-engineering.md) for ML engineering / infra
@@ -19,14 +19,26 @@ orientation, then choose the path that matches your work:
 Keep changes on the canonical source, not on generated views.
 
 - `README.md`: top-level routing and quickstart
-- `docs/getting-started.md`: researcher onboarding
+- packaged CLI `--help`: authoritative command and flag surface
+- `docs/getting-started.md`: orientation router
 - `docs/workflows.md`: operational runbooks and command syntax
+- `docs/development/codebase-navigation.md`: package ownership and entrypoint
+  boundaries
 - `program.md`: active system-delta sweep contract
 - `docs/development/roadmap.md`: planning state and TF-RD priorities
 - `docs/development/model-architecture.md`: architecture truth
 - `reference/README.md`: literature and evidence entry point
 - `site/`: Hugo publishing shell only; generated content under `site/.generated/`
   is not canonical
+
+Prefer the docs as routing layers rather than as duplicated command
+inventories. If a Markdown file and `.venv/bin/tab-foundry ... --help`
+disagree, update the Markdown file and trust the CLI.
+
+`README.md` owns repo overview. `docs/getting-started.md` owns routing.
+`docs/ml-engineering.md` and `docs/research-contributors.md` remain thin
+landing pages and should point to semantic owners rather than restate those
+owners' content.
 
 ## Choose The Right Unit Of Work
 

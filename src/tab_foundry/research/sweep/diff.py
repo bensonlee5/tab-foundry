@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from .inspection_queue import find_row, load_inspection_queue, queue_metadata_payload
+from .inspection_artifacts import find_row, load_inspection_queue, queue_metadata_payload
 from .inspection_targets import resolve_anchor_target, resolve_row_target
 from .paths_io import (
     default_registry_path,

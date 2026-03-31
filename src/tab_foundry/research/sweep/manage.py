@@ -8,9 +8,8 @@ from typing import Any, Mapping, Sequence, cast
 from tab_foundry.external_benchmarks import normalize_external_benchmarks
 from tab_foundry.research.lane_contract import (
     PFN_CONTROL_SURFACES,
-    resolve_surface_role,
-    resolve_training_config_profile,
-    resolve_training_experiment,
+    resolve_new_sweep_training_surface,
+    resolve_sweep_semantics,
 )
 
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
@@ -251,41 +250,17 @@ def create_sweep(
             allow_empty=True,
         )
     )
-    if (
-        template_sweep is None
-        and (
-            explicit_training_experiment is None
-            or explicit_training_config_profile is None
-            or explicit_surface_role is None
-        )
-    ):
-        raise RuntimeError(
-            "create_sweep requires --parent-sweep-id or all of "
-            "--training-experiment, --training-config-profile, and --surface-role"
-        )
-    if explicit_training_experiment is None:
-        assert template_sweep is not None
-        resolved_training_experiment = resolve_training_experiment(template_sweep)
-    else:
-        resolved_training_experiment = explicit_training_experiment
-    if explicit_training_config_profile is None:
-        if explicit_training_experiment is not None:
-            resolved_training_config_profile = explicit_training_experiment
-        else:
-            assert template_sweep is not None
-            resolved_training_config_profile = resolve_training_config_profile(template_sweep)
-    else:
-        resolved_training_config_profile = explicit_training_config_profile
-    if explicit_surface_role is None:
-        if explicit_training_experiment is not None:
-            resolved_surface_role = resolve_surface_role(
-                {"training_experiment": explicit_training_experiment}
-            )
-        else:
-            assert template_sweep is not None
-            resolved_surface_role = resolve_surface_role(template_sweep)
-    else:
-        resolved_surface_role = explicit_surface_role
+    training_surface = resolve_new_sweep_training_surface(
+        template_sweep=template_sweep,
+        training_experiment=explicit_training_experiment,
+        training_config_profile=explicit_training_config_profile,
+        surface_role=explicit_surface_role,
+    )
+    inherited_comparison_policy = (
+        resolve_sweep_semantics(template_sweep).comparison_policy
+        if template_sweep is not None
+        else "anchor_only"
+    )
 
     sweep_payload = SweepPayload.model_validate(
         {
@@ -298,14 +273,8 @@ def create_sweep(
         "benchmark_manifest_path": normalized_benchmark_manifest_path,
         "control_baseline_id": normalized_control_baseline_id,
         "external_benchmarks": resolved_external_benchmarks,
-        "training_experiment": resolved_training_experiment,
-        "training_config_profile": resolved_training_config_profile,
-        "surface_role": resolved_surface_role,
-        "comparison_policy": (
-            str(template_sweep.get("comparison_policy", "anchor_only"))
-            if template_sweep is not None
-            else "anchor_only"
-        ),
+        **training_surface.to_payload_dict(),
+        "comparison_policy": inherited_comparison_policy,
         "upstream_reference": cast(
             dict[str, Any],
             _copy_jsonable(
@@ -347,7 +316,7 @@ def create_sweep(
                 delta_id=delta_id,
                 delta_entry=deltas[delta_id].to_payload_dict(),
                 anchor_context=anchor_context,
-                training_experiment=resolved_training_experiment,
+                training_experiment=training_surface.training_experiment,
             )
         )
         for order, delta_id in enumerate(selected_delta_ids, start=1)

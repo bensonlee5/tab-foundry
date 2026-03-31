@@ -115,21 +115,23 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
     contents = (REPO_ROOT / "docs" / "workflows.md").read_text(encoding="utf-8")
 
     required_statements = [
-        "### System-Delta Sweep Runbook",
+        "## System-Delta Sweep Runbook",
+        "Treat [program.md](../program.md) as the policy owner.",
+        "`reference/system_delta_catalog.yaml`",
         "`reference/system_delta_sweeps/index.yaml`",
         "`cls_benchmark_linear_v2`",
         "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
         "`training_surface_record.json`",
-        "`tab-foundry train legacy-prior staged`",
+        "`research_card.md`",
+        "`campaign.yaml`",
+        "`result_card.md`",
+        "tab-foundry train legacy-prior staged",
         "`outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`",
         "`outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`",
         "tab-foundry research sweep next --sweep-id <sweep_id>",
         "tab-foundry research sweep execute --sweep-id <sweep_id>",
         "tab-foundry research sweep graph --sweep-id <sweep_id> --anchor",
-        "Graphviz `dot`",
-        "PFN control lane",
-        "Hybrid diagnostic lane",
-        "Canonical architecture-screen surface",
+        "Graphviz `dot` on `PATH`",
         "`screen_only` rows are diagnostic only.",
     ]
     for statement in required_statements:
@@ -137,10 +139,8 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
 
     forbidden_statements = [
         "### Staged Ladder Runbook",
+        "## Research Review Loop",
         "canonical promotion gate",
-        "promotes forward by overriding",
-        "show-active",
-        "set-active",
     ]
     for statement in forbidden_statements:
         assert statement not in contents
@@ -170,35 +170,55 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
 
     required_statements = [
         "bensonlee5.github.io/tab-foundry",
-        "| If you want to... | Start here | Then go deeper |",
+        "**Owns**",
+        "**Does Not Own**",
+        "**If Stale vs Code**",
         "`tab-foundry` is the canonical packaged CLI",
         "`./scripts/dev`",
         "`scripts/bench/`",
         "| Surface | Use it for |",
-        "Use `--help` in this order:",
-        "tab-foundry --help",
-        "tab-foundry <group> --help",
-        "tab-foundry <group> <command> --help",
-        "| Namespace | Purpose | Read next |",
-        "For the canonical leaf-command inventory, use",
+        "If docs and the live CLI disagree, trust the packaged CLI help",
+        ".venv/bin/tab-foundry --help",
+        ".venv/bin/tab-foundry <group> --help",
+        ".venv/bin/tab-foundry <group> <command> --help",
+        "| Need | Source |",
+        "docs/getting-started.md",
         "docs/workflows.md",
-        "docs/research-contributors.md",
-        "docs/ml-engineering.md",
+        "docs/development/codebase-navigation.md",
+        "program.md",
+        "docs/development/roadmap.md",
+        "## Current Shape",
+        "docs/development/model-architecture.md",
     ]
     for statement in required_statements:
         assert statement in readme
 
     forbidden_statements = [
-        "## Quickstart",
-        "Build a manifest:",
-        "Train a smoke profile:",
-        "Evaluate a checkpoint:",
-        "Export and validate an inference bundle:",
         "## Docs",
         "<summary>Full CLI tree</summary>",
+        "## What Makes This Different",
+        "## What Works Today",
+        "## What We're Building",
+        "## Architecture At A Glance",
+        "## Find Your Path",
+        "docs/what-is-tab-foundry.md",
     ]
     for statement in forbidden_statements:
         assert statement not in readme
+
+
+def test_front_door_overview_router_was_deleted() -> None:
+    assert not (REPO_ROOT / "docs" / "what-is-tab-foundry.md").exists()
+
+    checked_texts = [
+        (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+        (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8"),
+        (REPO_ROOT / "docs" / "getting-started.md").read_text(encoding="utf-8"),
+        (REPO_ROOT / "scripts" / "docs" / "sync_hugo_content.py").read_text(encoding="utf-8"),
+    ]
+    for text in checked_texts:
+        assert "docs/what-is-tab-foundry.md" not in text
+        assert "what-is-tab-foundry" not in text
 
 
 def test_editable_lockfile_version_matches_pyproject() -> None:

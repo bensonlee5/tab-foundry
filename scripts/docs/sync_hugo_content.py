@@ -42,13 +42,6 @@ class PageSpec:
 
 PAGE_SPECS: tuple[PageSpec, ...] = (
     PageSpec(
-        source_rel="docs/what-is-tab-foundry.md",
-        route="getting-started/what-is-tab-foundry",
-        weight=10,
-        description="Best first stop for what the repo owns, what it produces, and where to go next.",
-        aliases=("/docs/what-is-tab-foundry/",),
-    ),
-    PageSpec(
         source_rel="docs/getting-started.md",
         route="getting-started/_index",
         weight=10,

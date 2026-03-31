@@ -7,7 +7,7 @@ from typing import Any, Mapping, TypeAlias, cast
 
 import numpy as np
 
-from tab_foundry.data.validation import assert_no_non_finite_values
+from tab_realdata_hub.validation import assert_no_non_finite_values
 
 
 class BenchmarkDatasetEvaluationError(RuntimeError):

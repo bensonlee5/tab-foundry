@@ -7,6 +7,10 @@ from pathlib import Path
 from omegaconf import DictConfig
 
 from tab_foundry.device import resolve_device
+from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.spec import ModelBuildSpec
+from tab_foundry.training.loss_surface import configure_model_loss_surface, resolve_training_loss_surface
+from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.prior.config import (
     _model_spec_from_cfg,
     _optimizer_kwargs,
@@ -16,68 +20,17 @@ from tab_foundry.training.prior.config import (
     _resolve_prior_schedule,
     _resolve_prior_wandb_run_name,
     _validate_prior_training_model_spec,
+    build_prior_training_surface_raw_cfg,
     DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
 )
-from tab_foundry.training.prior.io import stack_prior_step as _stack_prior_step
-from tab_foundry.training.prior.loop import PriorTrainingDeps, run_prior_training
-from tab_foundry.training.prior.settings import PriorMissingnessConfig, PriorRuntimeConfig
-from tab_foundry.training.prior.missingness import (
-    _accumulate_missingness,
-    _accumulate_synthetic_missingness,
-    _apply_prior_missingness,
-    _initial_missingness_summary,
-    _prior_wandb_summary_payload,
-)
+from tab_foundry.training.prior.loop import run_prior_training
 from tab_foundry.training.prior.runtime import (
     resolve_prior_training_device_name as _resolve_prior_training_device_name_impl,
     seed_prior_training,
 )
-from tab_foundry.training.prior.wandb import update_prior_wandb_summary
-from tab_foundry.training.prior_dump import PriorDumpTaskBatchReader
-from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import ModelBuildSpec
-from tab_foundry.training.artifacts import (
-    append_jsonl_record,
-    append_history_record,
-    assert_clean_training_output,
-    gradient_history_record,
-    history_path_from_cfg,
-    history_record,
-    save_checkpoint,
-    save_eval_mode_checkpoint as _shared_save_eval_mode_checkpoint,
-)
-from tab_foundry.training.instability import (
-    build_regime_budget_summary,
-    build_runtime_summary,
-    build_training_telemetry,
-    gradient_history_path,
-    module_grad_norms,
-    normalize_grad_norm_value,
-    objective_metric_for_task,
-    peak_device_memory_summary,
-    reset_peak_device_memory_stats,
-    tensor_batch_examples_seen,
-    tensor_batch_token_count,
-    telemetry_path,
-    total_grad_norm,
-    train_loss_delta,
-    update_loss_ema,
-    write_training_telemetry,
-)
-from tab_foundry.training.loss_surface import configure_model_loss_surface, resolve_training_loss_surface
-from tab_foundry.training.losses import classification_loss
-from tab_foundry.training.optimizer import build_optimizer
+from tab_foundry.training.prior.settings import PriorMissingnessConfig, PriorRuntimeConfig
 from tab_foundry.training.schedule import stage_base_lr
-from tab_foundry.training.surface import write_training_surface_record
-from tab_foundry.training.trainer_optimizer import _set_optimizer_base_lr, _set_optimizer_training_mode
-from tab_foundry.training.wandb import (
-    finish_wandb_run,
-    init_wandb_run,
-    log_wandb_metrics,
-    training_surface_wandb_summary_payload,
-    update_wandb_summary,
-    wandb_identity_payload,
-)
+from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR
 from tab_foundry.types import TrainResult
 
 
@@ -97,86 +50,6 @@ def _resolve_prior_training_device_name(
         spec=spec,
         staged_surface=staged_surface,
         resolve_device_fn=resolve_device,
-    )
-
-
-def _save_eval_mode_checkpoint(
-    prepared_opts,
-    *,
-    path: Path,
-    model,
-    global_step: int,
-    cfg: DictConfig,
-    restore_training: bool,
-) -> None:
-    _shared_save_eval_mode_checkpoint(
-        prepared_opts,
-        path=path,
-        model_state_factory=model.state_dict,
-        global_step=global_step,
-        cfg=cfg,
-        restore_training=restore_training,
-        set_optimizer_training_mode_fn=_set_optimizer_training_mode,
-        save_checkpoint_fn=save_checkpoint,
-    )
-
-
-def _build_prior_training_deps() -> PriorTrainingDeps:
-    return PriorTrainingDeps(
-        resolve_prior_training_device_name=_resolve_prior_training_device_name,
-        history_path_from_cfg=history_path_from_cfg,
-        assert_clean_training_output=assert_clean_training_output,
-        gradient_history_path=gradient_history_path,
-        telemetry_path=telemetry_path,
-        build_model_from_spec=build_model_from_spec,
-        resolve_training_loss_surface=resolve_training_loss_surface,
-        configure_model_loss_surface=configure_model_loss_surface,
-        write_training_surface_record=write_training_surface_record,
-        init_wandb_run=init_wandb_run,
-        finish_wandb_run=finish_wandb_run,
-        log_wandb_metrics=log_wandb_metrics,
-        update_wandb_summary=update_wandb_summary,
-        training_surface_wandb_summary_payload=training_surface_wandb_summary_payload,
-        update_prior_wandb_summary=lambda run, *, output_dir, global_step, telemetry_payload: update_prior_wandb_summary(
-            run,
-            output_dir=output_dir,
-            global_step=global_step,
-            telemetry_payload=telemetry_payload,
-            prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
-            update_wandb_summary_fn=update_wandb_summary,
-        ),
-        wandb_identity_payload=wandb_identity_payload,
-        initial_missingness_summary=_initial_missingness_summary,
-        build_optimizer=build_optimizer,
-        optimizer_kwargs=_optimizer_kwargs,
-        set_optimizer_training_mode=_set_optimizer_training_mode,
-        set_optimizer_base_lr=_set_optimizer_base_lr,
-        stage_base_lr=stage_base_lr,
-        accumulate_missingness=_accumulate_missingness,
-        apply_prior_missingness=_apply_prior_missingness,
-        accumulate_synthetic_missingness=_accumulate_synthetic_missingness,
-        prior_dump_task_batch_reader=PriorDumpTaskBatchReader,
-        stack_prior_step=_stack_prior_step,
-        classification_loss=classification_loss,
-        module_grad_norms=module_grad_norms,
-        total_grad_norm=total_grad_norm,
-        normalize_grad_norm_value=normalize_grad_norm_value,
-        train_loss_delta=train_loss_delta,
-        update_loss_ema=update_loss_ema,
-        history_record=history_record,
-        append_history_record=append_history_record,
-        gradient_history_record=gradient_history_record,
-        append_jsonl_record=append_jsonl_record,
-        save_eval_mode_checkpoint=_save_eval_mode_checkpoint,
-        build_runtime_summary=build_runtime_summary,
-        build_regime_budget_summary=build_regime_budget_summary,
-        build_training_telemetry=build_training_telemetry,
-        objective_metric_for_task=objective_metric_for_task,
-        peak_device_memory_summary=peak_device_memory_summary,
-        reset_peak_device_memory_stats=reset_peak_device_memory_stats,
-        tensor_batch_examples_seen=tensor_batch_examples_seen,
-        tensor_batch_token_count=tensor_batch_token_count,
-        write_training_telemetry=write_training_telemetry,
     )
 
 
@@ -224,11 +97,49 @@ def train_tabfoundry_simple_prior(
     )
     cfg.logging.run_name = _resolve_prior_wandb_run_name(cfg)
 
+    device_name = _resolve_prior_training_device_name(
+        cfg,
+        spec=spec,
+        staged_surface=staged_surface,
+    )
+    model = build_model_from_spec(spec)
+    loss_surface = resolve_training_loss_surface(
+        getattr(cfg, "training", None),
+        model_spec=spec,
+        backend=TRAINING_BACKEND_LEGACY_PRIOR,
+    )
+    configure_model_loss_surface(model, loss_surface=loss_surface)
+    initial_lr = (
+        float(stage_base_lr(prior_stage, step=1, lr_min=lr_min))
+        if prior_stage is not None
+        else float(lr_min)
+    )
+    optimizer_selection = build_optimizer(
+        model,
+        name=str(cfg.optimizer.name),
+        lr=initial_lr,
+        weight_decay=float(cfg.optimizer.weight_decay),
+        extra_kwargs=_optimizer_kwargs(cfg),
+        require_requested=bool(cfg.optimizer.require_requested),
+        muon_per_parameter_lr=bool(getattr(cfg.optimizer, "muon_per_parameter_lr", True)),
+        muon_lr_scale_base=float(getattr(cfg.optimizer, "muon_lr_scale_base", 0.2)),
+        muon_partition_non2d=bool(getattr(cfg.optimizer, "muon_partition_non2d", True)),
+    )
+    training_surface_raw_cfg = build_prior_training_surface_raw_cfg(
+        cfg,
+        loss_surface=loss_surface,
+        prior_batch_config=prior_batch_config,
+        lr_min=lr_min,
+    )
+
     return run_prior_training(
         cfg,
         prior_dump_path=prior_dump_path,
-        spec=spec,
-        staged_surface=staged_surface,
+        device_name=device_name,
+        model=model,
+        loss_surface=loss_surface,
+        optimizer_selection=optimizer_selection,
+        training_surface_raw_cfg=training_surface_raw_cfg,
         max_steps=max_steps,
         eval_every=eval_every,
         checkpoint_every=checkpoint_every,
@@ -237,7 +148,8 @@ def train_tabfoundry_simple_prior(
         prior_batch_config=prior_batch_config,
         prior_stage=prior_stage,
         lr_min=lr_min,
+        initial_lr=initial_lr,
         prior_missingness_config=prior_missingness_config,
         prior_dump_non_finite_policy=prior_dump_non_finite_policy,
-        deps=_build_prior_training_deps(),
+        spec=spec,
     )
