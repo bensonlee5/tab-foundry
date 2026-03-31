@@ -1,7 +1,8 @@
-"""Shared lane and sweep-surface contract helpers."""
+"""Canonical sweep-semantics contract helpers."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 
 
@@ -31,14 +32,39 @@ ARCHITECTURE_SCREEN_SURFACES = frozenset(
     }
 )
 
-DEFAULT_TRAINING_EXPERIMENT = CORPUS_SCREEN_SURFACE
-DEFAULT_TRAINING_CONFIG_PROFILE = CORPUS_SCREEN_SURFACE
 LEGACY_FALLBACK_TRAINING_EXPERIMENT = HYBRID_DIAGNOSTIC_SURFACE
 LEGACY_FALLBACK_TRAINING_CONFIG_PROFILE = HYBRID_DIAGNOSTIC_SURFACE
+DEFAULT_COMPARISON_POLICY = "anchor_only"
 
 
 class _StringKeyLookup(Protocol):
     def get(self, key: str, default: Any = None) -> Any: ...
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingSurfaceContext:
+    training_experiment: str
+    training_config_profile: str
+    surface_role: str
+
+    def to_payload_dict(self) -> dict[str, str]:
+        return {
+            "training_experiment": self.training_experiment,
+            "training_config_profile": self.training_config_profile,
+            "surface_role": self.surface_role,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SweepSemantics:
+    training_surface: TrainingSurfaceContext
+    comparison_policy: str = DEFAULT_COMPARISON_POLICY
+
+    def to_payload_dict(self) -> dict[str, str]:
+        return {
+            **self.training_surface.to_payload_dict(),
+            "comparison_policy": self.comparison_policy,
+        }
 
 
 def _non_empty_string(value: Any) -> str | None:
@@ -48,28 +74,7 @@ def _non_empty_string(value: Any) -> str | None:
     return normalized if normalized else None
 
 
-def resolve_training_experiment(sweep_meta: Mapping[str, Any] | _StringKeyLookup) -> str:
-    explicit = _non_empty_string(sweep_meta.get("training_experiment"))
-    if explicit is not None:
-        return explicit
-    return LEGACY_FALLBACK_TRAINING_EXPERIMENT
-
-
-def resolve_training_config_profile(sweep_meta: Mapping[str, Any] | _StringKeyLookup) -> str:
-    explicit = _non_empty_string(sweep_meta.get("training_config_profile"))
-    if explicit is not None:
-        return explicit
-    explicit_training_experiment = _non_empty_string(sweep_meta.get("training_experiment"))
-    if explicit_training_experiment is not None:
-        return explicit_training_experiment
-    return LEGACY_FALLBACK_TRAINING_CONFIG_PROFILE
-
-
-def resolve_surface_role(sweep_meta: Mapping[str, Any] | _StringKeyLookup) -> str:
-    explicit = _non_empty_string(sweep_meta.get("surface_role"))
-    if explicit is not None:
-        return explicit
-    training_experiment = resolve_training_experiment(sweep_meta)
+def _surface_role_for_training_experiment(training_experiment: str) -> str:
     if training_experiment in PFN_CONTROL_SURFACES:
         return PFN_CONTROL_LANE
     if training_experiment == HYBRID_DIAGNOSTIC_SURFACE:
@@ -77,3 +82,86 @@ def resolve_surface_role(sweep_meta: Mapping[str, Any] | _StringKeyLookup) -> st
     if training_experiment in ARCHITECTURE_SCREEN_SURFACES:
         return ARCHITECTURE_SCREEN_LANE
     return CUSTOM_LANE
+
+
+def resolve_training_surface_context(
+    sweep_meta: Mapping[str, Any] | _StringKeyLookup,
+) -> TrainingSurfaceContext:
+    training_experiment = (
+        _non_empty_string(sweep_meta.get("training_experiment"))
+        or LEGACY_FALLBACK_TRAINING_EXPERIMENT
+    )
+    training_config_profile = (
+        _non_empty_string(sweep_meta.get("training_config_profile"))
+        or _non_empty_string(sweep_meta.get("training_experiment"))
+        or LEGACY_FALLBACK_TRAINING_CONFIG_PROFILE
+    )
+    surface_role = (
+        _non_empty_string(sweep_meta.get("surface_role"))
+        or _surface_role_for_training_experiment(training_experiment)
+    )
+    return TrainingSurfaceContext(
+        training_experiment=training_experiment,
+        training_config_profile=training_config_profile,
+        surface_role=surface_role,
+    )
+
+
+def resolve_sweep_semantics(
+    sweep_meta: Mapping[str, Any] | _StringKeyLookup,
+) -> SweepSemantics:
+    return SweepSemantics(
+        training_surface=resolve_training_surface_context(sweep_meta),
+        comparison_policy=(
+            _non_empty_string(sweep_meta.get("comparison_policy"))
+            or DEFAULT_COMPARISON_POLICY
+        ),
+    )
+
+
+def resolve_new_sweep_training_surface(
+    *,
+    template_sweep: Mapping[str, Any] | _StringKeyLookup | None,
+    training_experiment: str | None,
+    training_config_profile: str | None,
+    surface_role: str | None,
+) -> TrainingSurfaceContext:
+    explicit_training_experiment = _non_empty_string(training_experiment)
+    explicit_training_config_profile = _non_empty_string(training_config_profile)
+    explicit_surface_role = _non_empty_string(surface_role)
+    if template_sweep is None:
+        if (
+            explicit_training_experiment is None
+            or explicit_training_config_profile is None
+            or explicit_surface_role is None
+        ):
+            raise RuntimeError(
+                "create_sweep requires --parent-sweep-id or all of "
+                "--training-experiment, --training-config-profile, and --surface-role"
+            )
+        return TrainingSurfaceContext(
+            training_experiment=explicit_training_experiment,
+            training_config_profile=explicit_training_config_profile,
+            surface_role=explicit_surface_role,
+        )
+
+    inherited = resolve_training_surface_context(template_sweep)
+    resolved_training_experiment = explicit_training_experiment or inherited.training_experiment
+    resolved_training_config_profile = (
+        explicit_training_config_profile
+        or explicit_training_experiment
+        or inherited.training_config_profile
+    )
+    resolved_surface_role = (
+        explicit_surface_role
+        or (
+            _surface_role_for_training_experiment(explicit_training_experiment)
+            if explicit_training_experiment is not None
+            else inherited.surface_role
+        )
+    )
+    return TrainingSurfaceContext(
+        training_experiment=resolved_training_experiment,
+        training_config_profile=resolved_training_config_profile,
+        surface_role=resolved_surface_role,
+    )

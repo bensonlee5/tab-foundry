@@ -7,11 +7,11 @@ from typing import Any, Mapping, cast
 
 from pydantic import BaseModel, ConfigDict, StrictStr, ValidationError
 
-from tab_foundry.bench.registry.storage import load_versioned_registry_payload
-from tab_foundry.bench.registry_paths import (  # noqa: F401 - re-exported
+from tab_foundry.registry.paths import (  # noqa: F401 - re-exported
     normalize_registry_path_value,
     resolve_registry_path_value,
 )
+from tab_foundry.registry.storage import load_versioned_registry_payload
 from tab_foundry.repo_paths import repo_root
 
 

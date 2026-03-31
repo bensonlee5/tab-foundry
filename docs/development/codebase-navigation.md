@@ -5,6 +5,10 @@ surface before making a change. It complements
 `docs/development/module-dependency-map.md`, which records the observed
 top-level package graph plus the intended dependency direction policy.
 
+This file owns package and entrypoint routing. It does not try to mirror the
+full packaged CLI surface. For live command names and flags, use
+`.venv/bin/tab-foundry ... --help`.
+
 ## 1. Entry Points And Orchestration
 
 These are the user-facing or repo-local control surfaces that bridge commands
@@ -31,12 +35,17 @@ into the canonical library modules.
   path helpers shared across package boundaries.
 - `src/tab_foundry/device.py`: dependency-light concrete-device resolution
   helper shared by benchmark and prior-training flows.
+- `src/tab_foundry/registry/`: neutral registry/path/timestamp helpers shared
+  by benchmark and control-baseline registry surfaces. This package owns the
+  dependency-light registry wiring that should not live under `bench`.
 - `src/tab_foundry/benchmark_registry.py`: dependency-light read-only
   benchmark-registry loader, entry-lookup, and path-resolution surface for
-  non-mutating readers across `bench` and `research`.
+  non-mutating readers across `bench` and `research`. It delegates shared
+  path/record helpers to `src/tab_foundry/registry/`.
 - `src/tab_foundry/control_baseline_registry.py`: dependency-light read-only
   control-baseline registry loader and path-resolution surface shared by
-  `bench` and `research`.
+  `bench` and `research`. It delegates shared path/record helpers to
+  `src/tab_foundry/registry/`.
 - `src/tab_foundry/external_benchmarks.py`: dependency-light canonical source
   for external benchmark ids, defaults, labels, and normalization.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
@@ -88,8 +97,11 @@ into the canonical library modules.
   loading, `manage.py` owns sweep creation and metadata inheritance, `materialize.py`
   owns queue loading/materialization, `matrix.py` owns validation/rendering,
   `paths_io.py` owns sweep paths plus YAML/text helpers, `validation.py`
-  owns sweep-shape validation helpers, and `anchor.py` owns anchor-context
-  derivation. `execute.py` and `promote.py` remain the canonical
+  owns sweep-shape validation helpers, `anchor.py` owns anchor-context
+  derivation, `lane_contract.py` owns training-surface plus comparison-policy
+  semantics, `inspection_artifacts.py` owns inspection-time queue metadata plus
+  artifact resolution, and `inspection_targets.py` owns row/anchor target
+  assembly. `execute.py` and `promote.py` remain the canonical
   execute/promote library entrypoints, and sweep execution internals now live
   under `research/sweep/configuration.py`, `research/sweep/runtime_env.py`,
   `research/sweep/curve_reuse.py`, `research/sweep/training_state.py`,
@@ -112,51 +124,20 @@ The repo uses three stable workflow layers:
   verification, and Iris smoke delegation.
 - Reference YAML/Markdown artifacts for explicit system-delta sweeps.
 
-Current canonical CLI namespaces:
+Use the packaged CLI discovery order instead of a duplicated static command
+inventory:
 
-- `tab-foundry data corpus compare`
-- `tab-foundry data corpus inspect`
-- `tab-foundry data corpus list-recipes`
-- `tab-foundry data corpus materialize`
-- `tab-foundry data corpus results`
-- `tab-foundry data manifest-inspect`
-- `tab-foundry dev resolve-config`
-- `tab-foundry dev forward-check`
-- `tab-foundry dev diff-config`
-- `tab-foundry dev export-check`
-- `tab-foundry dev health-check`
-- `tab-foundry dev run-inspect`
-- `tab-foundry dev data build-manifest`
-- `tab-foundry dev data generate-manifest`
-- `tab-foundry train run`
-- `tab-foundry train legacy-prior simple`
-- `tab-foundry train legacy-prior staged`
-- `tab-foundry eval checkpoint`
-- `tab-foundry export bundle`
-- `tab-foundry export validate`
-- `tab-foundry bench smoke iris`
-- `tab-foundry bench smoke dagzoo`
-- `tab-foundry bench tune`
-- `tab-foundry bench compare`
-- `tab-foundry bench materialize-openml-bundle`
-- `tab-foundry bench env bootstrap`
-- `tab-foundry bench bundle build-openml`
-- `tab-foundry bench registry register-run`
-- `tab-foundry bench registry freeze-baseline`
-- `tab-foundry bench diagnose bounce`
-- `tab-foundry research sweep create-sweep`
-- `tab-foundry research sweep list`
-- `tab-foundry research sweep list-sweeps`
-- `tab-foundry research sweep materialize-corpora`
-- `tab-foundry research sweep next`
-- `tab-foundry research sweep render`
-- `tab-foundry research sweep validate`
-- `tab-foundry research sweep execute`
-- `tab-foundry research sweep graph`
-- `tab-foundry research sweep promote`
-- `tab-foundry research sweep summarize`
-- `tab-foundry research sweep inspect`
-- `tab-foundry research sweep diff`
+1. `.venv/bin/tab-foundry --help`
+1. `.venv/bin/tab-foundry <group> --help`
+1. `.venv/bin/tab-foundry <group> <command> --help`
+
+Stable packaged CLI groups:
+
+- `data`: corpus recipes, corpus materialization, and manifest inspection
+- `dev`: bounded local inspection and verification helpers
+- `train`, `eval`, `export`: manifest-backed training and inference-bundle flows
+- `bench`: smoke, comparison, tuning, bundle, and registry flows
+- `research sweep`: sweep queue, inspection, execution, graphing, and promotion
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should
@@ -190,7 +171,8 @@ not absorb new orchestration logic.
 - Packaged `train` command parser ownership should stay under
   `src/tab_foundry/cli/`; `training/prior_train.py` should stay parser-free.
 - Shared repo-root and read-only benchmark-registry helpers should continue to
-  live in `src/tab_foundry/repo_paths.py` and
+  live in `src/tab_foundry/repo_paths.py`,
+  `src/tab_foundry/registry/`, and
   `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and
   external-benchmark contracts should continue to live in
   `src/tab_foundry/control_baseline_registry.py`,
@@ -204,10 +186,11 @@ not absorb new orchestration logic.
   the canonical execute/promote library surfaces, with CLI parser ownership
   staying under `src/tab_foundry/cli/`; higher layers should import the
   canonical sweep owner modules directly (`catalog.py`, `manage.py`,
-  `materialize.py`, `matrix.py`, `paths_io.py`, `validation.py`, and
-  `anchor.py`) instead of recreating a barrel module, and row-level helper
-  logic should stay factored under the dedicated sweep helper modules instead
-  of regrowing a monolithic `row_execution.py`.
+  `materialize.py`, `matrix.py`, `paths_io.py`, `validation.py`,
+  `lane_contract.py`, `inspection_artifacts.py`, `inspection_targets.py`, and
+  `anchor.py`) instead of recreating wrapper or barrel modules, and row-level
+  helper logic should stay factored under the dedicated sweep helper modules
+  instead of regrowing a monolithic `row_execution.py`.
 - `tabfoundry_sandwich` is the only active architecture surface. Shared logic
   should continue to move into `model/components/`, `model/spec.py`, and
   family-neutral helpers instead of reintroducing parallel model pathways.

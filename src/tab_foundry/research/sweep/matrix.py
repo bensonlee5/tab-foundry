@@ -8,14 +8,13 @@ from typing import Any, Mapping, cast
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
+from .inspection_artifacts import queue_metadata_payload, resolved_row_artifact_paths, result_card_path
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import (
     _render_path,
     default_catalog_path,
     default_registry_path,
-    repo_root,
     sweep_matrix_path,
-    sweep_queue_path,
     write_text,
 )
 from .queue_updates import stage_local_telemetry_metrics
@@ -119,19 +118,16 @@ def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, A
     return rendered
 
 
-def effective_model_label(*, queue: Mapping[str, Any], queue_row: Mapping[str, Any]) -> str:
+def effective_model_label(*, training_experiment: str, queue_row: Mapping[str, Any]) -> str:
     model_payload = queue_row.get("model")
     if isinstance(model_payload, Mapping):
         stage_label = model_payload.get("stage_label")
         if isinstance(stage_label, str) and stage_label.strip():
             return str(stage_label)
-    training_experiment = queue.get("training_experiment")
-    if isinstance(training_experiment, str) and training_experiment.strip():
-        return str(training_experiment)
-    return "none"
+    return training_experiment
 
 
-def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str]:
+def metric_summary(run: Mapping[str, Any], anchor: Mapping[str, Any]) -> dict[str, str]:
     def _format(value: float | None, *, suffix: str = "", signed: bool = False) -> str:
         if value is None:
             return "n/a"
@@ -240,10 +236,6 @@ def _stage_local_stability_summary(queue_metrics: Mapping[str, Any] | None) -> s
     return "; ".join(parts)
 
 
-def result_card_path(*, sweep_id: str, delta_id: str) -> Path:
-    return repo_root() / "outputs" / "staged_ladder" / "research" / sweep_id / delta_id / "result_card.md"
-
-
 def validate_system_delta_queue(
     queue: Mapping[str, Any],
     *,
@@ -266,16 +258,23 @@ def validate_system_delta_queue(
         if run is None:
             issues.append(f"{delta_id}: run_id {run_id!r} is missing from the benchmark registry")
             continue
+        artifact_paths = resolved_row_artifact_paths(
+            queue=queue,
+            row=row,
+            registry_run=run,
+            resolve_registry_path=resolve_registry_path_value,
+        )
         card_path = result_card_path(sweep_id=sweep_id, delta_id=delta_id)
         if not card_path.exists():
             issues.append(f"{delta_id}: missing result card at {card_path}")
-        training_surface_record_path = cast(dict[str, Any], run["artifacts"]).get("training_surface_record_path")
-        if not isinstance(training_surface_record_path, str) or not training_surface_record_path.strip():
+        training_surface_record_path = artifact_paths["training_surface_record_json"]
+        if training_surface_record_path is None:
             issues.append(f"{delta_id}: run {run_id!r} is missing artifacts.training_surface_record_path")
         else:
-            resolved = resolve_registry_path_value(training_surface_record_path)
-            if not resolved.exists():
-                issues.append(f"{delta_id}: training surface artifact does not exist at {resolved}")
+            if not training_surface_record_path.exists():
+                issues.append(
+                    f"{delta_id}: training surface artifact does not exist at {training_surface_record_path}"
+                )
         benchmark_metrics = row.get("benchmark_metrics")
         if not isinstance(benchmark_metrics, Mapping):
             issues.append(f"{delta_id}: completed rows must include benchmark_metrics")
@@ -301,8 +300,12 @@ def render_system_delta_matrix(
 ) -> str:
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
-    anchor_run_id = str(queue["anchor_run_id"])
+    queue_metadata = queue_metadata_payload(queue)
+    sweep_id = _require_non_empty_string(queue_metadata.get("sweep_id"), context="materialized queue sweep_id")
+    anchor_run_id = _require_non_empty_string(
+        queue_metadata.get("anchor_run_id"),
+        context="materialized queue anchor_run_id",
+    )
     anchor = runs.get(anchor_run_id)
     if anchor is None:
         raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
@@ -310,7 +313,7 @@ def render_system_delta_matrix(
     upstream = cast(dict[str, Any], queue["upstream_reference"])
     anchor_surface = cast(dict[str, Any], queue["anchor_surface"])
     catalog_path = str(queue.get("catalog_path", _render_path(default_catalog_path())))
-    canonical_queue_path = str(queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
+    canonical_queue_path = str(queue_metadata["canonical_queue_path"])
 
     lines: list[str] = []
     lines.append("# System Delta Matrix")
@@ -329,15 +332,15 @@ def render_system_delta_matrix(
     lines.append("## Locked Surface")
     lines.append("")
     lines.append(f"- Anchor run id: `{anchor_run_id}`")
-    benchmark_surface_path = str(queue["benchmark_manifest_path"])
+    benchmark_surface_path = str(queue_metadata["benchmark_manifest_path"])
     benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
     lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
-    lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
-    raw_external_benchmarks = queue.get("external_benchmarks", [])
+    lines.append(f"- Control baseline id: `{queue_metadata['control_baseline_id']}`")
+    raw_external_benchmarks = queue_metadata["external_benchmarks"]
     external_benchmarks = (
         [str(value) for value in raw_external_benchmarks]
         if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
-        else ([] if isinstance(raw_external_benchmarks, list) else ["nanotabpfn"])
+        else []
     )
     lines.append(
         "- External benchmarks: "
@@ -347,10 +350,10 @@ def render_system_delta_matrix(
             else "`none`"
         )
     )
-    lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
-    lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
-    lines.append(f"- Surface role: `{queue.get('surface_role')}`")
-    lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
+    lines.append(f"- Training experiment: `{queue_metadata['training_experiment']}`")
+    lines.append(f"- Training config profile: `{queue_metadata['training_config_profile']}`")
+    lines.append(f"- Surface role: `{queue_metadata['surface_role']}`")
+    lines.append(f"- Comparison policy: `{queue_metadata['comparison_policy']}`")
     anchor_metric_parts: list[str] = []
     for label, key in (
         ("final BPC", "final_bpc"),
@@ -417,7 +420,7 @@ def render_system_delta_matrix(
         lines.append(f"- Anchor delta: {queue_row['anchor_delta']}")
         lines.append(f"- Expected effect: {queue_row['expected_effect']}")
         lines.append(
-            f"- Effective labels: model=`{effective_model_label(queue=queue, queue_row=queue_row)}`, "
+            f"- Effective labels: model=`{effective_model_label(training_experiment=str(queue_metadata['training_experiment']), queue_row=queue_row)}`, "
             f"data=`{queue_row['data']['surface_label']}`, "
             f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
             f"training=`{queue_row['training']['surface_label']}`"

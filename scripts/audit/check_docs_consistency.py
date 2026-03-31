@@ -14,17 +14,55 @@ from tab_foundry.cli.app import build_parser
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = (
+    "AGENTS.md",
     "README.md",
+    "CONTRIBUTING.md",
     "docs",
     "reference",
     "program.md",
 )
-CODEBASE_NAVIGATION_PATH = REPO_ROOT / "docs" / "development" / "codebase-navigation.md"
 INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
 COMMAND_INVENTORY_RE = re.compile(r"- `(?P<command>tab-foundry [^`]+)`$")
 PYTHON_MODULE_CMD_RE = re.compile(r"\bpython(?:3)?\s+-m\s+tab_foundry\.[^\s`]+")
 PYTHON_SCRIPT_CMD_RE = re.compile(r"^(?P<python>(?:\.venv/bin/)?python(?:3)?)\s+(?P<script>scripts/[^\s`]+\.py)\b")
 README_CLI_TREE_SUMMARY_RE = re.compile(r"<summary>\s*Full CLI tree\s*</summary>")
+AGENTS_DOC_CONTRACT = (
+    "## Documentation Source Of Truth",
+    "`README.md` owns repo overview and quickstart.",
+    "`docs/workflows.md` owns command examples and artifact expectations.",
+    "`program.md` owns sweep execution policy.",
+    "`docs/development/roadmap.md` owns planning state and TF-RD sequencing.",
+    "`docs/development/codebase-navigation.md` owns package and entrypoint ownership.",
+    "`docs/inference.md` owns export/runtime handoff details.",
+    "Use `.venv/bin/tab-foundry --help`, `.venv/bin/tab-foundry <group> --help`, and `.venv/bin/tab-foundry <group> <command> --help` for live commands and flags.",
+    "Human-facing docs should explain the system and link to the owning docs directly; they should not carry agent-only ownership markers or routing taxonomies.",
+)
+AGENT_FACING_MARKERS = (
+    "**Owns**",
+    "**Does Not Own**",
+    "**If Stale vs Code**",
+    "**Routes To**",
+)
+PROGRAM_ONLY_HEADINGS = frozenset(
+    {
+        "## Objective",
+        "## Locked Anchor Surface",
+        "## Dimension Families",
+        "## Queue And Matrix",
+        "## Required Research Package",
+        "## Execution Loop",
+        "## Decisions",
+    }
+)
+FORBIDDEN_SECTION_HEADINGS = {
+    "## Package Roles And Target Boundaries": (
+        "package ownership tables belong in `docs/development/codebase-navigation.md`"
+    ),
+    "## Dependency Direction": (
+        "dependency-direction policy belongs in `docs/development/module-dependency-map.md`"
+    ),
+}
+COMMAND_INVENTORY_OWNER = "docs/workflows.md"
 STALE_REFERENCE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"\b(?:src/)?tab_foundry/research/sweep/core\.py\b|\bresearch/sweep/core\.py\b"),
@@ -86,7 +124,7 @@ ALLOWED_STANDALONE_PYTHON_SCRIPTS = frozenset(
 TAB_FOUNDRY_EXECUTABLES = {"tab-foundry", ".venv/bin/tab-foundry"}
 README_CLI_TREE_ERROR = (
     "README must not duplicate a hand-maintained CLI tree; use "
-    "`docs/development/codebase-navigation.md` for the canonical command inventory"
+    "packaged CLI `--help` for live commands and `docs/workflows.md` for examples"
 )
 
 
@@ -227,15 +265,6 @@ def _validate_repo_script_command(tokens: list[str], *, repo_root: Path) -> str 
     return None
 
 
-def _extract_codebase_navigation_inventory(path: Path) -> set[str]:
-    commands: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
-        match = COMMAND_INVENTORY_RE.match(line.strip())
-        if match is not None:
-            commands.add(match.group("command"))
-    return commands
-
-
 def _find_disallowed_readme_cli_tree(path: Path, lines: list[str]) -> tuple[int, str] | None:
     if path.name != "README.md":
         return None
@@ -261,15 +290,13 @@ def _find_disallowed_readme_cli_tree(path: Path, lines: list[str]) -> tuple[int,
     return None
 
 
-def compare_codebase_navigation_inventory(
-    repo_root: Path = REPO_ROOT,
-) -> tuple[set[str], set[str]]:
-    doc_path = repo_root / "docs" / "development" / "codebase-navigation.md"
-    if not doc_path.exists():
-        return set(), set()
-    live = live_cli_leaf_commands()
-    documented = _extract_codebase_navigation_inventory(doc_path)
-    return live - documented, documented - live
+def _validate_agents_doc_contract(path: Path, lines: list[str]) -> list[tuple[int, str]]:
+    text = "\n".join(lines)
+    errors: list[tuple[int, str]] = []
+    for statement in AGENTS_DOC_CONTRACT:
+        if statement not in text:
+            errors.append((0, f"missing required docs contract statement in `AGENTS.md`: `{statement}`"))
+    return errors
 
 
 def scan_docs_consistency(
@@ -286,11 +313,25 @@ def scan_docs_consistency(
             errors.append((root, 0, "missing scan root"))
             continue
         for path in _iter_markdown_files(root):
+            path_rel = path.relative_to(repo_root).as_posix()
             lines = path.read_text(encoding="utf-8").splitlines()
+            if path_rel == "AGENTS.md":
+                errors.extend((path, lineno, message) for lineno, message in _validate_agents_doc_contract(path, lines))
+                continue
             readme_cli_tree_error = _find_disallowed_readme_cli_tree(path, lines)
             if readme_cli_tree_error is not None:
                 errors.append((path, *readme_cli_tree_error))
             for lineno, line in enumerate(lines, start=1):
+                stripped = line.strip()
+                for marker in AGENT_FACING_MARKERS:
+                    if marker in line:
+                        errors.append(
+                            (
+                                path,
+                                lineno,
+                                f"agent-facing docs marker must not appear in human-facing docs: `{marker}`",
+                            )
+                        )
                 if PYTHON_MODULE_CMD_RE.search(line):
                     errors.append(
                         (
@@ -302,6 +343,27 @@ def scan_docs_consistency(
                 for pattern, message in STALE_REFERENCE_PATTERNS:
                     if pattern.search(line):
                         errors.append((path, lineno, message))
+                match = COMMAND_INVENTORY_RE.match(stripped)
+                if match is not None and path_rel != COMMAND_INVENTORY_OWNER:
+                    errors.append(
+                        (
+                            path,
+                            lineno,
+                            "static command inventory must live in "
+                            f"`{COMMAND_INVENTORY_OWNER}` or CLI --help: "
+                            f"`{match.group('command')}`",
+                        )
+                    )
+                if stripped in PROGRAM_ONLY_HEADINGS and path_rel != "program.md":
+                    errors.append(
+                        (
+                            path,
+                            lineno,
+                            f"sweep policy heading must live in `program.md`: `{stripped}`",
+                        )
+                    )
+                if stripped in FORBIDDEN_SECTION_HEADINGS:
+                    errors.append((path, lineno, FORBIDDEN_SECTION_HEADINGS[stripped]))
             for lineno, snippet in _iter_doc_snippets(path):
                 tokens = _tokenize_snippet(snippet)
                 if not tokens:
@@ -320,14 +382,6 @@ def scan_docs_consistency(
                     message = _validate_repo_script_command(tokens, repo_root=repo_root)
                     if message is not None:
                         errors.append((path, lineno, message))
-
-    codebase_path = repo_root / "docs" / "development" / "codebase-navigation.md"
-    if codebase_path.exists():
-        missing, extra = compare_codebase_navigation_inventory(repo_root)
-        for command in sorted(missing):
-            errors.append((codebase_path, 0, f"missing canonical CLI inventory entry: `{command}`"))
-        for command in sorted(extra):
-            errors.append((codebase_path, 0, f"stale canonical CLI inventory entry: `{command}`"))
 
     return errors
 

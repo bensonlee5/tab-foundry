@@ -13,17 +13,18 @@ it.
 
 **tab-foundry** takes a different approach. It uses
 [dagzoo](https://github.com/bensonlee5/dagzoo) to generate synthetic tabular
-datasets, trains a modular staged model on them, benchmarks against real-world
-tasks, and exports inference bundles you can deploy. You control the full
-pipeline: what data gets generated, which architecture stages are active, how
-training runs, and what gets exported.
+datasets, trains them with an active sandwich lane plus a frozen PFN control
+and historical staged reference lane, benchmarks against real-world tasks, and
+exports inference bundles you can deploy. You control the full pipeline: what
+data gets generated, which model surface is active, how training runs, and
+what gets exported.
 
 ## How It Works
 
 ```mermaid
 graph LR
     A[dagzoo<br><i>generate</i>] --> B[manifest<br><i>prepare</i>]
-    B --> C[staged model<br><i>train</i>]
+    B --> C[model family<br><i>train</i>]
     C --> D[benchmark<br><i>evaluate</i>]
     D --> E[export<br><i>bundle</i>]
     D -.->|curriculum feedback<br>planned| A
@@ -34,8 +35,8 @@ graph LR
 
 1. **Generate** synthetic tabular datasets with dagzoo, or bring your own
    real-data manifests
-1. **Train** a modular staged foundation model with swappable architecture
-   components
+1. **Train** the active sandwich lane while preserving frozen and historical
+   comparison surfaces
 1. **Benchmark** against pinned OpenML evaluation bundles with tracked
    baselines
 1. **Export** inference bundles for downstream deployment
@@ -51,15 +52,16 @@ cd tab-foundry
 ./scripts/dev bootstrap
 
 # Run a smoke training loop
-tab-foundry train run experiment=cls_smoke
+.venv/bin/tab-foundry train run experiment=cls_smoke
 
 # Evaluate the checkpoint
-tab-foundry eval checkpoint \
+.venv/bin/tab-foundry eval checkpoint \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   experiment=cls_smoke
 ```
 
-For full setup details, see [docs/getting-started.md](docs/getting-started.md).
+For setup details and runbook examples, see [docs/workflows.md](docs/workflows.md)
+and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Python `3.14` is the pinned runtime for this repo, and the standard local setup
 assumes a repo-local `.venv`.
@@ -84,20 +86,21 @@ parallel manifest parser.
 
 Use `--help` in this order:
 
-1. `tab-foundry --help`
-1. `tab-foundry <group> --help`
-1. `tab-foundry <group> <command> --help`
+1. `.venv/bin/tab-foundry --help`
+1. `.venv/bin/tab-foundry <group> --help`
+1. `.venv/bin/tab-foundry <group> <command> --help`
 
 | Namespace | Purpose | Read next |
 | --- | --- | --- |
 | `data` | Corpus recipes, corpus materialization, and manifest inspection. | `docs/workflows.md` |
-| `dev` | Fast inspection and verification surfaces for local development. | `docs/ml-engineering.md` |
-| `train`, `eval`, `export` | Manifest-backed training, checkpoint evaluation, and inference-bundle workflows. | `docs/ml-engineering.md` |
-| `bench` | Smoke harnesses, benchmark comparisons, and baseline-registry flows. | `docs/ml-engineering.md` |
-| `research` | Sweep queues, inspection, execution, and sweep-aware corpus materialization. | `docs/research-contributors.md` |
+| `dev` | Fast inspection and verification surfaces for local development. | `docs/workflows.md` |
+| `train`, `eval`, `export` | Manifest-backed training, checkpoint evaluation, and inference-bundle workflows. | `docs/workflows.md` |
+| `bench` | Smoke harnesses, benchmark comparisons, and baseline-registry flows. | `docs/workflows.md` |
+| `research` | Sweep queues, inspection, execution, and sweep-aware corpus materialization. | `program.md` |
 
-For the canonical leaf-command inventory, use
-`docs/development/codebase-navigation.md`.
+Use [docs/workflows.md](docs/workflows.md) for representative commands and
+[docs/development/codebase-navigation.md](docs/development/codebase-navigation.md)
+for package ownership and entry points.
 
 ## What Makes This Different
 
@@ -109,14 +112,15 @@ For the canonical leaf-command inventory, use
   shape, complexity, and regime coverage. You decide what the model trains on
   rather than hoping a fixed corpus covers your use case.
 
-- **Modular staged architecture.** The model is built from explicit stages: cell
-  blocks, row pooling, column encoding, context encoding, and class heads. Swap
-  any subsystem independently and measure the effect in isolation.
+- **Modular architecture family.** The repo keeps an active sandwich lane, a
+  frozen PFN control, and a historical staged reference surface so subsystems
+  and regimes can be compared without losing attribution.
 
 ## What Works Today
 
-- **Staged row-first architecture** inspired by TabICL v2, with a frozen
-  nanoTabPFN control lane for trusted comparison
+- **Active sandwich architecture**, with a frozen nanoTabPFN-style control lane
+  for trusted comparison and a historical staged family retained as a reference
+  surface
 - **Dagzoo integration** for synthetic corpus generation, manifests, and
   materialization
 - **OpenML benchmarking** against pinned binary and multiclass evaluation
@@ -163,13 +167,25 @@ comparability, and `tabfoundry_staged` remains loadable as the historical
 reference family. For the full architecture reference, see
 [docs/development/model-architecture.md](docs/development/model-architecture.md).
 
+At the cell level, the active sandwich lane uses a missingness-aware tokenizer
+over `value`, `is_nan`, `is_posinf`, and `is_neginf`, then applies a shared
+value projection with feature-type conditioning plus Fourier row and column
+enrichment before the task-level attention stack.
+
+The current architecture-development lane is classification-only. By default,
+training is ranked by matched-budget final log loss
+(`final_log_loss_at_matched_regime_budget`). When
+`training.loss_surface=cell_bpc`, the objective switches to matched-budget
+final BPC (`final_bpc_at_matched_regime_budget`).
+
 ## Find Your Path
 
 | If you want to... | Start here | Then go deeper |
 | --- | --- | --- |
-| Understand what this repo does | [What is tab-foundry?](docs/what-is-tab-foundry.md) | [Getting started](docs/getting-started.md) |
-| Run research sweeps | [Research contributors](docs/research-contributors.md) | [Research program](program.md) |
-| Work on artifacts or infra | [ML engineering](docs/ml-engineering.md) | [Inference & export](docs/inference.md) |
+| Understand the current model surface | [Model architecture](docs/development/model-architecture.md) | [Roadmap](docs/development/roadmap.md) |
+| Run research sweeps | [Research program](program.md) | [Workflows](docs/workflows.md) |
+| Work on artifacts or infra | [Workflows](docs/workflows.md) | [Inference & export](docs/inference.md) |
+| Change package wiring or entry points | [Codebase navigation](docs/development/codebase-navigation.md) | [Contributing](CONTRIBUTING.md) |
 
 ## Resources
 

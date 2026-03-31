@@ -5,11 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
-from tab_foundry.bench.registry_common import (
+from tab_foundry.registry.common import (
     normalize_path_value as _normalize_path_value_common,
     project_root as _project_root_common,
     resolve_config_path as _resolve_config_path_common,
-    resolve_registry_path_value as _resolve_registry_path_value_common,
+    resolve_path_value as _resolve_path_value_common,
 )
 
 
@@ -36,7 +36,7 @@ def resolve_registry_path_value(
 ) -> Path:
     """Resolve one registry path value into an absolute path."""
 
-    return _resolve_registry_path_value_common(value, root=root_fn())
+    return _resolve_path_value_common(value, root=root_fn())
 
 
 def resolve_config_path(

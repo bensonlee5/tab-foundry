@@ -32,6 +32,30 @@ check_built_output_links = _load_script_module(
 )
 
 
+def test_sync_hugo_content_front_door_specs_use_readme_repo_overview() -> None:
+    assert any(
+        spec.source_rel == "README.md" and spec.route == "repo-overview"
+        for spec in sync_hugo_content.PAGE_SPECS
+    )
+    assert all(
+        spec.source_rel != "docs/what-is-tab-foundry.md"
+        for spec in sync_hugo_content.PAGE_SPECS
+    )
+    assert all(
+        spec.source_rel not in {
+            "docs/getting-started.md",
+            "docs/ml-engineering.md",
+            "docs/research-contributors.md",
+        }
+        for spec in sync_hugo_content.PAGE_SPECS
+    )
+
+
+def test_site_shortcodes_for_secondary_topic_tree_were_deleted() -> None:
+    assert not (REPO_ROOT / "site" / "layouts" / "shortcodes" / "audience-paths.html").exists()
+    assert not (REPO_ROOT / "site" / "layouts" / "shortcodes" / "topic-cards.html").exists()
+
+
 def test_sync_hugo_content_writes_front_matter_and_rewrites_links(
     tmp_path: Path,
     monkeypatch,

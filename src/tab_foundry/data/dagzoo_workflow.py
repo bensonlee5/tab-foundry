@@ -8,7 +8,7 @@ import subprocess
 
 from tab_realdata_hub.manifest import ManifestSummary, build_manifest
 
-from .dagzoo_handoff import DagzooHandoffInfo, load_dagzoo_handoff_info
+from tab_realdata_hub.dagzoo_handoff import DagzooHandoffInfo, load_dagzoo_handoff_info
 
 
 @dataclass(slots=True, frozen=True)

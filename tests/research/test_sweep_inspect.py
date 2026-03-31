@@ -411,6 +411,74 @@ def test_inspect_sweep_row_reports_resolved_surfaces(
     assert payload["target"]["resolved"]["data"]["surface_label"] == "anchor_manifest_default"
 
 
+def test_inspection_artifact_helpers_share_row_and_anchor_path_resolution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+
+    queue = inspection_artifacts_module.load_inspection_queue(
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    row = inspection_artifacts_module.find_row(queue, order=1)
+    row_paths = inspection_artifacts_module.resolved_row_artifact_paths(
+        queue=queue,
+        row=row,
+        registry_run=inspection_artifacts_module.registry_run_entry("row_one_run", registry_path=registry_path),
+    )
+    anchor_artifacts, anchor_registry_run = inspection_artifacts_module.anchor_run_artifacts(
+        queue=queue,
+        registry_path=registry_path,
+    )
+    anchor_paths = inspection_artifacts_module.resolved_anchor_artifact_paths(
+        registry_run=anchor_registry_run,
+    )
+
+    assert row_paths["training_surface_record_json"] == tmp_path / "row_one_run" / "train" / "training_surface_record.json"
+    assert row_paths["best_checkpoint_path"] == tmp_path / "row_one_run" / "train" / "checkpoints" / "best.pt"
+    assert anchor_paths["training_surface_record_json"] == tmp_path / "anchor" / "training_surface_record.json"
+    assert anchor_paths["best_checkpoint_path"] == tmp_path / "anchor" / "checkpoints" / "best.pt"
+    assert anchor_artifacts["training_surface_record_json"]["path"] == str(
+        (tmp_path / "anchor" / "training_surface_record.json").resolve()
+    )
+
+
+def test_inspect_sweep_row_uses_canonical_queue_metadata_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    queue = inspection_artifacts_module.load_inspection_queue(
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    sentinel_metadata = inspection_artifacts_module.queue_metadata_payload(queue)
+    sentinel_metadata["comparison_policy"] = "sentinel_policy"
+    monkeypatch.setattr(
+        inspection_targets_module,
+        "queue_metadata_payload",
+        lambda _queue: dict(sentinel_metadata),
+    )
+
+    payload = inspect_module.inspect_sweep_row(
+        order=1,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    assert payload["queue"] == sentinel_metadata
+
+
 def test_inspect_sweep_row_materializes_catalog_default_effective_surface(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

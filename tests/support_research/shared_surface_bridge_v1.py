@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.sweep.catalog import load_system_delta_catalog
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+from tests.support_research.helpers import assert_training_surface_semantics
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -92,9 +93,11 @@ def test_shared_surface_bridge_v1_uses_architecture_screen_lane_and_stage_native
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert sweep["training_experiment"] == "cls_benchmark_staged"
-    assert sweep["training_config_profile"] == "cls_benchmark_staged"
-    assert sweep["surface_role"] == "architecture_screen"
+    assert_training_surface_semantics(
+        sweep,
+        training_experiment="cls_benchmark_staged",
+        surface_role="architecture_screen",
+    )
     assert any(
         "stage-native shared-surface bridge" in note for note in sweep["anchor_surface"]["notes"]
     )
@@ -109,9 +112,11 @@ def test_shared_surface_bridge_v1_uses_architecture_screen_lane_and_stage_native
 
     assert [row["delta_ref"] for row in queue_instance["rows"]] == EXPECTED_ROW_ORDER
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROW_ORDER
-    assert materialized["training_experiment"] == "cls_benchmark_staged"
-    assert materialized["training_config_profile"] == "cls_benchmark_staged"
-    assert materialized["surface_role"] == "architecture_screen"
+    assert_training_surface_semantics(
+        materialized,
+        training_experiment="cls_benchmark_staged",
+        surface_role="architecture_screen",
+    )
 
     for row in queue_instance["rows"]:
         assert row.get("parent_delta_ref") == EXPECTED_PARENT_BY_DELTA.get(row["delta_ref"])

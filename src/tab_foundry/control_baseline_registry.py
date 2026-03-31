@@ -7,12 +7,12 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, StrictInt, StrictStr, ValidationError, field_validator
 
-from tab_foundry.bench.registry.storage import load_versioned_registry_payload
-from tab_foundry.bench.registry_common import copy_jsonable
-from tab_foundry.bench.registry_paths import (  # noqa: F401 - re-exported
+from tab_foundry.registry.common import copy_jsonable
+from tab_foundry.registry.paths import (  # noqa: F401 - re-exported
     normalize_registry_path_value,
     resolve_registry_path_value,
 )
+from tab_foundry.registry.storage import load_versioned_registry_payload
 from tab_foundry.repo_paths import repo_root
 
 
