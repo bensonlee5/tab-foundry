@@ -42,30 +42,6 @@ class PageSpec:
 
 PAGE_SPECS: tuple[PageSpec, ...] = (
     PageSpec(
-        source_rel="docs/getting-started.md",
-        route="getting-started/_index",
-        weight=10,
-        description="Fast route to the right docs path for repo overview, research work, or ML engineering.",
-        link_title="Start Here",
-        no_list=True,
-    ),
-    PageSpec(
-        source_rel="docs/research-contributors.md",
-        route="research-contributors/_index",
-        weight=20,
-        description="Research-first route through the active architecture, sweep system, synthetic-data lane, and model-breadth work.",
-        link_title="Research",
-        no_list=True,
-    ),
-    PageSpec(
-        source_rel="docs/ml-engineering.md",
-        route="ml-engineering/_index",
-        weight=30,
-        description="Operational route through artifacts, validation paths, and runtime handoff boundaries.",
-        link_title="ML Engineering",
-        no_list=True,
-    ),
-    PageSpec(
         source_rel="program.md",
         route="research-contributors/sweep-contract",
         weight=20,

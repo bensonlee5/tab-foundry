@@ -147,15 +147,6 @@ def test_docs_consistency_reports_stale_python_module_entrypoint(tmp_path: Path)
             [
                 "# README",
                 "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
-                "",
                 "Run `python -m tab_foundry.bench.instability_audit --staged-ladder-root outputs/staged_ladder`.",
             ]
         )
@@ -177,15 +168,6 @@ def test_docs_consistency_reports_unsupported_python_script_entrypoint(tmp_path:
             [
                 "# README",
                 "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
-                "",
                 "Run `.venv/bin/python scripts/custom_helper.py --demo`.",
             ]
         )
@@ -204,15 +186,6 @@ def test_docs_consistency_reports_nonexistent_tab_foundry_command(tmp_path: Path
         "\n".join(
             [
                 "# README",
-                "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
                 "",
                 "Use `tab-foundry research sweep create --sweep-id demo`.",
             ]
@@ -234,15 +207,6 @@ def test_docs_consistency_reports_removed_module_reference(tmp_path: Path) -> No
             [
                 "# README",
                 "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
-                "",
                 "Import `tab_foundry.research.system_delta_execute` for sweep execution.",
             ]
         )
@@ -262,15 +226,6 @@ def test_docs_consistency_reports_missing_repo_script_entrypoint(tmp_path: Path)
             [
                 "# README",
                 "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
-                "",
                 "Run `./scripts/not_real.sh` before opening a PR.",
             ]
         )
@@ -289,15 +244,6 @@ def test_docs_consistency_reports_disallowed_readme_cli_tree(tmp_path: Path) -> 
         "\n".join(
             [
                 "# README",
-                "",
-                "**Owns**",
-                "- overview",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
                 "",
                 "<details>",
                 "<summary>Full CLI tree</summary>",
@@ -323,53 +269,50 @@ def test_docs_consistency_reports_disallowed_readme_cli_tree(tmp_path: Path) -> 
     )
 
 
-def test_docs_consistency_reports_missing_canonical_doc_markers(tmp_path: Path) -> None:
+def test_docs_consistency_requires_agents_doc_contract(tmp_path: Path) -> None:
+    (tmp_path / "AGENTS.md").write_text(
+        "# Development Patterns\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["AGENTS.md"])
+
+    messages = [error[2] for error in errors]
+    assert any("missing required docs contract statement in `AGENTS.md`" in message for message in messages)
+
+
+def test_docs_consistency_rejects_agent_markers_in_human_docs(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text(
-        "# README\n",
+        "\n".join(
+            [
+                "# README",
+                "",
+                "**Owns**",
+                "- overview",
+            ]
+        )
+        + "\n",
         encoding="utf-8",
     )
 
     errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
 
-    messages = [error[2] for error in errors]
-    assert "missing required docs ownership marker `**Owns**`" in messages
-    assert "missing required docs ownership marker `**Does Not Own**`" in messages
-    assert "missing required docs ownership marker `**If Stale vs Code**`" in messages
-
-
-def test_docs_consistency_reports_missing_router_doc_markers(tmp_path: Path) -> None:
-    docs_dir = tmp_path / "docs"
-    docs_dir.mkdir()
-    (docs_dir / "getting-started.md").write_text(
-        "# Getting Started\n",
-        encoding="utf-8",
-    )
-
-    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["docs/getting-started.md"])
-
-    messages = [error[2] for error in errors]
-    assert "missing required docs ownership marker `**Routes To**`" in messages
-    assert "missing required docs ownership marker `**Does Not Own**`" in messages
-    assert "missing required docs ownership marker `**If Stale vs Code**`" in messages
+    assert errors == [
+        (
+            tmp_path / "README.md",
+            3,
+            "agent-facing docs marker must not appear in human-facing docs: `**Owns**`",
+        )
+    ]
 
 
 def test_docs_consistency_reports_static_command_inventory_outside_workflows(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
-    (docs_dir / "getting-started.md").write_text(
+    (docs_dir / "guide.md").write_text(
         "\n".join(
             [
-                "# Getting Started",
-                "",
-                "**Routes To**",
-                "- `README.md`",
-                "",
-                "**Does Not Own**",
-                "- commands",
-                "",
-                "**If Stale vs Code**",
-                "Trust CLI help.",
-                "",
+                "# Guide",
                 "- `tab-foundry train run`",
             ]
         )
@@ -377,12 +320,12 @@ def test_docs_consistency_reports_static_command_inventory_outside_workflows(tmp
         encoding="utf-8",
     )
 
-    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["docs/getting-started.md"])
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["docs/guide.md"])
 
     assert errors == [
         (
-            tmp_path / "docs" / "getting-started.md",
-            12,
+            tmp_path / "docs" / "guide.md",
+            2,
             "static command inventory must live in `docs/workflows.md` or CLI --help: `tab-foundry train run`",
         )
     ]
@@ -395,16 +338,6 @@ def test_docs_consistency_reports_program_only_heading_outside_program(tmp_path:
         "\n".join(
             [
                 "# Workflows",
-                "",
-                "**Owns**",
-                "- examples",
-                "",
-                "**Does Not Own**",
-                "- policy",
-                "",
-                "**If Stale vs Code**",
-                "Trust the CLI.",
-                "",
                 "## Objective",
             ]
         )
@@ -417,7 +350,7 @@ def test_docs_consistency_reports_program_only_heading_outside_program(tmp_path:
     assert errors == [
         (
             tmp_path / "docs" / "workflows.md",
-            12,
+            2,
             "sweep policy heading must live in `program.md`: `## Objective`",
         )
     ]

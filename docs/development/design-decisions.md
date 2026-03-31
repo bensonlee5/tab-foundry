@@ -1,22 +1,5 @@
 # Design Decisions
 
-**Owns**
-
-- durable architecture direction and compatibility choices
-- repo-shape principles that should survive individual refactors
-- design-level priorities, non-goals, and long-lived tradeoffs
-
-**Does Not Own**
-
-- live package ownership tables or dependency graphs
-- command syntax or artifact runbooks
-- active sweep policy or roadmap state
-
-**If Stale vs Code**
-Trust [Codebase Navigation](codebase-navigation.md) for package ownership,
-[Module Dependency Map](module-dependency-map.md) for the current graph,
-[Workflows](../workflows.md) for commands, and code over historical rationale.
-
 Use this page to understand the durable decisions behind the current
 architecture, repo structure, and compatibility boundaries.
 

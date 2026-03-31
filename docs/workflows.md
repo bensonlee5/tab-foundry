@@ -1,24 +1,5 @@
 # Workflows
 
-**Owns**
-
-- representative command examples for the packaged CLI and repo-local
-  verification surfaces
-- artifact expectations for data, training, benchmark, export, and sweep runs
-- operational examples for bootstrap, inspection, benchmarking, and sweep
-  execution
-
-**Does Not Own**
-
-- live command and flag inventory
-- package ownership or dependency direction
-- sweep execution policy, promotion policy, or roadmap sequencing
-
-**If Stale vs Code**
-Trust `.venv/bin/tab-foundry ... --help` for command names and flags,
-[program.md](../program.md) for sweep policy, and code-local validation over
-prose.
-
 ## Overview
 
 Use this runbook when you need command syntax, artifact expectations, or the

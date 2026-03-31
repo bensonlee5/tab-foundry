@@ -1,21 +1,5 @@
 # Roadmap (202604)
 
-**Owns**
-
-- planning state and TF-RD sequencing
-- which questions are active, blocked, completed, or deferred
-- repo-wide priority order and milestone framing
-
-**Does Not Own**
-
-- live commands or flags
-- queue-level sweep execution policy
-- package ownership or dependency direction
-
-**If Stale vs Code**
-Trust this file over other Markdown pages for planning state, and trust code and
-artifact reality over stale plan text when the repo has already moved.
-
 Use this roadmap to understand which questions are active now, which surfaces
 are frozen, and what evidence the repo still needs before promotion.
 

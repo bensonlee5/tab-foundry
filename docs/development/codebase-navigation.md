@@ -1,21 +1,5 @@
 # Codebase Navigation
 
-**Owns**
-
-- package and entrypoint ownership
-- the stable workflow-layer map
-- where shared helpers, orchestration modules, and CLI parsers live
-
-**Does Not Own**
-
-- live commands or flags
-- full command examples or artifact expectations
-- roadmap state or sweep policy
-
-**If Stale vs Code**
-Trust the source tree over this page for the final answer, and trust packaged
-CLI `--help` over any command summary here.
-
 Use this map when you need to find the right package, entry point, or workflow
 surface before making a change. It complements
 `docs/development/module-dependency-map.md`, which records the observed

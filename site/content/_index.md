@@ -1,11 +1,10 @@
----
-title: "tab-foundry"
-linkTitle: "Home"
----
+______________________________________________________________________
+
+## title: "tab-foundry" linkTitle: "Home"
 
 {{< blocks/cover title="tab-foundry" image_anchor="top" height="med" color="dark" >}}
 
-<p class="lead mt-3">A tabular foundation model that generates its own training data, trains on it, and predicts on new tasks. Full pipeline control from data generation to export.</p>
+<p class="lead mt-3">A tabular foundation model repo with an active sandwich classification lane, dagzoo-backed synthetic data generation, benchmark comparison, and export bundles.</p>
 <a class="btn btn-lg btn-outline-light me-3 mb-4" href="{{< relref "/docs" >}}">
   Read the Docs
 </a>
@@ -14,16 +13,26 @@ linkTitle: "Home"
 </a>
 {{< /blocks/cover >}}
 
-## Choose Your Path
+## Start Here
 
-Start with the question you are trying to answer, then follow the shortest
-route into the repo.
+Go straight to the owner doc that matches the question:
 
-{{< audience-paths >}}
+- \[Repo Overview\]({{< relref "/docs/repo-overview.md" >}}): what the repo does,
+  how the pipeline fits together, and the quickstart.
+- \[Workflows\]({{< relref "/docs/ml-engineering/workflows.md" >}}): command
+  examples and artifact expectations.
+- \[Sweep Contract\]({{< relref "/docs/research-contributors/sweep-contract.md" >}}):
+  the active system-delta execution policy.
+- \[Model Architecture\]({{< relref "/docs/development/model-architecture.md" >}}):
+  the current sandwich/simple/staged split and forward path.
+- \[Roadmap\]({{< relref "/docs/development/roadmap.md" >}}): current TF-RD
+  sequencing and priorities.
 
-## Explore By Topic
+## Core References
 
-Once you know your audience path, use these pages to go deeper into one
-surface at a time.
-
-{{< topic-cards >}}
+- \[Codebase Navigation\]({{< relref "/docs/development/codebase-navigation.md" >}}):
+  package ownership and entry points.
+- \[Inference Contract\]({{< relref "/docs/ml-engineering/inference.md" >}}):
+  export/runtime handoff details.
+- \[References\]({{< relref "/docs/reference" >}}): papers, evidence,
+  and supporting research notes.

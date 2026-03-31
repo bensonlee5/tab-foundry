@@ -1,21 +1,5 @@
 # Module Dependency Map
 
-**Owns**
-
-- the observed top-level package graph
-- dependency-direction policy at the package level
-- import-cycle and refactor hotspot notes tied to the current graph
-
-**Does Not Own**
-
-- command syntax
-- package ownership beyond dependency direction
-- roadmap or sweep policy
-
-**If Stale vs Code**
-Trust `scripts/audit/module_graph.py --fail-on-doc-drift` and the source tree
-over this page's prose summaries.
-
 Use this map when you need the current package graph or want to plan a refactor
 without reopening dependency cycles.
 
@@ -41,13 +25,15 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.repo_paths`.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
-  `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
-  `tab_foundry.device`, `tab_foundry.export`,
+  `tab_foundry.config_inspection`, `tab_foundry.control_baseline_registry`,
+  `tab_foundry.data`, `tab_foundry.device`, `tab_foundry.export`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
-  `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
-  `tab_foundry.research`,
+  `tab_foundry.repo_paths`, `tab_foundry.research`,
   `tab_foundry.task_batching`, and `tab_foundry.training`.
 - `tab_foundry.config` depends on `tab_foundry.repo_paths`.
+- `tab_foundry.config_inspection` depends on `tab_foundry.config`,
+  `tab_foundry.data`, `tab_foundry.model`,
+  `tab_foundry.preprocessing`, and `tab_foundry.training`.
 - `tab_foundry.control_baseline_registry` depends on
   `tab_foundry.registry` and `tab_foundry.repo_paths`.
 - `tab_foundry.data` depends on `tab_foundry.benchmark_registry`,

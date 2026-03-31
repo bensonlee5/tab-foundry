@@ -170,55 +170,78 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
 
     required_statements = [
         "bensonlee5.github.io/tab-foundry",
-        "**Owns**",
-        "**Does Not Own**",
-        "**If Stale vs Code**",
         "`tab-foundry` is the canonical packaged CLI",
         "`./scripts/dev`",
         "`scripts/bench/`",
         "| Surface | Use it for |",
-        "If docs and the live CLI disagree, trust the packaged CLI help",
         ".venv/bin/tab-foundry --help",
         ".venv/bin/tab-foundry <group> --help",
         ".venv/bin/tab-foundry <group> <command> --help",
-        "| Need | Source |",
-        "docs/getting-started.md",
         "docs/workflows.md",
         "docs/development/codebase-navigation.md",
         "program.md",
         "docs/development/roadmap.md",
-        "## Current Shape",
         "docs/development/model-architecture.md",
+        "tabfoundry_sandwich",
+        "tabfoundry_simple",
+        "tabfoundry_staged",
+        "`value`, `is_nan`, `is_posinf`, and `is_neginf`",
+        "`final_log_loss_at_matched_regime_budget`",
+        "`final_bpc_at_matched_regime_budget`",
     ]
     for statement in required_statements:
         assert statement in readme
 
     forbidden_statements = [
-        "## Docs",
+        "**Owns**",
+        "**Does Not Own**",
+        "**If Stale vs Code**",
         "<summary>Full CLI tree</summary>",
-        "## What Makes This Different",
-        "## What Works Today",
-        "## What We're Building",
-        "## Architecture At A Glance",
-        "## Find Your Path",
+        "docs/getting-started.md",
+        "docs/research-contributors.md",
+        "docs/ml-engineering.md",
         "docs/what-is-tab-foundry.md",
     ]
     for statement in forbidden_statements:
         assert statement not in readme
 
 
-def test_front_door_overview_router_was_deleted() -> None:
+def test_agents_doc_contract_lists_current_source_of_truth() -> None:
+    agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
+    required_statements = [
+        "## Documentation Source Of Truth",
+        "`README.md` owns repo overview and quickstart.",
+        "`docs/workflows.md` owns command examples and artifact expectations.",
+        "`program.md` owns sweep execution policy.",
+        "`docs/development/roadmap.md` owns planning state and TF-RD sequencing.",
+        "`docs/development/codebase-navigation.md` owns package and entrypoint ownership.",
+        "`docs/inference.md` owns export/runtime handoff details.",
+        "Human-facing docs should explain the system and link to the owning docs directly; they should not carry agent-only ownership markers or routing taxonomies.",
+    ]
+    for statement in required_statements:
+        assert statement in agents
+
+
+def test_router_docs_were_deleted_from_repo_and_sync() -> None:
     assert not (REPO_ROOT / "docs" / "what-is-tab-foundry.md").exists()
+    assert not (REPO_ROOT / "docs" / "getting-started.md").exists()
+    assert not (REPO_ROOT / "docs" / "ml-engineering.md").exists()
+    assert not (REPO_ROOT / "docs" / "research-contributors.md").exists()
 
     checked_texts = [
         (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
         (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8"),
-        (REPO_ROOT / "docs" / "getting-started.md").read_text(encoding="utf-8"),
         (REPO_ROOT / "scripts" / "docs" / "sync_hugo_content.py").read_text(encoding="utf-8"),
+        (REPO_ROOT / "site" / "content" / "_index.md").read_text(encoding="utf-8"),
+        (REPO_ROOT / "site" / "content" / "docs" / "_index.md").read_text(encoding="utf-8"),
     ]
     for text in checked_texts:
         assert "docs/what-is-tab-foundry.md" not in text
         assert "what-is-tab-foundry" not in text
+        assert "docs/getting-started.md" not in text
+        assert "docs/ml-engineering.md" not in text
+        assert "docs/research-contributors.md" not in text
 
 
 def test_editable_lockfile_version_matches_pyproject() -> None:

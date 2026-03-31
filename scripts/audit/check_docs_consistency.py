@@ -14,6 +14,7 @@ from tab_foundry.cli.app import build_parser
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = (
+    "AGENTS.md",
     "README.md",
     "CONTRIBUTING.md",
     "docs",
@@ -25,29 +26,23 @@ COMMAND_INVENTORY_RE = re.compile(r"- `(?P<command>tab-foundry [^`]+)`$")
 PYTHON_MODULE_CMD_RE = re.compile(r"\bpython(?:3)?\s+-m\s+tab_foundry\.[^\s`]+")
 PYTHON_SCRIPT_CMD_RE = re.compile(r"^(?P<python>(?:\.venv/bin/)?python(?:3)?)\s+(?P<script>scripts/[^\s`]+\.py)\b")
 README_CLI_TREE_SUMMARY_RE = re.compile(r"<summary>\s*Full CLI tree\s*</summary>")
-CANONICAL_DOC_MARKERS = {
-    "README.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/workflows.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/inference.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "program.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/development/roadmap.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/development/design-decisions.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/development/codebase-navigation.md": ("**Owns**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/development/module-dependency-map.md": (
-        "**Owns**",
-        "**Does Not Own**",
-        "**If Stale vs Code**",
-    ),
-}
-ROUTER_DOC_MARKERS = {
-    "docs/getting-started.md": ("**Routes To**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/ml-engineering.md": ("**Routes To**", "**Does Not Own**", "**If Stale vs Code**"),
-    "docs/research-contributors.md": (
-        "**Routes To**",
-        "**Does Not Own**",
-        "**If Stale vs Code**",
-    ),
-}
+AGENTS_DOC_CONTRACT = (
+    "## Documentation Source Of Truth",
+    "`README.md` owns repo overview and quickstart.",
+    "`docs/workflows.md` owns command examples and artifact expectations.",
+    "`program.md` owns sweep execution policy.",
+    "`docs/development/roadmap.md` owns planning state and TF-RD sequencing.",
+    "`docs/development/codebase-navigation.md` owns package and entrypoint ownership.",
+    "`docs/inference.md` owns export/runtime handoff details.",
+    "Use `.venv/bin/tab-foundry --help`, `.venv/bin/tab-foundry <group> --help`, and `.venv/bin/tab-foundry <group> <command> --help` for live commands and flags.",
+    "Human-facing docs should explain the system and link to the owning docs directly; they should not carry agent-only ownership markers or routing taxonomies.",
+)
+AGENT_FACING_MARKERS = (
+    "**Owns**",
+    "**Does Not Own**",
+    "**If Stale vs Code**",
+    "**Routes To**",
+)
 PROGRAM_ONLY_HEADINGS = frozenset(
     {
         "## Objective",
@@ -295,13 +290,13 @@ def _find_disallowed_readme_cli_tree(path: Path, lines: list[str]) -> tuple[int,
     return None
 
 
-def _required_doc_markers(path: Path, repo_root: Path) -> tuple[str, ...]:
-    relative = path.relative_to(repo_root).as_posix()
-    if relative in CANONICAL_DOC_MARKERS:
-        return CANONICAL_DOC_MARKERS[relative]
-    if relative in ROUTER_DOC_MARKERS:
-        return ROUTER_DOC_MARKERS[relative]
-    return ()
+def _validate_agents_doc_contract(path: Path, lines: list[str]) -> list[tuple[int, str]]:
+    text = "\n".join(lines)
+    errors: list[tuple[int, str]] = []
+    for statement in AGENTS_DOC_CONTRACT:
+        if statement not in text:
+            errors.append((0, f"missing required docs contract statement in `AGENTS.md`: `{statement}`"))
+    return errors
 
 
 def scan_docs_consistency(
@@ -320,14 +315,23 @@ def scan_docs_consistency(
         for path in _iter_markdown_files(root):
             path_rel = path.relative_to(repo_root).as_posix()
             lines = path.read_text(encoding="utf-8").splitlines()
+            if path_rel == "AGENTS.md":
+                errors.extend((path, lineno, message) for lineno, message in _validate_agents_doc_contract(path, lines))
+                continue
             readme_cli_tree_error = _find_disallowed_readme_cli_tree(path, lines)
             if readme_cli_tree_error is not None:
                 errors.append((path, *readme_cli_tree_error))
-            for marker in _required_doc_markers(path, repo_root):
-                if marker not in lines:
-                    errors.append((path, 0, f"missing required docs ownership marker `{marker}`"))
             for lineno, line in enumerate(lines, start=1):
                 stripped = line.strip()
+                for marker in AGENT_FACING_MARKERS:
+                    if marker in line:
+                        errors.append(
+                            (
+                                path,
+                                lineno,
+                                f"agent-facing docs marker must not appear in human-facing docs: `{marker}`",
+                            )
+                        )
                 if PYTHON_MODULE_CMD_RE.search(line):
                     errors.append(
                         (
