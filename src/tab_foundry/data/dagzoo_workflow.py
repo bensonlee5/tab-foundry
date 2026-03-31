@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
+from typing import cast
 
 from tab_realdata_hub.manifest import ManifestSummary, build_manifest
 
@@ -30,6 +31,7 @@ class DagzooGenerateConfig:
     missing_mar_observed_fraction: float | None = None
     missing_mar_logit_scale: float | None = None
     missing_mnar_logit_scale: float | None = None
+    set_overrides: tuple[str, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)
@@ -127,6 +129,8 @@ def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
             key="dataset.missing_mnar_logit_scale",
             value=float(config.missing_mnar_logit_scale),
         )
+    for override in config.set_overrides:
+        argv.extend(["--set", str(cast(str, override))])
     return argv
 
 

@@ -111,14 +111,16 @@ def test_tf_rd_013_shape_aware_sweep_is_registered_but_not_active() -> None:
     assert "active_sweep_id" not in index
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
-    assert sweeps[SWEEP_ID] == {
-        "parent_sweep_id": "tf_rd_013_data_source_contract_v1",
-        "status": "completed",
-        "anchor_run_id": ANCHOR_RUN_ID,
-        "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
-        "control_baseline_id": "cls_benchmark_linear_v2",
-    }
+    entry = sweeps[SWEEP_ID]
+    assert entry["parent_sweep_id"] == "tf_rd_013_data_source_contract_v1"
+    assert entry["status"] == "completed"
+    assert entry["anchor_run_id"] == ANCHOR_RUN_ID
+    assert entry["complexity_level"] == "binary_md"
+    assert entry["benchmark_manifest_path"] == (
+        "src/tab_foundry/bench/openml_binary_large_v1.json"
+    )
+    assert entry["control_baseline_id"] == "cls_benchmark_linear_v2"
+    assert entry["external_benchmarks"] is None
 
 
 def test_tf_rd_013_shape_aware_metadata_rows_and_support_bundle_match() -> None:

@@ -5,6 +5,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 from omegaconf import OmegaConf
+import pytest
 
 from tab_foundry.config import compose_config
 import tab_foundry.data.corpus_loading as corpus_loading_module
@@ -13,7 +14,11 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.training.surface import build_training_surface_record
 
-from tests.data.test_corpus import _fake_run_dagzoo_generate, _write_recipe_registry
+from tests.data.test_corpus import (
+    _fake_run_dagzoo_generate,
+    _write_legacy_unscoped_corpus_record,
+    _write_recipe_registry,
+)
 
 
 def _write_manifest(path: Path) -> Path:
@@ -339,6 +344,42 @@ def test_build_training_surface_record_persists_corpus_identity(
     assert surface_record["data"]["recipe_id"] == "current_recipe"
     assert surface_record["data"]["corpus_id"] == record["corpus_id"]
     assert surface_record["data"]["corpus_record_path"] == record["corpus_record_path"]
+    assert surface_record["data"]["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+    assert "invocations" not in surface_record["data"]["dagzoo_provenance"]
+
+
+def test_build_training_surface_record_compacts_legacy_corpus_record_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    _write_recipe_registry(repo_root)
+    legacy_record = _write_legacy_unscoped_corpus_record(
+        repo_root=repo_root,
+        sweep_id=None,
+        recipe_id="current_recipe",
+        seed=16,
+    )
+    monkeypatch.setattr(corpus_loading_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_lookup_module, "_repo_root", lambda: repo_root)
+
+    surface_record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "corpus_ref": "current_recipe",
+            },
+        },
+        run_dir=tmp_path / "run_with_legacy_corpus",
+    )
+
+    assert surface_record["data"]["corpus_ref"] == legacy_record["corpus_ref"]
+    assert surface_record["data"]["dagzoo_provenance"]["corpus_variant"] == "current_corpus_default"
+    assert surface_record["data"]["dagzoo_provenance"]["invocation_count"] == 1
+    assert "invocations" not in surface_record["data"]["dagzoo_provenance"]
+    assert "commands" not in surface_record["data"]["dagzoo_provenance"]
 
 
 def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:
@@ -442,46 +483,23 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
 
 
-def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_values(
+def test_build_training_surface_record_rejects_removed_row_cap_subsampling(
     tmp_path: Path,
 ) -> None:
     manifest_path = _write_manifest(tmp_path / "manifest.parquet")
-    overridden_record = build_training_surface_record(
-        raw_cfg={
-            "task": "classification",
-            "model": {"arch": "tabfoundry_staged"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {
-                    "train_row_cap": 3,
-                    "test_row_cap": 2,
+    with pytest.raises(ValueError, match="Row subsampling is no longer supported"):
+        _ = build_training_surface_record(
+            raw_cfg={
+                "task": "classification",
+                "model": {"arch": "tabfoundry_staged"},
+                "data": {
+                    "source": "manifest",
+                    "manifest_path": str(manifest_path),
+                    "train_row_cap": 10,
                 },
             },
-        },
-        run_dir=tmp_path / "run_override",
-    )
-    fallback_record = build_training_surface_record(
-        raw_cfg={
-            "task": "classification",
-            "model": {"arch": "tabfoundry_staged"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {},
-            },
-        },
-        run_dir=tmp_path / "run_top_level",
-    )
-
-    assert overridden_record["data"]["train_row_cap"] == 3
-    assert overridden_record["data"]["test_row_cap"] == 2
-    assert fallback_record["data"]["train_row_cap"] == 10
-    assert fallback_record["data"]["test_row_cap"] == 5
+            run_dir=tmp_path / "run_override",
+        )
 
 
 def test_build_training_surface_record_includes_optional_training_surface(

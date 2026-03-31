@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing note: corpus materialization now caps CPU dagzoo fixed-layout
+  generation batches at `128` datasets per raw chunk during `tab-foundry`
+  corpus builds, which keeps local corpus materialization memory bounded
+  without changing the resulting manifest semantics.
+- User-facing note: the active sandwich benchmark path now uses
+  `training.loss_surface=classification` and ranks TF-RD-010 `medium_v4` by
+  matched-budget final log loss; the older `cell_bpc` / BPC objective remains
+  supported for legacy historical reruns but now emits a deprecation warning
+  when explicitly requested.
+
+## [0.15.6] - 2026-03-31
+
+### Added
+
+- User-facing note: added the expanded TF-RD-010 `*_v2` corpus recipes and
+  successor `tf_rd_010_classification_evolution_medium_v2` /
+  `tf_rd_010_classification_evolution_large_v2` sweeps so the active one-epoch
+  execution path now resolves to `159984` manifest records and `2500`
+  optimizer steps without mutating the completed March 30, 2026 `medium_v1`
+  evidence.
+
+### Changed
+
+- User-facing note: the preserved TF-RD-010 `medium_v1` and `large_v1` sweep
+  assets now remain historical reference points, while the active medium/large
+  classification-evolution path is rewired onto the new `v2` successor sweeps
+  backed by the shared expanded corpora.
+- User-facing break: row-level dataset subsampling via `data.train_row_cap` /
+  `data.test_row_cap` has been removed from config composition, data-surface
+  resolution, manifest-backed dataset loading, and tracked sweep metadata.
+  Existing sweeps now train on the full tracked manifest rows instead of
+  runtime row caps.
+- User-facing note: classification `cell_bpc` training now records held-out
+  label accuracy in the existing `train_acc` / `final_train_acc` metrics so
+  prior-dump histories, summaries, and W&B runs continue to surface accuracy
+  alongside BPC/BPF.
+- User-facing note: sweep corpus materialization now prefers an explicit queue
+  row `data.corpus_ref` over nested `data.surface_overrides.corpus_ref`,
+  preventing successor sweeps from silently budgeting against stale historical
+  corpora.
+- User-facing note: sweep execution now forces `runtime.grad_clip=0.0`, so
+  sweep-composed runs execute without gradient clipping even when a row or
+  historical sweep asset still carries a clipping override.
+
+### Fixed
+
+- User-facing note: system-delta matrix rendering now handles sweeps with
+  `anchor_run_id: null` without crashing, and renders pending-anchor state for
+  successor sweeps before the trusted rerun is established.
+
 ## [0.15.5] - 2026-03-31
 
 ### Changed
@@ -874,7 +926,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added OpenML discovery mode to the benchmark-bundle builder, including direct task-list filtering, one-per-dataset deduping with `10-fold Crossvalidation` preference, validation-time rejection reporting, and CLI controls for `--discover-from-openml`, `--min-instances`, and `--min-task-count`.
 
-- Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
+- Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
 
 ### Changed
 
@@ -1129,7 +1181,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reporting `true`.
 
 - Mainline bounce diagnosis no longer defaults to the larger
-  `nanotabpfn_openml_binary_large_v1.json` confirmation bundle because that
+  `openml_binary_large_v1.json` confirmation bundle because that
   bundle permits missing-valued inputs. The default diagnosis path now stays on
   the primary no-missing bundle unless a separate confirmation bundle is passed
   explicitly.
@@ -1147,7 +1199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the summary.
 
 - Added a repo-tracked large binary confirmation benchmark bundle for diagnosis
-  work under `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
+  work under `src/tab_foundry/bench/openml_binary_large_v1.json`.
   User-facing note: this bundle intentionally relaxes the medium bundle's
   `max_features` and `max_missing_pct` filters to `20` and `5.0` so the pinned
   TabArena source yields a meaningfully larger confirmation surface.
@@ -1312,7 +1364,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `binary_expanded_v1` source for the canonical medium binary surface.
 
 - Added the repo-tracked
-  `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json` bundle and
+  `src/tab_foundry/bench/openml_binary_medium_v1.json` bundle and
   changed `default_benchmark_bundle_path()` to return that 10-task binary
   surface by default.
 
@@ -1321,8 +1373,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   historical `v1` registry entry.
 
 - User-facing benchmark surface break: the canonical benchmark bundle path now
-  defaults to `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
-  instead of `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`; the
+  defaults to `src/tab_foundry/bench/openml_binary_medium_v1.json`
+  instead of `src/tab_foundry/bench/openml_benchmark_v1.json`; the
   canonical comparison surface therefore changes, and new benchmark results are
   not directly comparable to historical `v1` entries unless the bundle path and
   control-baseline id are matched explicitly.
@@ -1386,7 +1438,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo-tracked non-default OpenML bundle while keeping the binary 3-task bundle
   as the default compare path.
 - Added `scripts/build_openml_benchmark_bundle.py` plus the repo-tracked
-  `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
+  `src/tab_foundry/bench/openml_classification_small_v1.json`
   companion bundle, which widens the nanoTabPFN notebook's TabArena v0.1 task
   set from binary-only to small multiclass without changing the other bundle
   selection thresholds or runtime drift-check contract.
@@ -1479,7 +1531,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Pinned the canonical nanoTabPFN/OpenML benchmark bundle in
-  `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json` and made the
+  `src/tab_foundry/bench/openml_benchmark_v1.json` and made the
   benchmark load path fail fast on selection-threshold, task-list, and
   task-metadata drift.
 - Updated benchmark comparison runs so `benchmark_tasks.json` now persists the

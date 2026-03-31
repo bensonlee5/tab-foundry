@@ -94,3 +94,89 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Verify deployed Hugo site
+        env:
+          SITE_URL: https://bensonlee5.github.io/tab-foundry
+        run: |
+          python3 - <<'PY'
+          import sys
+          import time
+          import urllib.error
+          import urllib.request
+
+          SITE_URL = "https://bensonlee5.github.io/tab-foundry"
+
+          checks = [
+              (
+                  f"{SITE_URL}/",
+                  ("<meta name=generator content=\"Hugo", "Read the Docs"),
+                  ("Jekyll v3.10.0",),
+              ),
+              (
+                  f"{SITE_URL}/docs/",
+                  ("Start Here", "/docs/repo-overview/"),
+                  ("Jekyll v3.10.0",),
+              ),
+              (
+                  f"{SITE_URL}/docs/development/model-architecture/",
+                  ("cdn.jsdelivr.net/npm/mermaid", "cdn.jsdelivr.net/npm/katex"),
+                  ("Jekyll v3.10.0",),
+              ),
+              (
+                  f"{SITE_URL}/docs/getting-started/problem-formulation/",
+                  ("cdn.jsdelivr.net/npm/katex",),
+                  ("Jekyll v3.10.0",),
+              ),
+              (
+                  f"{SITE_URL}/docs/development/model-architecture.html",
+                  ("/docs/development/model-architecture/",),
+                  ("404",),
+              ),
+              (
+                  f"{SITE_URL}/docs/development/synthetic-prior-mission.html",
+                  ("/docs/getting-started/problem-formulation/",),
+                  ("404",),
+              ),
+          ]
+
+          def fetch(url: str) -> str:
+              with urllib.request.urlopen(url, timeout=20) as response:
+                  return response.read().decode("utf-8", errors="replace")
+
+          failures: list[str] = []
+          for url, required, forbidden in checks:
+              last_error = ""
+              for _ in range(18):
+                  try:
+                      body = fetch(url)
+                  except urllib.error.HTTPError as exc:
+                      last_error = f"{url} returned HTTP {exc.code}"
+                      time.sleep(10)
+                      continue
+                  except urllib.error.URLError as exc:
+                      last_error = f"{url} failed to load: {exc.reason}"
+                      time.sleep(10)
+                      continue
+
+                  missing = [token for token in required if token not in body]
+                  blocked = [token for token in forbidden if token in body]
+                  if not missing and not blocked:
+                      break
+
+                  details: list[str] = []
+                  if missing:
+                      details.append(f"missing {missing}")
+                  if blocked:
+                      details.append(f"forbidden {blocked}")
+                  last_error = f"{url} " + ", ".join(details)
+                  time.sleep(10)
+              else:
+                  failures.append(last_error or f"{url} failed verification")
+
+          if failures:
+              print("Live Pages verification failed:")
+              for failure in failures:
+                  print(f"- {failure}")
+              sys.exit(1)
+          PY

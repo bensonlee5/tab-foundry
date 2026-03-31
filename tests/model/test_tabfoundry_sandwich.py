@@ -853,6 +853,7 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_emits_typed_payloads() -> N
     assert torch.isfinite(output.bpf)
     assert int(torch.isnan(output.per_cell_bits).sum().item()) == 1
     assert output.aux_metrics is not None
+    assert 0.0 <= output.aux_metrics["acc"] <= 1.0
     assert output.aux_metrics["bpc_cell_count"] == pytest.approx(19.0)
     assert output.aux_metrics["bpf_feature_count"] == pytest.approx(4.0)
     assert output.aux_metrics["excluded_non_finite_cell_count"] == pytest.approx(1.0)
@@ -885,6 +886,36 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_num_classes_above_m
 
     with pytest.raises(RuntimeError, match="num_classes <= many_class_base=2"):
         _ = model.forward_cell_likelihood(_batch(num_classes=3))
+
+
+def test_tabfoundry_sandwich_forward_cell_likelihood_infers_num_classes_from_test_labels() -> None:
+    model = _model()
+    batch = TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 0.5, 4.0],
+                [2.0, 1.0, 3.0, 0.0],
+                [0.5, -1.0, 2.0, 1.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 0, 0], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [1.5, 2.5, 0.0, -1.0],
+                [0.0, -0.5, 1.5, 2.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([1, 1], dtype=torch.int64),
+        metadata={"source": "unit_test", "feature_types": list(_DEFAULT_FEATURE_TYPES)},
+        num_classes=None,
+    )
+
+    output = model.forward_cell_likelihood(batch)
+
+    assert output.bpc is not None
+    assert torch.isfinite(output.bpc)
 
 
 def test_tabfoundry_sandwich_cell_bpc_honors_input_normalization() -> None:

@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+import json
 from pathlib import Path
 from typing import Any, Literal, Mapping, cast
 
+from omegaconf import OmegaConf
 from pydantic import ValidationError
 
 from tab_foundry.data.corpus_materialization import materialize_corpus_ref
 from tab_foundry.external_benchmarks import normalize_external_benchmarks
+from tab_foundry.hashing import sha256_text
 from tab_foundry.research.lane_contract import resolve_sweep_semantics
+from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
 from .catalog import (
@@ -20,11 +25,13 @@ from .catalog import (
 from .models import (
     DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
     MATERIALIZED_QUEUE_SCHEMA,
+    RESOLVED_QUEUE_SCHEMA,
     CatalogDeltaPayload,
     CatalogPayload,
     MaterializedQueuePayload,
     MaterializedQueueRowPayload,
     QueueRowPayload,
+    ResolvedQueuePayload,
     SWEEP_QUEUE_SCHEMA,
     SweepPayload,
     SweepQueuePayload,
@@ -36,52 +43,28 @@ from .paths_io import (
     default_catalog_path,
     default_sweeps_root,
     load_yaml_mapping,
+    repo_root as shared_repo_root,
     sweep_matrix_path,
     sweep_metadata_path,
     sweep_queue_path,
+    sweep_resolved_queue_path,
+    write_yaml,
 )
+from .training_state import normalize_training_surface_record, training_surface_record_fingerprint
+
+_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS = 4
 
 
 def _resolved_external_benchmarks(sweep: SweepPayload) -> list[str]:
     values = sweep.external_benchmarks
-    return list(normalize_external_benchmarks(
-        values,
-        default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
-        context="sweep.external_benchmarks",
-        allow_empty=True,
+    return list(
+        normalize_external_benchmarks(
+            values,
+            default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
+            context="sweep.external_benchmarks",
+            allow_empty=True,
+        )
     )
-    )
-
-
-def _materialized_queue_payload(
-    *,
-    sweep: SweepPayload,
-    rows: list[MaterializedQueueRowPayload],
-    catalog_path: Path | None,
-    sweeps_root: Path,
-) -> dict[str, Any]:
-    semantics = resolve_sweep_semantics(sweep)
-    return {
-        "schema": MATERIALIZED_QUEUE_SCHEMA,
-        "generated_from_sweep_id": sweep.sweep_id,
-        "catalog_path": None if catalog_path is None else _render_path(catalog_path),
-        "canonical_sweep_path": _render_path(sweep_metadata_path(sweep.sweep_id, sweeps_root=sweeps_root)),
-        "canonical_queue_path": _render_path(sweep_queue_path(sweep.sweep_id, sweeps_root=sweeps_root)),
-        "canonical_matrix_path": _render_path(sweep_matrix_path(sweep.sweep_id, sweeps_root=sweeps_root)),
-        "sweep_id": sweep.sweep_id,
-        "parent_sweep_id": sweep.parent_sweep_id,
-        "sweep_status": sweep.status,
-        "complexity_level": sweep.complexity_level,
-        "anchor_run_id": sweep.anchor_run_id,
-        "benchmark_manifest_path": sweep.benchmark_manifest_path,
-        "control_baseline_id": sweep.control_baseline_id,
-        "external_benchmarks": _resolved_external_benchmarks(sweep),
-        **semantics.to_payload_dict(),
-        "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
-        "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
-        "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.anchor_context)),
-        "rows": [row.to_payload_dict() for row in rows],
-    }
 
 
 def _inspection_surface_payload(
@@ -153,6 +136,143 @@ def _optional_parent_delta_ref(queue_row: QueueRowPayload | Mapping[str, Any]) -
     return normalized
 
 
+def _json_fingerprint(payload: Mapping[str, Any]) -> str:
+    return sha256_text(json.dumps(_copy_jsonable(payload), sort_keys=True, separators=(",", ":")))
+
+
+def _resolved_queue_inputs_fingerprint(
+    *,
+    catalog: CatalogPayload,
+    sweep: SweepPayload,
+    queue_instance: SweepQueuePayload,
+) -> str:
+    return _json_fingerprint(
+        {
+            "catalog": catalog.to_payload_dict(),
+            "sweep": sweep.to_payload_dict(),
+            "queue": queue_instance.to_payload_dict(),
+        }
+    )
+
+
+def _resolved_surface_run_dir(
+    *,
+    repo_root: Path | None,
+    sweep_id: str,
+    delta_id: str,
+) -> Path:
+    base_root = repo_root or shared_repo_root()
+    return (
+        base_root
+        / "outputs"
+        / ".resolved_queue"
+        / "research"
+        / str(sweep_id)
+        / str(delta_id)
+        / "train"
+    )
+
+
+def _resolved_surface_payload(
+    *,
+    row: Mapping[str, Any],
+    sweep_id: str,
+    training_experiment: str,
+    repo_root: Path | None,
+    sweeps_root: Path | None,
+) -> tuple[dict[str, Any], str]:
+    from .configuration import compose_cfg
+
+    def _row_fallback_record() -> dict[str, Any]:
+        labels: dict[str, Any] = {}
+        raw_row_model = row.get("model")
+        if isinstance(raw_row_model, Mapping):
+            model_label = raw_row_model.get("stage_label", raw_row_model.get("arch"))
+            if model_label is not None:
+                labels["model"] = model_label
+        for key in ("data", "preprocessing", "training"):
+            raw_row_surface = row.get(key)
+            if isinstance(raw_row_surface, Mapping):
+                surface_label = raw_row_surface.get("surface_label")
+                if surface_label is not None:
+                    labels[key] = surface_label
+        training_payload = (
+            cast(Mapping[str, Any], row.get("training"))
+            if isinstance(row.get("training"), Mapping)
+            else {}
+        )
+        overrides = (
+            cast(Mapping[str, Any], training_payload.get("overrides"))
+            if isinstance(training_payload.get("overrides"), Mapping)
+            else {}
+        )
+        runtime_payload = (
+            {
+                str(key): value
+                for key, value in cast(Mapping[str, Any], overrides.get("runtime", {})).items()
+                if str(key) not in {"device", "output_dir"}
+            }
+            if isinstance(overrides.get("runtime"), Mapping)
+            else {}
+        )
+        return {
+            "labels": labels,
+            "model": (
+                cast(dict[str, Any], _copy_jsonable(raw_row_model))
+                if isinstance(raw_row_model, Mapping)
+                else {}
+            ),
+            "data": (
+                cast(dict[str, Any], _copy_jsonable(row.get("data")))
+                if isinstance(row.get("data"), Mapping)
+                else {}
+            ),
+            "preprocessing": (
+                cast(dict[str, Any], _copy_jsonable(row.get("preprocessing")))
+                if isinstance(row.get("preprocessing"), Mapping)
+                else {}
+            ),
+            "training": (
+                cast(dict[str, Any], _copy_jsonable(training_payload))
+                if training_payload
+                else {}
+            ),
+            "runtime": runtime_payload,
+        }
+
+    run_dir = _resolved_surface_run_dir(
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        delta_id=str(row["delta_id"]),
+    )
+    try:
+        cfg = compose_cfg(
+            row=row,
+            run_dir=run_dir,
+            device="cpu",
+            training_experiment=training_experiment,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        raw_cfg = OmegaConf.to_container(cfg, resolve=True)
+    except Exception:
+        record = _row_fallback_record()
+        return normalize_training_surface_record(record), training_surface_record_fingerprint(record)
+    if not isinstance(raw_cfg, Mapping):
+        record = _row_fallback_record()
+        return normalize_training_surface_record(record), training_surface_record_fingerprint(record)
+    try:
+        record = build_training_surface_record(
+            raw_cfg=cast(Mapping[str, Any], raw_cfg),
+            run_dir=run_dir,
+            include_manifest_characteristics=False,
+            allow_unresolved_corpus_ref=True,
+        )
+    except Exception:
+        record = _row_fallback_record()
+    return normalize_training_surface_record(record), training_surface_record_fingerprint(record)
+
+
 def inspection_row(
     *,
     queue_row: QueueRowPayload,
@@ -220,6 +340,9 @@ def inspection_system_delta_queue(
     queue_instance: SweepQueuePayload,
     sweeps_root: Path | None = None,
 ) -> MaterializedQueuePayload:
+    sweep_id = sweep.sweep_id
+    semantics = resolve_sweep_semantics(sweep)
+    training_surface = semantics.training_surface
     anchor_context = cast(dict[str, Any], _copy_jsonable(sweep.anchor_context))
     rows = [
         inspection_row(queue_row=queue_row, anchor_context=anchor_context)
@@ -227,12 +350,30 @@ def inspection_system_delta_queue(
     ]
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return MaterializedQueuePayload.model_validate(
-        _materialized_queue_payload(
-            sweep=sweep,
-            rows=rows,
-            catalog_path=None,
-            sweeps_root=resolved_sweeps_root,
-        )
+        {
+            "schema": MATERIALIZED_QUEUE_SCHEMA,
+            "generated_from_sweep_id": sweep_id,
+            "catalog_path": None,
+            "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "sweep_id": sweep_id,
+            "parent_sweep_id": sweep.parent_sweep_id,
+            "sweep_status": sweep.status,
+            "complexity_level": sweep.complexity_level,
+            "anchor_run_id": sweep.anchor_run_id,
+            "benchmark_manifest_path": sweep.benchmark_manifest_path,
+            "control_baseline_id": sweep.control_baseline_id,
+            "external_benchmarks": _resolved_external_benchmarks(sweep),
+            "training_experiment": training_surface.training_experiment,
+            "training_config_profile": training_surface.training_config_profile,
+            "surface_role": training_surface.surface_role,
+            "comparison_policy": semantics.comparison_policy,
+            "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
+            "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
+            "anchor_context": anchor_context,
+            "rows": [row.to_payload_dict() for row in rows],
+        }
     )
 
 
@@ -422,6 +563,8 @@ def materialize_system_delta_queue(
     sweeps_root: Path | None = None,
 ) -> MaterializedQueuePayload:
     sweep_id = sweep.sweep_id
+    semantics = resolve_sweep_semantics(sweep)
+    training_surface = semantics.training_surface
     resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
     rows: list[MaterializedQueueRowPayload] = []
     for queue_row in sorted(queue_instance.rows, key=lambda row: (int(row.order), str(row.delta_ref))):
@@ -440,18 +583,125 @@ def materialize_system_delta_queue(
         )
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return MaterializedQueuePayload.model_validate(
-        _materialized_queue_payload(
-            sweep=sweep,
-            rows=rows,
-            catalog_path=catalog_path or default_catalog_path(),
-            sweeps_root=resolved_sweeps_root,
-        )
+        {
+            "schema": MATERIALIZED_QUEUE_SCHEMA,
+            "generated_from_sweep_id": sweep_id,
+            "catalog_path": _render_path(catalog_path or default_catalog_path()),
+            "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "sweep_id": sweep_id,
+            "parent_sweep_id": sweep.parent_sweep_id,
+            "sweep_status": sweep.status,
+            "complexity_level": sweep.complexity_level,
+            "anchor_run_id": sweep.anchor_run_id,
+            "benchmark_manifest_path": sweep.benchmark_manifest_path,
+            "control_baseline_id": sweep.control_baseline_id,
+            "external_benchmarks": _resolved_external_benchmarks(sweep),
+            "training_experiment": training_surface.training_experiment,
+            "training_config_profile": training_surface.training_config_profile,
+            "surface_role": training_surface.surface_role,
+            "comparison_policy": semantics.comparison_policy,
+            "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
+            "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
+            "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.anchor_context)),
+            "rows": [row.to_payload_dict() for row in rows],
+        }
     )
+
+
+def materialize_resolved_system_delta_queue(
+    *,
+    catalog: CatalogPayload,
+    sweep: SweepPayload,
+    queue_instance: SweepQueuePayload,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> ResolvedQueuePayload:
+    materialized = materialize_system_delta_queue(
+        catalog=catalog,
+        sweep=sweep,
+        queue_instance=queue_instance,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
+    training_experiment = resolve_sweep_semantics(sweep).training_surface.training_experiment
+    resolved_rows: list[dict[str, Any]] = []
+    for row in materialized.rows:
+        resolved_surface, resolved_surface_fingerprint = _resolved_surface_payload(
+            row=row.to_payload_dict(),
+            sweep_id=sweep.sweep_id,
+            training_experiment=training_experiment,
+            repo_root=resolved_repo_root,
+            sweeps_root=sweeps_root,
+        )
+        row_payload = row.to_payload_dict()
+        row_payload["resolved_surface"] = resolved_surface
+        row_payload["resolved_surface_fingerprint"] = resolved_surface_fingerprint
+        resolved_rows.append(row_payload)
+    resolved_sweeps_root = sweeps_root or default_sweeps_root()
+    payload = materialized.to_payload_dict()
+    payload.update(
+        {
+            "schema": RESOLVED_QUEUE_SCHEMA,
+            "canonical_resolved_queue_path": _render_path(
+                sweep_resolved_queue_path(sweep.sweep_id, sweeps_root=resolved_sweeps_root)
+            ),
+            "inputs_fingerprint": _resolved_queue_inputs_fingerprint(
+                catalog=catalog,
+                sweep=sweep,
+                queue_instance=queue_instance,
+            ),
+            "rows": resolved_rows,
+        }
+    )
+    return ResolvedQueuePayload.model_validate(payload)
+
+
+def write_resolved_system_delta_queue(
+    *,
+    sweep_id: str | None = None,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+    out_path: Path | None = None,
+) -> Path:
+    catalog = load_system_delta_catalog_payload(catalog_path)
+    sweep = load_system_delta_sweep_payload(
+        sweep_id,
+        index_path=index_path,
+        sweeps_root=sweeps_root,
+    )
+    queue_instance = load_system_delta_queue_instance_payload(
+        sweep_id or sweep.sweep_id,
+        index_path=index_path,
+        sweeps_root=sweeps_root,
+    )
+    resolved_queue = materialize_resolved_system_delta_queue(
+        catalog=catalog,
+        sweep=sweep,
+        queue_instance=queue_instance,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    resolved_path = (
+        sweep_resolved_queue_path(sweep.sweep_id, sweeps_root=sweeps_root)
+        if out_path is None
+        else Path(out_path).expanduser().resolve()
+    )
+    write_yaml(resolved_path, resolved_queue.to_payload_dict())
+    return resolved_path
 
 
 def _load_materialized_queue_payload(path: Path) -> MaterializedQueuePayload:
     payload = load_yaml_mapping(path, context="system delta queue")
     return MaterializedQueuePayload.model_validate(payload)
+
+
+def _load_resolved_queue_payload(path: Path) -> ResolvedQueuePayload:
+    payload = load_yaml_mapping(path, context="system delta resolved queue")
+    return ResolvedQueuePayload.model_validate(payload)
 
 
 def _load_system_delta_queue_common(
@@ -494,6 +744,20 @@ def _load_system_delta_queue_common(
             index_path=index_path,
             sweeps_root=sweeps_root,
         )
+        resolved_path = sweep_resolved_queue_path(sweep.sweep_id, sweeps_root=sweeps_root)
+        if resolved_path.exists():
+            resolved_queue = _load_resolved_queue_payload(resolved_path)
+            expected_inputs_fingerprint = _resolved_queue_inputs_fingerprint(
+                catalog=catalog,
+                sweep=sweep,
+                queue_instance=queue_instance,
+            )
+            if resolved_queue.inputs_fingerprint != expected_inputs_fingerprint:
+                raise RuntimeError(
+                    "resolved_queue.yaml is stale for "
+                    f"sweep {sweep.sweep_id!r}; regenerate it before inspection or execution"
+                )
+            return resolved_queue
         return _materialize_or_fallback(
             catalog=catalog,
             sweep=sweep,
@@ -518,6 +782,11 @@ def _load_system_delta_queue_common(
             sweep=sweep,
             queue_instance=queue_instance,
         )
+    if schema == RESOLVED_QUEUE_SCHEMA:
+        try:
+            return ResolvedQueuePayload.model_validate(payload)
+        except ValidationError as exc:
+            raise RuntimeError(f"system delta resolved queue is invalid: {exc}") from exc
     try:
         materialized = MaterializedQueuePayload.model_validate(payload)
     except ValidationError as exc:
@@ -592,6 +861,15 @@ def materialize_sweep_corpora(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
+    try:
+        _ = write_resolved_system_delta_queue(
+            sweep_id=sweep_id,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+    except FileNotFoundError:
+        pass
     queue = load_system_delta_queue(
         sweep_id=sweep_id,
         index_path=index_path,
@@ -622,17 +900,37 @@ def materialize_sweep_corpora(
             continue
         seen_corpus_refs.add(normalized_corpus_ref)
         requested_corpus_refs.append(normalized_corpus_ref)
-    records = [
-        materialize_corpus_ref(
-            corpus_ref=corpus_ref,
-            dagzoo_root=dagzoo_root,
-            force=force,
-            repo_root=resolved_repo_root,
-            sweep_id=resolved_sweep_id,
-            sweeps_root=sweeps_root,
-        )
-        for corpus_ref in requested_corpus_refs
-    ]
+    worker_count = min(_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS, len(requested_corpus_refs))
+    if worker_count <= 1:
+        records = [
+            materialize_corpus_ref(
+                corpus_ref=corpus_ref,
+                dagzoo_root=dagzoo_root,
+                force=force,
+                repo_root=resolved_repo_root,
+                sweep_id=resolved_sweep_id,
+                sweeps_root=sweeps_root,
+            )
+            for corpus_ref in requested_corpus_refs
+        ]
+    else:
+        with ThreadPoolExecutor(
+            max_workers=worker_count,
+            thread_name_prefix="sweep-corpus-materialize",
+        ) as executor:
+            futures = [
+                executor.submit(
+                    materialize_corpus_ref,
+                    corpus_ref=corpus_ref,
+                    dagzoo_root=dagzoo_root,
+                    force=force,
+                    repo_root=resolved_repo_root,
+                    sweep_id=resolved_sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+                for corpus_ref in requested_corpus_refs
+            ]
+            records = [future.result() for future in futures]
     return {
         "sweep_id": resolved_sweep_id,
         "recipe_count": len(records),

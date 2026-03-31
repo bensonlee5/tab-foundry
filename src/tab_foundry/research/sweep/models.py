@@ -18,6 +18,7 @@ SWEEP_INDEX_SCHEMA: Final = "tab-foundry-system-delta-sweep-index-v2"
 SWEEP_SCHEMA: Final = "tab-foundry-system-delta-sweep-v1"
 SWEEP_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-sweep-queue-v1"
 MATERIALIZED_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-queue-v1"
+RESOLVED_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-resolved-queue-v1"
 DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_NANOTABPFN,)
 DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_TABICLV2,)
 
@@ -439,3 +440,26 @@ class MaterializedQueuePayload(_SweepPayloadModel):
                 allow_empty=True,
             )
         )
+
+
+class ResolvedQueueRowPayload(MaterializedQueueRowPayload):
+    resolved_surface: dict[StrictStr, Any] = Field(default_factory=dict)
+    resolved_surface_fingerprint: StrictStr
+
+    @field_validator("resolved_surface_fingerprint")
+    @classmethod
+    def _validate_resolved_surface_fingerprint(cls, value: str) -> str:
+        return _require_non_empty_string(value, context="resolved_surface_fingerprint")
+
+
+class ResolvedQueuePayload(MaterializedQueuePayload):
+    schema_name: Literal["tab-foundry-system-delta-resolved-queue-v1"] = Field(alias="schema")  # type: ignore[assignment]
+    canonical_resolved_queue_path: StrictStr
+    inputs_fingerprint: StrictStr
+    rows: list[ResolvedQueueRowPayload] = Field(min_length=1)  # type: ignore[assignment]
+
+    @field_validator("canonical_resolved_queue_path", "inputs_fingerprint")
+    @classmethod
+    def _validate_resolved_payload_strings(cls, value: str, info: ValidationInfo) -> str:
+        assert info.field_name is not None
+        return _require_non_empty_string(value, context=str(info.field_name))

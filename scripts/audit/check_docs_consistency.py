@@ -117,7 +117,7 @@ ALLOWED_STANDALONE_PYTHON_SCRIPTS = frozenset(
     {
         "scripts/bench/instability_audit.py",
         "scripts/bench/iris.py",
-        "scripts/bench/nanotabpfn_helper.py",
+        "scripts/bench/openml_benchmark_helper.py",
         "scripts/bench/tabiclv2_helper.py",
     }
 )

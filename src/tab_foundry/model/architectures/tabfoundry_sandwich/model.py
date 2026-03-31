@@ -628,16 +628,22 @@ class TabFoundrySandwichClassifier(nn.Module):
         *,
         x_all: torch.Tensor,
         y_train: torch.Tensor,
+        y_test: torch.Tensor | None,
         train_test_split_index: int,
         feature_type_ids: torch.Tensor,
     ) -> CellLikelihoodOutput:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        max_label = int(y_train.max().item()) if int(y_train.numel()) > 0 else 1
+        if y_test is not None and int(y_test.numel()) > 0:
+            max_label = max(max_label, int(y_test.max().item()))
+        num_classes = max(2, max_label + 1)
+        self._validate_num_classes(num_classes)
         raw_state = self._build_raw_input_state(
             x_all=x_all,
             y_train=y_train,
-            y_test=None,
+            y_test=y_test,
             train_test_split_index=train_test_split_index,
-            num_classes=max(2, int(y_train.max().item()) + 1),
+            num_classes=num_classes,
             feature_type_ids=feature_type_ids,
         )
         feature_state = self._build_feature_state(raw_state)
@@ -690,6 +696,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         *,
         x_all: torch.Tensor,
         y_train: torch.Tensor,
+        y_test: torch.Tensor | None = None,
         train_test_split_index: int,
         feature_types: list[str] | list[list[str]],
     ) -> CellLikelihoodOutput:
@@ -702,6 +709,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         return self._forward_cell_likelihood_batched(
             x_all=x_all,
             y_train=y_train,
+            y_test=y_test,
             train_test_split_index=train_test_split_index,
             feature_type_ids=feature_type_ids,
         )

@@ -42,3 +42,11 @@ recipes:
     path: tf_rd_010_missingness_mar_v1.yaml
   tf_rd_010_missingness_mnar_v1:
     path: tf_rd_010_missingness_mnar_v1.yaml
+  tf_rd_010_dagzoo_medium_control_v2:
+    path: tf_rd_010_dagzoo_medium_control_v2.yaml
+  tf_rd_010_missingness_mcar_v2:
+    path: tf_rd_010_missingness_mcar_v2.yaml
+  tf_rd_010_missingness_mar_v2:
+    path: tf_rd_010_missingness_mar_v2.yaml
+  tf_rd_010_missingness_mnar_v2:
+    path: tf_rd_010_missingness_mnar_v2.yaml

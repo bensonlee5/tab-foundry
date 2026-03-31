@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from omegaconf import OmegaConf
 from pydantic import ValidationError
 
 from tab_foundry.benchmark_registry import resolve_registry_path_value
@@ -39,10 +40,16 @@ from . import training_state as _training_state
 from .artifacts import ExecutionPaths
 from .configuration import compose_cfg, resolve_training_backend, row_id_for_order
 from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS, SweepPayload
+from .objective_metrics import (
+    first_present_metric_key,
+    objective_metric_from_run,
+    preferred_final_metric_keys,
+)
 from .queue_updates import optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .reporting import result_card_text, write_research_package
 from .runtime_env import ensure_nanotabpfn_python
 from .screening import screen_metrics
+from .surface_resolution import build_lightweight_training_surface_record
 
 
 DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
@@ -189,13 +196,6 @@ def run_row(
     sweep_semantics = resolve_sweep_semantics(resolved_sweep_meta)
     training_surface = sweep_semantics.training_surface
     external_benchmarks = _sweep_external_benchmarks(sweep, sweep_meta=sweep_meta)
-    existing_run_id = queue_row.get("run_id")
-    run_id = row_id_for_order(
-        sweep_id,
-        int(queue_row["order"]),
-        str(queue_row["delta_ref"]),
-        str(existing_run_id) if isinstance(existing_run_id, str) else None,
-    )
     delta_root = (
         paths.repo_root
         / "outputs"
@@ -203,6 +203,15 @@ def run_row(
         / "research"
         / sweep_id
         / str(queue_row["delta_ref"])
+    )
+    existing_run_id = queue_row.get("run_id")
+    run_id = row_id_for_order(
+        sweep_id,
+        int(queue_row["order"]),
+        str(queue_row["delta_ref"]),
+        str(existing_run_id) if isinstance(existing_run_id, str) else None,
+        delta_root=delta_root,
+        registry_path=paths.registry_path,
     )
     run_root = delta_root / run_id
     train_dir = run_root / "train"
@@ -219,17 +228,47 @@ def run_row(
         training_surface=training_surface,
     )
     cfg = compose_cfg(
-        row=queue_row,
+        row=materialized_row,
         run_dir=train_dir,
         device=device,
         training_surface=training_surface,
         sweep_id=sweep_id,
         sweeps_root=paths.sweeps_root,
     )
+    expected_training_surface_record: Mapping[str, Any] | None = None
+    if OmegaConf.is_config(cfg):
+        raw_cfg = OmegaConf.to_container(cfg, resolve=True)
+        if not isinstance(raw_cfg, Mapping):
+            raise RuntimeError("resolved sweep row cfg must be a mapping")
+        expected_training_surface_record = build_lightweight_training_surface_record(
+            raw_cfg=cast(Mapping[str, Any], raw_cfg),
+            run_dir=train_dir,
+        )
+    expected_surface_fingerprint = (
+        _training_state.training_surface_record_fingerprint(expected_training_surface_record)
+        if expected_training_surface_record is not None
+        else None
+    )
+    tracked_surface_fingerprint = (
+        str(materialized_row["resolved_surface_fingerprint"])
+        if isinstance(materialized_row.get("resolved_surface_fingerprint"), str)
+        else None
+    )
+    if (
+        expected_surface_fingerprint is not None
+        and tracked_surface_fingerprint is not None
+        and expected_surface_fingerprint != tracked_surface_fingerprint
+    ):
+        raise RuntimeError(
+            "resolved_queue surface fingerprint mismatch for "
+            f"sweep {sweep_id!r} row {int(queue_row['order']):02d}: "
+            f"expected={expected_surface_fingerprint} tracked={tracked_surface_fingerprint}"
+        )
     training_backend = resolve_training_backend(cfg)
     if _training_state.completed_train_artifacts_exist(
         train_dir,
         expected_backend=training_backend,
+        expected_training_surface_record=expected_training_surface_record,
     ):
         print(
             f"[row {int(queue_row['order']):02d}] reusing existing train artifacts",
@@ -244,7 +283,14 @@ def run_row(
         )
         if (
             _training_state.completed_train_artifacts_exist(train_dir)
-            and existing_backend != training_backend
+            and (
+                existing_backend != training_backend
+                or not _training_state.completed_train_artifacts_exist(
+                    train_dir,
+                    expected_backend=training_backend,
+                    expected_training_surface_record=expected_training_surface_record,
+                )
+            )
         ):
             print(
                 f"[row {int(queue_row['order']):02d}] existing train artifacts are not reusable",
@@ -252,14 +298,23 @@ def run_row(
                 f"observed_backend={existing_backend or 'missing'}",
                 flush=True,
             )
-        archived_train_dir = _training_state.archive_incomplete_train_dir(train_dir)
-        if archived_train_dir is not None:
-            print(
-                f"[row {int(queue_row['order']):02d}] archived incomplete train dir",
-                f"run_id={run_id}",
-                f"archived_dir={archived_train_dir}",
-                flush=True,
-            )
+            archived_train_dir = _training_state.archive_incompatible_train_dir(train_dir)
+            if archived_train_dir is not None:
+                print(
+                    f"[row {int(queue_row['order']):02d}] archived incompatible train dir",
+                    f"run_id={run_id}",
+                    f"archived_dir={archived_train_dir}",
+                    flush=True,
+                )
+        else:
+            archived_train_dir = _training_state.archive_incomplete_train_dir(train_dir)
+            if archived_train_dir is not None:
+                print(
+                    f"[row {int(queue_row['order']):02d}] archived incomplete train dir",
+                    f"run_id={run_id}",
+                    f"archived_dir={archived_train_dir}",
+                    flush=True,
+                )
         print(
             f"[row {int(queue_row['order']):02d}] starting train",
             f"run_id={run_id}",
@@ -283,6 +338,23 @@ def run_row(
             f"training_backend={training_backend}",
             f"output_dir={train_result.output_dir}",
             flush=True,
+        )
+
+    observed_training_surface_record = _training_state.load_training_surface_record(
+        train_dir / "training_surface_record.json"
+    )
+    if observed_training_surface_record is None:
+        raise RuntimeError(
+            f"[row {int(queue_row['order']):02d}] training surface record is missing at "
+            f"{train_dir / 'training_surface_record.json'}"
+        )
+    observed_surface_fingerprint = _training_state.training_surface_record_fingerprint(
+        observed_training_surface_record
+    )
+    if expected_surface_fingerprint is not None and observed_surface_fingerprint != expected_surface_fingerprint:
+        raise RuntimeError(
+            f"[row {int(queue_row['order']):02d}] executed training surface does not match resolved queue "
+            f"contract: expected={expected_surface_fingerprint} observed={observed_surface_fingerprint}"
         )
 
     if execution_policy == SCREEN_ONLY_POLICY:
@@ -453,20 +525,19 @@ def run_row(
         conclusion=conclusion,
     )
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
-    final_metric_label = "final_bpc"
-    final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_log_loss"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_crps"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
-    if final_metric_value is None:
-        final_metric_label = "final_roc_auc"
-        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
+    objective_metric = objective_metric_from_run(run_entry)
+    final_metric_label = first_present_metric_key(
+        tab_foundry_summary,
+        preferred_final_metric_keys(objective_metric),
+    )
+    final_metric_value = (
+        None
+        if final_metric_label is None
+        else optional_metric(tab_foundry_summary, final_metric_label)
+    )
     final_metric_text = (
         f"{final_metric_label}={final_metric_value:.4f}"
-        if final_metric_value is not None
+        if final_metric_label is not None and final_metric_value is not None
         else "final_metric=n/a"
     )
     print(

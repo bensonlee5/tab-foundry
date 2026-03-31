@@ -58,7 +58,7 @@ def _valid_run_entry(run_id: str = "run_001") -> dict[str, object]:
         "benchmark_bundle": {
             "name": "binary_medium",
             "version": 1,
-            "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
             "task_count": 1,
             "task_ids": [1],
         },

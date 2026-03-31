@@ -8,16 +8,25 @@ from typing import Any, Mapping, cast
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
-from .inspection_artifacts import queue_metadata_payload, resolved_row_artifact_paths, result_card_path
-from .materialize import load_system_delta_queue, ordered_rows
+from .inspection_artifacts import queue_metadata_payload
+from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
+from .objective_metrics import (
+    first_present_metric_key,
+    objective_metric_from_queue_metrics,
+    objective_metric_from_run,
+    preferred_drift_metric_keys,
+    preferred_final_metric_keys,
+)
 from .paths_io import (
     _render_path,
     default_catalog_path,
     default_registry_path,
+    repo_root,
     sweep_matrix_path,
+    sweep_queue_path,
     write_text,
 )
-from .queue_updates import stage_local_telemetry_metrics
+from .queue_state import completed_queue_metrics_from_registry_run
 
 
 def _require_non_empty_string(value: Any, *, context: str) -> str:
@@ -32,76 +41,29 @@ def _optional_float(value: Any) -> float | None:
     return float(value)
 
 
-def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float]:
-    metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
-    diagnostics = cast(dict[str, Any], run["training_diagnostics"])
-    comparisons = cast(dict[str, Any], run.get("comparisons", {}))
-    raw_vs_anchor = comparisons.get("vs_anchor", {})
-    vs_anchor = cast(dict[str, Any], raw_vs_anchor if isinstance(raw_vs_anchor, Mapping) else {})
-    expected: dict[str, float] = {}
+def _render_locked_benchmark_surface(value: Any) -> tuple[str, str]:
+    benchmark_surface_path = str(value)
+    if benchmark_surface_path.endswith(".json"):
+        return "Benchmark bundle", f"`{benchmark_surface_path}`"
+    manifest_prefix = "data/manifests/bench/"
+    manifest_suffix = "/manifest.parquet"
+    if benchmark_surface_path.startswith(manifest_prefix) and benchmark_surface_path.endswith(
+        manifest_suffix
+    ):
+        manifest_id = benchmark_surface_path[len(manifest_prefix) : -len(manifest_suffix)]
+        return "Benchmark manifest", f"local benchmark-manifest id `{manifest_id}`"
+    return "Benchmark manifest", f"`{benchmark_surface_path}`"
 
-    best_step = _optional_float(metrics.get("best_step"))
-    if best_step is not None:
-        expected["best_step"] = best_step
-    max_grad_norm = _optional_float(diagnostics.get("max_grad_norm"))
-    if max_grad_norm is not None:
-        expected["max_grad_norm"] = max_grad_norm
 
-    metric_suffixes = (
-        "bpc",
-        "bpf",
-        "roc_auc",
-        "log_loss",
-        "brier_score",
-        "crps",
-        "avg_pinball_loss",
-        "picp_90",
-    )
-    for prefix in ("best", "final"):
-        for suffix in metric_suffixes:
-            key = f"{prefix}_{suffix}"
-            value = _optional_float(metrics.get(key))
-            if value is not None:
-                expected[key] = value
-
-    for suffix in metric_suffixes:
-        best_key = f"best_{suffix}"
-        final_key = f"final_{suffix}"
-        best_value = expected.get(best_key)
-        final_value = expected.get(final_key)
-        if best_value is None or final_value is None:
-            continue
-        expected[f"final_minus_best_{suffix}"] = final_value - best_value
-    if "final_minus_best_bpc" in expected:
-        expected["drift"] = expected["final_minus_best_bpc"]
-    elif "final_minus_best_roc_auc" in expected:
-        expected["drift"] = expected["final_minus_best_roc_auc"]
-
-    comparison_keys = {
-        "final_bpc_delta": "delta_final_bpc",
-        "final_bpf_delta": "delta_final_bpf",
-        "final_log_loss_delta": "delta_final_log_loss",
-        "final_brier_score_delta": "delta_final_brier_score",
-        "final_roc_auc_delta": "delta_final_roc_auc",
-        "final_crps_delta": "delta_final_crps",
-        "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
-        "final_picp_90_delta": "delta_final_picp_90",
-    }
-    for registry_key, queue_key in comparison_keys.items():
-        value = _optional_float(vs_anchor.get(registry_key))
-        if value is not None:
-            expected[queue_key] = value
-    artifacts = cast(dict[str, Any], run.get("artifacts", {}))
-    run_dir_value = artifacts.get("run_dir")
-    if isinstance(run_dir_value, str) and run_dir_value.strip():
-        run_dir = resolve_registry_path_value(run_dir_value)
-        expected.update(
-            {
-                key: float(value)
-                for key, value in stage_local_telemetry_metrics(run_dir).items()
-            }
-        )
-    return expected
+def _tracked_matrix_path(path_text: str | None) -> str | None:
+    if path_text is None:
+        return None
+    candidate = Path(path_text)
+    if not candidate.is_absolute():
+        candidate = repo_root() / candidate
+    if not candidate.exists():
+        return None
+    return path_text
 
 
 def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -118,16 +80,40 @@ def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, A
     return rendered
 
 
-def effective_model_label(*, training_experiment: str, queue_row: Mapping[str, Any]) -> str:
+def render_data_change_payload(data_payload: Mapping[str, Any]) -> dict[str, Any]:
+    rendered: dict[str, Any] = {}
+    surface_overrides = data_payload.get("surface_overrides")
+    if isinstance(surface_overrides, Mapping) and surface_overrides:
+        rendered.update(dict(surface_overrides))
+    for key, value in data_payload.items():
+        if key in {"surface_label", "surface_overrides"}:
+            continue
+        if value in (None, {}, []):
+            continue
+        rendered[str(key)] = value
+    return rendered
+
+
+def effective_model_label(*, queue: Mapping[str, Any], queue_row: Mapping[str, Any]) -> str:
+    resolved_surface = queue_row.get("resolved_surface")
+    if isinstance(resolved_surface, Mapping):
+        labels = resolved_surface.get("labels")
+        if isinstance(labels, Mapping):
+            model_label = labels.get("model")
+            if isinstance(model_label, str) and model_label.strip():
+                return str(model_label)
     model_payload = queue_row.get("model")
     if isinstance(model_payload, Mapping):
         stage_label = model_payload.get("stage_label")
         if isinstance(stage_label, str) and stage_label.strip():
             return str(stage_label)
-    return training_experiment
+    training_experiment = queue.get("training_experiment")
+    if isinstance(training_experiment, str) and training_experiment.strip():
+        return str(training_experiment)
+    return "none"
 
 
-def metric_summary(run: Mapping[str, Any], anchor: Mapping[str, Any]) -> dict[str, str]:
+def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str]:
     def _format(value: float | None, *, suffix: str = "", signed: bool = False) -> str:
         if value is None:
             return "n/a"
@@ -161,14 +147,15 @@ def metric_summary(run: Mapping[str, Any], anchor: Mapping[str, Any]) -> dict[st
     anchor_final = _optional_float(anchor_metrics.get("final_roc_auc"))
     anchor_best_time = float(anchor_metrics["best_training_time"])
     anchor_final_time = float(anchor_metrics["final_training_time"])
-    drift = None if best_bpc is None or final_bpc is None else final_bpc - best_bpc
-    anchor_drift = (
-        None if anchor_best_bpc is None or anchor_final_bpc is None else anchor_final_bpc - anchor_best_bpc
+    objective_metric = objective_metric_from_run(run)
+    anchor_objective_metric = objective_metric_from_run(anchor)
+    drift_key = first_present_metric_key(metrics, preferred_drift_metric_keys(objective_metric))
+    anchor_drift_key = first_present_metric_key(
+        anchor_metrics,
+        preferred_drift_metric_keys(anchor_objective_metric),
     )
-    if drift is None:
-        drift = None if best is None or final is None else final - best
-    if anchor_drift is None:
-        anchor_drift = None if anchor_best is None or anchor_final is None else anchor_final - anchor_best
+    drift = None if drift_key is None else _optional_float(metrics.get(drift_key))
+    anchor_drift = None if anchor_drift_key is None else _optional_float(anchor_metrics.get(anchor_drift_key))
     return {
         "best_bpc": _format(best_bpc),
         "final_bpc": _format(final_bpc),
@@ -199,6 +186,50 @@ def metric_summary(run: Mapping[str, Any], anchor: Mapping[str, Any]) -> dict[st
         "final_picp_90": _format(final_picp_90),
         "delta_final_picp_90": "n/a" if final_picp_90 is None or anchor_final_picp_90 is None else f"{final_picp_90 - anchor_final_picp_90:+.4f}",
     }
+
+
+def _run_metric_parts_without_anchor(run: dict[str, Any]) -> list[str]:
+    metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
+    parts: list[str] = []
+    objective_metric = objective_metric_from_run(run)
+    key_labels = {
+        "final_bpc": "final BPC",
+        "final_bpf": "final BPF",
+        "final_log_loss": "final log loss",
+        "final_brier_score": "final Brier score",
+        "best_roc_auc": "best ROC AUC",
+        "final_roc_auc": "final ROC AUC",
+        "final_crps": "final CRPS",
+        "final_avg_pinball_loss": "final avg pinball loss",
+        "final_picp_90": "final PICP 90",
+    }
+    ordered_keys: list[str] = list(preferred_final_metric_keys(objective_metric))
+    ordered_keys.extend(
+        key
+        for key in (
+            "best_roc_auc",
+            "final_roc_auc",
+            "final_crps",
+            "final_avg_pinball_loss",
+            "final_picp_90",
+            "final_bpc",
+            "final_bpf",
+            "final_log_loss",
+            "final_brier_score",
+        )
+        if key not in ordered_keys
+    )
+    for key in ordered_keys:
+        label = key_labels.get(key)
+        if label is None:
+            continue
+        raw_value = metrics.get(key)
+        if raw_value is not None:
+            parts.append(f"{label} `{float(raw_value):.4f}`")
+    final_training_time = metrics.get("final_training_time")
+    if final_training_time is not None:
+        parts.append(f"final training time `{float(final_training_time):.1f}s`")
+    return parts
 
 
 def _stage_local_stability_summary(queue_metrics: Mapping[str, Any] | None) -> str | None:
@@ -236,6 +267,10 @@ def _stage_local_stability_summary(queue_metrics: Mapping[str, Any] | None) -> s
     return "; ".join(parts)
 
 
+def result_card_path(*, sweep_id: str, delta_id: str) -> Path:
+    return repo_root() / "outputs" / "staged_ladder" / "research" / sweep_id / delta_id / "result_card.md"
+
+
 def validate_system_delta_queue(
     queue: Mapping[str, Any],
     *,
@@ -258,28 +293,21 @@ def validate_system_delta_queue(
         if run is None:
             issues.append(f"{delta_id}: run_id {run_id!r} is missing from the benchmark registry")
             continue
-        artifact_paths = resolved_row_artifact_paths(
-            queue=queue,
-            row=row,
-            registry_run=run,
-            resolve_registry_path=resolve_registry_path_value,
-        )
         card_path = result_card_path(sweep_id=sweep_id, delta_id=delta_id)
         if not card_path.exists():
             issues.append(f"{delta_id}: missing result card at {card_path}")
-        training_surface_record_path = artifact_paths["training_surface_record_json"]
-        if training_surface_record_path is None:
+        training_surface_record_path = cast(dict[str, Any], run["artifacts"]).get("training_surface_record_path")
+        if not isinstance(training_surface_record_path, str) or not training_surface_record_path.strip():
             issues.append(f"{delta_id}: run {run_id!r} is missing artifacts.training_surface_record_path")
         else:
-            if not training_surface_record_path.exists():
-                issues.append(
-                    f"{delta_id}: training surface artifact does not exist at {training_surface_record_path}"
-                )
+            resolved = resolve_registry_path_value(training_surface_record_path)
+            if not resolved.exists():
+                issues.append(f"{delta_id}: training surface artifact does not exist at {resolved}")
         benchmark_metrics = row.get("benchmark_metrics")
         if not isinstance(benchmark_metrics, Mapping):
             issues.append(f"{delta_id}: completed rows must include benchmark_metrics")
             continue
-        expected_metrics = _expected_completed_queue_metrics(run)
+        expected_metrics = completed_queue_metrics_from_registry_run(run)
         for metric_key, expected_value in expected_metrics.items():
             if metric_key not in benchmark_metrics:
                 continue
@@ -298,29 +326,51 @@ def render_system_delta_matrix(
     *,
     registry_path: Path | None = None,
 ) -> str:
+    metadata = queue_metadata_payload(queue)
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    queue_metadata = queue_metadata_payload(queue)
-    sweep_id = _require_non_empty_string(queue_metadata.get("sweep_id"), context="materialized queue sweep_id")
-    anchor_run_id = _require_non_empty_string(
-        queue_metadata.get("anchor_run_id"),
-        context="materialized queue anchor_run_id",
+    sweep_id = _require_non_empty_string(metadata.get("sweep_id"), context="materialized queue sweep_id")
+    raw_anchor_run_id = metadata.get("anchor_run_id")
+    anchor_run_id = (
+        None
+        if raw_anchor_run_id is None or not str(raw_anchor_run_id).strip()
+        else str(raw_anchor_run_id).strip()
     )
-    anchor = runs.get(anchor_run_id)
-    if anchor is None:
+    anchor = None if anchor_run_id is None else runs.get(anchor_run_id)
+    if anchor_run_id is not None and anchor is None:
         raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
-    anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
+    anchor_metrics = None if anchor is None else cast(dict[str, Any], anchor["tab_foundry_metrics"])
     upstream = cast(dict[str, Any], queue["upstream_reference"])
     anchor_surface = cast(dict[str, Any], queue["anchor_surface"])
     catalog_path = str(queue.get("catalog_path", _render_path(default_catalog_path())))
-    canonical_queue_path = str(queue_metadata["canonical_queue_path"])
+    canonical_queue_path = str(
+        metadata.get("canonical_queue_path", queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
+    )
+    raw_resolved_queue_path = queue.get("canonical_resolved_queue_path")
+    canonical_resolved_queue_path = _tracked_matrix_path(
+        str(raw_resolved_queue_path)
+        if isinstance(raw_resolved_queue_path, str) and raw_resolved_queue_path.strip()
+        else None
+    )
+    raw_inputs_fingerprint = queue.get("inputs_fingerprint")
+    inputs_fingerprint = (
+        str(raw_inputs_fingerprint)
+        if isinstance(raw_inputs_fingerprint, str) and raw_inputs_fingerprint.strip()
+        else None
+    )
 
     lines: list[str] = []
     lines.append("# System Delta Matrix")
     lines.append("")
-    lines.append(
-        f"This file is rendered from `{canonical_queue_path}` plus `{catalog_path}` and the canonical benchmark registry."
-    )
+    if canonical_resolved_queue_path is None:
+        lines.append(
+            f"This file is rendered from `{canonical_queue_path}` plus `{catalog_path}` and the canonical benchmark registry."
+        )
+    else:
+        lines.append(
+            f"This file is rendered from `{canonical_resolved_queue_path}` "
+            f"(derived from `{canonical_queue_path}` plus `{catalog_path}`) and the canonical benchmark registry."
+        )
     lines.append("")
     lines.append("## Sweep")
     lines.append("")
@@ -328,19 +378,24 @@ def render_system_delta_matrix(
     lines.append(f"- Sweep status: `{queue.get('sweep_status')}`")
     lines.append(f"- Parent sweep id: `{queue.get('parent_sweep_id')}`")
     lines.append(f"- Complexity level: `{queue.get('complexity_level')}`")
+    if canonical_resolved_queue_path is not None:
+        lines.append(f"- Resolved queue path: `{canonical_resolved_queue_path}`")
+    if inputs_fingerprint is not None:
+        lines.append(f"- Resolved queue inputs fingerprint: `{inputs_fingerprint}`")
     lines.append("")
     lines.append("## Locked Surface")
     lines.append("")
-    lines.append(f"- Anchor run id: `{anchor_run_id}`")
-    benchmark_surface_path = str(queue_metadata["benchmark_manifest_path"])
-    benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
-    lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
-    lines.append(f"- Control baseline id: `{queue_metadata['control_baseline_id']}`")
-    raw_external_benchmarks = queue_metadata["external_benchmarks"]
+    lines.append(f"- Anchor run id: `{anchor_run_id if anchor_run_id is not None else 'null'}`")
+    benchmark_surface_label, benchmark_surface_text = _render_locked_benchmark_surface(
+        metadata["benchmark_manifest_path"]
+    )
+    lines.append(f"- {benchmark_surface_label}: {benchmark_surface_text}")
+    lines.append(f"- Control baseline id: `{metadata['control_baseline_id']}`")
+    raw_external_benchmarks = metadata.get("external_benchmarks", [])
     external_benchmarks = (
         [str(value) for value in raw_external_benchmarks]
         if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
-        else []
+        else ([] if isinstance(raw_external_benchmarks, list) else ["nanotabpfn"])
     )
     lines.append(
         "- External benchmarks: "
@@ -350,33 +405,41 @@ def render_system_delta_matrix(
             else "`none`"
         )
     )
-    lines.append(f"- Training experiment: `{queue_metadata['training_experiment']}`")
-    lines.append(f"- Training config profile: `{queue_metadata['training_config_profile']}`")
-    lines.append(f"- Surface role: `{queue_metadata['surface_role']}`")
-    lines.append(f"- Comparison policy: `{queue_metadata['comparison_policy']}`")
-    anchor_metric_parts: list[str] = []
-    for label, key in (
-        ("final BPC", "final_bpc"),
-        ("final BPF", "final_bpf"),
-        ("final log loss", "final_log_loss"),
-        ("final Brier score", "final_brier_score"),
-        ("best ROC AUC", "best_roc_auc"),
-        ("final ROC AUC", "final_roc_auc"),
-        ("final CRPS", "final_crps"),
-        ("final avg pinball loss", "final_avg_pinball_loss"),
-        ("final PICP 90", "final_picp_90"),
-    ):
-        raw_value = anchor_metrics.get(key)
-        if raw_value is not None:
-            anchor_metric_parts.append(f"{label} `{float(raw_value):.4f}`")
-    anchor_metric_parts.append(f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`")
-    lines.append(f"- Anchor metrics: {', '.join(anchor_metric_parts)}")
+    lines.append(f"- Training experiment: `{metadata.get('training_experiment')}`")
+    lines.append(f"- Training config profile: `{metadata.get('training_config_profile')}`")
+    lines.append(f"- Surface role: `{metadata.get('surface_role')}`")
+    lines.append(f"- Comparison policy: `{metadata['comparison_policy']}`")
+    if anchor_metrics is None:
+        lines.append("- Anchor metrics: `pending trusted rerun`")
+    else:
+        anchor_metric_parts: list[str] = []
+        for label, key in (
+            ("final BPC", "final_bpc"),
+            ("final BPF", "final_bpf"),
+            ("final log loss", "final_log_loss"),
+            ("final Brier score", "final_brier_score"),
+            ("best ROC AUC", "best_roc_auc"),
+            ("final ROC AUC", "final_roc_auc"),
+            ("final CRPS", "final_crps"),
+            ("final avg pinball loss", "final_avg_pinball_loss"),
+            ("final PICP 90", "final_picp_90"),
+        ):
+            raw_value = anchor_metrics.get(key)
+            if raw_value is not None:
+                anchor_metric_parts.append(f"{label} `{float(raw_value):.4f}`")
+        anchor_metric_parts.append(f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`")
+        lines.append(f"- Anchor metrics: {', '.join(anchor_metric_parts)}")
     lines.append("")
     lines.append("## Anchor Comparison")
     lines.append("")
     upstream_name = str(upstream.get("name", "unknown"))
     upstream_source = str(upstream.get("model_source", "unknown"))
     lines.append(f"Upstream reference: `{upstream_name}` from `{upstream_source}`.")
+    if anchor is None:
+        lines.append("")
+        lines.append(
+            "Pending trusted rerun: no anchor is registered yet, so this matrix records the locked benchmark surface and queue state before the first anchor promotion."
+        )
     lines.append("")
     lines.append(f"| Dimension | Upstream {upstream_name} | Locked anchor | Interpretation |")
     lines.append("| --- | --- | --- | --- |")
@@ -419,12 +482,32 @@ def render_system_delta_matrix(
         lines.append(f"- Upstream delta: {queue_row['upstream_delta']}")
         lines.append(f"- Anchor delta: {queue_row['anchor_delta']}")
         lines.append(f"- Expected effect: {queue_row['expected_effect']}")
-        lines.append(
-            f"- Effective labels: model=`{effective_model_label(training_experiment=str(queue_metadata['training_experiment']), queue_row=queue_row)}`, "
-            f"data=`{queue_row['data']['surface_label']}`, "
-            f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
-            f"training=`{queue_row['training']['surface_label']}`"
+        resolved_surface = (
+            cast(Mapping[str, Any], queue_row.get("resolved_surface"))
+            if isinstance(queue_row.get("resolved_surface"), Mapping)
+            else {}
         )
+        resolved_labels = (
+            cast(Mapping[str, Any], resolved_surface.get("labels"))
+            if isinstance(resolved_surface.get("labels"), Mapping)
+            else {}
+        )
+        resolved_runtime = (
+            cast(Mapping[str, Any], resolved_surface.get("runtime"))
+            if isinstance(resolved_surface.get("runtime"), Mapping)
+            else {}
+        )
+        lines.append(
+            f"- Effective labels: model=`{effective_model_label(queue=queue, queue_row=queue_row)}`, "
+            f"data=`{resolved_labels.get('data', queue_row['data']['surface_label'])}`, "
+            f"preprocessing=`{resolved_labels.get('preprocessing', queue_row['preprocessing']['surface_label'])}`, "
+            f"training=`{resolved_labels.get('training', queue_row['training']['surface_label'])}`"
+        )
+        fingerprint = queue_row.get("resolved_surface_fingerprint")
+        if isinstance(fingerprint, str) and fingerprint.strip():
+            lines.append(f"- Resolved surface fingerprint: `{fingerprint}`")
+        if resolved_runtime:
+            lines.append(f"- Resolved runtime surface: `{dict(resolved_runtime)}`")
         if stage_local_stability is not None:
             lines.append(f"- Stage-local stability: {stage_local_stability}")
         if queue_row["dimension_family"] == "model":
@@ -433,7 +516,9 @@ def render_system_delta_matrix(
             if isinstance(dynamic_model_overrides, Mapping) and dynamic_model_overrides:
                 lines.append(f"- Dynamic model overrides: `{dict(dynamic_model_overrides)}`")
         elif queue_row["dimension_family"] == "data":
-            lines.append(f"- Data overrides: `{queue_row['data'].get('surface_overrides', {})}`")
+            lines.append(
+                f"- Data overrides: `{render_data_change_payload(cast(Mapping[str, Any], queue_row['data']))}`"
+            )
         elif queue_row["dimension_family"] == "training":
             lines.append(f"- Training overrides: `{queue_row['training'].get('overrides', {})}`")
         else:
@@ -483,7 +568,14 @@ def render_system_delta_matrix(
             inline_metrics = queue_row.get("benchmark_metrics")
             if inline_metrics:
                 lines.append("- Benchmark metrics:")
-                if inline_metrics.get("best_bpc") is not None and inline_metrics.get("final_bpc") is not None:
+                inline_objective_metric = objective_metric_from_queue_metrics(
+                    cast(Mapping[str, Any], inline_metrics)
+                )
+                if (
+                    inline_objective_metric != "final_log_loss_at_matched_regime_budget"
+                    and inline_metrics.get("best_bpc") is not None
+                    and inline_metrics.get("final_bpc") is not None
+                ):
                     best_bpc = float(inline_metrics["best_bpc"])
                     step = inline_metrics.get("best_step", "?")
                     final_bpc = float(inline_metrics["final_bpc"])
@@ -492,6 +584,22 @@ def render_system_delta_matrix(
                     lines.append(f"  - Final BPC: `{final_bpc:.4f}`")
                     if inline_metrics.get("final_bpf") is not None:
                         lines.append(f"  - Final BPF: `{float(inline_metrics['final_bpf']):.4f}`")
+                    lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                elif inline_metrics.get("best_log_loss") is not None and inline_metrics.get("final_log_loss") is not None:
+                    best_log_loss = float(inline_metrics["best_log_loss"])
+                    step = inline_metrics.get("best_step", "?")
+                    final_log_loss = float(inline_metrics["final_log_loss"])
+                    drift = float(inline_metrics["drift"])
+                    lines.append(f"  - Best log loss: `{best_log_loss:.4f}` (step {step})")
+                    lines.append(f"  - Final log loss: `{final_log_loss:.4f}`")
+                    if inline_metrics.get("final_brier_score") is not None:
+                        lines.append(
+                            f"  - Final Brier score: `{float(inline_metrics['final_brier_score']):.4f}`"
+                        )
+                    if inline_metrics.get("final_roc_auc") is not None:
+                        lines.append(
+                            f"  - Final ROC AUC: `{float(inline_metrics['final_roc_auc']):.4f}`"
+                        )
                     lines.append(f"  - Drift (final − best): `{drift:.4f}`")
                 else:
                     best = float(inline_metrics["best_roc_auc"])
@@ -519,29 +627,57 @@ def render_system_delta_matrix(
             else:
                 lines.append("- Benchmark metrics: pending")
         else:
+            if anchor is None:
+                lines.append(
+                    f"- Registered run: `{run_id}` with {', '.join(_run_metric_parts_without_anchor(run))}"
+                )
+                lines.append("")
+                continue
             metrics = metric_summary(run, anchor)
-            metric_parts = [
-                f"final BPC `{metrics['final_bpc']}`",
-                f"delta final BPC `{metrics['delta_final_bpc']}`",
-                f"final BPF `{metrics['final_bpf']}`",
-                f"delta final BPF `{metrics['delta_final_bpf']}`",
-                f"final log loss `{metrics['final_log_loss']}`",
-                f"delta final log loss `{metrics['delta_final_log_loss']}`",
-                f"final Brier score `{metrics['final_brier_score']}`",
-                f"delta final Brier score `{metrics['delta_final_brier_score']}`",
-                f"best ROC AUC `{metrics['best_roc_auc']}`",
-                f"final ROC AUC `{metrics['final_roc_auc']}`",
-                f"final-minus-best `{metrics['final_minus_best']}`",
-                f"delta final ROC AUC `{metrics['delta_final_roc_auc']}`",
-                f"delta drift `{metrics['delta_drift']}`",
-                f"final CRPS `{metrics['final_crps']}`",
-                f"delta final CRPS `{metrics['delta_final_crps']}`",
-                f"final avg pinball loss `{metrics['final_avg_pinball_loss']}`",
-                f"delta final avg pinball loss `{metrics['delta_final_avg_pinball_loss']}`",
-                f"final PICP 90 `{metrics['final_picp_90']}`",
-                f"delta final PICP 90 `{metrics['delta_final_picp_90']}`",
-                f"delta final training time `{metrics['delta_training_time']}`",
-            ]
+            objective_metric = objective_metric_from_run(run)
+            ordered_metric_keys = list(preferred_final_metric_keys(objective_metric))
+            ordered_metric_keys.extend(
+                key
+                for key in (
+                    "final_bpc",
+                    "final_bpf",
+                    "final_log_loss",
+                    "final_brier_score",
+                    "best_roc_auc",
+                    "final_roc_auc",
+                    "final_crps",
+                    "final_avg_pinball_loss",
+                    "final_picp_90",
+                )
+                if key not in ordered_metric_keys
+            )
+            metric_part_specs = {
+                "final_bpc": ("final BPC", "delta_final_bpc"),
+                "final_bpf": ("final BPF", "delta_final_bpf"),
+                "final_log_loss": ("final log loss", "delta_final_log_loss"),
+                "final_brier_score": ("final Brier score", "delta_final_brier_score"),
+                "best_roc_auc": ("best ROC AUC", None),
+                "final_roc_auc": ("final ROC AUC", "delta_final_roc_auc"),
+                "final_crps": ("final CRPS", "delta_final_crps"),
+                "final_avg_pinball_loss": ("final avg pinball loss", "delta_final_avg_pinball_loss"),
+                "final_picp_90": ("final PICP 90", "delta_final_picp_90"),
+            }
+            metric_parts: list[str] = []
+            for metric_key in ordered_metric_keys:
+                spec = metric_part_specs.get(metric_key)
+                if spec is None:
+                    continue
+                label, delta_key = spec
+                metric_parts.append(f"{label} `{metrics[metric_key]}`")
+                if delta_key is not None:
+                    metric_parts.append(f"delta {label.lower()} `{metrics[delta_key]}`")
+            metric_parts.extend(
+                [
+                    f"final-minus-best `{metrics['final_minus_best']}`",
+                    f"delta drift `{metrics['delta_drift']}`",
+                    f"delta final training time `{metrics['delta_training_time']}`",
+                ]
+            )
             filtered_metric_parts = [part for part in metric_parts if not part.endswith("`n/a`")]
             lines.append(f"- Registered run: `{run_id}` with {', '.join(filtered_metric_parts)}")
         lines.append("")
@@ -562,6 +698,12 @@ def render_and_write_system_delta_matrix(
         queue
         if queue is not None
         else load_system_delta_queue(
+            path=write_resolved_system_delta_queue(
+                sweep_id=sweep_id,
+                index_path=index_path,
+                catalog_path=catalog_path,
+                sweeps_root=sweeps_root,
+            ),
             sweep_id=sweep_id,
             index_path=index_path,
             catalog_path=catalog_path,

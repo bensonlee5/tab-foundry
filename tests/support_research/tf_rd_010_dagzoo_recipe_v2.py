@@ -6,6 +6,8 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.data.corpus_loading import load_corpus_recipe
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECIPE_ROOT = REPO_ROOT / "reference" / "corpus_recipes"
@@ -31,6 +33,10 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     payload = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     assert isinstance(payload, dict)
     return payload
+
+
+def _load_recipe(recipe_id: str) -> dict[str, Any]:
+    return load_corpus_recipe(recipe_id, repo_root=REPO_ROOT).to_dict()
 
 
 def _grid_signature(recipe: dict[str, Any], *, expected_missing_rate: float) -> set[tuple[int, int, int]]:
@@ -94,14 +100,20 @@ def test_tf_rd_010_dagzoo_recipe_v2_is_registered() -> None:
 
 
 def test_tf_rd_010_dagzoo_recipe_v2_uses_balanced_feature_class_grid() -> None:
-    aligned = _load_yaml(RECIPE_ROOT / "tf_rd_010_dagzoo_aligned_control_v2.yaml")
-    strong = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mcar_strong_v2.yaml")
+    aligned_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_dagzoo_aligned_control_v2.yaml")
+    strong_summary = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mcar_strong_v2.yaml")
+    aligned = _load_recipe("tf_rd_010_dagzoo_aligned_control_v2")
+    strong = _load_recipe("tf_rd_010_missingness_mcar_strong_v2")
 
     assert aligned["surface_label"] == "tf_rd_010_dagzoo_aligned_control"
     assert strong["surface_label"] == "tf_rd_010_missingness_mcar_strong"
     assert aligned["provenance_labels"]["comparator_role"] == "control"
     assert strong["provenance_labels"]["comparator_role"] == "tf_rd_010_candidate"
     assert strong["provenance_labels"]["perturbation_strength"] == "strong"
+    assert aligned_summary["kind"] == "dagzoo_python_generated"
+    assert strong_summary["kind"] == "dagzoo_python_generated"
+    assert aligned_summary["review_summary"]["invocation_count"] == 60
+    assert strong_summary["review_summary"]["manifest_record_count"] == 480
 
     aligned_grid = _grid_signature(aligned, expected_missing_rate=0.2)
     strong_grid = _grid_signature(strong, expected_missing_rate=0.4)

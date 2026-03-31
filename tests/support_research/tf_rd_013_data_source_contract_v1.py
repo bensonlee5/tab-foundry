@@ -145,8 +145,9 @@ def test_tf_rd_013_data_source_contract_is_registered_but_not_active() -> None:
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
+        "external_benchmarks": None,
     }
 
 
@@ -235,7 +236,7 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     ]
     assert curated_provenance["execution_issue"] == EXECUTION_ISSUE_NUMBER
     assert curated_provenance["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+        "src/tab_foundry/bench/openml_binary_large_v1.json"
     )
     assert curated_provenance["benchmark_bundle"]["task_count"] == EXPECTED_CURATED_TASK_COUNT
     assert curated_provenance["approved_external_augmentations"] == []
@@ -402,7 +403,7 @@ def test_tf_rd_013_support_bundle_and_catalog_defaults_are_tracked_separately() 
     assert materialization_summary["config_refs"]["dagzoo"] == ["configs/default.yaml"]
     assert materialization_summary["config_refs"]["tab_foundry"] == ["configs/data/default.yaml"]
     assert materialization_summary["config_refs"]["benchmark_bundle"] == [
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+        "src/tab_foundry/bench/openml_binary_large_v1.json"
     ]
     assert f"--num-datasets {EXPECTED_NUM_DATASETS}" in materialization_summary["steps"][0]["command"]
     assert manifest_characteristics_summary["manifests"]["anchor_manifest_default"]["manifest_path"] == "data/manifests/default.parquet"

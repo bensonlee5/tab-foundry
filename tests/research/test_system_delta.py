@@ -4,6 +4,8 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
+import threading
+import time
 from types import SimpleNamespace
 
 from omegaconf import OmegaConf
@@ -273,7 +275,7 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
     assert payload["corpus_refs"] == ["override_recipe/override_recipe__123456789abc"]
 
 
-def test_materialize_sweep_corpora_prefers_surface_override_corpus_ref(
+def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -319,10 +321,69 @@ def test_materialize_sweep_corpora_prefers_surface_override_corpus_ref(
         catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert captured == ["override_recipe"]
-    assert payload["requested_corpus_refs"] == ["override_recipe"]
-    assert payload["requested_recipe_ids"] == ["override_recipe"]
-    assert payload["corpus_refs"] == ["override_recipe/override_recipe__123456789abc"]
+    assert captured == ["top_level_recipe", "override_recipe"]
+    assert payload["requested_corpus_refs"] == ["top_level_recipe", "override_recipe"]
+    assert payload["requested_recipe_ids"] == ["top_level_recipe", "override_recipe"]
+    assert payload["corpus_refs"] == [
+        "top_level_recipe/top_level_recipe__123456789abc",
+        "override_recipe/override_recipe__123456789abc",
+    ]
+
+
+def test_materialize_sweep_corpora_runs_distinct_corpus_materializations_in_parallel(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        materialize_module,
+        "load_system_delta_queue",
+        lambda **_kwargs: {
+            "sweep_id": "tf_rd_local",
+            "rows": [
+                {"order": 1, "delta_id": "delta_a", "data": {"corpus_ref": "recipe_a"}},
+                {"order": 2, "delta_id": "delta_b", "data": {"corpus_ref": "recipe_b"}},
+            ],
+        },
+    )
+    lock = threading.Lock()
+    ready = threading.Event()
+    active = 0
+    max_active = 0
+    call_count = 0
+
+    def _fake_materialize_corpus_ref(**kwargs) -> dict[str, object]:
+        nonlocal active, max_active, call_count
+        corpus_ref = str(kwargs["corpus_ref"])
+        recipe_id = corpus_ref.split("/", 1)[0]
+        with lock:
+            call_count += 1
+            active += 1
+            max_active = max(max_active, active)
+            if call_count >= 2:
+                ready.set()
+        if not ready.wait(timeout=1.5):
+            raise AssertionError("distinct corpus materializations did not overlap")
+        time.sleep(0.05)
+        with lock:
+            active -= 1
+        return {
+            "recipe_id": recipe_id,
+            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
+        }
+
+    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+
+    payload = materialize_sweep_corpora(
+        dagzoo_root=tmp_path / "dagzoo",
+        sweep_id="tf_rd_local",
+        force=True,
+        index_path=tmp_path / "index.yaml",
+        catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
+    )
+
+    assert payload["requested_corpus_refs"] == ["recipe_a", "recipe_b"]
+    assert max_active >= 2
 
 
 def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(
@@ -602,7 +663,7 @@ def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=[
             "delta_anchor_activation_trace_baseline",
@@ -650,7 +711,7 @@ def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path
         anchor_run_id="sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1",
         parent_sweep_id="qass_tfcol_large_no_missing_validation_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_large_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=[
             "delta_qass_no_column_v3",
@@ -671,7 +732,7 @@ def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path
         sweeps_root=sweeps_root,
     )
 
-    assert created_sweep["benchmark_manifest_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+    assert created_sweep["benchmark_manifest_path"] == "src/tab_foundry/bench/openml_binary_large_v1.json"
     training_data_anchor = _anchor_dimension_anchor_text(created_sweep, dimension="training data surface")
     assert "missing values permitted" in training_data_anchor
 
@@ -688,7 +749,7 @@ def test_create_sweep_requires_parent_or_explicit_training_surface(tmp_path: Pat
             anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
             parent_sweep_id=None,
             complexity_level="binary_md",
-            benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
             control_baseline_id="cls_benchmark_linear_v2",
             delta_refs=["delta_anchor_activation_trace_baseline"],
             index_path=sweeps_root / "index.yaml",
@@ -706,7 +767,7 @@ def test_create_sweep_supports_parentless_explicit_training_surface(tmp_path: Pa
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id=None,
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_staged",
         training_config_profile="cls_benchmark_staged",
@@ -749,7 +810,7 @@ def test_create_sweep_inherits_parent_external_benchmarks_when_unspecified(tmp_p
         anchor_run_id="tf_rd_021b_hybrid_full_cell_compact_prior_v1",
         parent_sweep_id="tf_rd_021b_sandwich_width_capacity_sensitivity_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=["delta_tf_rd_021b_sandwich_selfattn0_v1"],
         index_path=sweeps_root / "index.yaml",
@@ -784,7 +845,7 @@ def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
         anchor_run_id="sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
         parent_sweep_id="tf_rd_018_optimizer_family_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=[
             "delta_training_tf_rd_018_linear_warmup_decay_lr3e3",
@@ -839,7 +900,7 @@ def test_create_sweep_bootstraps_tf_rd_018_corrected_baseline_on_corpus_surface(
         anchor_run_id="sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
         parent_sweep_id="tf_rd_018_optimizer_family_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=["delta_training_tf_rd_018_linear_warmup_decay"],
         index_path=sweeps_root / "index.yaml",
@@ -948,7 +1009,7 @@ def test_create_sweep_defaults_single_epoch_budget_for_new_synthetic_rows_withou
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id=None,
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_staged_prior",
         training_config_profile="cls_benchmark_staged_prior",
@@ -990,6 +1051,89 @@ def test_create_sweep_defaults_single_epoch_budget_for_new_synthetic_rows_withou
     assert materialized_row["training"]["synthetic_epoch_budget"]["resolution_source"] == "recipe_definition"
 
 
+def test_create_sweep_writes_resolved_queue_with_effective_runtime_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="resolved_queue_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    resolved_queue_path = sweeps_root / "resolved_queue_clone" / "resolved_queue.yaml"
+    assert resolved_queue_path.exists()
+
+    materialized = load_system_delta_queue(
+        sweep_id="resolved_queue_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+    assert materialized["schema"] == "tab-foundry-system-delta-resolved-queue-v1"
+    assert materialized["canonical_resolved_queue_path"].endswith(
+        "reference/system_delta_sweeps/resolved_queue_clone/resolved_queue.yaml"
+    )
+    row = materialized["rows"][0]
+    assert isinstance(row["resolved_surface_fingerprint"], str) and row["resolved_surface_fingerprint"]
+    assert row["resolved_surface"]["runtime"]["grad_clip"] == 0.0
+    assert "train_row_cap" not in row["resolved_surface"]["data"]
+    assert "test_row_cap" not in row["resolved_surface"]["data"]
+
+    matrix = (sweeps_root / "resolved_queue_clone" / "matrix.md").read_text(encoding="utf-8")
+    assert "Resolved queue path:" in matrix
+    assert "Resolved runtime surface:" in matrix
+    assert "grad_clip" in matrix
+
+
+def test_load_system_delta_queue_rejects_stale_resolved_queue_snapshot(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="stale_resolved_queue_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    queue_path = sweeps_root / "stale_resolved_queue_clone" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload["rows"]
+    assert isinstance(rows, list)
+    rows[0]["notes"] = ["stale queue change"]
+    queue_path.write_text(
+        OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="resolved_queue.yaml is stale"):
+        _ = load_system_delta_queue(
+            sweep_id="stale_resolved_queue_clone",
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            sweeps_root=sweeps_root,
+        )
+
+
 def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
     tmp_path: Path,
 ) -> None:
@@ -1000,7 +1144,7 @@ def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=["delta_training_linear_warmup_decay"],
         index_path=sweeps_root / "index.yaml",
@@ -1044,7 +1188,7 @@ def test_create_sweep_preserves_legacy_generic_warm20_short_run_surface(
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=["delta_training_linear_warmup_decay_warm20"],
         index_path=sweeps_root / "index.yaml",
@@ -1090,7 +1234,7 @@ def test_create_sweep_bootstraps_tf_rd_018_warm10_followup_on_corrected_short_ru
         anchor_run_id="sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
         parent_sweep_id="tf_rd_018_optimizer_family_v1",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=["delta_training_tf_rd_018_linear_warmup_decay_warm10"],
         index_path=sweeps_root / "index.yaml",
@@ -1137,7 +1281,7 @@ def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None
             anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
             parent_sweep_id="binary_md_v1",
             complexity_level="binary_md",
-            benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
             control_baseline_id="cls_benchmark_linear_v2",
             delta_refs=["delta_anchor_activation_trace_baseline", "delta_missing_unknown"],
             index_path=sweeps_root / "index.yaml",
@@ -1155,7 +1299,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_sm",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_classification_small_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
@@ -1185,7 +1329,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         created_sweep["anchor_surface"]["notes"][0]
         == "The locked anchor is benchmark registry run "
         "`01_nano_exact_md_prior_parity_fix_binary_medium_v1` on bundle "
-        "`nanotabpfn_openml_classification_small` (5 tasks)."
+        "`openml_classification_small` (5 tasks)."
     )
     assert "10-task medium binary bundle" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
@@ -1215,7 +1359,7 @@ def test_create_sweep_derives_lane_contract_from_overridden_training_experiment(
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_staged",
         delta_refs=["delta_anchor_activation_trace_baseline"],
@@ -1253,7 +1397,7 @@ def test_create_sweep_preserves_explicit_external_benchmarks_override(tmp_path: 
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         external_benchmarks=["tabiclv2", "nanotabpfn"],
         delta_refs=["delta_anchor_activation_trace_baseline"],
@@ -1287,7 +1431,7 @@ def test_create_sweep_preserves_explicit_empty_external_benchmarks_override(tmp_
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         external_benchmarks=[],
         delta_refs=["delta_anchor_activation_trace_baseline"],
@@ -1321,7 +1465,7 @@ def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path)
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_staged",
         training_config_profile="custom_profile",
@@ -1361,7 +1505,7 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_linear_simple",
         delta_refs=["delta_anchor_activation_trace_baseline"],
@@ -1398,8 +1542,9 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
     assert materialized["training_config_profile"] == "cls_benchmark_linear_simple"
     assert materialized["surface_role"] == "pfn_control"
     assert materialized["rows"][0]["model"] == {}
+    resolved_model_label = materialized["rows"][0]["resolved_surface"]["labels"]["model"]
     matrix_text = Path(result["matrix_path"]).read_text(encoding="utf-8")
-    assert "Effective labels: model=`cls_benchmark_linear_simple`" in matrix_text
+    assert f"Effective labels: model=`{resolved_model_label}`" in matrix_text
 
 
 def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor(
@@ -1412,7 +1557,7 @@ def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor
         anchor_run_id="00_simple_anchor_md",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_sm",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_classification_small_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
@@ -1484,6 +1629,10 @@ def test_load_system_delta_queue_rejects_conflicting_synthetic_epoch_budget_step
     assert isinstance(rows, list)
     rows[0]["training"]["overrides"]["runtime"] = {"max_steps": 7}
     queue_path.write_text(OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True), encoding="utf-8")
+    resolved_queue_path = (
+        sweeps_root / "tf_rd_010_classification_evolution_medium_v1" / "resolved_queue.yaml"
+    )
+    resolved_queue_path.unlink(missing_ok=True)
 
     monkeypatch.setattr(
         configuration_module,

@@ -38,22 +38,27 @@ This is the canonical long-form evidence note for
   TF-RD-010 corpora and freeze the missing baselines
 - successor issues [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
   and [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now own the
-  trusted medium and large reruns, and issue
+  active `2500`-step medium and large successor sweeps, and issue
   [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the required
   sandwich refactor follow-up that lands before those reruns
 - `tab-realdata-hub` issue
   [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) is the
   canonical upstream dependency for medium and large classification validation
   bundles and materialized manifests
-- the reset sweep contracts now live in
+- the completed March 30, 2026 historical medium rerun lives in
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v1/`
-  and
+  and the preserved reset-contract large reference lives in
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/`
+- the expanded one-epoch successor lineage now lives in
+  `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v2/`,
+  `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/`,
+  `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/`,
+  and `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/`
 - the evolved sandwich benchmark config fixes:
   - `feature_type_conditioning=film`
   - `sandwich_summary_tokens_per_axis=3`
   - `many_class_base=10`
-  - `training.loss_surface=cell_bpc`
+  - `training.loss_surface=classification`
   - direct multiclass head
 - `dagzoo` remains the owner of the synthetic training fronts used by these
   sweeps
@@ -62,8 +67,8 @@ This is the canonical long-form evidence note for
   the right long-term boundary
 - medium and large validation manifests now live under the local
   benchmark-manifest output root, with the legacy local output ids
-  `nanotabpfn_openml_classification_medium_v1` and
-  `nanotabpfn_openml_classification_large_v1`
+  `openml_classification_medium_v1` and
+  `openml_classification_large_v1`
 - those manifests are materialized from
   `tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json`
   and
@@ -89,13 +94,14 @@ This is the canonical long-form evidence note for
     plus materialized manifests, with `min_classes=2`, `max_classes=10`, and
     `max_missing_pct=20.0`
   - `tab-foundry` consumes those manifests and ranks rows by
-    `final_bpc_at_matched_regime_budget`
-- Trusted reruns now use one synthetic corpus pass only:
-  `prior_dump_batch_size=64`, budgeted over corpus manifest records/tasks, with
-  the concrete runtime step count derived from the corpus task count instead of
-  a fixed 400-step contract
-- BPC is the normalized log-loss view for the first expanded classification regime;
-  raw log loss, calibration, runtime, and stability remain supporting guardrails
+    `final_log_loss_at_matched_regime_budget`
+- The active successor sweeps now use one expanded synthetic corpus pass only:
+  `prior_dump_batch_size=64`, budgeted over `159984` corpus manifest
+  records/tasks per front, which resolves to `2500` optimizer steps instead of
+  the historical fixed 400-step or reset-contract 3-step budgets
+- active classification-evolution reruns now optimize natural-log CE on label
+  targets and rank by matched-budget final log loss; the older `cell_bpc` /
+  BPC lane remains historical context only
 - The benchmark contract remains valid, but the previously recorded medium and
   large executions are no longer trusted as canonical evidence after later
   training and sandwich correctness fixes
@@ -119,17 +125,41 @@ This is the canonical long-form evidence note for
   canonical registry
 - the first medium and large benchmark packages were executed historically, but
   that evidence has now been invalidated and reset out of the canonical sweep state
+- the March 30, 2026 medium rerun is now preserved as historical evidence in
+  `tf_rd_010_classification_evolution_medium_v1`, while the large reset
+  contract is preserved only as a superseded reference in
+  `tf_rd_010_classification_evolution_large_v1`
+- the active large TF-RD-010 execution path is still defined by `large_v2`,
+  while the medium path now flows through the successor `medium_v4` rerun backed
+  by the shared `tf_rd_010_*_v2` corpus family
+- the first `medium_v4` CE control-row CPU pilot
+  (`sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v3`)
+  was intentionally stopped at step `1324` after checkpoint benchmarking
+  showed the current best sampled medium-manifest log loss at
+  `step_001200.pt` (`0.9988591380293615`), beating both the frozen medium
+  control baseline (`1.1045793217810176`) and the preserved `medium_v3`
+  control row's best log loss (`1.086222860423438`)
+- the preserved `medium_v3` no-clipping package is historical overfit evidence
+  only: rows 1-3 reached very early best benchmark steps and then drifted
+  badly, and row 4 was intentionally stopped rather than extended
 
 ## Open Evidence Gaps
 
-- the trusted TF-RD-010 medium rerun under
-  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) still needs to
-  re-establish canonical medium-rung evidence on the refactored sandwich
-  surface and the single-epoch synthetic contract
-- the trusted TF-RD-010 large rerun under
+- the active TF-RD-010 medium successor rerun under
+  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) now uses the
+  `task_batch_size=16`, `grad_accum_steps=4` contract and needs fresh four-row
+  evidence on the shared `tf_rd_010_*_v2` corpora under
+  `training.loss_surface=classification` to show that the batching/LR patch
+  plus CE-aligned objective remove the severe early-best-step drift seen in
+  `medium_v3` under the expanded one-epoch `2500`-step synthetic contract; the
+  next run should retune the model and relaunch from scratch rather than
+  extending the stopped `medium_v4` control-row CPU pilot past the sampled
+  `step_001200.pt` sweet spot
+- the active TF-RD-010 large successor sweep under
   [#203](https://github.com/bensonlee5/tab-foundry/issues/203) still needs to
-  re-establish canonical large-rung evidence on the refactored sandwich
-  surface and the single-epoch synthetic contract
+  establish canonical large-rung evidence on the refactored sandwich surface,
+  the shared `tf_rd_010_*_v2` corpora, and the expanded one-epoch `2500`-step
+  synthetic contract
 - the sandwich refactor follow-up under
   [#204](https://github.com/bensonlee5/tab-foundry/issues/204) lands before any
   new TF-RD-010 rerun is recorded as canonical evidence

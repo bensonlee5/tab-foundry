@@ -22,7 +22,7 @@ from tab_foundry.model.outputs import (
 )
 
 from .blocks import _SelfAttentionBlock
-from .classification_flow import full_cell_tokens
+from .classification_flow import build_classification_state, forward_logits, full_cell_tokens
 from .states import SandwichFeatureState
 
 
@@ -345,6 +345,29 @@ def forward_cell_likelihood(
         valid_feature_mask, current_feature_mean_bits, torch.zeros_like(current_feature_mean_bits)
     ).sum() / valid_feature_mask.sum().to(dtype=current_feature_mean_bits.dtype)
     excluded_non_finite_cell_count = int((~torch.isfinite(targets)).sum().item())
+    aux_metrics = {
+        "bpc": float(bpc.detach().item()),
+        "bpf": float(bpf.detach().item()),
+        "bpc_cell_count": float(bpc_cell_count),
+        "bpf_feature_count": float(bpf_feature_count),
+        "excluded_non_finite_cell_count": float(excluded_non_finite_cell_count),
+    }
+    y_test = raw_state.y_test
+    if y_test is not None and int(y_test.numel()) > 0:
+        classification_state = build_classification_state(model, feature_state)
+        logits = forward_logits(model, classification_state)
+        num_classes = int(raw_state.num_classes)
+        logits = logits[:, :, :num_classes]
+        targets_for_accuracy = y_test.to(torch.int64)
+        expected_shape = (int(logits.shape[0]), int(logits.shape[1]))
+        if tuple(int(dim) for dim in targets_for_accuracy.shape) != expected_shape:
+            raise RuntimeError(
+                "tabfoundry_sandwich cell_bpc accuracy requires y_test shape "
+                f"{expected_shape}, got {tuple(int(dim) for dim in targets_for_accuracy.shape)}"
+            )
+        aux_metrics["acc"] = float(
+            (logits.argmax(dim=-1) == targets_for_accuracy).float().mean().item()
+        )
     return CellLikelihoodOutput(
         per_cell_bits=per_cell_bits,
         bpc=bpc,
@@ -352,11 +375,5 @@ def forward_cell_likelihood(
         floating_predictions=floating_predictions or None,
         categorical_predictions=categorical_predictions or None,
         integer_predictions=integer_predictions or None,
-        aux_metrics={
-            "bpc": float(bpc.detach().item()),
-            "bpf": float(bpf.detach().item()),
-            "bpc_cell_count": float(bpc_cell_count),
-            "bpf_feature_count": float(bpf_feature_count),
-            "excluded_non_finite_cell_count": float(excluded_non_finite_cell_count),
-        },
+        aux_metrics=aux_metrics,
     )

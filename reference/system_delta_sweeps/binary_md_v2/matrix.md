@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v2/queue.yam
 ## Locked Surface
 
 - Anchor run id: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
 - Anchor metrics: best ROC AUC `0.7615`, final ROC AUC `0.7599`, final training time `355.6s`

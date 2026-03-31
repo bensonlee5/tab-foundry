@@ -14,7 +14,7 @@
   },
   "config_refs": {
     "benchmark_bundle": [
-      "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+      "src/tab_foundry/bench/openml_binary_large_v1.json"
     ],
     "dagzoo": [
       "configs/default.yaml"
@@ -128,7 +128,7 @@
         "benchmark_bundle": {
           "all_tasks_no_missing": false,
           "allow_missing_values": true,
-          "name": "nanotabpfn_openml_binary_large",
+          "name": "openml_binary_large",
           "selection": {
             "max_classes": 2,
             "max_features": 20,
@@ -137,7 +137,7 @@
             "new_instances": 200,
             "task_type": "supervised_classification"
           },
-          "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+          "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
           "task_count": 12,
           "task_ids": [
             363613,

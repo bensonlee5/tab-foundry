@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Any, Mapping
 
 from tab_foundry.model.spec import ModelBuildSpec, SANDWICH_MODEL_ARCH
@@ -12,6 +13,11 @@ CELL_BPC_LOSS_SURFACE = "cell_bpc"
 SUPPORTED_TRAINING_LOSS_SURFACES = (
     CLASSIFICATION_LOSS_SURFACE,
     CELL_BPC_LOSS_SURFACE,
+)
+_CELL_BPC_DEPRECATION_MESSAGE = (
+    "training.loss_surface='cell_bpc' is deprecated for active classification benchmarks; "
+    "use 'classification' to optimize natural-log cross-entropy on label targets. "
+    "The legacy cell-likelihood path remains supported for historical runs."
 )
 
 
@@ -42,6 +48,8 @@ def resolve_training_loss_surface(
         raw_value = getattr(training_cfg, "loss_surface", None)
     explicit = normalize_training_loss_surface(raw_value)
     if explicit is not None:
+        if explicit == CELL_BPC_LOSS_SURFACE:
+            warnings.warn(_CELL_BPC_DEPRECATION_MESSAGE, FutureWarning, stacklevel=2)
         return explicit
     if str(model_spec.arch).strip().lower() == SANDWICH_MODEL_ARCH and backend == "legacy_prior":
         return CELL_BPC_LOSS_SURFACE

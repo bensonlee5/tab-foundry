@@ -57,7 +57,7 @@ dimension_family: model
 family: row_pool
 comparison_policy: anchor_only
 anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
-locked_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+locked_bundle_path: src/tab_foundry/bench/openml_binary_medium_v1.json
 locked_control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_prior
 training_config_profile: cls_benchmark_staged_prior

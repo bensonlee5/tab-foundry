@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/qass_tfcol_large_no_mi
 ## Locked Surface
 
 - Anchor run id: `sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged`
 - Training config profile: `cls_benchmark_staged`
@@ -34,7 +34,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | row readout | Target-column readout from the final cell tensor. | Row-CLS pooling path. | Row-pool changes alter how the table summary is extracted and should be isolated from context changes. |
 | context encoder | None on the upstream direct path. | QASS context encoder. | QASS changes both compute graph depth and label-context semantics and needs explicit adequacy notes. |
 | prediction head | Direct binary logits head. | Small-class direct head. | Head changes alter the task contract and should be interpreted separately from shared trunk changes. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_large_no_missing` (64 tasks) with data surface label `anchor_manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `openml_binary_large_no_missing` (64 tasks) with data surface label `anchor_manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_linear_warmup_decay`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
 
@@ -43,7 +43,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_qass_no_column_v3` | context_encoder | yes | completed | qass_context | Use the public `qass_context` stage, but disable the column-set encoder so QASS is measured directly on top of the winning no-context row-embedding surface. | Use `sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1` as the same-bundle ROC-oriented control for the validated heads4 row; do not reopen medium-bundle attribution from this rerun. |
-| 2 | `delta_qass_context_tfcol_heads4_v1` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty. | Carry `sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1` forward as the validated calibration-first candidate and run the missing-data generalization check on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`. |
+| 2 | `delta_qass_context_tfcol_heads4_v1` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty. | Carry `sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1` forward as the validated calibration-first candidate and run the missing-data generalization check on `src/tab_foundry/bench/openml_binary_large_v1.json`. |
 
 ## Detailed Rows
 
@@ -109,7 +109,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `keep`
 - Notes:
   - Do not reopen `inducing64` or `layers1` unless this row is materially ambiguous on the large-bundle validator.
-  - If this row passes, the next follow-up is a single missing-data generalization check on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
+  - If this row passes, the next follow-up is a single missing-data generalization check on `src/tab_foundry/bench/openml_binary_large_v1.json`.
   - Execution must use the same control baseline, replay payload, and reuse signature as row 1 so the large-bundle heads4 comparison stays isolated.
   - Canonical rerun registered as `sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.

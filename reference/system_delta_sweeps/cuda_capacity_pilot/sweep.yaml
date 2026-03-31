@@ -4,7 +4,7 @@ parent_sweep_id: input_norm_followup
 status: blocked_on_stability_followup
 complexity_level: binary_md
 anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_prior
 training_config_profile: cls_benchmark_staged_prior

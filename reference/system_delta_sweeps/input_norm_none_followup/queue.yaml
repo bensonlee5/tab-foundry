@@ -90,7 +90,7 @@ rows:
     final_minus_best_log_loss: 0.0012738198792660027
     final_minus_best_brier_score: 0.00014839465773747174
     final_minus_best_roc_auc: -0.0011095687094866413
-    drift: -0.0011095687094866413
+    drift: 0.0012738198792660027
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.00802589363008882

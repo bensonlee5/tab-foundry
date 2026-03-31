@@ -3,17 +3,116 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Mapping
+from typing import Any, Mapping, cast
+
+from tab_foundry.benchmark_registry import load_benchmark_run_registry
 
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from .catalog import load_system_delta_sweep
 from .device_policy import resolve_sweep_execution_device
+from .materialize import write_resolved_system_delta_queue
 from .paths_io import sweep_queue_path
 from .promote import promote_anchor
+from .queue_state import recover_completed_queue_row_from_registry_run
 from . import row_dependencies as _row_dependencies
 from . import row_sync as _row_sync
 from .row_execution import ALLOWED_DECISIONS, DEFAULT_CONCLUSION, DEFAULT_DECISION, run_row
 from .selection import select_queue_rows, sorted_rows
+
+
+def _optional_non_empty_string(value: Any, *, context: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string when provided")
+    return str(value).strip()
+
+
+def _recover_partial_anchor_promotion(
+    *,
+    sweep_id: str,
+    sweep_meta: Mapping[str, Any],
+    queue: dict[str, Any],
+    queue_path: Path,
+    paths: ExecutionPaths,
+) -> None:
+    anchor_run_id = _optional_non_empty_string(
+        sweep_meta.get("anchor_run_id"),
+        context=f"sweep {sweep_id!r}.anchor_run_id",
+    )
+    if anchor_run_id is None:
+        return
+
+    queue_rows = sorted_rows(queue)
+    if any(
+        str(row.get("status", "")).strip().lower() == "completed"
+        and str(row.get("run_id", "")).strip() == anchor_run_id
+        for row in queue_rows
+    ):
+        return
+
+    registry = load_benchmark_run_registry(paths.registry_path)
+    runs = cast(dict[str, dict[str, Any]], registry["runs"])
+    run = runs.get(anchor_run_id)
+    if run is None:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} anchor_run_id {anchor_run_id!r} is missing from the benchmark registry"
+        )
+
+    raw_sweep_payload = run.get("sweep")
+    if not isinstance(raw_sweep_payload, Mapping):
+        return
+    sweep_payload = cast(Mapping[str, Any], raw_sweep_payload)
+    recovered_sweep_id_raw = sweep_payload.get("sweep_id")
+    if not isinstance(recovered_sweep_id_raw, str) or not recovered_sweep_id_raw.strip():
+        return
+    recovered_sweep_id = str(recovered_sweep_id_raw).strip()
+    if recovered_sweep_id != sweep_id:
+        return
+
+    queue_order_raw = sweep_payload.get("queue_order")
+    if queue_order_raw is None:
+        raise RuntimeError(f"benchmark registry run {anchor_run_id!r} is missing sweep.queue_order")
+    queue_order = int(queue_order_raw)
+    if queue_order <= 0:
+        raise RuntimeError(
+            f"benchmark registry run {anchor_run_id!r} has invalid sweep.queue_order={queue_order_raw!r}"
+        )
+
+    delta_id = _optional_non_empty_string(
+        sweep_payload.get("delta_id"),
+        context=f"benchmark registry run {anchor_run_id!r}.sweep.delta_id",
+    )
+    matching_rows = [row for row in queue_rows if int(row["order"]) == queue_order]
+    if not matching_rows:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} does not contain queue row {queue_order} for anchor recovery"
+        )
+    queue_row = matching_rows[0]
+    queue_delta_ref = _optional_non_empty_string(
+        queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} queue row {queue_order}.delta_ref",
+    )
+    if queue_delta_ref != delta_id:
+        raise RuntimeError(
+            f"benchmark registry run {anchor_run_id!r} points to delta_id {delta_id!r}, "
+            f"but sweep {sweep_id!r} queue row {queue_order} is {queue_delta_ref!r}"
+        )
+
+    recover_completed_queue_row_from_registry_run(
+        queue_row=queue_row,
+        run_id=anchor_run_id,
+        run=run,
+    )
+    write_yaml(queue_path, queue)
+    _row_sync.sync_sweep_matrix(sweep_id=sweep_id, paths=paths)
+    print(
+        "Recovered completed anchor row from benchmark registry.",
+        f"sweep_id={sweep_id}",
+        f"order={queue_order}",
+        f"run_id={anchor_run_id}",
+        flush=True,
+    )
 
 
 def execute_sweep(
@@ -46,6 +145,19 @@ def execute_sweep(
     resolved_sweep_id = str(sweep_meta["sweep_id"])
     queue_path = sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
     queue = read_yaml(queue_path)
+    _recover_partial_anchor_promotion(
+        sweep_id=resolved_sweep_id,
+        sweep_meta=sweep_meta,
+        queue=queue,
+        queue_path=queue_path,
+        paths=resolved_paths,
+    )
+    _ = write_resolved_system_delta_queue(
+        sweep_id=resolved_sweep_id,
+        index_path=resolved_paths.index_path,
+        catalog_path=resolved_paths.catalog_path,
+        sweeps_root=resolved_paths.sweeps_root,
+    )
     queue_rows = sorted_rows(queue)
     materialized_rows = _row_sync.materialized_row_map(
         sweep_id=resolved_sweep_id,
@@ -62,12 +174,14 @@ def execute_sweep(
         print("No rows selected for execution.", f"sweep_id={resolved_sweep_id}", flush=True)
         return []
 
+    comparison_policy = str(sweep_meta.get("comparison_policy", "anchor_only")).strip().lower()
     current_anchor_run_id = sweep_meta.get("anchor_run_id")
     active_anchor = (
         str(current_anchor_run_id)
         if isinstance(current_anchor_run_id, str) and current_anchor_run_id.strip()
         else None
     )
+    first_queue_order = min(int(row["order"]) for row in queue_rows)
     executed_run_ids: list[str] = []
     decision_map = dict(decision_overrides or {})
     conclusion_map = dict(conclusion_overrides or {})
@@ -81,7 +195,14 @@ def execute_sweep(
         if not conclusion:
             raise RuntimeError("conclusion must be non-empty")
 
-        promote_now = bool(promote_first_executed_row_to_anchor and index == 0)
+        promote_now = bool(
+            promote_first_executed_row_to_anchor and index == 0 and order == first_queue_order
+        )
+        if comparison_policy == "anchor_only" and active_anchor is None and not promote_now:
+            raise RuntimeError(
+                "anchor_only sweeps require a resolved anchor before executing non-anchor rows; "
+                f"sweep_id={resolved_sweep_id} order={order}"
+            )
         materialized_row = materialized_rows[str(queue_row["delta_ref"])]
         run_id = run_row(
             sweep_id=resolved_sweep_id,
@@ -108,11 +229,11 @@ def execute_sweep(
             conclusion=conclusion,
             paths=resolved_paths,
         )
-        write_yaml(queue_path, queue)
         if promote_now:
             _ = promote_anchor(
                 sweep_id=resolved_sweep_id,
                 anchor_run_id=run_id,
+                render_matrix=False,
                 paths=resolved_paths.promotion_paths(),
             )
             active_anchor = run_id
@@ -121,6 +242,7 @@ def execute_sweep(
                 index_path=resolved_paths.index_path,
                 sweeps_root=resolved_paths.sweeps_root,
             )
+        write_yaml(queue_path, queue)
         _row_sync.sync_sweep_matrix(sweep_id=resolved_sweep_id, paths=resolved_paths)
         executed_run_ids.append(run_id)
 

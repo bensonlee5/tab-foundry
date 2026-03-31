@@ -194,7 +194,7 @@ def test_cls_benchmark_sandwich_classification_evolution_v1_resolution() -> None
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 16
-    assert str(cfg.training.loss_surface) == "cell_bpc"
+    assert str(cfg.training.loss_surface) == "classification"
     assert int(cfg.runtime.max_steps) == 2500
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25

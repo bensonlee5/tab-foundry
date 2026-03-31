@@ -198,10 +198,21 @@ Current path: **TF-RD-010 trusted rerun → TF-RD-021 → TF-RD-022 → TF-RD-00
   [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and
   [#204](https://github.com/bensonlee5/tab-foundry/issues/204) now define the
   trusted rerun and refactor path on the same benchmark contract.
-- TF-RD-010 still ranks rows by `final_bpc_at_matched_regime_budget`,
-  treating BPC as the normalized log-loss view while calibration, runtime, and
-  stability remain guardrails, but the reset state is now canonical until the
-  trusted reruns land on the corrected sandwich and training surface.
+- The active medium path under [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
+  is now the `tf_rd_010_classification_evolution_medium_v4` CE rerun under the
+  `task_batch_size=16`, `grad_accum_steps=4` contract. The first control-row
+  CPU pilot (`..._v3`) was intentionally stopped at step `1324` after the
+  sampled checkpoint ladder around steps `400/800/1050/1125/1200/1275`
+  showed the best medium-manifest log loss at step `1200`
+  (`0.9988591380293615`), so the next work is model retuning and a fresh
+  rerun rather than extending that pilot to the full `2500`-step budget. The
+  preserved `medium_v3` package remains historical no-clipping evidence only
+  after rows 1-3 hit very early best benchmark steps and then drifted badly,
+  and row 4 was intentionally stopped rather than extended.
+- TF-RD-010 now ranks the active sandwich benchmark path by
+  `final_log_loss_at_matched_regime_budget`; the older `cell_bpc` / BPC lane is
+  preserved only for historical reruns while calibration, runtime, and
+  stability remain guardrails on the active CE-based rerun path.
 - TF-RD-021 then decides whether any steering-derived dagzoo corpus front
   replaces the carried sandwich dagzoo training front before runtime/kernel
   tuning.
@@ -229,7 +240,7 @@ Parallel/later lanes are intentionally off that main path:
 | Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed the new sandwich benchmark program | Freeze the benchmark-defined dagzoo training fronts, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe kernel/runtime policy on the carried sandwich dagzoo slice | `TF-RD-022` |
-| Benchmark-backed classification validation contract is fixed, but trusted execution is reset | `partial` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, the active TF-RD-010 corpus fronts are now explicit 144-task balanced grids capped at `<=1024` rows per dataset with class coverage `2..10`, and successor issues [#202](https://github.com/bensonlee5/tab-foundry/issues/202), [#205](https://github.com/bensonlee5/tab-foundry/issues/205), [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and [#204](https://github.com/bensonlee5/tab-foundry/issues/204) now track the trusted rerun path | TF-RD-010 still needs trusted medium and large reruns on the refactored sandwich surface, and those reruns now follow the single synthetic epoch policy instead of a fixed 400-step budget | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
+| Benchmark-backed classification validation contract is fixed, but trusted execution is reset | `partial` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, the active TF-RD-010 corpus fronts are now explicit 144-task balanced grids capped at `<=1024` rows per dataset with class coverage `2..10`, and successor issues [#202](https://github.com/bensonlee5/tab-foundry/issues/202), [#205](https://github.com/bensonlee5/tab-foundry/issues/205), [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and [#204](https://github.com/bensonlee5/tab-foundry/issues/204) now track the trusted rerun path | TF-RD-010 still needs trusted medium and large reruns on the refactored sandwich surface. The active medium rerun remains `medium_v4` under the `task_batch_size=16`, `grad_accum_steps=4` contract, but the first CE control-row CPU pilot was stopped at step `1324` after checkpoint benchmarking favored `step_001200.pt` (`log_loss=0.9988591380293615`) over later checkpoints, so the next evidence pass is a model retune plus fresh rerun rather than extending the current row to `2500` steps | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains later missingness follow-up, while TF-RD-017 still needs an explicit side-lane imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
 | Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata, and TF-RD-010 has fixed the first benchmark-defined classification contract | TF-RD-009 now waits on the TF-RD-010 trusted rerun, the TF-RD-021 steering decision, and the TF-RD-022 runtime gate on that contract | `TF-RD-009`, `TF-RD-010`, `TF-RD-021`, `TF-RD-022` |
@@ -313,8 +324,8 @@ Legacy wording note:
     `6/10/14/20`, and class coverage for every integer `2..10`
   - the repo now has materialized validation manifests under the local
     benchmark-manifest output root, with the legacy local output ids
-    `nanotabpfn_openml_classification_medium_v1` and
-    `nanotabpfn_openml_classification_large_v1`
+    `openml_classification_medium_v1` and
+    `openml_classification_large_v1`
 - What remains fixed:
   - `dagzoo` now owns the explicit TF-RD-010 control, MCAR, MAR, and MNAR
     corpora through `tf_rd_010_dagzoo_medium_control_v1`,
@@ -613,8 +624,9 @@ Legacy wording note:
     corpus rows produced from named steering policies or presets
   - hold architecture, many-class plus missingness regime definition, and
     benchmark contract fixed across every row
-  - interpret `final_bpc_at_matched_regime_budget` first, with raw log loss,
-    runtime, clipped-step fraction, and stability telemetry as guardrails
+  - interpret `final_log_loss_at_matched_regime_budget` first, with
+    calibration, runtime, clipped-step fraction, and stability telemetry as
+    guardrails
   - keep exactly one steering-derived carry-forward surface only if it clearly
     beats the incumbent control; otherwise keep the original carried slice
   - keep this epic synthetic-data-only rather than absorbing imbalance,
@@ -728,9 +740,9 @@ Legacy wording note:
     TF-RD-022 before using scaling results as architecture evidence
   - keep the other sandwich knobs frozen at the retained compact hybrid anchor
     values while fitting the first width-depth classification laws
-  - use `final_bpc_at_matched_regime_budget` as the primary ranking objective
-    on the carried multiclass slice, treating BPC as the normalized log-loss
-    view
+  - use `final_log_loss_at_matched_regime_budget` as the primary ranking
+    objective on the carried multiclass slice, with calibration, stability,
+    and runtime as explicit guardrails rather than BPC-era stand-ins
   - run optimizer-transfer and model-size scaling together rather than as
     separate programs
   - keep the eventual `sandwich_scale` interface internal-only until the law is
@@ -740,9 +752,9 @@ Legacy wording note:
   - the repo can fit width-depth classification laws on the simplified sandwich
     architecture under a fixed dagzoo many-class plus missingness slice that is
     harder or broader than the current simple binary regime
-  - scaling artifacts compare runs by matched regime budget with final BPC as
-    the primary objective, raw log loss as supporting context, and stability,
-    calibration, and runtime as guardrails
+  - scaling artifacts compare runs by matched regime budget with final log loss
+    as the primary objective, and stability, calibration, and runtime as
+    guardrails
   - any later single-knob scaling interface is explicitly derived from those
     law fits and remains internal until cross-surface validation is complete
 

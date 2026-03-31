@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.bench.nanotabpfn import (
+from tab_foundry.bench.openml_benchmark import (
     resolve_tab_foundry_best_checkpoint,
     resolve_tab_foundry_run_artifact_paths,
 )

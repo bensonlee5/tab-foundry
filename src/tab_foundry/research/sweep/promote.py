@@ -48,6 +48,7 @@ def promote_anchor(
     *,
     sweep_id: str,
     anchor_run_id: str,
+    render_matrix: bool = True,
     paths: PromotionPaths | None = None,
 ) -> dict[str, str]:
     resolved_paths = PromotionPaths.default() if paths is None else paths
@@ -82,7 +83,8 @@ def promote_anchor(
     cast(dict[str, Any], sweeps[normalized_sweep_id])["anchor_run_id"] = normalized_anchor_run_id
     write_yaml(resolved_paths.index_path, index)
 
-    _render_sweep_matrix(sweep_id=normalized_sweep_id, paths=resolved_paths)
+    if render_matrix:
+        _render_sweep_matrix(sweep_id=normalized_sweep_id, paths=resolved_paths)
 
     return {
         "sweep_id": normalized_sweep_id,

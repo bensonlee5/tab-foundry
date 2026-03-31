@@ -13,6 +13,7 @@ import tab_foundry.data.corpus_loading as corpus_loading_module
 import tab_foundry.data.corpus_lookup as corpus_lookup_module
 import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_loading import (
+    _generator_fingerprint,
     corpus_id_for_manifest,
     corpus_outputs_root,
     corpus_recipe_index_path,
@@ -139,6 +140,76 @@ def _write_recipe_registry(repo_root: Path) -> None:
                 "    seed: 1",
                 "    device: cpu",
                 "    hardware_policy: none",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_generator_recipe_registry(repo_root: Path) -> None:
+    recipe_root = repo_root / "reference" / "corpus_recipes"
+    recipe_root.mkdir(parents=True, exist_ok=True)
+    inputs = {
+        "invocation_dataset_counts": {
+            "benchmark_cpu": 1,
+            "default_medium": 2,
+            "large_shape": 1,
+        }
+    }
+    fingerprint, _module_path = _generator_fingerprint(
+        module_name="tab_foundry.data.corpus_generators.tf_rd_013",
+        callable_name="build_shape_aware_size_recipe",
+        inputs=inputs,
+    )
+    (recipe_root / "index.yaml").write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-index-v1",
+                "recipes:",
+                "  generated_recipe:",
+                "    path: generated_recipe.yaml",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (recipe_root / "generated_recipe.yaml").write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-v1",
+                "recipe_id: generated_recipe",
+                "kind: dagzoo_python_generated",
+                "description: Generated recipe fixture.",
+                "surface_label: generated_surface",
+                "manifest:",
+                "  train_ratio: 0.9",
+                "  val_ratio: 0.05",
+                "  filter_policy: include_all",
+                "  missing_value_policy: allow_any",
+                "provenance_labels:",
+                "  corpus_variant: generated_surface",
+                "  comparator_role: exploratory",
+                "generator:",
+                "  module: tab_foundry.data.corpus_generators.tf_rd_013",
+                "  callable: build_shape_aware_size_recipe",
+                "  inputs:",
+                "    invocation_dataset_counts:",
+                "      benchmark_cpu: 1",
+                "      default_medium: 2",
+                "      large_shape: 1",
+                f"  fingerprint: {fingerprint}",
+                "review_summary:",
+                "  config_refs:",
+                "  - configs/benchmark_cpu.yaml",
+                "  - configs/default.yaml",
+                "  - configs/benchmark_cuda_h100_large_shape.yaml",
+                "  invocation_count: 3",
+                "  manifest_record_count: 4",
+                "  invocation_dataset_counts:",
+                "    benchmark_cpu: 1",
+                "    default_medium: 2",
+                "    large_shape: 1",
             ]
         )
         + "\n",
@@ -532,6 +603,36 @@ def test_load_and_list_corpus_recipes(repo_tmp_path: Path) -> None:
     assert current.invocations[0].config_ref == "configs/default.yaml"
 
 
+def test_load_generator_backed_recipe_expands_checked_in_summary(repo_tmp_path: Path) -> None:
+    _write_generator_recipe_registry(repo_tmp_path)
+
+    recipe = load_corpus_recipe("generated_recipe", repo_root=repo_tmp_path)
+
+    assert recipe.kind == "dagzoo_python_generated"
+    assert recipe.generator is not None
+    assert recipe.generator["module"] == "tab_foundry.data.corpus_generators.tf_rd_013"
+    assert recipe.review_summary == {
+        "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/default.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+        ],
+        "invocation_count": 3,
+        "manifest_record_count": 4,
+        "invocation_dataset_counts": {
+            "benchmark_cpu": 1,
+            "default_medium": 2,
+            "large_shape": 1,
+        },
+    }
+    assert [invocation.invocation_id for invocation in recipe.invocations] == [
+        "benchmark_cpu",
+        "default_medium",
+        "large_shape",
+    ]
+    assert [invocation.num_datasets for invocation in recipe.invocations] == [1, 2, 1]
+
+
 def test_load_and_list_corpus_recipes_include_sweep_local_shadowing(repo_tmp_path: Path) -> None:
     _write_sweep_recipe_registry(repo_tmp_path, sweep_id="tf_rd_local")
 
@@ -611,6 +712,99 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+
+
+def test_load_corpus_record_backfills_legacy_dagzoo_provenance_summary(
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+    legacy_record = _write_legacy_unscoped_corpus_record(
+        repo_root=repo_tmp_path,
+        sweep_id=None,
+        recipe_id="current_recipe",
+        seed=16,
+    )
+
+    loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
+
+    assert loaded["corpus_ref"] == legacy_record["corpus_ref"]
+    assert loaded["dagzoo_provenance_summary"] == {
+        "corpus_ref": legacy_record["corpus_ref"],
+        "recipe_id": "current_recipe",
+        "corpus_id": legacy_record["corpus_id"],
+        "recipe_kind": "dagzoo_single_invocation",
+        "surface_label": "anchor_manifest_default",
+        "corpus_variant": "current_corpus_default",
+        "comparator_role": "control",
+        "config_refs": ["configs/default.yaml"],
+        "provenance_labels": {
+            "corpus_variant": "current_corpus_default",
+            "comparator_role": "control",
+        },
+        "invocation_count": 1,
+    }
+
+
+def test_materialize_corpus_recipe_caps_cpu_fixed_layout_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    captured: list[object] = []
+
+    def _run(config) -> object:
+        captured.append(config)
+        return _fake_run_dagzoo_generate(config)
+
+    _patch_dagzoo_generate(monkeypatch, _run)
+
+    _ = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    assert len(captured) == 1
+    config = captured[0]
+    assert getattr(config, "set_overrides") == ("runtime.fixed_layout_batch_size_cap=128",)
+
+
+def test_materialize_corpus_recipe_defers_manifest_characteristics_until_hydration(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    manifest = record["manifest"]
+    characteristics = manifest["characteristics"]
+    sidecar_path = Path(str(characteristics["sidecar_path"]))
+    assert characteristics["cache_status"] == "deferred"
+    assert sidecar_path.name == "manifest_characteristics.json"
+    assert not sidecar_path.exists()
+    assert characteristics["persisted_summary"]["total_records"] == 1
+    assert "record_count" not in characteristics
+
+    unloaded = load_corpus_record(record["corpus_ref"], repo_root=repo_tmp_path)
+    unloaded_characteristics = unloaded["manifest"]["characteristics"]
+    assert unloaded_characteristics["cache_status"] == "deferred"
+    assert "record_count" not in unloaded_characteristics
+
+    hydrated = load_corpus_record(
+        record["corpus_ref"],
+        repo_root=repo_tmp_path,
+        hydrate_characteristics=True,
+    )
+    hydrated_characteristics = hydrated["manifest"]["characteristics"]
+    assert sidecar_path.exists()
+    assert hydrated_characteristics["record_count"] == 1
+    assert hydrated_characteristics["persisted_summary"]["total_records"] == 1
 
 
 def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_rendered_config(
@@ -1279,7 +1473,6 @@ def test_resolve_data_surface_hydrates_corpus_ref(
         {
             "source": "manifest",
             "corpus_ref": "current_recipe",
-            "train_row_cap": 32,
         }
     )
 
@@ -1288,7 +1481,43 @@ def test_resolve_data_surface_hydrates_corpus_ref(
     assert resolved.recipe_id == "current_recipe"
     assert resolved.manifest_path is not None and resolved.manifest_path.exists()
     assert resolved.allow_missing_values is True
-    assert resolved.train_row_cap == 32
+    assert resolved.dagzoo_provenance == {
+        "corpus_ref": resolved.corpus_ref,
+        "recipe_id": "current_recipe",
+        "corpus_id": resolved.corpus_id,
+        "recipe_kind": "dagzoo_single_invocation",
+        "surface_label": "anchor_manifest_default",
+        "corpus_variant": "current_corpus_default",
+        "comparator_role": "control",
+        "config_refs": ["configs/default.yaml"],
+        "provenance_labels": {
+            "corpus_variant": "current_corpus_default",
+            "comparator_role": "control",
+        },
+    }
+
+
+def test_resolve_data_surface_rejects_removed_row_cap_subsampling(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _ = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    _patch_corpus_repo_root(monkeypatch, repo_tmp_path)
+
+    with pytest.raises(ValueError, match="Row subsampling is no longer supported"):
+        _ = resolve_data_surface(
+            {
+                "source": "manifest",
+                "corpus_ref": "current_recipe",
+                "train_row_cap": 32,
+            }
+        )
 
 
 def test_resolve_data_surface_uses_sweep_lookup_hint_for_shadowed_corpus_ref(

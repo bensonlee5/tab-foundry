@@ -34,7 +34,7 @@ def _valid_baseline_entry(baseline_id: str = "baseline_v1") -> dict[str, object]
         "benchmark_bundle": {
             "name": "binary_medium",
             "version": 1,
-            "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
             "task_count": 10,
             "task_ids": list(range(1, 11)),
         },

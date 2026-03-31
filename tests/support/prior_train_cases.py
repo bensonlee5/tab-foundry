@@ -14,7 +14,7 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_module
-from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
+from tab_foundry.bench.openml_benchmark import evaluate_tab_foundry_run
 import tab_foundry.cli.train_prior as train_prior_cli_module
 import tab_foundry.training.prior.loop as prior_loop_module
 import tab_foundry.training.prior_train as prior_train_module
@@ -460,10 +460,11 @@ class _FeatureTypeCapturingSandwichModel(_ConstantLogitModel):
         *,
         x_all: torch.Tensor,
         y_train: torch.Tensor,
+        y_test: torch.Tensor | None = None,
         train_test_split_index: int,
         feature_types: list[list[str]],
     ) -> CellLikelihoodOutput:
-        _ = (y_train, train_test_split_index)
+        _ = (y_train, y_test, train_test_split_index)
         self.seen_feature_types.append([list(task_feature_types) for task_feature_types in feature_types])
         n_tasks = int(x_all.shape[0])
         n_test = int(x_all.shape[1]) - train_test_split_index

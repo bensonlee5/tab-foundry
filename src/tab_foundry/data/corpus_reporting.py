@@ -19,8 +19,8 @@ def corpus_compare_payload(
     right: str,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
-    left_record = load_corpus_record(left, repo_root=repo_root)
-    right_record = load_corpus_record(right, repo_root=repo_root)
+    left_record = load_corpus_record(left, repo_root=repo_root, hydrate_characteristics=True)
+    right_record = load_corpus_record(right, repo_root=repo_root, hydrate_characteristics=True)
     left_manifest = cast(Mapping[str, Any], left_record["manifest"])
     right_manifest = cast(Mapping[str, Any], right_record["manifest"])
     left_payload = {

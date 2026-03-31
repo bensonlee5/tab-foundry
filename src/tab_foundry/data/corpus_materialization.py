@@ -10,7 +10,7 @@ from typing import Any, Mapping
 
 import yaml
 
-from tab_realdata_hub.manifest import build_manifest, inspect_manifest, manifest_characteristics
+from tab_realdata_hub.manifest import build_manifest
 
 from tab_foundry.hashing import sha256_path
 from tab_foundry.timestamps import utc_now
@@ -27,11 +27,13 @@ from .corpus_loading import (
     _repo_root,
     _resolve_from_root,
     _write_latest_pointer,
+    build_dagzoo_provenance_summary,
     corpus_id_for_manifest,
     corpus_outputs_root,
     load_corpus_recipe,
 )
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
+from .manifest_characteristics import inspect_manifest_summary
 from tab_realdata_hub.dagzoo_handoff import (
     DagzooGeneratedIdentityAccumulator,
     DagzooHandoffInfo,
@@ -39,6 +41,9 @@ from tab_realdata_hub.dagzoo_handoff import (
     verify_dagzoo_handoff_matches_generated_corpus,
 )
 from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
+
+
+_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP = 128
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:
@@ -206,6 +211,13 @@ def _dagzoo_generate_config(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
     )
+    requested_device = None if spec.device is None else str(spec.device).strip().lower()
+    set_overrides: tuple[str, ...] = (
+        (
+            f"runtime.fixed_layout_batch_size_cap="
+            f"{_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP}"
+        ),
+    ) if requested_device in (None, "", "auto", "cpu") else ()
     return DagzooGenerateConfig(
         dagzoo_root=dagzoo_root,
         dagzoo_config=_invocation_dagzoo_config_path(
@@ -229,6 +241,7 @@ def _dagzoo_generate_config(
         missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
         missing_mar_logit_scale=spec.missing_mar_logit_scale,
         missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
+        set_overrides=set_overrides,
     )
 
 
@@ -349,6 +362,10 @@ def _invocation_record_payload(
     return payload
 
 
+def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:
+    return corpus_root / "manifest_characteristics.json"
+
+
 def materialize_corpus_recipe(
     *,
     recipe_id: str,
@@ -461,6 +478,11 @@ def materialize_corpus_recipe(
             )
             for spec in recipe.invocations
         ]
+        dagzoo_provenance_summary = build_dagzoo_provenance_summary(
+            recipe=recipe,
+            corpus_ref=corpus_ref,
+            corpus_id=corpus_id,
+        )
         dagzoo_provenance = _drop_none_values(
             {
                 "corpus_ref": corpus_ref,
@@ -478,7 +500,9 @@ def materialize_corpus_recipe(
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
             }
         )
-        manifest_inspection = inspect_manifest(resolved_manifest_path)
+        manifest_inspection = inspect_manifest_summary(resolved_manifest_path)
+        manifest_persisted_summary = manifest_inspection.get("persisted_summary")
+        characteristics_sidecar_path = _manifest_characteristics_sidecar_path(corpus_root=final_root)
         record: dict[str, Any] = {
             "schema": CORPUS_RECORD_SCHEMA,
             "generated_at_utc": utc_now(),
@@ -508,9 +532,14 @@ def materialize_corpus_recipe(
                 "manifest_path": str(resolved_manifest_path.resolve()),
                 "manifest_sha256": manifest_sha256,
                 "inspection": manifest_inspection,
-                "characteristics": manifest_characteristics(resolved_manifest_path),
+                "characteristics": {
+                    "persisted_summary": manifest_persisted_summary,
+                    "sidecar_path": str(characteristics_sidecar_path.resolve()),
+                    "cache_status": "deferred",
+                },
             },
             "dagzoo_provenance": dagzoo_provenance,
+            "dagzoo_provenance_summary": dagzoo_provenance_summary,
         }
         record_path = final_root / "corpus_record.json"
         record["corpus_record_path"] = str(record_path.resolve())

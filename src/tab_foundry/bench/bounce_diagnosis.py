@@ -10,7 +10,7 @@ import tab_foundry.bench.bounce.config as bounce_config_module
 import tab_foundry.bench.bounce.execution as execution_module
 import tab_foundry.bench.bounce.rerun as rerun_module
 import tab_foundry.bench.bounce.signals as signal_module
-from tab_foundry.bench.nanotabpfn import (
+from tab_foundry.bench.openml_benchmark import (
     curve_summary,
     default_benchmark_manifest_path,
     evaluate_tab_foundry_run,

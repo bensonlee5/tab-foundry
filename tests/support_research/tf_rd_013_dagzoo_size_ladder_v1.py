@@ -5,6 +5,7 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.data.corpus_loading import load_corpus_recipe
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
@@ -16,6 +17,10 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     payload = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     assert isinstance(payload, dict)
     return payload
+
+
+def _load_recipe(recipe_id: str) -> dict[str, Any]:
+    return load_corpus_recipe(recipe_id, repo_root=REPO_ROOT).to_dict()
 
 
 def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
@@ -67,20 +72,26 @@ def test_tf_rd_013_size_ladder_recipe_sizes_match_tf_rd_008_scale() -> None:
     recipe_root = REPO_ROOT / "reference" / "corpus_recipes"
 
     current_default = _load_yaml(recipe_root / "tf_rd_013_current_corpus_default_v1.yaml")
-    assert current_default["dagzoo"]["num_datasets"] == 10
+    current_default_recipe = _load_recipe("tf_rd_013_current_corpus_default_v1")
+    assert current_default["kind"] == "dagzoo_python_generated"
+    assert current_default["review_summary"]["manifest_record_count"] == 10
+    assert current_default_recipe["invocations"][0]["num_datasets"] == 10
 
     small = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml")
     medium = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml")
     large = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml")
 
-    for recipe, expected in (
-        (small, {"benchmark_cpu": 4, "default_medium": 14, "large_shape": 2}),
-        (medium, {"benchmark_cpu": 8, "default_medium": 28, "large_shape": 4}),
-        (large, {"benchmark_cpu": 16, "default_medium": 56, "large_shape": 8}),
+    for recipe_id, summary, expected in (
+        ("tf_rd_013_dagzoo_shape_aware_size_small_v1", small, {"benchmark_cpu": 4, "default_medium": 14, "large_shape": 2}),
+        ("tf_rd_013_dagzoo_shape_aware_size_medium_v1", medium, {"benchmark_cpu": 8, "default_medium": 28, "large_shape": 4}),
+        ("tf_rd_013_dagzoo_shape_aware_size_large_v1", large, {"benchmark_cpu": 16, "default_medium": 56, "large_shape": 8}),
     ):
+        recipe = _load_recipe(recipe_id)
         invocations = recipe["invocations"]
         actual = {entry["invocation_id"]: entry["num_datasets"] for entry in invocations}
         assert actual == expected
+        assert summary["kind"] == "dagzoo_python_generated"
+        assert summary["review_summary"]["invocation_dataset_counts"] == expected
 
 
 def test_tf_rd_013_size_ladder_notes_describe_tf_rd_008_scale_control() -> None:

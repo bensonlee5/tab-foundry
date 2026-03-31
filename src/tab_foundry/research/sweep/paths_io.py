@@ -64,6 +64,10 @@ def sweep_matrix_path(sweep_id: str, *, sweeps_root: Path | None = None) -> Path
     return sweep_dir(sweep_id, sweeps_root=sweeps_root) / "matrix.md"
 
 
+def sweep_resolved_queue_path(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
+    return sweep_dir(sweep_id, sweeps_root=sweeps_root) / "resolved_queue.yaml"
+
+
 def _copy_jsonable(payload: Any) -> Any:
     return json.loads(json.dumps(payload))
 

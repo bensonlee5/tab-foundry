@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-import tab_foundry.bench.nanotabpfn as benchmark_module
+import tab_foundry.bench.openml_benchmark as benchmark_module
 
 
 def test_mainline_bundle_loader_rejects_missing_permitting_large_bundle_by_default() -> None:
@@ -13,7 +13,7 @@ def test_mainline_bundle_loader_rejects_missing_permitting_large_bundle_by_defau
         / "src"
         / "tab_foundry"
         / "bench"
-        / "nanotabpfn_openml_binary_large_v1.json"
+        / "openml_binary_large_v1.json"
     )
 
     with pytest.raises(RuntimeError, match="permits missing-valued inputs"):

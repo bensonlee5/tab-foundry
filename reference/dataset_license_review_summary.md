@@ -14,11 +14,11 @@ Current execution note:
 ## Scope
 
 - benchmark bundles reviewed:
-  - `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`
-  - `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
-  - `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
-  - `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`
-  - `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`
+  - `src/tab_foundry/bench/openml_benchmark_v1.json`
+  - `src/tab_foundry/bench/openml_binary_medium_v1.json`
+  - `src/tab_foundry/bench/openml_classification_small_v1.json`
+  - `src/tab_foundry/bench/openml_binary_large_v1.json`
+  - `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`
 - distinct OpenML datasets reviewed: 84
 - manifest-backed external comparator sets reviewed: 0
 

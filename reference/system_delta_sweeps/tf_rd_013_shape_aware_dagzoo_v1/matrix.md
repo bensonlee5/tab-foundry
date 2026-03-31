@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_shape_aware_
 ## Locked Surface
 
 - Anchor run id: `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`
@@ -30,7 +30,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | model anchor | TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract. | The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`. | TF-RD-013 changes only the training-data comparison surface, not the promoted model surface. |
 | training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`. | The broader TF-RD-013 follow-up keeps the current corpus as baseline while testing one explicit multi-invocation dagzoo alternative plus the curated real-data comparator lane. |
 | dagzoo provenance contract | Not applicable. | No dagzoo provenance is attached to the current-corpus anchor surface. | The broader dagzoo candidate row should keep one top-level `dagzoo_provenance` payload and make each generate invocation explicit inside `dagzoo_provenance.invocations`. |
-| benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change. |
+| benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo. | Benchmark bundle `openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change. |
 | training recipe | TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally. | Registered anchor training surface label `prior_linear_warmup_decay`. | The issue 127 follow-up should not mix optimizer or schedule changes into the data-source decision. |
 
 ## Queue Summary
@@ -74,7 +74,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - Issue 124 remains the later filtering-policy question rather than part of this broader shape-aware follow-up.
   - Historical execution `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v1` was invalid because manifest-backed training ran through the prior-dump backend.
   - The completed rerun kept dagzoo deferred: the broader multi-invocation surface still underperformed the anchor on final large-bundle log loss and Brier, so issue 127 does not change the representative-data decision.
-  - Runtime row caps (`train_row_cap=512`, `test_row_cap=256`) keep the larger-shape dagzoo shards inside the current row-attention budget while preserving the broader feature-shape mix in the support bundle.
+  - Training now consumes the full tracked manifest rows; the broader feature-shape mix is preserved without runtime row subsampling.
   - Supersedes historical queue run `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v1`; that invalid run id is preserved in queue notes only.
   - Canonical rerun registered as `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v2`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.

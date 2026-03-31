@@ -4,7 +4,7 @@ parent_sweep_id: tf_rd_013_shape_aware_dagzoo_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_large_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
 training_experiment: cls_benchmark_staged_corpus
@@ -36,7 +36,7 @@ anchor_surface:
     interpretation: Rows 2-4 now form 20-, 40-, and 80-dataset support rungs through tracked corpus recipes so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs.
   - dimension: benchmark and control context
     upstream: TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision.
-    anchor: Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface.
+    anchor: Benchmark bundle `openml_binary_large` remains the benchmark-facing evaluation surface.
     interpretation: TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects.
   - dimension: training stop contract
     upstream: TabICLv2 does not define this repo-local manifest trainer stop rule.
