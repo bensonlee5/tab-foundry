@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v2`
 - Complexity level: `classification_lg`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `8425c28b24e2393924ab31c11b33ce9373d23b2b18ac885dc8762572053e5aa0`
+- Resolved queue inputs fingerprint: `3b8552b42ad43940cbe3c67157698ce5b3a4586b3c878546f01d3a06de11463f`
 
 ## Locked Surface
 
@@ -57,12 +57,12 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Rationale: Establish the TF-RD-010 classification control front before reading any missingness harder-front effect on the larger benchmark rung.
 - Hypothesis: The evolved sandwich family should first be judged on the TF-RD-010 control corpus (`n_classes_min=2`) against the larger hub validation manifest.
 - Upstream delta: Not applicable; this is a repo-local synthetic training-front contract tied to the first benchmark-evolution lane.
-- Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned large classification manifest.
+- Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned large classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `b1cadc391cb00e53c697afe3ff306ccf36c819d41976138982fceb0f59e2981f`
+- Resolved surface fingerprint: `5fd4ca8da7403b37fa6880644113f110a7369a03d33ed85df175e43a6732dad4`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v2'}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v3'}`
 - Parameter adequacy plan:
   - Confirm `tab-realdata-hub#1` has materialized the large classification manifest from `openml_classification_large_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_large_v1` control baseline before treating any row outcome as a promotion or defer decision.
@@ -96,12 +96,12 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Rationale: Test whether moderate MCAR exposure improves robustness on the larger benchmark rung before structured missingness is considered.
 - Hypothesis: MCAR may improve label-target log loss per test cell on the evolved sandwich family under the larger hub validation pool without adding the stronger structure of MAR or MNAR.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
-- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
+- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `57f45074502cbb6cf6d0a7a5b702fc0aa56ac7731fb9c77e1adebab5039f8673`
+- Resolved surface fingerprint: `5f8f23bd7032dbd97cd0bde6ceac1fcbb3f7421940ebed5d3c7f13cef03a540a`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v2'}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v3'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
@@ -135,12 +135,12 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the larger benchmark contract.
 - Hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large validation pool.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
-- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
+- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
 - Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `10026832353a55b77e243652f69db9f341d079a8e9a0cb174de464ae773727bf`
+- Resolved surface fingerprint: `bd854d4f7e321a49bdc0ab6a13b429da6d6e7bd771a8c09e3ceed613dbae6071`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v2'}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v3'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
@@ -174,12 +174,12 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same larger benchmark contract.
 - Hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
-- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
+- Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
 - Expected effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `05117f56fa1b4ca42bfc5af3002a9c70b887ba1470b0b2951c57f2c5b1add639`
+- Resolved surface fingerprint: `0f2fada8aad3291fbee0be9dd09723d2e6e088cc953be49f70bd2793618df1cd`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v2'}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v3'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.

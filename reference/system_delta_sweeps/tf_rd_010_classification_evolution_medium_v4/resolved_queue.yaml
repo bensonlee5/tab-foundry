@@ -121,7 +121,7 @@ rows:
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
     control corpus (`n_classes_min=2`) against the medium hub manifest.
   anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train
-    on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned medium
+    on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned medium
     classification manifest.
   model:
     arch: tabfoundry_sandwich
@@ -144,7 +144,7 @@ rows:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -336,8 +336,8 @@ rows:
       source: manifest
       filter_policy: null
       allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v2
-      recipe_id: tf_rd_010_dagzoo_medium_control_v2
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v3
+      recipe_id: tf_rd_010_dagzoo_medium_control_v3
       corpus_id: null
       corpus_record_path: null
       manifest: null
@@ -346,7 +346,7 @@ rows:
         source: manifest
         manifest_path: null
         surface_label: tf_rd_010_dagzoo_medium_control
-        corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+        corpus_ref: tf_rd_010_dagzoo_medium_control_v3
         filter_policy: null
         dagzoo_provenance: null
         allow_missing_values: null
@@ -389,7 +389,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: a02e6bcf7dde4adcc2f522a89a8eaaae58136931f26a783d05d10c2067030121
+  resolved_surface_fingerprint: 8560de5c9dd01d0e5553de611395dcf5cd11b8e5e08c0ec7b6ecb576fc2c103c
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mcar
   status: blocked_on_synthetic_adequacy
@@ -398,7 +398,7 @@ rows:
   hypothesis: MCAR may improve label-target log loss and calibration on the evolved
     sandwich family without adding the stronger structure of MAR or MNAR.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
-    and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
+    and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -420,7 +420,7 @@ rows:
       source: manifest
       corpus_ref: tf_rd_010_missingness_mcar_v1
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mcar_v2
+    corpus_ref: tf_rd_010_missingness_mcar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -606,8 +606,8 @@ rows:
       source: manifest
       filter_policy: null
       allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mcar_v2
-      recipe_id: tf_rd_010_missingness_mcar_v2
+      corpus_ref: tf_rd_010_missingness_mcar_v3
+      recipe_id: tf_rd_010_missingness_mcar_v3
       corpus_id: null
       corpus_record_path: null
       manifest: null
@@ -616,7 +616,7 @@ rows:
         source: manifest
         manifest_path: null
         surface_label: tf_rd_010_missingness_mcar
-        corpus_ref: tf_rd_010_missingness_mcar_v2
+        corpus_ref: tf_rd_010_missingness_mcar_v3
         filter_policy: null
         dagzoo_provenance: null
         allow_missing_values: null
@@ -659,7 +659,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: d779279310449bc473ec3e3de7f0c2c715db8075748bcd8bae253e48532f5e75
+  resolved_surface_fingerprint: 1664818d964808dc39780166046c4d1432f6d09cb8a45c507a876e3a00939a74
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
   status: blocked_on_synthetic_adequacy
@@ -668,7 +668,7 @@ rows:
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
     interpretable than MNAR.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
-    and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
+    and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -690,7 +690,7 @@ rows:
       source: manifest
       corpus_ref: tf_rd_010_missingness_mar_v1
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mar_v2
+    corpus_ref: tf_rd_010_missingness_mar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -877,8 +877,8 @@ rows:
       source: manifest
       filter_policy: null
       allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mar_v2
-      recipe_id: tf_rd_010_missingness_mar_v2
+      corpus_ref: tf_rd_010_missingness_mar_v3
+      recipe_id: tf_rd_010_missingness_mar_v3
       corpus_id: null
       corpus_record_path: null
       manifest: null
@@ -887,7 +887,7 @@ rows:
         source: manifest
         manifest_path: null
         surface_label: tf_rd_010_missingness_mar
-        corpus_ref: tf_rd_010_missingness_mar_v2
+        corpus_ref: tf_rd_010_missingness_mar_v3
         filter_policy: null
         dagzoo_provenance: null
         allow_missing_values: null
@@ -930,7 +930,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 7a8b820cd263269478c6fa2502b65814f35a2a702a3ac0d3d1764224fb5c3bd9
+  resolved_surface_fingerprint: 2d633c07bb847790b12b459644f5d607ba35f119f757a091464b5d4aef5b4ddf
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mnar
   status: blocked_on_synthetic_adequacy
@@ -939,7 +939,7 @@ rows:
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least
     interpretable candidate for the first evolved benchmark package.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
-    and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
+    and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -961,7 +961,7 @@ rows:
       source: manifest
       corpus_ref: tf_rd_010_missingness_mnar_v1
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mnar_v2
+    corpus_ref: tf_rd_010_missingness_mnar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -1149,8 +1149,8 @@ rows:
       source: manifest
       filter_policy: null
       allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mnar_v2
-      recipe_id: tf_rd_010_missingness_mnar_v2
+      corpus_ref: tf_rd_010_missingness_mnar_v3
+      recipe_id: tf_rd_010_missingness_mnar_v3
       corpus_id: null
       corpus_record_path: null
       manifest: null
@@ -1159,7 +1159,7 @@ rows:
         source: manifest
         manifest_path: null
         surface_label: tf_rd_010_missingness_mnar
-        corpus_ref: tf_rd_010_missingness_mnar_v2
+        corpus_ref: tf_rd_010_missingness_mnar_v3
         filter_policy: null
         dagzoo_provenance: null
         allow_missing_values: null
@@ -1202,6 +1202,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: e9ba8a06b260362eeb84e93cba50bf8bdd5b6778915720c7e53d7a4c2c7d13cb
+  resolved_surface_fingerprint: cbeac933568272edc9152261d27a3d52a4e2bb00b89ee731a9d7566b63b82a0e
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml
-inputs_fingerprint: 9ee6aeaf6bf3694968b626603d2e9bade8b34bfe4d5360dcec0c86bf4600d157
+inputs_fingerprint: c170256435e0deb176d281392b309e8c868c85038d4aa837c7179d4cdb983014

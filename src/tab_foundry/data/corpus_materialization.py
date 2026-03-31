@@ -538,6 +538,25 @@ def materialize_corpus_recipe(
                 ),
             },
         )
+        resolved_posterior_predictive_factorization = dagzoo_provenance_summary.get(
+            "posterior_predictive_factorization"
+        )
+        resolved_posterior_predictive_factorizations = (
+            posterior_predictive_factorizations
+            if len(posterior_predictive_factorizations) > 1
+            else (
+                [resolved_posterior_predictive_factorization]
+                if isinstance(resolved_posterior_predictive_factorization, str)
+                and resolved_posterior_predictive_factorization
+                else None
+            )
+        )
+        resolved_teacher_conditional_export = dagzoo_provenance_summary.get(
+            "teacher_conditional_export"
+        )
+        resolved_teacher_conditional_metric_definition = dagzoo_provenance_summary.get(
+            "teacher_conditional_metric_definition"
+        )
         dagzoo_provenance = _drop_none_values(
             {
                 "corpus_ref": corpus_ref,
@@ -553,23 +572,16 @@ def materialize_corpus_recipe(
                 "curated_root_lineage": [],
                 "invocations": invocation_payloads,
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
-                "posterior_predictive_factorization": (
-                    posterior_predictive_factorizations[0]
-                    if len(posterior_predictive_factorizations) == 1
-                    else None
-                ),
+                "posterior_predictive_factorization": resolved_posterior_predictive_factorization,
                 "posterior_predictive_factorizations": (
-                    posterior_predictive_factorizations
-                    if len(posterior_predictive_factorizations) > 1
-                    else None
+                    resolved_posterior_predictive_factorizations
                 ),
                 "teacher_conditional_export": resolved_teacher_conditional_export,
                 "teacher_conditional_metric_definition": (
-                    "label-target log loss per test cell"
-                    if resolved_teacher_conditional_export
-                    else None
+                    resolved_teacher_conditional_metric_definition
                 ),
                 "target_parent_prior": dagzoo_provenance_summary.get("target_parent_prior"),
+                "target_parent_mode": dagzoo_provenance_summary.get("target_parent_mode"),
                 "target_parent_regimes_present": dagzoo_provenance_summary.get(
                     "target_parent_regimes_present"
                 ),

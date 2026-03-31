@@ -18,10 +18,10 @@ EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_missingness_mnar",
 ]
 EXPECTED_CORPUS_REFS = [
-    "tf_rd_010_dagzoo_medium_control_v2",
-    "tf_rd_010_missingness_mcar_v2",
-    "tf_rd_010_missingness_mar_v2",
-    "tf_rd_010_missingness_mnar_v2",
+    "tf_rd_010_dagzoo_medium_control_v3",
+    "tf_rd_010_missingness_mcar_v3",
+    "tf_rd_010_missingness_mar_v3",
+    "tf_rd_010_missingness_mnar_v3",
 ]
 
 

@@ -156,6 +156,119 @@ def _optional_bool(value: Any) -> bool | None:
     return None
 
 
+def _optional_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [normalized for item in value if (normalized := _optional_string(item)) is not None]
+
+
+def _string_candidates(*values: Any) -> list[str]:
+    candidates: set[str] = set()
+    for value in values:
+        if isinstance(value, list):
+            candidates.update(_optional_string_list(value))
+            continue
+        normalized = _optional_string(value)
+        if normalized is not None:
+            candidates.add(normalized)
+    return sorted(candidates)
+
+
+def _bool_candidates(*values: Any) -> set[bool]:
+    candidates: set[bool] = set()
+    for value in values:
+        if isinstance(value, list):
+            candidates.update(
+                normalized
+                for item in value
+                if (normalized := _optional_bool(item)) is not None
+            )
+            continue
+        normalized = _optional_bool(value)
+        if normalized is not None:
+            candidates.add(normalized)
+    return candidates
+
+
+def _float_candidates(*values: Any) -> list[float]:
+    candidates: set[float] = set()
+    for value in values:
+        if isinstance(value, list):
+            candidates.update(
+                normalized
+                for item in value
+                if (normalized := _optional_float(item)) is not None
+            )
+            continue
+        normalized = _optional_float(value)
+        if normalized is not None:
+            candidates.add(normalized)
+    return sorted(candidates)
+
+
+def _first_non_empty_group[T](groups: list[T]) -> T | None:
+    for group in groups:
+        if group:
+            return group
+    return None
+
+
+def _normalized_range_from_mapping(value: Any) -> dict[str, Any] | None:
+    mapping = _optional_mapping(value)
+    if mapping is None:
+        return None
+    result: dict[str, Any] = {}
+    minimum = _optional_int(mapping.get("min"))
+    if minimum is not None:
+        result["min"] = minimum
+    if "max" in mapping:
+        result["max"] = None if mapping.get("max") is None else _optional_int(mapping.get("max"))
+    elif (maximum := _optional_int(mapping.get("max"))) is not None:
+        result["max"] = maximum
+    return result or None
+
+
+def _aggregate_range_bounds(bounds: list[dict[str, Any]]) -> dict[str, Any] | None:
+    minima: list[int] = []
+    maxima: list[int] = []
+    saw_explicit_none_max = False
+    for bound in bounds:
+        minimum = _optional_int(bound.get("min"))
+        if minimum is not None:
+            minima.append(minimum)
+        if "max" in bound:
+            if bound.get("max") is None:
+                saw_explicit_none_max = True
+            elif (maximum := _optional_int(bound.get("max"))) is not None:
+                maxima.append(maximum)
+    if not minima and not maxima and not saw_explicit_none_max:
+        return None
+    result: dict[str, Any] = {}
+    if minima:
+        result["min"] = min(minima)
+    if maxima:
+        result["max"] = max(maxima)
+    elif saw_explicit_none_max:
+        result["max"] = None
+    return result or None
+
+
+def _invocation_config_overrides(invocation: Any) -> dict[str, Any]:
+    if isinstance(invocation, Mapping):
+        return _optional_mapping(invocation.get("config_overrides")) or {}
+    return _optional_mapping(getattr(invocation, "config_overrides", None)) or {}
+
+
+def _recipe_invocation_override_sections(recipe: Any, section_name: str) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
+    for invocation in _recipe_like_invocations(recipe):
+        overrides = _invocation_config_overrides(invocation)
+        section = _optional_mapping(overrides.get(section_name))
+        if section is not None:
+            sections.append(section)
+    return sections
+
+
 def _recipe_like_value(recipe: Any, field_name: str) -> Any:
     if isinstance(recipe, Mapping):
         return recipe.get(field_name)
@@ -224,6 +337,8 @@ def build_dagzoo_provenance_summary(
     if invocation_count is None and isinstance(raw_provenance.get("invocations"), list):
         invocation_count = len(raw_provenance["invocations"])
     manifest_record_count = _optional_int(review_summary.get("manifest_record_count"))
+    recipe_dataset_overrides = _recipe_invocation_override_sections(recipe, "dataset")
+    recipe_diagnostics_overrides = _recipe_invocation_override_sections(recipe, "diagnostics")
     invocation_handoff_provenances = [
         handoff_provenance
         for invocation in cast(list[Any], raw_provenance.get("invocations", []))
@@ -236,87 +351,180 @@ def build_dagzoo_provenance_summary(
         )
         if handoff_provenance is not None
     ]
-    posterior_predictive_factorizations = sorted(
-        {
-            factorization
-            for factorization in (
-                _optional_string(raw_provenance.get("posterior_predictive_factorization")),
+    posterior_predictive_factorizations = _first_non_empty_group(
+        [
+            _string_candidates(
+                raw_provenance.get("posterior_predictive_factorization"),
+                raw_provenance.get("posterior_predictive_factorizations"),
+            ),
+            _string_candidates(
                 *[
-                    _optional_string(item.get("posterior_predictive_factorization"))
+                    item.get("posterior_predictive_factorization")
                     for item in invocation_handoff_provenances
-                ],
-            )
-            if factorization is not None
-        }
+                ]
+            ),
+            _string_candidates(
+                provenance_labels.get("posterior_predictive_factorization"),
+                provenance_labels.get("posterior_predictive_factorizations"),
+            ),
+            _string_candidates(
+                review_summary.get("posterior_predictive_factorization"),
+                review_summary.get("posterior_predictive_factorizations"),
+            ),
+        ]
     )
-    teacher_conditional_export_values = {
-        export_enabled
-        for export_enabled in (
-            _optional_bool(raw_provenance.get("teacher_conditional_export")),
-            *[
-                _optional_bool(item.get("teacher_conditional_export"))
-                for item in invocation_handoff_provenances
-            ],
-        )
-        if export_enabled is not None
-    }
+    if posterior_predictive_factorizations is None:
+        posterior_predictive_factorizations = []
+    teacher_conditional_export_values = _first_non_empty_group(
+        [
+            _bool_candidates(raw_provenance.get("teacher_conditional_export")),
+            _bool_candidates(
+                *[
+                    item.get("teacher_conditional_export")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _bool_candidates(provenance_labels.get("teacher_conditional_export")),
+            _bool_candidates(review_summary.get("teacher_conditional_export")),
+            _bool_candidates(
+                *[
+                    item.get("teacher_conditional_export")
+                    for item in recipe_diagnostics_overrides
+                ]
+            ),
+        ]
+    )
+    if teacher_conditional_export_values is None:
+        teacher_conditional_export_values = set()
     teacher_conditional_export = (
         next(iter(teacher_conditional_export_values))
         if len(teacher_conditional_export_values) == 1
         else None
     )
-    target_parent_priors = sorted(
-        {
-            prior
-            for prior in (
-                _optional_string(raw_provenance.get("target_parent_prior")),
+    teacher_conditional_metric_definitions = _first_non_empty_group(
+        [
+            _string_candidates(
+                raw_provenance.get("teacher_conditional_metric_definition"),
+                raw_provenance.get("metric_definition"),
+            ),
+            _string_candidates(
                 *[
-                    _optional_string(item.get("target_parent_prior"))
+                    item.get("teacher_conditional_metric_definition")
+                    or item.get("metric_definition")
                     for item in invocation_handoff_provenances
-                ],
-            )
-            if prior is not None
-        }
+                ]
+            ),
+            _string_candidates(
+                provenance_labels.get("teacher_conditional_metric_definition"),
+                provenance_labels.get("metric_definition"),
+            ),
+            _string_candidates(
+                review_summary.get("teacher_conditional_metric_definition"),
+                review_summary.get("metric_definition"),
+            ),
+        ]
     )
-    target_parent_near_max_band_min_fractions = sorted(
-        {
-            fraction
-            for fraction in (
-                _optional_float(raw_provenance.get("target_parent_near_max_band_min_fraction")),
+    if teacher_conditional_metric_definitions is None:
+        teacher_conditional_metric_definitions = []
+    target_parent_priors = _first_non_empty_group(
+        [
+            _string_candidates(raw_provenance.get("target_parent_prior")),
+            _string_candidates(
                 *[
-                    _optional_float(item.get("target_parent_near_max_band_min_fraction"))
+                    item.get("target_parent_prior")
                     for item in invocation_handoff_provenances
-                ],
-            )
-            if fraction is not None
-        }
-    )
-    target_parent_below_sqrt_probs = sorted(
-        {
-            fraction
-            for fraction in (
-                _optional_float(raw_provenance.get("target_parent_below_sqrt_prob")),
+                ]
+            ),
+            _string_candidates(provenance_labels.get("target_parent_prior")),
+            _string_candidates(review_summary.get("target_parent_prior")),
+            _string_candidates(
                 *[
-                    _optional_float(item.get("target_parent_below_sqrt_prob"))
-                    for item in invocation_handoff_provenances
-                ],
-            )
-            if fraction is not None
-        }
+                    item.get("target_parent_prior")
+                    for item in recipe_dataset_overrides
+                ]
+            ),
+        ]
     )
-    target_parent_midrange_probs = sorted(
-        {
-            fraction
-            for fraction in (
-                _optional_float(raw_provenance.get("target_parent_midrange_prob")),
+    if target_parent_priors is None:
+        target_parent_priors = []
+    target_parent_modes = _first_non_empty_group(
+        [
+            _string_candidates(raw_provenance.get("target_parent_mode")),
+            _string_candidates(
                 *[
-                    _optional_float(item.get("target_parent_midrange_prob"))
+                    item.get("target_parent_mode")
                     for item in invocation_handoff_provenances
-                ],
-            )
-            if fraction is not None
-        }
+                ]
+            ),
+            _string_candidates(provenance_labels.get("target_parent_mode")),
+            _string_candidates(review_summary.get("target_parent_mode")),
+        ]
     )
+    if target_parent_modes is None:
+        target_parent_modes = []
+    target_parent_near_max_band_min_fractions = _first_non_empty_group(
+        [
+            _float_candidates(raw_provenance.get("target_parent_near_max_band_min_fraction")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_near_max_band_min_fraction")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _float_candidates(provenance_labels.get("target_parent_near_max_band_min_fraction")),
+            _float_candidates(review_summary.get("target_parent_near_max_band_min_fraction")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_near_max_band_min_fraction")
+                    for item in recipe_dataset_overrides
+                ]
+            ),
+        ]
+    )
+    if target_parent_near_max_band_min_fractions is None:
+        target_parent_near_max_band_min_fractions = []
+    target_parent_below_sqrt_probs = _first_non_empty_group(
+        [
+            _float_candidates(raw_provenance.get("target_parent_below_sqrt_prob")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_below_sqrt_prob")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _float_candidates(provenance_labels.get("target_parent_below_sqrt_prob")),
+            _float_candidates(review_summary.get("target_parent_below_sqrt_prob")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_below_sqrt_prob")
+                    for item in recipe_dataset_overrides
+                ]
+            ),
+        ]
+    )
+    if target_parent_below_sqrt_probs is None:
+        target_parent_below_sqrt_probs = []
+    target_parent_midrange_probs = _first_non_empty_group(
+        [
+            _float_candidates(raw_provenance.get("target_parent_midrange_prob")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_midrange_prob")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _float_candidates(provenance_labels.get("target_parent_midrange_prob")),
+            _float_candidates(review_summary.get("target_parent_midrange_prob")),
+            _float_candidates(
+                *[
+                    item.get("target_parent_midrange_prob")
+                    for item in recipe_dataset_overrides
+                ]
+            ),
+        ]
+    )
+    if target_parent_midrange_probs is None:
+        target_parent_midrange_probs = []
     target_parent_regimes_present = sorted(
         {
             regime
@@ -336,29 +544,37 @@ def build_dagzoo_provenance_summary(
             if regime
         }
     )
-    target_parent_count_bounds = [
-        bound
-        for bound in (
-            _optional_mapping(raw_provenance.get("target_parent_count_range")),
-            *[
-                _optional_mapping(item.get("target_parent_count_range"))
-                for item in invocation_handoff_provenances
-            ],
-        )
-        if bound is not None
-    ]
-    target_parent_count_minima = [
-        count
-        for bound in target_parent_count_bounds
-        for count in (_optional_int(bound.get("min")),)
-        if count is not None
-    ]
-    target_parent_count_maxima = [
-        count
-        for bound in target_parent_count_bounds
-        for count in (_optional_int(bound.get("max")),)
-        if count is not None
-    ]
+    target_parent_count_range = _first_non_empty_group(
+        [
+            _normalized_range_from_mapping(raw_provenance.get("target_parent_count_range")),
+            _aggregate_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        _normalized_range_from_mapping(item.get("target_parent_count_range"))
+                        for item in invocation_handoff_provenances
+                    )
+                    if bound is not None
+                ]
+            ),
+            _normalized_range_from_mapping(provenance_labels.get("target_parent_count_range")),
+            _normalized_range_from_mapping(review_summary.get("target_parent_count_range")),
+            _aggregate_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        {
+                            "min": item.get("target_parent_count_min"),
+                            "max": item.get("target_parent_count_max"),
+                        }
+                        for item in recipe_dataset_overrides
+                        if "target_parent_count_min" in item or "target_parent_count_max" in item
+                    )
+                    if bound
+                ]
+            ),
+        ]
+    )
     target_parent_fraction_bounds = [
         bound
         for bound in (
@@ -418,23 +634,24 @@ def build_dagzoo_provenance_summary(
             ),
             "teacher_conditional_export": teacher_conditional_export,
             "teacher_conditional_metric_definition": (
-                _optional_string(raw_provenance.get("teacher_conditional_metric_definition"))
-                or ("label-target log loss per test cell" if teacher_conditional_export else None)
+                teacher_conditional_metric_definitions[0]
+                if len(teacher_conditional_metric_definitions) == 1
+                else (
+                    "label-target log loss per test cell"
+                    if teacher_conditional_export
+                    else None
+                )
             ),
             "target_parent_prior": (
                 target_parent_priors[0] if len(target_parent_priors) == 1 else None
             ),
+            "target_parent_mode": (
+                target_parent_modes[0] if len(target_parent_modes) == 1 else None
+            ),
             "target_parent_regimes_present": (
                 target_parent_regimes_present if target_parent_regimes_present else None
             ),
-            "target_parent_count_range": (
-                {
-                    "min": min(target_parent_count_minima),
-                    "max": max(target_parent_count_maxima),
-                }
-                if target_parent_count_minima and target_parent_count_maxima
-                else None
-            ),
+            "target_parent_count_range": target_parent_count_range,
             "target_parent_fraction_range": (
                 {
                     "min": min(target_parent_fraction_minima),

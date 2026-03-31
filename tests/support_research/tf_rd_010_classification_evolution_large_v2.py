@@ -18,10 +18,10 @@ EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_missingness_mnar",
 ]
 EXPECTED_CORPUS_REFS = [
-    "tf_rd_010_dagzoo_medium_control_v2",
-    "tf_rd_010_missingness_mcar_v2",
-    "tf_rd_010_missingness_mar_v2",
-    "tf_rd_010_missingness_mnar_v2",
+    "tf_rd_010_dagzoo_medium_control_v3",
+    "tf_rd_010_missingness_mcar_v3",
+    "tf_rd_010_missingness_mar_v3",
+    "tf_rd_010_missingness_mnar_v3",
 ]
 
 
@@ -125,7 +125,7 @@ def test_tf_rd_010_classification_evolution_large_v2_matrix_records_the_pending_
     assert "159984" in matrix
     assert "`2500` optimizer steps" in matrix
     assert "tf_rd_010_classification_evolution_large_v1" in matrix
-    assert "tf_rd_010_dagzoo_medium_control_v2" in matrix
+    assert "tf_rd_010_dagzoo_medium_control_v3" in matrix
     assert "final_log_loss_at_matched_regime_budget" in matrix
     assert "label-target log loss per test cell" in matrix
 
@@ -144,6 +144,6 @@ def test_tf_rd_010_classification_evolution_large_v2_inspection_resolves_the_250
     assert resolved_model["arch"] == "tabfoundry_sandwich"
     assert resolved_model.get("stage_label") is None
     assert resolved_model["architecture"]["feature_type_encoding"] == "film"
-    assert resolved_data["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v2"
-    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v2")
+    assert resolved_data["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v3"
+    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v3")
     assert resolved_training["schedule_stages"][0]["steps"] == 2500

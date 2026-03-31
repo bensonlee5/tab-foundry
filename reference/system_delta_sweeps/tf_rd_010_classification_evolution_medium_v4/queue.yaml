@@ -6,7 +6,7 @@ rows:
   status: blocked_on_synthetic_adequacy
   rationale: Establish the TF-RD-010 classification control front before reading any missingness harder-front effect on the smaller medium benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010 control corpus (`n_classes_min=2`) against the medium hub manifest.
-  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned medium classification manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned medium classification manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -25,7 +25,7 @@ rows:
   data:
     surface_label: tf_rd_010_dagzoo_medium_control
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -74,7 +74,7 @@ rows:
   status: blocked_on_synthetic_adequacy
   rationale: Test whether moderate MCAR exposure improves robustness before structured missingness is considered on the medium validation pool.
   hypothesis: MCAR may improve label-target log loss and calibration on the evolved sandwich family without adding the stronger structure of MAR or MNAR.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -93,7 +93,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mcar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mcar_v2
+    corpus_ref: tf_rd_010_missingness_mcar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -142,7 +142,7 @@ rows:
   status: blocked_on_synthetic_adequacy
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the evolved benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -161,7 +161,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mar_v2
+    corpus_ref: tf_rd_010_missingness_mar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -210,7 +210,7 @@ rows:
   status: blocked_on_synthetic_adequacy
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same medium benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -229,7 +229,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mnar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mnar_v2
+    corpus_ref: tf_rd_010_missingness_mnar_v3
   preprocessing:
     surface_label: runtime_default
   training:

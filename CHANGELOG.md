@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.7] - 2026-03-31
+
 ### Changed
 
 - User-facing note: corpus materialization now caps CPU dagzoo fixed-layout
@@ -18,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matched-budget final log loss; the older `cell_bpc` / BPC objective remains
   supported for legacy historical reruns but now emits a deprecation warning
   when explicitly requested.
+- User-facing break: persisted corpus records now backfill TF-RD-010 adequacy
+  provenance from checked-in recipes when `dagzoo` handoff manifests omit a
+  top-level `provenance` block, and `dagzoo_provenance` /
+  `dagzoo_provenance_summary` may now include `target_parent_mode` alongside
+  the other factorization and teacher-conditional fields.
+- User-facing note: the blocked TF-RD-010
+  `tf_rd_010_classification_evolution_medium_v4` and
+  `tf_rd_010_classification_evolution_large_v2` sweep rows now point at the
+  factorization-correct `*_v3` corpus family, and the checked-in
+  `resolved_queue.yaml` / `matrix.md` artifacts were regenerated to match.
 
 ## [0.15.6] - 2026-03-31
 
