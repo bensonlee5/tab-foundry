@@ -52,7 +52,7 @@ def test_tf_rd_010_classification_evolution_medium_v4_is_registered_and_medium_v
     assert entry["anchor_run_id"] is None
     assert entry["complexity_level"] == "classification_md"
     assert entry["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     )
     assert entry["control_baseline_id"] == "cls_benchmark_linear_multiclass_medium_v1"
     assert entry["external_benchmarks"] == []
@@ -72,8 +72,9 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert "medium_v3" in notes[0]
-    assert "accumulation/LR calibration pilot" in notes[0]
-    assert any("grad_accum_steps=64" in note for note in notes)
+    assert "batching/LR calibration pilot" in notes[0]
+    assert any("task_batch_size=8" in note for note in notes)
+    assert any("grad_accum_steps=8" in note for note in notes)
     assert any("optimizer.min_lr=1e-5" in note for note in notes)
     assert any("lr_max=1e-3" in note for note in notes)
 
@@ -88,7 +89,7 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert "Execute only this row" in rows[0]["next_action"]
     assert all("Do not execute this row yet" in row["next_action"] for row in rows[1:])
     assert all(
-        any("grad_accum_steps=64" in note for note in row["notes"])
+        any("task_batch_size=8" in note and "grad_accum_steps=8" in note for note in row["notes"])
         for row in rows
     )
     assert all(
@@ -105,9 +106,10 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
     assert all(row["training"]["overrides"]["runtime"]["max_steps"] == 2500 for row in materialized["rows"])
     assert all(
-        row["training"]["overrides"]["runtime"]["grad_accum_steps"] == 64
+        row["training"]["overrides"]["runtime"]["grad_accum_steps"] == 8
         for row in materialized["rows"]
     )
+    assert all(row["training"]["task_batch_size"] == 8 for row in materialized["rows"])
     assert all(
         row["training"]["overrides"]["optimizer"]["min_lr"] == 1.0e-5
         for row in materialized["rows"]
@@ -162,9 +164,9 @@ def test_tf_rd_010_classification_evolution_medium_v4_resolved_queue_captures_ru
     runtime = resolved_surface["runtime"]
     training = resolved_surface["training"]
     assert runtime["grad_clip"] == 0.0
-    assert runtime["grad_accum_steps"] == 64
+    assert runtime["grad_accum_steps"] == 8
     assert runtime["max_steps"] == 2500
-    assert training["task_batch_size"] == 1
+    assert training["task_batch_size"] == 8
     assert training["optimizer_min_lr"] == 1.0e-5
     assert training["schedule_stages"][0]["steps"] == 2500
     assert training["schedule_stages"][0]["lr_max"] == 1.0e-3
@@ -184,7 +186,8 @@ def test_tf_rd_010_classification_evolution_medium_v4_matrix_and_medium_v3_matri
     assert "Sweep status: `ready`" in v4_matrix
     assert "Anchor run id: `null`" in v4_matrix
     assert "Pending trusted rerun: no anchor is registered yet" in v4_matrix
-    assert "grad_accum_steps': 64" in v4_matrix
+    assert "grad_accum_steps': 8" in v4_matrix
+    assert "task_batch_size=8" in v4_matrix
     assert "optimizer.min_lr=1e-5" in v4_matrix
     assert "warmup_ratio=0.10" in v4_matrix
     assert "lr_max=1e-3" in v4_matrix

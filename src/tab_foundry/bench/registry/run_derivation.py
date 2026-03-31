@@ -9,7 +9,7 @@ from typing import Any, Callable, Mapping, cast
 import torch
 
 from tab_foundry.bench.artifacts import load_history
-from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_run_artifact_paths
+from tab_foundry.bench.openml_benchmark import resolve_tab_foundry_run_artifact_paths
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
     _load_training_telemetry,

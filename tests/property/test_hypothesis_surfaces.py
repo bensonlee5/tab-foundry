@@ -7,7 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
-from tab_foundry.bench.nanotabpfn import normalize_benchmark_bundle
+from tab_foundry.bench.openml_benchmark import normalize_benchmark_bundle
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.preprocessing.surface import (
     SUPPORTED_LABEL_MAPPINGS,

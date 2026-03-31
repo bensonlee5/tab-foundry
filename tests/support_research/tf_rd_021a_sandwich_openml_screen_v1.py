@@ -9,7 +9,8 @@ from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SWEEP_ID = "tf_rd_021a_sandwich_nanotabpfn_screen_v1"
+SWEEP_ID = "tf_rd_021a_sandwich_openml_screen_v1"
+HISTORICAL_RUN_ID = "sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1"
 ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
 EXPECTED_ROWS = [
     "delta_tf_rd_021a_sandwich_replay_v1",
@@ -45,7 +46,7 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_is_registered_but_not_active()
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": ["nanotabpfn"],
     }
@@ -119,7 +120,7 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_matches_the_screen_plan() -> N
     assert replay["training"]["prior_dump_batch_size"] == 64
     assert replay["training"]["prior_dump_lr_scale_rule"] == "sqrt"
     assert replay["training"]["overrides"]["runtime"]["max_steps"] == 2500
-    assert replay["run_id"] == "sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1"
+    assert replay["run_id"] == HISTORICAL_RUN_ID
     assert replay["benchmark_metrics"]["final_roc_auc"] == 0.6224489632492666
     assert "underperformed the locked staged anchor" in " ".join(replay["notes"])
 

@@ -7,7 +7,7 @@ from typing import Any, cast
 
 import numpy as np
 
-from tab_foundry.bench.nanotabpfn import curve_summary
+from tab_foundry.bench.openml_benchmark import curve_summary
 
 
 _CI_OVERLAP_NOISE_THRESHOLD = 0.5

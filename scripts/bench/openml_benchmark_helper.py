@@ -15,7 +15,7 @@ def _repo_src_root() -> Path:
 if str(_repo_src_root()) not in sys.path:
     sys.path.insert(0, str(_repo_src_root()))
 
-import tab_foundry.bench.nanotabpfn_helper as helper_module  # noqa: E402
+import tab_foundry.bench.openml_benchmark_helper as helper_module  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:

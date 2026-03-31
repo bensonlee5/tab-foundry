@@ -127,7 +127,7 @@ def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
         anchor_run_id=ANCHOR_RUN_ID,
         parent_sweep_id='input_norm_followup',
         complexity_level='binary_md',
-        benchmark_manifest_path='src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
+        benchmark_manifest_path='src/tab_foundry/bench/openml_binary_medium_v1.json',
         control_baseline_id='cls_benchmark_linear_v2',
         delta_refs=['delta_anchor_activation_trace_baseline', 'delta_shared_feature_norm'],
         index_path=sweeps_root / 'index.yaml',
@@ -4387,7 +4387,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    bundle_path = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'nanotabpfn_openml_binary_medium_v1.json'
+    bundle_path = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'openml_binary_medium_v1.json'
     foreign_checkout_root = tmp_path / 'foreign_checkout'
     foreign_bundle_path = foreign_checkout_root / 'src' / 'tab_foundry' / 'bench' / bundle_path.name
     foreign_bundle_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4462,7 +4462,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_manifest_path': 'src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
+            'benchmark_manifest_path': 'src/tab_foundry/bench/openml_binary_medium_v1.json',
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -4833,7 +4833,7 @@ def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Pat
         queue_row={"model": {}, "data": {}, "preprocessing": {}, "training": {}},
         sweep_meta={
             "control_baseline_id": "cls_benchmark_linear_v2",
-            "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         },
         sweep_id="legacy_sweep",
         anchor_run_id="anchor_v1",

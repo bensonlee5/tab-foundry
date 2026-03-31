@@ -7,7 +7,7 @@ from typing import Any
 
 from openml.tasks import TaskType
 
-from tab_foundry.bench.nanotabpfn import PreparedOpenMLBenchmarkTask
+from tab_foundry.bench.openml_benchmark import PreparedOpenMLBenchmarkTask
 from tab_foundry.bench.openml_bundle.config import (
     OpenMLBenchmarkBundleConfig,
     OpenMLBenchmarkCandidateReportEntry,

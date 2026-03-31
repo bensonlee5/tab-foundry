@@ -1,5 +1,5 @@
 {
-  "name": "nanotabpfn_openml_binary_small",
+  "name": "openml_binary_probe",
   "version": 1,
   "selection": {
     "max_classes": 2,
@@ -11,8 +11,7 @@
   },
   "task_ids": [
     363613,
-    363621,
-    363629
+    363621
   ],
   "tasks": [
     {
@@ -28,13 +27,6 @@
       "n_features": 4,
       "n_rows": 200,
       "task_id": 363621
-    },
-    {
-      "dataset_name": "diabetes",
-      "n_classes": 2,
-      "n_features": 8,
-      "n_rows": 200,
-      "task_id": 363629
     }
   ]
 }

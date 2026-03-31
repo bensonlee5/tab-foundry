@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 import tab_foundry.bench.comparison_runtime as compare_module
-import tab_foundry.bench.nanotabpfn as benchmark_module
+import tab_foundry.bench.openml_benchmark as benchmark_module
 import tab_foundry.cli.bench_compare as compare_cli_module
 from tests.support import manifest_and_dataset_cases as data_cases
 from tests.support.paths import REPO_ROOT
@@ -649,7 +649,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["cwd"] == nanotab_root.resolve()
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
-    assert Path(captured["cmd"][1]) == REPO_ROOT / "scripts" / "bench" / "nanotabpfn_helper.py"
+    assert Path(captured["cmd"][1]) == REPO_ROOT / "scripts" / "bench" / "openml_benchmark_helper.py"
     assert captured["cmd"][captured["cmd"].index("--tab-foundry-src") + 1] == str(REPO_ROOT / "src")
     assert "--tab-realdata-hub-root" not in captured["cmd"]
     assert captured["cmd"][captured["cmd"].index("--eval-every") + 1] == str(
@@ -897,7 +897,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
         helper_calls.append((script_name, cwd))
         helper_commands[script_name] = list(cmd)
         out_path = Path(cmd[cmd.index("--out-path") + 1])
-        if script_name == "nanotabpfn_helper.py":
+        if script_name == "openml_benchmark_helper.py":
             payload = {
                 "seed": 0,
                 "step": 25,
@@ -949,11 +949,11 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     )
 
     assert helper_calls == [
-        ("nanotabpfn_helper.py", nanotab_root.resolve()),
+        ("openml_benchmark_helper.py", nanotab_root.resolve()),
         ("tabiclv2_helper.py", tabicl_root.resolve()),
     ]
-    assert helper_commands["nanotabpfn_helper.py"][
-        helper_commands["nanotabpfn_helper.py"].index("--tab-realdata-hub-root") + 1
+    assert helper_commands["openml_benchmark_helper.py"][
+        helper_commands["openml_benchmark_helper.py"].index("--tab-realdata-hub-root") + 1
     ] == str(hub_root.resolve())
     assert helper_commands["tabiclv2_helper.py"][
         helper_commands["tabiclv2_helper.py"].index("--tab-realdata-hub-root") + 1
@@ -1536,7 +1536,7 @@ def test_run_nanotabpfn_benchmark_falls_back_to_successful_primary_external_benc
 
     def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
         script_name = Path(cmd[1]).name
-        if script_name == "nanotabpfn_helper.py":
+        if script_name == "openml_benchmark_helper.py":
             raise subprocess.CalledProcessError(1, cmd)
         if script_name != "tabiclv2_helper.py":
             raise AssertionError(f"unexpected helper script {script_name!r}")
@@ -2187,18 +2187,18 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
 
 def test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:
     legacy_bundle_path = (
-        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     medium_bundle_path = (
-        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "openml_binary_medium_v1.json"
     )
 
     legacy_bundle = benchmark_module.load_benchmark_bundle(legacy_bundle_path)
     medium_bundle = benchmark_module.load_benchmark_bundle(medium_bundle_path)
 
-    assert legacy_bundle["name"] == "nanotabpfn_openml_binary_small"
+    assert legacy_bundle["name"] == "openml_binary_small"
     assert legacy_bundle["task_ids"] == [363613, 363621, 363629]
-    assert medium_bundle["name"] == "nanotabpfn_openml_binary_medium"
+    assert medium_bundle["name"] == "openml_binary_medium"
     assert len(medium_bundle["task_ids"]) == 10
     assert all(int(task["n_classes"]) == 2 for task in medium_bundle["tasks"])
 
@@ -2211,7 +2211,7 @@ def test_default_benchmark_manifest_path_resolves_to_medium_binary_bundle() -> N
         / "data"
         / "manifests"
         / "bench"
-        / "nanotabpfn_openml_binary_medium_v1"
+        / "openml_binary_medium_v1"
         / "manifest.parquet"
     )
 

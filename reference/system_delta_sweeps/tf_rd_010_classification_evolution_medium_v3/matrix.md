@@ -9,12 +9,12 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v2`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `6963243a231e892f50bfcf537a5a052c960d87bc210b5a84180a9f452a3b0e1d`
+- Resolved queue inputs fingerprint: `aa205566f4cf17475bd41ae0fbb0fcdf26f055162e2bd9f479dfeeb73c84ab11`
 
 ## Locked Surface
 
 - Anchor run id: `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`
-- Benchmark manifest: `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`
+- Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_classification_evolution_v1`
@@ -32,7 +32,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 | benchmark ownership | Not applicable. | `dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests. | This sweep defines the repo-to-repo contract for the first benchmark-evolution lane. |
 | classification head | Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes. | Direct multiclass head with `many_class_base=10`. | Treat this as a bounded head/output evolution, not a staged hierarchical many-class port. |
 | summary bandwidth | Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`. | The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`. | The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor. |
-| validation surface | Not applicable. | Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`, materialized from `openml_classification_medium_v1.json`. | Keep the smaller hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface. |
+| validation surface | Not applicable. | Hub-backed medium classification manifest under local benchmark-manifest id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`. | Keep the smaller hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface. |
 
 ## Queue Summary
 
@@ -79,7 +79,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - This row remains the intended TF-RD-010 medium reference for missingness and class-imbalance reporting on the medium validation pool.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR pilot.
+  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR pilot.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
@@ -120,7 +120,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR pilot.
+  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR pilot.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
@@ -161,7 +161,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR pilot.
+  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR pilot.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
@@ -202,7 +202,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR pilot.
+  - `tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR pilot.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_missingness_mnar/result_card.md`
 - Benchmark metrics: pending

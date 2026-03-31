@@ -1,10 +1,10 @@
 schema: tab-foundry-system-delta-sweep-v1
-sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+sweep_id: tf_rd_021a_sandwich_openml_screen_v1
 parent_sweep_id: null
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 external_benchmarks:
 - nanotabpfn
@@ -23,7 +23,7 @@ anchor_surface:
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178).
   - The locked anchor is benchmark registry run
     `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
-    on `nanotabpfn_openml_binary_medium_v1`; that staged row-cls prior surface
+    on `openml_binary_medium_v1`; that staged row-cls prior surface
     remains the incumbent benchmark comparator while sandwich evidence is still
     being collected.
   - Keep the nanoTabPFN medium bundle, `prior_linear_warmup_decay` batch64-sqrt

@@ -49,7 +49,7 @@ def run_nanotabpfn_helper(
             "run `tab-foundry bench env bootstrap` first"
         ) from exc
     from tab_foundry.bench.artifacts import write_jsonl
-    from tab_foundry.bench.nanotabpfn import (
+    from tab_foundry.bench.openml_benchmark import (
         dataset_brier_score_metrics,
         dataset_log_loss_metrics,
         dataset_roc_auc_metrics,

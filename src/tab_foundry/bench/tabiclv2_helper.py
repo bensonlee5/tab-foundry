@@ -85,7 +85,7 @@ def run_tabiclv2_helper(
             "run `tab-foundry bench env bootstrap` first"
         ) from exc
     from tab_foundry.bench.artifacts import write_jsonl
-    from tab_foundry.bench.nanotabpfn.metrics import (
+    from tab_foundry.bench.openml_benchmark.metrics import (
         dataset_avg_pinball_loss_metrics,
         dataset_brier_score_metrics,
         dataset_crps_metrics,

@@ -43,7 +43,7 @@ def test_tf_rd_010_classification_evolution_large_v2_is_registered() -> None:
     assert entry["anchor_run_id"] is None
     assert entry["complexity_level"] == "classification_lg"
     assert entry["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     )
     assert entry["control_baseline_id"] == "cls_benchmark_linear_multiclass_large_v1"
     assert entry["external_benchmarks"] == []
@@ -60,7 +60,7 @@ def test_tf_rd_010_classification_evolution_large_v2_records_the_active_2500_ste
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     )
     assert sweep["control_baseline_id"] == "cls_benchmark_linear_multiclass_large_v1"
     assert sweep["external_benchmarks"] == []

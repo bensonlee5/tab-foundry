@@ -14,7 +14,7 @@ from tab_foundry.bench.iris import (
     IrisEvalSummary as IrisEvalSummary,
     evaluate_iris_checkpoint,
 )
-from tab_foundry.bench.nanotabpfn import resolve_device
+from tab_foundry.bench.openml_benchmark import resolve_device
 from tab_foundry.bench.smoke_common import (
     build_cls_smoke_eval_config,
     build_cls_smoke_train_config,

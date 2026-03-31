@@ -211,7 +211,7 @@ def _prepare_run(
     manifest_path = repo_root / "data" / "manifests" / "default.parquet"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
-    bundle_path = repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+    bundle_path = repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     bundle_path.parent.mkdir(parents=True, exist_ok=True)
     bundle_path.write_text("{}\n", encoding="utf-8")
 
@@ -232,7 +232,7 @@ def _prepare_run(
     _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        source_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        source_bundle_path="src/tab_foundry/bench/openml_benchmark_v1.json",
         final_roc_auc=final_roc_auc,
         final_log_loss=final_log_loss,
         model_arch=arch,
@@ -324,7 +324,7 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["surface_labels"]["model"] == "nano_exact"
     assert "training" not in record["surface_labels"]
     assert record["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+        "src/tab_foundry/bench/openml_benchmark_v1.json"
     )
     assert record["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.42)
 
@@ -915,7 +915,7 @@ def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> No
     run = registry["runs"]["01_nano_exact_md_prior_parity_fix_binary_medium_v1"]
 
     assert run["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+        "src/tab_foundry/bench/openml_binary_medium_v1.json"
     )
     assert run["lineage"]["control_baseline_id"] == "cls_benchmark_linear_v2"
     assert run["artifacts"]["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"

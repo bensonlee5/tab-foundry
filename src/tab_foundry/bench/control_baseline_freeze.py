@@ -9,7 +9,7 @@ import torch
 
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
-from tab_foundry.bench.nanotabpfn import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.openml_benchmark import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
 from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
 from tab_foundry.registry.storage import (

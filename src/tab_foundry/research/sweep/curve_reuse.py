@@ -17,7 +17,7 @@ from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS,
 )
-from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
+from tab_foundry.bench.openml_benchmark import benchmark_host_fingerprint, resolve_device
 
 from .artifacts import ExecutionPaths
 from .device_policy import resolve_sweep_metadata_device

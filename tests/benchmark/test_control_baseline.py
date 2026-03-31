@@ -190,7 +190,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -204,7 +204,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_benchmark_v1.json",
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
 
@@ -226,7 +226,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
         == "outputs/control_baselines/cls_benchmark_linear_v1/benchmark/comparison_summary.json"
     )
     assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+        "src/tab_foundry/bench/openml_benchmark_v1.json"
     )
     registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
     assert registry["baselines"]["cls_benchmark_linear_v1"]["seed_set"] == [7]
@@ -242,7 +242,7 @@ def test_freeze_control_baseline_resolves_manifest_from_corpus_backed_checkpoint
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -258,7 +258,7 @@ def test_freeze_control_baseline_resolves_manifest_from_corpus_backed_checkpoint
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_benchmark_v1.json",
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
 
@@ -351,7 +351,7 @@ def test_freeze_control_baseline_upserts_existing_baseline(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -365,7 +365,7 @@ def test_freeze_control_baseline_upserts_existing_baseline(
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_benchmark_v1.json",
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
     _ = control_baseline_module.freeze_control_baseline(
@@ -380,7 +380,7 @@ def test_freeze_control_baseline_upserts_existing_baseline(
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_benchmark_v1.json",
         final_roc_auc=0.86,
     )
     _ = control_baseline_module.freeze_control_baseline(
@@ -417,7 +417,7 @@ def test_freeze_control_baseline_validates_summary_run_dir(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -430,7 +430,7 @@ def test_freeze_control_baseline_validates_summary_run_dir(
     _ = _write_comparison_summary(
         summary_path,
         run_dir=other_run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_benchmark_v1.json",
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
 
@@ -457,7 +457,7 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_binary_medium_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -470,7 +470,7 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         include_diagnostics=True,
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
@@ -486,7 +486,7 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
     )
 
     assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+        "src/tab_foundry/bench/openml_binary_medium_v1.json"
     )
     assert frozen["baseline"]["seed_set"] == [11]
     assert frozen["baseline"]["tab_foundry_metrics"]["best_roc_auc"] == pytest.approx(0.81)
@@ -504,7 +504,7 @@ def test_freeze_control_baseline_uses_best_step_checkpoint_when_best_pt_is_missi
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
     benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+        repo_root / "src" / "tab_foundry" / "bench" / "openml_binary_medium_v1.json"
     )
     benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
@@ -540,7 +540,7 @@ def test_freeze_control_baseline_uses_best_step_checkpoint_when_best_pt_is_missi
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_bundle_source_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
     )
     monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
 
@@ -569,7 +569,7 @@ def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_regist
     manifest_path = outside_root / "manifest.parquet"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(b"manifest")
-    benchmark_bundle_path = outside_root / "nanotabpfn_openml_binary_medium_v1.json"
+    benchmark_bundle_path = outside_root / "openml_binary_medium_v1.json"
     benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
     run_dir = outside_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v2" / "train"
     _ = _write_checkpoint(
@@ -610,12 +610,12 @@ def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None
 
     assert {"cls_benchmark_linear_v1", "cls_benchmark_linear_v2"} <= set(registry["baselines"])
     assert registry["baselines"]["cls_benchmark_linear_v1"]["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+        "src/tab_foundry/bench/openml_benchmark_v1.json"
     )
     assert "final_log_loss" not in registry["baselines"]["cls_benchmark_linear_v1"]["tab_foundry_metrics"]
     v2 = registry["baselines"]["cls_benchmark_linear_v2"]
     assert v2["benchmark_bundle"]["source_path"] == (
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+        "src/tab_foundry/bench/openml_binary_medium_v1.json"
     )
     assert v2["experiment"] == "cls_benchmark_staged_prior"
     assert v2["config_profile"] == "cls_benchmark_staged_prior"

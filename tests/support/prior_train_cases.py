@@ -14,7 +14,7 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_module
-from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
+from tab_foundry.bench.openml_benchmark import evaluate_tab_foundry_run
 import tab_foundry.cli.train_prior as train_prior_cli_module
 import tab_foundry.training.prior.loop as prior_loop_module
 import tab_foundry.training.prior_train as prior_train_module

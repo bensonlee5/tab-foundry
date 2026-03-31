@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v1/queue.yam
 ## Locked Surface
 
 - Anchor run id: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged_prior`
 - Training config profile: `cls_benchmark_staged_prior`

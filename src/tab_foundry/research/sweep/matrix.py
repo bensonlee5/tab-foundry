@@ -34,6 +34,31 @@ def _optional_float(value: Any) -> float | None:
     return float(value)
 
 
+def _render_locked_benchmark_surface(value: Any) -> tuple[str, str]:
+    benchmark_surface_path = str(value)
+    if benchmark_surface_path.endswith(".json"):
+        return "Benchmark bundle", f"`{benchmark_surface_path}`"
+    manifest_prefix = "data/manifests/bench/"
+    manifest_suffix = "/manifest.parquet"
+    if benchmark_surface_path.startswith(manifest_prefix) and benchmark_surface_path.endswith(
+        manifest_suffix
+    ):
+        manifest_id = benchmark_surface_path[len(manifest_prefix) : -len(manifest_suffix)]
+        return "Benchmark manifest", f"local benchmark-manifest id `{manifest_id}`"
+    return "Benchmark manifest", f"`{benchmark_surface_path}`"
+
+
+def _tracked_matrix_path(path_text: str | None) -> str | None:
+    if path_text is None:
+        return None
+    candidate = Path(path_text)
+    if not candidate.is_absolute():
+        candidate = repo_root() / candidate
+    if not candidate.exists():
+        return None
+    return path_text
+
+
 def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, Any]:
     rendered: dict[str, Any] = {}
     module_overrides = model_payload.get("module_overrides")
@@ -293,7 +318,7 @@ def render_system_delta_matrix(
         metadata.get("canonical_queue_path", queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
     )
     raw_resolved_queue_path = queue.get("canonical_resolved_queue_path")
-    canonical_resolved_queue_path = (
+    canonical_resolved_queue_path = _tracked_matrix_path(
         str(raw_resolved_queue_path)
         if isinstance(raw_resolved_queue_path, str) and raw_resolved_queue_path.strip()
         else None
@@ -332,9 +357,10 @@ def render_system_delta_matrix(
     lines.append("## Locked Surface")
     lines.append("")
     lines.append(f"- Anchor run id: `{anchor_run_id if anchor_run_id is not None else 'null'}`")
-    benchmark_surface_path = str(metadata["benchmark_manifest_path"])
-    benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
-    lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
+    benchmark_surface_label, benchmark_surface_text = _render_locked_benchmark_surface(
+        metadata["benchmark_manifest_path"]
+    )
+    lines.append(f"- {benchmark_surface_label}: {benchmark_surface_text}")
     lines.append(f"- Control baseline id: `{metadata['control_baseline_id']}`")
     raw_external_benchmarks = metadata.get("external_benchmarks", [])
     external_benchmarks = (

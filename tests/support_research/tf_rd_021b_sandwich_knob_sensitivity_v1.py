@@ -45,11 +45,11 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_is_registered_but_not_active() 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
-        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_openml_screen_v1",
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": [],
     }
@@ -61,7 +61,7 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
-    assert sweep["parent_sweep_id"] == "tf_rd_021a_sandwich_nanotabpfn_screen_v1"
+    assert sweep["parent_sweep_id"] == "tf_rd_021a_sandwich_openml_screen_v1"
     assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert_training_surface_semantics(

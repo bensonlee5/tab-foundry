@@ -30,7 +30,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 8
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -45,14 +45,14 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
       runtime:
-        grad_accum_steps: 64
+        grad_accum_steps: 8
       optimizer:
         min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest from `openml_classification_medium_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline before treating any row outcome as a promotion or defer decision.
   - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
-  next_action: Execute only this row under issue `#205` as the active medium accumulation/LR calibration pilot, then compare its drift and best-step timing directly against medium_v3 row 1 before authorizing rows 2-4.
+  next_action: Execute only this row under issue `#205` as the active medium batching/LR calibration pilot, then compare its drift and best-step timing directly against medium_v3 row 1 before authorizing rows 2-4.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -60,7 +60,7 @@ rows:
   - This row remains the intended TF-RD-010 medium reference for missingness and class-imbalance reporting on the medium validation pool.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - '`tf_rd_010_classification_evolution_medium_v4` is the active accumulation/LR calibration pilot: `task_batch_size=1`, `grad_accum_steps=64`, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - '`tf_rd_010_classification_evolution_medium_v4` is the active batching/LR calibration pilot: exact-shape-compatible manifest tasks are batched with `task_batch_size=8`, `grad_accum_steps=8`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.'
   - This row is the only approved `medium_v4` execution until the pilot is reviewed.
   run_id: null
@@ -97,7 +97,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 8
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -112,14 +112,14 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
       runtime:
-        grad_accum_steps: 64
+        grad_accum_steps: 8
       optimizer:
         min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check for any kept missingness front.
-  next_action: Do not execute this row yet; keep it gated behind the row 1 accumulation/LR pilot review under issue `#205`.
+  next_action: Do not execute this row yet; keep it gated behind the row 1 batching/LR pilot review under issue `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -127,7 +127,7 @@ rows:
   - 'The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - '`tf_rd_010_classification_evolution_medium_v4` is the active accumulation/LR calibration pilot: `task_batch_size=1`, `grad_accum_steps=64`, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - '`tf_rd_010_classification_evolution_medium_v4` is the active batching/LR calibration pilot: exact-shape-compatible manifest tasks are batched with `task_batch_size=8`, `grad_accum_steps=8`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.'
   - This row remains gated behind the row 1 `medium_v4` pilot review.
   run_id: null
@@ -164,7 +164,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 8
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -179,14 +179,14 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
       runtime:
-        grad_accum_steps: 64
+        grad_accum_steps: 8
       optimizer:
         min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check for any kept missingness front.
-  next_action: Do not execute this row yet; keep it gated behind the row 1 accumulation/LR pilot review under issue `#205`.
+  next_action: Do not execute this row yet; keep it gated behind the row 1 batching/LR pilot review under issue `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -194,7 +194,7 @@ rows:
   - 'The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - '`tf_rd_010_classification_evolution_medium_v4` is the active accumulation/LR calibration pilot: `task_batch_size=1`, `grad_accum_steps=64`, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - '`tf_rd_010_classification_evolution_medium_v4` is the active batching/LR calibration pilot: exact-shape-compatible manifest tasks are batched with `task_batch_size=8`, `grad_accum_steps=8`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.'
   - This row remains gated behind the row 1 `medium_v4` pilot review.
   run_id: null
@@ -231,7 +231,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 8
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -246,14 +246,14 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
       runtime:
-        grad_accum_steps: 64
+        grad_accum_steps: 8
       optimizer:
         min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
   - Use the larger hub-backed validation rung later as the main transfer check for any kept missingness front.
-  next_action: Do not execute this row yet; keep it gated behind the row 1 accumulation/LR pilot review under issue `#205`.
+  next_action: Do not execute this row yet; keep it gated behind the row 1 batching/LR pilot review under issue `#205`.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -261,7 +261,7 @@ rows:
   - 'The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
   - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
-  - '`tf_rd_010_classification_evolution_medium_v4` is the active accumulation/LR calibration pilot: `task_batch_size=1`, `grad_accum_steps=64`, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - '`tf_rd_010_classification_evolution_medium_v4` is the active batching/LR calibration pilot: exact-shape-compatible manifest tasks are batched with `task_batch_size=8`, `grad_accum_steps=8`, `64` tasks per optimizer update, `runtime.grad_clip=0.0`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping evidence only: rows 1-3 reached very early best benchmark steps and then drifted badly, and row 4 was intentionally stopped rather than extended as canonical evidence.'
   - This row remains gated behind the row 1 `medium_v4` pilot review.
   run_id: null

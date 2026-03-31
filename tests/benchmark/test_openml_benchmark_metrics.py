@@ -11,8 +11,8 @@ import pytest
 from tab_realdata_hub.manifest import build_manifest
 
 from tab_foundry.bench.artifacts import load_jsonl
-import tab_foundry.bench.nanotabpfn as benchmark_module
-import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
+import tab_foundry.bench.openml_benchmark as benchmark_module
+import tab_foundry.bench.openml_benchmark.metrics as benchmark_metrics_module
 import tab_foundry.bench.tabiclv2_helper as tabiclv2_helper_module
 from tests.support import manifest_and_dataset_cases as manifest_cases
 
@@ -394,8 +394,8 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
 
     manifest_path = _write_helper_manifest(tmp_path)
     for module_name in list(sys.modules):
-        if module_name == "tab_foundry.bench.nanotabpfn" or module_name.startswith(
-            "tab_foundry.bench.nanotabpfn."
+        if module_name == "tab_foundry.bench.openml_benchmark" or module_name.startswith(
+            "tab_foundry.bench.openml_benchmark."
         ):
             monkeypatch.delitem(sys.modules, module_name, raising=False)
 

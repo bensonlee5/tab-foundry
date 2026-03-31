@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_classifier
-from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
+from tab_foundry.bench.openml_benchmark import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.outputs import CellLikelihoodOutput, ClassificationOutput
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays

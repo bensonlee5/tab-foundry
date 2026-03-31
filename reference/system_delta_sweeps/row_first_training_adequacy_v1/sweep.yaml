@@ -4,7 +4,7 @@ parent_sweep_id: tf_rd_013_dagzoo_size_ladder_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_corpus
 training_config_profile: cls_benchmark_staged_corpus
@@ -16,7 +16,7 @@ upstream_reference:
 anchor_surface:
   notes:
     - This sweep reuses the promoted TF-RD-013 medium corpus rung as the canonical TF-RD-018 data surface for the settled `row_cls + qass + no tfcol` anchor.
-    - The benchmark-facing control bundle for this ladder is `nanotabpfn_openml_binary_medium`, so no queue metadata should keep the old large-bundle framing.
+    - The benchmark-facing control bundle for this ladder is `openml_binary_medium`, so no queue metadata should keep the old large-bundle framing.
     - The first ladder is manifest-backed dataset batching, not optimizer-family-first. Keep the model, preprocessing, optimizer family, and warmup-decay family fixed while testing `training.task_batch_size`.
     - Run `task_batch_size=4` and `task_batch_size=8` unconditionally. Treat `task_batch_size=16` and `task_batch_size=32` as gated follow-ups that stay blocked unless the previous rung finishes in `<=900s`, avoids OOM, and keeps singleton fallback at `<=10%` of updates.
     - Stop the ladder once a rung exceeds `1800s`, hits OOM, or falls back to singleton for more than `10%` of updates.
@@ -57,7 +57,7 @@ anchor_surface:
       interpretation: Head changes alter the task contract and should be interpreted separately from shared trunk changes.
     - dimension: training data surface
       upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.
-      anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`.
+      anchor: Benchmark bundle `openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`.
       interpretation: Bundle and training-data changes are first-class sweep rows and should not be inherited from parent-sweep prose.
     - dimension: preprocessing
       upstream: Notebook preprocessing inside the benchmark helper.

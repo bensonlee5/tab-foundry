@@ -17,6 +17,8 @@ from .dataset_common import (
 
 
 _LOG_LOSS_EPS = 1.0e-15
+_BINARY_CLASS_COUNT = 2
+_MATRIX_NDIM = 2
 _PICP_CENTRAL_COVERAGE = 0.90
 _PICP_LOWER_QUANTILE = (1.0 - _PICP_CENTRAL_COVERAGE) / 2.0
 _PICP_UPPER_QUANTILE = 1.0 - _PICP_LOWER_QUANTILE
@@ -96,7 +98,9 @@ def evaluate_classifier(
                 context=f"benchmark classifier outputs dataset={dataset_name!r}",
             )
             roc_auc_probabilities: np.ndarray = (
-                probability_matrix[:, 1] if probability_matrix.shape[1] == 2 else probability_matrix
+                probability_matrix[:, 1]
+                if probability_matrix.shape[1] == _BINARY_CLASS_COUNT
+                else probability_matrix
             )
             metrics[f"{dataset_name}/ROC AUC"] = float(
                 roc_auc_score(target_array, roc_auc_probabilities, multi_class="ovr")
@@ -240,7 +244,7 @@ def _normalize_classification_probabilities(probabilities: np.ndarray) -> np.nda
     if raw.ndim == 1:
         positive = np.clip(raw, _LOG_LOSS_EPS, 1.0 - _LOG_LOSS_EPS)
         return np.stack([1.0 - positive, positive], axis=1)
-    if raw.ndim != 2 or raw.shape[1] <= 0:
+    if raw.ndim != _MATRIX_NDIM or raw.shape[1] <= 0:
         raise RuntimeError(
             "predict_proba must return a 1D probability vector or a 2D probability matrix"
         )
@@ -311,7 +315,7 @@ def _normalize_quantile_predictions(
 ) -> tuple[np.ndarray, np.ndarray]:
     normalized_quantiles = np.asarray(quantiles, dtype=np.float64)
     levels = np.asarray(quantile_levels, dtype=np.float64).reshape(-1)
-    if normalized_quantiles.ndim != 2:
+    if normalized_quantiles.ndim != _MATRIX_NDIM:
         raise RuntimeError("regressor quantiles must be a 2D matrix")
     if levels.ndim != 1 or levels.size != normalized_quantiles.shape[1]:
         raise RuntimeError("regressor quantile levels must be a 1D vector aligned with quantiles")

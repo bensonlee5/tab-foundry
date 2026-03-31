@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_none_follow
 ## Locked Surface
 
 - Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
 - Anchor metrics: final log loss `0.3972`, final Brier score `0.1307`, best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
@@ -31,7 +31,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | row readout | Target-column readout from the final cell tensor. | Row-CLS pooling path. | Row-pool changes alter how the table summary is extracted and should be isolated from context changes. |
 | context encoder | None on the upstream direct path. | None on the anchor path. | Context encoding remains absent; later context rows will change both depth and label-flow semantics. |
 | prediction head | Direct binary logits head. | Direct binary logits head. | The prediction head remains on the narrow upstream-style binary path. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data surface label `anchor_manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `openml_binary_medium` (10 tasks) with data surface label `anchor_manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_linear_warmup_decay`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
 

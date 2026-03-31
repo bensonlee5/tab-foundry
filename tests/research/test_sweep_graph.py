@@ -328,7 +328,7 @@ def test_render_sweep_graphs_respects_non_default_sweep_training_experiment(
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
         complexity_level="binary_md",
-        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_manifest_path="src/tab_foundry/bench/openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         training_experiment="cls_benchmark_linear_simple",
         delta_refs=["delta_anchor_activation_trace_baseline"],

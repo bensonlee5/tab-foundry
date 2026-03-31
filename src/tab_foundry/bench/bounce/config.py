@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from tab_foundry.bench.nanotabpfn.curves import (
+from tab_foundry.bench.openml_benchmark.curves import (
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
 )

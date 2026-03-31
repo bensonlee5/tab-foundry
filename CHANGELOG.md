@@ -914,7 +914,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added OpenML discovery mode to the benchmark-bundle builder, including direct task-list filtering, one-per-dataset deduping with `10-fold Crossvalidation` preference, validation-time rejection reporting, and CLI controls for `--discover-from-openml`, `--min-instances`, and `--min-task-count`.
 
-- Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
+- Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
 
 ### Changed
 
@@ -1169,7 +1169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reporting `true`.
 
 - Mainline bounce diagnosis no longer defaults to the larger
-  `nanotabpfn_openml_binary_large_v1.json` confirmation bundle because that
+  `openml_binary_large_v1.json` confirmation bundle because that
   bundle permits missing-valued inputs. The default diagnosis path now stays on
   the primary no-missing bundle unless a separate confirmation bundle is passed
   explicitly.
@@ -1187,7 +1187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the summary.
 
 - Added a repo-tracked large binary confirmation benchmark bundle for diagnosis
-  work under `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
+  work under `src/tab_foundry/bench/openml_binary_large_v1.json`.
   User-facing note: this bundle intentionally relaxes the medium bundle's
   `max_features` and `max_missing_pct` filters to `20` and `5.0` so the pinned
   TabArena source yields a meaningfully larger confirmation surface.
@@ -1352,7 +1352,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `binary_expanded_v1` source for the canonical medium binary surface.
 
 - Added the repo-tracked
-  `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json` bundle and
+  `src/tab_foundry/bench/openml_binary_medium_v1.json` bundle and
   changed `default_benchmark_bundle_path()` to return that 10-task binary
   surface by default.
 
@@ -1361,8 +1361,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   historical `v1` registry entry.
 
 - User-facing benchmark surface break: the canonical benchmark bundle path now
-  defaults to `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
-  instead of `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`; the
+  defaults to `src/tab_foundry/bench/openml_binary_medium_v1.json`
+  instead of `src/tab_foundry/bench/openml_benchmark_v1.json`; the
   canonical comparison surface therefore changes, and new benchmark results are
   not directly comparable to historical `v1` entries unless the bundle path and
   control-baseline id are matched explicitly.
@@ -1426,7 +1426,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo-tracked non-default OpenML bundle while keeping the binary 3-task bundle
   as the default compare path.
 - Added `scripts/build_openml_benchmark_bundle.py` plus the repo-tracked
-  `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
+  `src/tab_foundry/bench/openml_classification_small_v1.json`
   companion bundle, which widens the nanoTabPFN notebook's TabArena v0.1 task
   set from binary-only to small multiclass without changing the other bundle
   selection thresholds or runtime drift-check contract.
@@ -1519,7 +1519,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Pinned the canonical nanoTabPFN/OpenML benchmark bundle in
-  `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json` and made the
+  `src/tab_foundry/bench/openml_benchmark_v1.json` and made the
   benchmark load path fail fast on selection-threshold, task-list, and
   task-metadata drift.
 - Updated benchmark comparison runs so `benchmark_tasks.json` now persists the

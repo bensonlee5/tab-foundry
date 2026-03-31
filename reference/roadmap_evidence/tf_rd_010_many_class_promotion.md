@@ -67,8 +67,8 @@ This is the canonical long-form evidence note for
   the right long-term boundary
 - medium and large validation manifests now live under the local
   benchmark-manifest output root, with the legacy local output ids
-  `nanotabpfn_openml_classification_medium_v1` and
-  `nanotabpfn_openml_classification_large_v1`
+  `openml_classification_medium_v1` and
+  `openml_classification_large_v1`
 - those manifests are materialized from
   `tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json`
   and
@@ -139,7 +139,7 @@ This is the canonical long-form evidence note for
 
 - the active TF-RD-010 medium successor pilot under
   [#205](https://github.com/bensonlee5/tab-foundry/issues/205) still needs to
-  establish whether the `medium_v4` accumulation/LR patch removes the severe
+  establish whether the `medium_v4` batching/LR patch removes the severe
   early-best-step drift seen in `medium_v3` before any canonical medium-rung
   evidence is recorded on the shared `tf_rd_010_*_v2` corpora and expanded
   one-epoch `2500`-step synthetic contract

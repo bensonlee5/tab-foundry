@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_020_harder_dagzo
 ## Locked Surface
 
 - Anchor run id: `sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`

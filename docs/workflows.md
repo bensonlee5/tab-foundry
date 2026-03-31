@@ -256,15 +256,15 @@ tab-foundry bench compare \
 ```
 
 The canonical medium-bundle surface is
-`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`. The canonical
+`src/tab_foundry/bench/openml_binary_medium_v1.json`. The canonical
 frozen control baseline id is `cls_benchmark_linear_v2`.
 
 Materialize a repo-tracked bundle into a local benchmark manifest with:
 
 ```bash
 tab-foundry bench materialize-openml-bundle \
-  --bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
-  --out-root data/manifests/bench/nanotabpfn_openml_binary_medium_v1
+  --bundle-path src/tab_foundry/bench/openml_binary_medium_v1.json \
+  --out-root data/manifests/bench/openml_binary_medium_v1
 ```
 
 The checked-in `cls_benchmark_linear_v2` entry freezes the prior-trained staged

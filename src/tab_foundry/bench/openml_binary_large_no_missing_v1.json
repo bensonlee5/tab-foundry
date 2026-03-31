@@ -1,5 +1,5 @@
 {
-  "name": "nanotabpfn_openml_binary_large_no_missing",
+  "name": "openml_binary_large_no_missing",
   "selection": {
     "max_classes": 2,
     "max_features": 50,

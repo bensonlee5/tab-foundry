@@ -4,7 +4,7 @@ parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
 status: superseded
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
-benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_classification_evolution_v1
@@ -19,7 +19,7 @@ anchor_surface:
   - This TF-RD-010 medium successor sweep preserves the first no-clipping rerun evidence
     for the expanded one-epoch 2500-step regime, but rows 1-3 hit very early best
     benchmark steps and then drifted badly. Row 4 was intentionally stopped, and
-    `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR
+    `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot path.
   - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context
     only rather than active execution evidence.
@@ -52,7 +52,7 @@ anchor_surface:
     no longer the active execution path for promotion or defer evidence.
   - Keep the benchmark contract fixed while treating this package as historical
     overfit evidence only; fresh medium evidence now flows through the `medium_v4`
-    accumulation/LR pilot on the same corrected sandwich surface.
+    batching/LR pilot on the same corrected sandwich surface.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
@@ -73,8 +73,8 @@ anchor_surface:
       directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
-    anchor: Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`,
-      materialized from `openml_classification_medium_v1.json`.
+    anchor: Hub-backed medium classification manifest under local benchmark-manifest
+      id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`.
     interpretation: Keep the smaller hub-backed classification validation rung fixed
       while the synthetic training front reruns on the corrected sandwich and training
       surface.

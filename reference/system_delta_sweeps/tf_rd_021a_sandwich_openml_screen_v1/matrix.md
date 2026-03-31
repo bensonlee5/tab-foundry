@@ -1,18 +1,20 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_021a_sandwich_nanotabpfn_screen_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_021a_sandwich_openml_screen_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_021a_sandwich_openml_screen_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
 
 ## Sweep
 
-- Sweep id: `tf_rd_021a_sandwich_nanotabpfn_screen_v1`
+- Sweep id: `tf_rd_021a_sandwich_openml_screen_v1`
 - Sweep status: `completed`
 - Parent sweep id: `None`
 - Complexity level: `binary_md`
+- Resolved queue path: `reference/system_delta_sweeps/tf_rd_021a_sandwich_openml_screen_v1/resolved_queue.yaml`
+- Resolved queue inputs fingerprint: `093d974072eba8ad6c372c1781d4d853898f33b37b23a0cf16f4efe0c09f7e4d`
 
 ## Locked Surface
 
 - Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_sandwich_prior`
@@ -58,7 +60,9 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
 - Upstream delta: Perceiver-style latent bottlenecks motivate treating latent count as an explicit capacity knob, but this replay row is repo-local.
 - Anchor delta: Keep the nanoTabPFN medium bundle, `prior_linear_warmup_decay` batch64-sqrt recipe, and small-class classification contract fixed, then swap the staged row-cls prior anchor for the current repeated-input sandwich baseline.
 - Expected effect: Establish one local sandwich benchmark reference on the locked batch64-sqrt prior surface before latent-only and width follow-up rows are interpreted.
-- Effective labels: model=`cls_benchmark_sandwich_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Resolved surface fingerprint: `00ecef9edd3468c699f82dedf6a9b4b4048625b226723313c548f88ca7fa28a9`
+- Resolved runtime surface: `{'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': False}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 96, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 48, 'sandwich_layers': 8, 'sandwich_heads': 8, 'sandwich_ff_expansion': 2}`
 - Parameter adequacy plan:
   - Run this row first so the sandwich screen has one explicit local baseline on the benchmark prior surface.
@@ -77,7 +81,7 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
   - Canonical rerun registered as `sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_openml_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/result_card.md`
 - Registered run: `sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1` with final log loss `0.5549`, delta final log loss `+0.1577`, final Brier score `0.3774`, delta final Brier score `+0.1159`, best ROC AUC `0.6056`, final ROC AUC `0.6224`, final-minus-best `+0.0169`, delta final ROC AUC `-0.1410`, delta drift `+0.0169`, delta final training time `+353.5s`
 
 ### 2. `delta_tf_rd_021a_sandwich_latents24_v1`
@@ -92,7 +96,9 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
 - Upstream delta: Perceiver-style models often trade latent count against compute and fidelity; this row is the lower-capacity bracket for the repo-local sandwich screen.
 - Anchor delta: Keep row `01` fixed and change only `sandwich_latents` from `48` to `24`.
 - Expected effect: Fewer latents may cut training cost if the repeated-input sandwich is overprovisioned, but could reduce fit on the prior benchmark.
-- Effective labels: model=`cls_benchmark_sandwich_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Resolved surface fingerprint: `64571f218c789b64db3c30037a91fffafde965726a226f7b70bdcfe2bc940277`
+- Resolved runtime surface: `{'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': False}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 96, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 8, 'sandwich_heads': 8, 'sandwich_ff_expansion': 2}`
 - Parameter adequacy plan:
   - Run after the sandwich replay as the lower latent-count bracket.
@@ -108,7 +114,7 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
   - Treat this as abandoned first-pass backlog evidence, not as a live compact-model discriminator.
   - The canonical row `01` replay closed the sweep before latent-count follow-up because the architecture boundary looked more limiting than latent count.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_latents24_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_openml_screen_v1/delta_tf_rd_021a_sandwich_latents24_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 3. `delta_tf_rd_021a_sandwich_latents96_v1`
@@ -123,7 +129,9 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
 - Upstream delta: Perceiver-style models often improve fidelity by enlarging the latent bank; this row is the upper latent bracket for the repo-local sandwich screen.
 - Anchor delta: Keep row `01` fixed and change only `sandwich_latents` from `48` to `96`.
 - Expected effect: More latents may improve fit if the current sandwich replay is memory-bottlenecked, though runtime and VRAM will increase.
-- Effective labels: model=`cls_benchmark_sandwich_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Resolved surface fingerprint: `e9a9597dddcdc832e886a4b45f89036eaca8b7349c16d1eef5d549866c3089d4`
+- Resolved runtime surface: `{'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': False}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 96, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 96, 'sandwich_layers': 8, 'sandwich_heads': 8, 'sandwich_ff_expansion': 2}`
 - Parameter adequacy plan:
   - Run after the replay and the low-latent row to bracket the first latent-count read.
@@ -139,7 +147,7 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
   - Treat this as abandoned first-pass backlog evidence, not as an active width-follow-up gate.
   - Use runtime and any later local VRAM observation only as guardrails if this row is ever revived under successor-architecture work.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_latents96_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_openml_screen_v1/delta_tf_rd_021a_sandwich_latents96_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 4. `delta_tf_rd_021a_sandwich_width128_latents48_v1`
@@ -154,7 +162,9 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
 - Upstream delta: Perceiver-style width changes alter latent-channel capacity and attention projection width; this is the lower width follow-up row once the latent screen is visible.
 - Anchor delta: Keep row `01` fixed and change only `d_icl` from `96` to `128`.
 - Expected effect: More width may improve fit if the replay is width-bottlenecked, though it increases training cost and should not be interpreted before the latent screen.
-- Effective labels: model=`cls_benchmark_sandwich_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Resolved surface fingerprint: `7f0afef7ef10a52cb05baa1f6d6080539c83ea57287283cafa48c54049e29a2a`
+- Resolved runtime surface: `{'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': False}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 128, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 48, 'sandwich_layers': 8, 'sandwich_heads': 8, 'sandwich_ff_expansion': 2}`
 - Parameter adequacy plan:
   - Unblock only after rows `01` through `03` establish whether the replay latent count remains a live candidate.
@@ -169,7 +179,7 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
   - This row is no longer blocked on the latent screen; it is deferred because the current topology underperformed before width became a meaningful next read.
   - Do not treat width as a rescue attempt for the closed summary-bottleneck replay.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_width128_latents48_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_openml_screen_v1/delta_tf_rd_021a_sandwich_width128_latents48_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 5. `delta_tf_rd_021a_sandwich_width128_latents96_v1`
@@ -184,7 +194,9 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
 - Upstream delta: Perceiver-style scaling often couples latent count and channel width; this row is the blocked width follow-up around the high-latent bracket.
 - Anchor delta: Keep row `03` fixed and change only `d_icl` from `96` to `128`.
 - Expected effect: Jointly larger width and latent count may improve fit if the sandwich screen is constrained on both bottlenecks, but it is intentionally deferred until the latent screen lands.
-- Effective labels: model=`cls_benchmark_sandwich_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Resolved surface fingerprint: `eb3e1241064c60b3bc3fae9b7a88561be9f5d6bbf1c42af42da793674d29cb0f`
+- Resolved runtime surface: `{'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': False}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 128, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 96, 'sandwich_layers': 8, 'sandwich_heads': 8, 'sandwich_ff_expansion': 2}`
 - Parameter adequacy plan:
   - Unblock only if the high-latent row is viable enough to justify a width follow-up.
@@ -199,5 +211,5 @@ Upstream reference: `Perceiver` from `https://proceedings.mlr.press/v139/jaegle2
   - This row remains historical backlog evidence around the abandoned high-latent bracket.
   - Do not read this as an active next step for the closed TF-RD-021A sweep.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_width128_latents96_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_021a_sandwich_openml_screen_v1/delta_tf_rd_021a_sandwich_width128_latents96_v1/result_card.md`
 - Benchmark metrics: pending

@@ -1,10 +1,10 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
-parent_sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+parent_sweep_id: tf_rd_021a_sandwich_openml_screen_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_hybrid_prior

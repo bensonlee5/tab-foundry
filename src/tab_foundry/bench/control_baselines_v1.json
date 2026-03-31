@@ -3,8 +3,8 @@
     "cls_benchmark_linear_multiclass_large_v1": {
       "baseline_id": "cls_benchmark_linear_multiclass_large_v1",
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_large",
-        "source_path": "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet",
+        "name": "openml_classification_large",
+        "source_path": "data/manifests/bench/openml_classification_large_v1/manifest.parquet",
         "task_count": 3,
         "task_ids": [
           363685,
@@ -48,8 +48,8 @@
     "cls_benchmark_linear_multiclass_medium_v1": {
       "baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet",
+        "name": "openml_classification_medium",
+        "source_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -92,8 +92,8 @@
     "cls_benchmark_linear_v1": {
       "baseline_id": "cls_benchmark_linear_v1",
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -123,8 +123,8 @@
     "cls_benchmark_linear_v2": {
       "baseline_id": "cls_benchmark_linear_v2",
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,

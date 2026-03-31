@@ -1,6 +1,6 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
 
 ## Sweep
 
@@ -8,11 +8,13 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Sweep status: `superseded`
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v1`
 - Complexity level: `classification_lg`
+- Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/resolved_queue.yaml`
+- Resolved queue inputs fingerprint: `cacfd18dbacd5ce8f21f312ac0b446322e25f4bc6389bc7d5431eeea45dc555f`
 
 ## Locked Surface
 
 - Anchor run id: `null`
-- Benchmark manifest: `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`
+- Benchmark manifest: local benchmark-manifest id `openml_classification_large_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_large_v1`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_classification_evolution_v1`
@@ -32,7 +34,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 | benchmark ownership | Not applicable. | `dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests. | This sweep defines the harder validation rung for the repo-to-repo benchmark contract. |
 | classification head | Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes. | Direct multiclass head with `many_class_base=10`. | Treat this as a bounded head/output evolution, not a staged hierarchical many-class port. |
 | summary bandwidth | Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`. | The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`. | The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor. |
-| validation surface | Not applicable. | Hub-backed large classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`, materialized from `openml_classification_large_v1.json`. | Keep the larger hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface. |
+| validation surface | Not applicable. | Hub-backed large classification manifest under local benchmark-manifest id `openml_classification_large_v1`, materialized from `openml_classification_large_v1.json`. | Keep the larger hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface. |
 
 ## Queue Summary
 
@@ -57,7 +59,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Upstream delta: Not applicable; this is a repo-local synthetic training-front contract tied to the first benchmark-evolution lane.
 - Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
-- Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `6ba9205fc920ba48faab6382df71be653bc5f736cbbb6aec20d32104ed3f8159`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 3}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v1'}`
 - Parameter adequacy plan:
   - Confirm `tab-realdata-hub#1` has materialized the large classification manifest from `openml_classification_large_v1.json` before execution.
@@ -94,7 +98,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
-- Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `ddb562bfb9879f20f9a7807bbbdd38096010eea3d277df889cc00b48a71fabb7`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 3}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control row before preferring missingness exposure.
@@ -131,7 +137,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v1`.
 - Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
-- Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `b4a68c18caa4818de5868b57f0195e6b1b54482bcb4db3e0c7e0fa9cf1bf2d52`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 3}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
@@ -168,7 +176,9 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v1`.
 - Expected effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
-- Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `a41df0d6cebb383fb16f27ee0d466367a32f935dcbf83efc23e28a94a2c65a8a`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 3}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.

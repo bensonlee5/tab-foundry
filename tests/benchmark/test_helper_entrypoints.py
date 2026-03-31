@@ -4,7 +4,7 @@ import importlib.util
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NANOTABPFN_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "nanotabpfn_helper.py"
+NANOTABPFN_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "openml_benchmark_helper.py"
 TABICLV2_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "tabiclv2_helper.py"
 
 

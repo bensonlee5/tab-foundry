@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v4/queue.yam
 ## Locked Surface
 
 - Anchor run id: `01_shared_norm_post_ln_binary_medium_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
 - Anchor metrics: best ROC AUC `0.7670`, final ROC AUC `0.7643`, final training time `505.3s`
@@ -31,7 +31,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | row readout | Target-column readout from the final cell tensor. | Same target-column row pool. | Readout remains on the direct upstream-style path. |
 | context encoder | None on the upstream direct path. | None on the anchor path. | Context encoding remains absent; later context rows will change both depth and label-flow semantics. |
 | prediction head | Direct binary logits head. | Direct binary logits head. | The prediction head remains on the narrow upstream-style binary path. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data surface label `manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `openml_binary_medium` (10 tasks) with data surface label `manifest_default`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_constant_lr`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
 

@@ -4,7 +4,7 @@ parent_sweep_id: qass_tfcol_large_no_missing_validation_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1
-benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/openml_binary_large_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged
 training_config_profile: cls_benchmark_staged
@@ -16,7 +16,7 @@ upstream_reference:
 anchor_surface:
   notes:
   - The locked anchor is benchmark registry run `sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1`
-    on bundle `nanotabpfn_openml_binary_large` (12 tasks).
+    on bundle `openml_binary_large` (12 tasks).
   - The anchor model surface is taken from the registry-resolved staged selection
     labeled `delta_qass_no_column_v3`.
   - Data and preprocessing remain part of the comparison surface and must stay fixed
@@ -91,7 +91,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark bundle `nanotabpfn_openml_binary_large` (12 tasks, missing values
+    anchor: Benchmark bundle `openml_binary_large` (12 tasks, missing values
       permitted) with data surface label `anchor_manifest_default`.
     interpretation: Bundle and training-data changes are first-class sweep rows and
       should not be inherited from parent sweep prose.

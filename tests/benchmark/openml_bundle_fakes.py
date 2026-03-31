@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-import tab_foundry.bench.nanotabpfn as benchmark_module
+import tab_foundry.bench.openml_benchmark as benchmark_module
 
 
 class FakeDataset:

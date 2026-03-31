@@ -56,7 +56,7 @@ def test_tf_rd_010_classification_evolution_medium_v1_is_registered() -> None:
         "status": "ready",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
-        "benchmark_manifest_path": "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
         "external_benchmarks": [],
     }
@@ -73,7 +73,7 @@ def test_tf_rd_010_classification_evolution_medium_v1_preserves_completed_histor
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     )
     assert sweep["control_baseline_id"] == "cls_benchmark_linear_multiclass_medium_v1"
     assert sweep["external_benchmarks"] == []

@@ -12,8 +12,8 @@
         "run_dir": "outputs/staged_ladder/00_simple_anchor_md/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -90,8 +90,8 @@
         "run_dir": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -168,8 +168,8 @@
         "run_dir": "outputs/staged_ladder/00_simple_anchor_sm/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -246,8 +246,8 @@
         "run_dir": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -324,8 +324,8 @@
         "run_dir": "outputs/staged_ladder/00_simple_anchor_xs/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -402,8 +402,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_md/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -492,8 +492,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -582,8 +582,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -672,8 +672,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -757,8 +757,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_sm/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -847,8 +847,8 @@
         "run_dir": "outputs/staged_ladder/01_nano_exact_xs/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -938,8 +938,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -1091,8 +1091,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_md/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1181,8 +1181,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_md/prior"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1271,8 +1271,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_md_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1361,8 +1361,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_sm/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1451,8 +1451,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_sm_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1541,8 +1541,8 @@
         "run_dir": "outputs/staged_ladder/02_label_token_xs/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1631,8 +1631,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_md/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1721,8 +1721,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1811,8 +1811,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1901,8 +1901,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_md_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -1991,8 +1991,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_sm/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -2081,8 +2081,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -2171,8 +2171,8 @@
         "run_dir": "outputs/staged_ladder/03_shared_norm_xs/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -2261,8 +2261,8 @@
         "run_dir": "outputs/staged_ladder/04_prenorm_block_xs/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -2351,8 +2351,8 @@
         "run_dir": "outputs/staged_ladder/04_prenorm_block_xs_lr16e4/train"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_small",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "name": "openml_binary_small",
+        "source_path": "src/tab_foundry/bench/openml_benchmark_v1.json",
         "task_count": 3,
         "task_ids": [
           363613,
@@ -2442,8 +2442,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -2586,8 +2586,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -2730,8 +2730,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -2874,8 +2874,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3018,8 +3018,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3162,8 +3162,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3316,8 +3316,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3471,8 +3471,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3626,8 +3626,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3775,8 +3775,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -3924,8 +3924,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4073,8 +4073,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4222,8 +4222,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4371,8 +4371,8 @@
         "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4520,8 +4520,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4701,8 +4701,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_lr3e3/sd_cuda_stability_followup_02_dpnb_cuda_large_anchor_batch32_lr3e3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -4882,8 +4882,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_postrms/sd_cuda_stability_followup_03_dpnb_cuda_large_anchor_batch32_postrms_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5063,8 +5063,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_postln/sd_cuda_stability_followup_04_dpnb_cuda_large_anchor_batch32_postln_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5244,8 +5244,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/grouped_token_stability_probe_v1/delta_anchor_activation_trace_baseline/sd_grouped_token_stability_probe_v1_01_delta_anchor_activation_trace_baseline_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5433,8 +5433,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/grouped_token_stability_probe_v1/delta_training_linear_decay/sd_grouped_token_stability_probe_v1_02_delta_training_linear_decay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5622,8 +5622,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/grouped_token_stability_probe_v1/delta_training_linear_warmup_decay/sd_grouped_token_stability_probe_v1_03_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5811,8 +5811,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -5960,8 +5960,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6109,8 +6109,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6270,8 +6270,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6431,8 +6431,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6592,8 +6592,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6753,8 +6753,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -6914,8 +6914,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7075,8 +7075,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7236,8 +7236,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7397,8 +7397,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7578,8 +7578,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7739,8 +7739,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -7900,8 +7900,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -8061,8 +8061,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -8242,8 +8242,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -8431,8 +8431,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -8620,8 +8620,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -8809,8 +8809,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_large_missing_validation_v1/delta_qass_no_column_v3/sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -9000,8 +9000,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_large_missing_validation_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_large_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -9191,8 +9191,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_large_no_missing_validation_v1/delta_qass_no_column_v3/sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large_no_missing",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json",
+        "name": "openml_binary_large_no_missing",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_no_missing_v1.json",
         "task_count": 64,
         "task_ids": [
           3,
@@ -9434,8 +9434,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_large_no_missing_validation_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large_no_missing",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json",
+        "name": "openml_binary_large_no_missing",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_no_missing_v1.json",
         "task_count": 64,
         "task_ids": [
           3,
@@ -9677,8 +9677,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v1/delta_row_cls_pool/sd_row_embedding_attribution_v1_01_delta_row_cls_pool_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -9866,8 +9866,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v1/delta_plain_context_encoder/sd_row_embedding_attribution_v1_02_delta_plain_context_encoder_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -10055,8 +10055,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -10244,8 +10244,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -10433,8 +10433,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -10622,8 +10622,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -10811,8 +10811,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v3/delta_qass_no_column_v3/sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11000,8 +11000,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v3/delta_column_set_no_context_v3/sd_row_embedding_attribution_v3_02_delta_column_set_no_context_v3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11189,8 +11189,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v3/delta_qass_context_v3/sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11378,8 +11378,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch4/sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11567,8 +11567,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch8/sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11756,8 +11756,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -11923,8 +11923,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -12112,8 +12112,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -12301,8 +12301,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -12490,8 +12490,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -12679,8 +12679,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v4/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -14196,8 +14196,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -15739,8 +15739,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -17282,8 +17282,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -18825,8 +18825,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v2/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -20342,8 +20342,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v2/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -21885,8 +21885,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v2/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v3/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -23428,8 +23428,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v2/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -24971,8 +24971,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -26485,8 +26485,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -28025,8 +28025,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -29565,8 +29565,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_training_current_corpus_uncapped/sd_tf_rd_013_dagzoo_size_ladder_v1_01_delta_training_current_corpus_uncapped_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -29756,8 +29756,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_data_manifest_root_dagzoo_shape_aware_size_small/sd_tf_rd_013_dagzoo_size_ladder_v1_02_delta_data_manifest_root_dagzoo_shape_aware_size_small_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -29947,8 +29947,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_data_manifest_root_dagzoo_shape_aware_size_medium/sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -30138,8 +30138,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_data_manifest_root_dagzoo_shape_aware_size_large/sd_tf_rd_013_dagzoo_size_ladder_v1_04_delta_data_manifest_root_dagzoo_shape_aware_size_large_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -30329,8 +30329,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_data_source_contract_v1/delta_data_manifest_root_dagzoo_generated_source/sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -30520,8 +30520,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_data_source_contract_v1/delta_data_manifest_curated_realdata_comparator/sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -30711,8 +30711,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_shape_aware_dagzoo_v1/delta_data_manifest_root_dagzoo_shape_aware_multi_invocation/sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -30902,8 +30902,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_013_shape_aware_dagzoo_v1/delta_data_manifest_curated_realdata_comparator/sd_tf_rd_013_shape_aware_dagzoo_v1_02_delta_data_manifest_curated_realdata_comparator_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_large",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        "name": "openml_binary_large",
+        "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
         "task_count": 12,
         "task_ids": [
           363613,
@@ -31093,8 +31093,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_adamw/sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -31282,8 +31282,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_muon/sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -31471,8 +31471,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -31660,8 +31660,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v7/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -31849,8 +31849,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32038,8 +32038,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32227,8 +32227,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32416,8 +32416,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32605,8 +32605,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32794,8 +32794,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -32983,8 +32983,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_mechanism_piecewise/sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -33172,8 +33172,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_mechanism_gp/sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -33361,8 +33361,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_noise_laplace/sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -33550,8 +33550,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_noise_mixture/sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -33739,8 +33739,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -33860,8 +33860,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_v1/sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34070,8 +34070,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34280,8 +34280,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1/sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34490,8 +34490,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1/sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34700,8 +34700,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34832,8 +34832,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -34964,8 +34964,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35096,8 +35096,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35228,8 +35228,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35360,8 +35360,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35492,8 +35492,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35624,8 +35624,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35756,8 +35756,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -35888,8 +35888,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36020,8 +36020,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36152,8 +36152,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36284,8 +36284,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36473,8 +36473,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36662,8 +36662,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,
@@ -36851,8 +36851,8 @@
         "training_surface_record_path": "outputs/cls_benchmark_sandwich_hybrid_prior/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_binary_medium",
-        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "name": "openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
         "task_count": 10,
         "task_ids": [
           42,

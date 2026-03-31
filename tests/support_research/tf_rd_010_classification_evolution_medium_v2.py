@@ -46,7 +46,7 @@ def test_tf_rd_010_classification_evolution_medium_v2_is_registered() -> None:
     )
     assert entry["complexity_level"] == "classification_md"
     assert entry["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     )
     assert entry["control_baseline_id"] == "cls_benchmark_linear_multiclass_medium_v1"
     assert entry["external_benchmarks"] == []
@@ -66,7 +66,7 @@ def test_tf_rd_010_classification_evolution_medium_v2_records_the_2500_step_succ
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     )
     assert sweep["control_baseline_id"] == "cls_benchmark_linear_multiclass_medium_v1"
     assert sweep["external_benchmarks"] == []

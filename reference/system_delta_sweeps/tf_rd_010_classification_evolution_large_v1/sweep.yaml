@@ -4,7 +4,7 @@ parent_sweep_id: tf_rd_010_classification_evolution_medium_v1
 status: superseded
 complexity_level: classification_lg
 anchor_run_id: null
-benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet
+benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_large_v1
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_classification_evolution_v1
@@ -44,7 +44,8 @@ anchor_surface:
     interpretation: The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
-    anchor: Hub-backed large classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`, materialized from `openml_classification_large_v1.json`.
+    anchor: Hub-backed large classification manifest under local benchmark-manifest
+      id `openml_classification_large_v1`, materialized from `openml_classification_large_v1.json`.
     interpretation: Keep the larger hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface.
 anchor_context:
   run_id: null

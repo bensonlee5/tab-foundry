@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
-from tab_foundry.bench.nanotabpfn import load_benchmark_bundle, load_benchmark_manifest_datasets
+from tab_foundry.bench.openml_benchmark import load_benchmark_bundle, load_benchmark_manifest_datasets
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec
 

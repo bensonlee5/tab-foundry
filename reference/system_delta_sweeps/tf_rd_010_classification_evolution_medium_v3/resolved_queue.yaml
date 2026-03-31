@@ -9,7 +9,7 @@ parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
 sweep_status: superseded
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
-benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_classification_evolution_v1
@@ -24,7 +24,7 @@ anchor_surface:
   - This TF-RD-010 medium successor sweep preserves the first no-clipping rerun evidence
     for the expanded one-epoch 2500-step regime, but rows 1-3 hit very early best
     benchmark steps and then drifted badly. Row 4 was intentionally stopped, and `tf_rd_010_classification_evolution_medium_v4`
-    now owns the active accumulation/LR pilot path.
+    now owns the active batching/LR pilot path.
   - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context
     only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
@@ -55,7 +55,7 @@ anchor_surface:
     the completed clipped medium_v2 rerun remain historical artifacts only and are
     no longer the active execution path for promotion or defer evidence.
   - Keep the benchmark contract fixed while treating this package as historical overfit
-    evidence only; fresh medium evidence now flows through the `medium_v4` accumulation/LR
+    evidence only; fresh medium evidence now flows through the `medium_v4` batching/LR
     pilot on the same corrected sandwich surface.
   dimension_table:
   - dimension: benchmark ownership
@@ -77,8 +77,8 @@ anchor_surface:
       directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
-    anchor: Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`,
-      materialized from `openml_classification_medium_v1.json`.
+    anchor: Hub-backed medium classification manifest under local benchmark-manifest
+      id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`.
     interpretation: Keep the smaller hub-backed classification validation rung fixed
       while the synthetic training front reruns on the corrected sandwich and training
       surface.
@@ -188,7 +188,7 @@ rows:
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
     evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly,
     and row 4 was intentionally stopped rather than extended as canonical evidence.
-    `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR
+    `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -6967,7 +6967,7 @@ rows:
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
     evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly,
     and row 4 was intentionally stopped rather than extended as canonical evidence.
-    `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR
+    `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -14039,7 +14039,7 @@ rows:
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
     evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly,
     and row 4 was intentionally stopped rather than extended as canonical evidence.
-    `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR
+    `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -21399,7 +21399,7 @@ rows:
   - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
     evidence only: rows 1-3 hit very early best benchmark steps and then drifted badly,
     and row 4 was intentionally stopped rather than extended as canonical evidence.
-    `tf_rd_010_classification_evolution_medium_v4` now owns the active accumulation/LR
+    `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot.'
   dynamic_model_overrides: null
   screen_metrics: null
@@ -28357,4 +28357,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: ea0e050b642dd63199dbd8a0fec0f7d61dbccdfa74bb10fe85445a376c126029
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/resolved_queue.yaml
-inputs_fingerprint: 6963243a231e892f50bfcf537a5a052c960d87bc210b5a84180a9f452a3b0e1d
+inputs_fingerprint: aa205566f4cf17475bd41ae0fbb0fcdf26f055162e2bd9f479dfeeb73c84ab11

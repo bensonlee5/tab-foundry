@@ -1,5 +1,5 @@
 schema: tab-foundry-system-delta-sweep-queue-v1
-sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+sweep_id: tf_rd_021a_sandwich_openml_screen_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_021a_sandwich_replay_v1

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # ruff: noqa: F401
 
-from tests.support.nanotabpfn_compare_cases import (
+from tests.support.openml_benchmark_compare_cases import (
     test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs,
     test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path,
     test_run_nanotabpfn_benchmark_includes_control_baseline_annotation,

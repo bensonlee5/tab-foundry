@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/row_first_training_ade
 ## Locked Surface
 
 - Anchor run id: `sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`
@@ -35,7 +35,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | row readout | Target-column readout from the final cell tensor. | Row-CLS pooling path. | Row-pool changes alter how the table summary is extracted and should be isolated from context changes. |
 | context encoder | None on the upstream direct path. | QASS context encoder. | QASS changes both compute-graph depth and label-context semantics and need explicit adequacy notes. |
 | prediction head | Direct binary logits head. | Small-class direct head. | Head changes alter the task contract and should be interpreted separately from shared trunk changes. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent-sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent-sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | task batching | No repo-local manifest task batching contract. | Manifest-backed singleton task updates with `training.task_batch_size=1`. | Manifest task batching is a first-class training-surface delta and must be read before optimizer or schedule follow-ons. |
 | training recipe | No repo-local manifest training-surface contract. | Registered anchor training surface label `prior_linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`. | Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder. |

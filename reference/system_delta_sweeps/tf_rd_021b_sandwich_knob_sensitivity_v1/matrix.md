@@ -1,18 +1,20 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
 
 ## Sweep
 
 - Sweep id: `tf_rd_021b_sandwich_knob_sensitivity_v1`
-- Sweep status: `draft`
-- Parent sweep id: `tf_rd_021a_sandwich_nanotabpfn_screen_v1`
+- Sweep status: `completed`
+- Parent sweep id: `tf_rd_021a_sandwich_openml_screen_v1`
 - Complexity level: `binary_md`
+- Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/resolved_queue.yaml`
+- Resolved queue inputs fingerprint: `4c040115939bf2142fbadd2f7cc9721fc5eb71560a2b6673c08d3f922816528e`
 
 ## Locked Surface
 
 - Anchor run id: `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_hybrid_prior`
@@ -65,7 +67,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: Perceiver-style latent banks make latent count the first memory-vs-fidelity ablation on the hybrid sandwich line.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_latents` from `24` to `12`.
 - Expected effect: If the compact hybrid control is overprovisioned on latent tokens, quality should move only slightly while parameter count and compute fall.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `9e58201d800ab73d0e40f226b817b9482327c9df217235782c97454ff8a0c062`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 12, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep the locked medium bundle, prior-dump surface, and `2500`-step cosine budget fixed.
@@ -95,7 +99,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: Perceiver-style models expose repeated latent-read depth as a distinct capacity knob after the first full-input read.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_layers` from `2` to `1`.
 - Expected effect: If one repeated stage is already enough on this surface, the compact control may be deeper than necessary.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `a363c09c0916f591bbf6d6f4ab8fd292f2a5619f4a9abfff33e4780c13cc40de`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 1, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep stage-`0` full-cell access and the final cell-stream readout fixed.
@@ -125,7 +131,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: Attention head factorization is a standard transformer capacity axis that may be overprovisioned on compact tabular models.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_heads` from `4` to `2`.
 - Expected effect: If the hybrid control mostly needs width rather than head factorization, dropping to two heads should be only mildly harmful.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `37ad636d10094f4f51a8ab63e2eef985ad9d1890bbbb8953afef840e62d19e12`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 2, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep `d_icl=60` fixed so this is a pure head-factorization ablation.
@@ -155,7 +163,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: FF expansion is one of the simplest capacity axes to simplify before introducing broader scaling laws.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `e2df1e335a608ffa9a3f50770af61b322fefedb1c1a7f3f4a5689f6715450845`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep latent count, stage count, and summary-token multiplicity fixed.
@@ -185,7 +195,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor deliberately widened the summary stream with `K=4`; this row tests whether that extra summary bandwidth actually matters.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_summary_tokens_per_axis` from `4` to `1`.
 - Expected effect: If the gain comes mostly from stage-0 raw cells and the final cell readout, collapsing summary multiplicity back to 1 should only weakly hurt.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `f25bcf4df516421e19670bfc03d78d10eab7df2d9e75c65064f37a9e27bc55b7`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep the stage-`0` full-cell read and final cell-stream readout fixed.
@@ -215,7 +227,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor increased self-refinement depth between cross-attention segments; this row tests whether that extra latent processing is carrying quality.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_self_attention_per_cross` from `4` to `1`.
 - Expected effect: If repeated latent self-processing is not the bottleneck, dropping to one self-attention block should preserve most of the fit.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `ee4f7dd3527bfa7d36228e184836afbd479dbf5adebe9cb5169c7a278119c808`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 1, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep stage count and latent count fixed so this row isolates latent self-refinement depth.
@@ -245,7 +259,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor added a row-wise feature mixer before the first latent read; this row asks whether that axial pre-mixer is materially useful.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_pre_row_attention_layers` from `1` to `0`.
 - Expected effect: If most of the recovery comes from raw-cell access alone, removing the row-wise feature mixer may be only weakly harmful.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `c41fe1a20bf6b5f64adc7489b219f89dc15fd7bdbda31855cd0d0d615bfbd7bb`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 0, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Keep the column-wise pre-mixer on so the ablation isolates row-wise feature mixing.
@@ -275,7 +291,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor added a column-wise row mixer before the first latent read; this row tests whether that second axial pass is necessary.
 - Anchor delta: Keep the registered compact hybrid control fixed and change only `sandwich_pre_column_attention_layers` from `1` to `0`.
 - Expected effect: If the row-wise feature mixer already captures most of the useful pre-latent structure, removing the column-wise row mixer may be low-impact.
-- Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `18754d8fa2eeff37acda1119c0401865035ef16f36a31581caca50f782b2d0d5`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 0}`
 - Parameter adequacy plan:
   - Keep the row-wise feature mixer on so the ablation isolates column-wise row mixing.

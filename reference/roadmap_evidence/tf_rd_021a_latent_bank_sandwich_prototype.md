@@ -37,7 +37,7 @@ TF-RD-022.
   [#179](https://github.com/bensonlee5/tab-foundry/issues/179) now closes on
   row `01` as explicit negative evidence for the summary-bottleneck replay
 - draft sweep package
-  `reference/system_delta_sweeps/tf_rd_021a_sandwich_nanotabpfn_screen_v1/`
+  `reference/system_delta_sweeps/tf_rd_021a_sandwich_openml_screen_v1/`
   now closes with:
   - row `01` completed on the locked batch64-sqrt prior surface
   - rows `02` and `03` deferred to separate successor work instead of executed

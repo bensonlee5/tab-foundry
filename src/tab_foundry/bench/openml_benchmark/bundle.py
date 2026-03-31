@@ -9,8 +9,9 @@ from typing import Any, Mapping, cast
 from tab_foundry.repo_paths import repo_root
 
 
-BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_binary_medium_v1.json"
+BENCHMARK_BUNDLE_FILENAME = "openml_binary_medium_v1.json"
 _CLASSIFICATION_TASK_TYPE = "supervised_classification"
+_PERCENT_SCALE_MAX = 100.0
 _REGRESSION_TASK_TYPE = "supervised_regression"
 _ALLOWED_BUNDLE_SELECTION_TASK_TYPES = {
     _CLASSIFICATION_TASK_TYPE,
@@ -126,7 +127,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
         raise RuntimeError("benchmark bundle selection.new_instances must be a positive int")
     if not isinstance(max_features, int) or isinstance(max_features, bool) or max_features <= 0:
         raise RuntimeError("benchmark bundle selection.max_features must be a positive int")
-    if not isinstance(max_missing_pct, (int, float)) or not 0 <= float(max_missing_pct) <= 100:
+    if not isinstance(max_missing_pct, (int, float)) or not 0 <= float(max_missing_pct) <= _PERCENT_SCALE_MAX:
         raise RuntimeError("benchmark bundle selection.max_missing_pct must be a percentage between 0 and 100")
     normalized = {
         "new_instances": int(new_instances),
@@ -139,7 +140,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
         min_minority_class_pct = payload["min_minority_class_pct"]
         if not isinstance(max_classes, int) or isinstance(max_classes, bool) or max_classes <= 0:
             raise RuntimeError("benchmark bundle selection.max_classes must be a positive int")
-        if not isinstance(min_minority_class_pct, (int, float)) or not 0 <= float(min_minority_class_pct) <= 100:
+        if not isinstance(min_minority_class_pct, (int, float)) or not 0 <= float(min_minority_class_pct) <= _PERCENT_SCALE_MAX:
             raise RuntimeError(
                 "benchmark bundle selection.min_minority_class_pct must be a percentage between 0 and 100"
             )

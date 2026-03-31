@@ -42,7 +42,7 @@ def test_tf_rd_010_classification_evolution_large_v1_is_registered_as_superseded
         "status": "superseded",
         "anchor_run_id": None,
         "complexity_level": "classification_lg",
-        "benchmark_manifest_path": "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_large_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_multiclass_large_v1",
         "external_benchmarks": [],
     }
@@ -59,7 +59,7 @@ def test_tf_rd_010_classification_evolution_large_v1_preserves_the_reset_contrac
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
-        "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet"
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     )
     assert sweep["control_baseline_id"] == "cls_benchmark_linear_multiclass_large_v1"
     assert sweep["external_benchmarks"] == []

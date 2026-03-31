@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_
 ## Locked Surface
 
 - Anchor run id: `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`
@@ -30,7 +30,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | model anchor | TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract. | The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`. | TF-RD-013 size-ladder work changes only the training-data comparison surface and the stop-condition control, not the promoted model surface. |
 | training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | TF-RD-008-scale fresh current-corpus recipe `tf_rd_013_current_corpus_default_v1` with data surface label `anchor_manifest_default`. | The fresh current corpus now mirrors the TF-RD-008 promotion-run manifest scale while the sweep compares three modestly broader shape-aware dagzoo alternatives under the same row caps through first-class `data.corpus_ref` resolution. |
 | dagzoo size ladder | Not applicable. | Row 1 uses a 10-dataset default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot. | Rows 2-4 now form 20-, 40-, and 80-dataset support rungs through tracked corpus recipes so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs. |
-| benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects. |
+| benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision. | Benchmark bundle `openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects. |
 | training stop contract | TabICLv2 does not define this repo-local manifest trainer stop rule. | Registered anchor training surface label `prior_linear_warmup_decay` with `max_steps=2500`. | The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics. |
 
 ## Queue Summary

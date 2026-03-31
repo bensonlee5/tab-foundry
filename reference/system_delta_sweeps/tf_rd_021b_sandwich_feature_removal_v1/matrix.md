@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 ## Locked Surface
 
 - Anchor run id: `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
-- Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_hybrid_prior`
@@ -35,7 +35,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 | row readout | Target-column readout from the final cell tensor. | Row pool `unknown` from the staged surface. | Row-pool changes alter the readout contract and require their own interpretation. |
 | context encoder | None on the upstream direct path. | Context encoder `unknown` from the staged surface. | Context-encoder changes alter how training rows condition test rows. |
 | prediction head | Direct binary logits head. | Prediction head `unknown` from the staged surface. | Head changes alter the task contract and output semantics. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data surface label `prior_dump`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `openml_binary_medium` (10 tasks) with data surface label `prior_dump`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_cosine_warmup`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
 

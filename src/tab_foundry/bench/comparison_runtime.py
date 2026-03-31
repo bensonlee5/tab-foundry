@@ -40,7 +40,7 @@ from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_TABICLV2,
     normalize_external_benchmarks,
 )
-from tab_foundry.bench.nanotabpfn import (
+from tab_foundry.bench.openml_benchmark import (
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
@@ -80,7 +80,7 @@ _LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 2
 
 
 def _helper_script_path() -> Path:
-    return repo_root() / "scripts" / "bench" / "nanotabpfn_helper.py"
+    return repo_root() / "scripts" / "bench" / "openml_benchmark_helper.py"
 
 
 def _tabiclv2_helper_script_path() -> Path:
