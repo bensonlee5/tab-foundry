@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 from typing import Any, Literal, Mapping, cast
@@ -50,6 +51,8 @@ from .paths_io import (
     write_yaml,
 )
 from .training_state import normalize_training_surface_record, training_surface_record_fingerprint
+
+_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS = 4
 
 
 def _resolved_external_benchmarks(sweep: SweepPayload) -> list[str]:
@@ -897,17 +900,37 @@ def materialize_sweep_corpora(
             continue
         seen_corpus_refs.add(normalized_corpus_ref)
         requested_corpus_refs.append(normalized_corpus_ref)
-    records = [
-        materialize_corpus_ref(
-            corpus_ref=corpus_ref,
-            dagzoo_root=dagzoo_root,
-            force=force,
-            repo_root=resolved_repo_root,
-            sweep_id=resolved_sweep_id,
-            sweeps_root=sweeps_root,
-        )
-        for corpus_ref in requested_corpus_refs
-    ]
+    worker_count = min(_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS, len(requested_corpus_refs))
+    if worker_count <= 1:
+        records = [
+            materialize_corpus_ref(
+                corpus_ref=corpus_ref,
+                dagzoo_root=dagzoo_root,
+                force=force,
+                repo_root=resolved_repo_root,
+                sweep_id=resolved_sweep_id,
+                sweeps_root=sweeps_root,
+            )
+            for corpus_ref in requested_corpus_refs
+        ]
+    else:
+        with ThreadPoolExecutor(
+            max_workers=worker_count,
+            thread_name_prefix="sweep-corpus-materialize",
+        ) as executor:
+            futures = [
+                executor.submit(
+                    materialize_corpus_ref,
+                    corpus_ref=corpus_ref,
+                    dagzoo_root=dagzoo_root,
+                    force=force,
+                    repo_root=resolved_repo_root,
+                    sweep_id=resolved_sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+                for corpus_ref in requested_corpus_refs
+            ]
+            records = [future.result() for future in futures]
     return {
         "sweep_id": resolved_sweep_id,
         "recipe_count": len(records),

@@ -61,7 +61,11 @@ def _balanced_front_review_summary(
         "feature_counts": sorted(_ALIGNED_FEATURE_GRAPH_BANDS),
         "class_counts": list(_BALANCED_CLASS_COUNTS),
         "num_datasets_per_invocation": int(num_datasets),
-        "missingness": None if missing_mode is None else {"mechanism": str(missing_mode), "rate": float(missing_rate)},
+        "missingness": (
+            None
+            if missing_mode is None or missing_rate is None
+            else {"mechanism": str(missing_mode), "rate": float(missing_rate)}
+        ),
     }
 
 
@@ -82,7 +86,11 @@ def _aligned_front_review_summary(
         "class_counts": list(_ALIGNED_CLASS_COUNTS),
         "replicate_seeds": [1, 2, 3],
         "num_datasets_per_invocation": int(num_datasets),
-        "missingness": None if missing_mode is None else {"mechanism": str(missing_mode), "rate": float(missing_rate)},
+        "missingness": (
+            None
+            if missing_mode is None or missing_rate is None
+            else {"mechanism": str(missing_mode), "rate": float(missing_rate)}
+        ),
     }
 
 

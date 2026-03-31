@@ -1,6 +1,6 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
 
 ## Sweep
 
@@ -8,8 +8,6 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_kn
 - Sweep status: `completed`
 - Parent sweep id: `tf_rd_021a_sandwich_openml_screen_v1`
 - Complexity level: `binary_md`
-- Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_knob_sensitivity_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `4c040115939bf2142fbadd2f7cc9721fc5eb71560a2b6673c08d3f922816528e`
 
 ## Locked Surface
 

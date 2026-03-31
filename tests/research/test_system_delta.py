@@ -4,6 +4,8 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
+import threading
+import time
 from types import SimpleNamespace
 
 from omegaconf import OmegaConf
@@ -326,6 +328,62 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
         "top_level_recipe/top_level_recipe__123456789abc",
         "override_recipe/override_recipe__123456789abc",
     ]
+
+
+def test_materialize_sweep_corpora_runs_distinct_corpus_materializations_in_parallel(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        materialize_module,
+        "load_system_delta_queue",
+        lambda **_kwargs: {
+            "sweep_id": "tf_rd_local",
+            "rows": [
+                {"order": 1, "delta_id": "delta_a", "data": {"corpus_ref": "recipe_a"}},
+                {"order": 2, "delta_id": "delta_b", "data": {"corpus_ref": "recipe_b"}},
+            ],
+        },
+    )
+    lock = threading.Lock()
+    ready = threading.Event()
+    active = 0
+    max_active = 0
+    call_count = 0
+
+    def _fake_materialize_corpus_ref(**kwargs) -> dict[str, object]:
+        nonlocal active, max_active, call_count
+        corpus_ref = str(kwargs["corpus_ref"])
+        recipe_id = corpus_ref.split("/", 1)[0]
+        with lock:
+            call_count += 1
+            active += 1
+            max_active = max(max_active, active)
+            if call_count >= 2:
+                ready.set()
+        if not ready.wait(timeout=1.5):
+            raise AssertionError("distinct corpus materializations did not overlap")
+        time.sleep(0.05)
+        with lock:
+            active -= 1
+        return {
+            "recipe_id": recipe_id,
+            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
+        }
+
+    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+
+    payload = materialize_sweep_corpora(
+        dagzoo_root=tmp_path / "dagzoo",
+        sweep_id="tf_rd_local",
+        force=True,
+        index_path=tmp_path / "index.yaml",
+        catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
+    )
+
+    assert payload["requested_corpus_refs"] == ["recipe_a", "recipe_b"]
+    assert max_active >= 2
 
 
 def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(
@@ -1574,7 +1632,7 @@ def test_load_system_delta_queue_rejects_conflicting_synthetic_epoch_budget_step
     resolved_queue_path = (
         sweeps_root / "tf_rd_010_classification_evolution_medium_v1" / "resolved_queue.yaml"
     )
-    resolved_queue_path.unlink()
+    resolved_queue_path.unlink(missing_ok=True)
 
     monkeypatch.setattr(
         configuration_module,

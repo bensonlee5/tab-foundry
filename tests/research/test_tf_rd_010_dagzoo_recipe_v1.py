@@ -6,6 +6,8 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.data.corpus_loading import load_corpus_recipe
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECIPE_ROOT = REPO_ROOT / "reference" / "corpus_recipes"
@@ -36,6 +38,10 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     payload = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     assert isinstance(payload, dict)
     return payload
+
+
+def _load_recipe(recipe_id: str) -> dict[str, Any]:
+    return load_corpus_recipe(recipe_id, repo_root=REPO_ROOT).to_dict()
 
 
 def _grid_signature(
@@ -84,8 +90,8 @@ def _grid_signature(
         assert invocation["invocation_id"] == f"r{row_total:04d}_f{feature_count:02d}_c{class_count:02d}"
 
         if missingness is None:
-            assert "missing_rate" not in invocation
-            assert "missing_mechanism" not in invocation
+            assert invocation.get("missing_rate") is None
+            assert invocation.get("missing_mechanism") is None
         elif missingness == "mcar":
             assert invocation["missing_rate"] == 0.25
             assert invocation["missing_mechanism"] == "mcar"
@@ -108,10 +114,10 @@ def _grid_signature(
 
 
 def test_tf_rd_010_dagzoo_recipe_v1_uses_balanced_row_feature_class_grid() -> None:
-    control = _load_yaml(RECIPE_ROOT / "tf_rd_010_dagzoo_medium_control_v1.yaml")
-    mcar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mcar_v1.yaml")
-    mar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mar_v1.yaml")
-    mnar = _load_yaml(RECIPE_ROOT / "tf_rd_010_missingness_mnar_v1.yaml")
+    control = _load_recipe("tf_rd_010_dagzoo_medium_control_v1")
+    mcar = _load_recipe("tf_rd_010_missingness_mcar_v1")
+    mar = _load_recipe("tf_rd_010_missingness_mar_v1")
+    mnar = _load_recipe("tf_rd_010_missingness_mnar_v1")
 
     assert control["surface_label"] == "tf_rd_010_dagzoo_medium_control"
     assert mcar["surface_label"] == "tf_rd_010_missingness_mcar"

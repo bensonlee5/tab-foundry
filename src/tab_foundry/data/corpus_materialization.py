@@ -43,7 +43,7 @@ from tab_realdata_hub.dagzoo_handoff import (
 from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
 
 
-_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP = 16
+_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP = 128
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:

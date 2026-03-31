@@ -197,5 +197,5 @@ def test_tf_rd_010_classification_evolution_medium_v1_inspection_resolves_three_
     assert resolved_model["arch"] == "tabfoundry_sandwich"
     assert resolved_model.get("stage_label") is None
     assert resolved_model["architecture"]["feature_type_encoding"] == "film"
-    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v1/")
+    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v1")
     assert resolved_training["schedule_stages"][0]["steps"] == 3

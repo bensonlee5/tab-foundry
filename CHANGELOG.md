@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - User-facing note: corpus materialization now caps CPU dagzoo fixed-layout
-  generation batches at `16` datasets per raw chunk during `tab-foundry`
+  generation batches at `128` datasets per raw chunk during `tab-foundry`
   corpus builds, which keeps local corpus materialization memory bounded
   without changing the resulting manifest semantics.
 

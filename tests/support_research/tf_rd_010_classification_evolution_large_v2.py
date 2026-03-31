@@ -142,5 +142,5 @@ def test_tf_rd_010_classification_evolution_large_v2_inspection_resolves_the_250
     assert resolved_model.get("stage_label") is None
     assert resolved_model["architecture"]["feature_type_encoding"] == "film"
     assert resolved_data["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v2"
-    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v2/")
+    assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_v2")
     assert resolved_training["schedule_stages"][0]["steps"] == 2500

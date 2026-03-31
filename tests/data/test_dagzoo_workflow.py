@@ -373,11 +373,11 @@ def test_build_dagzoo_generate_argv_appends_generic_set_overrides(tmp_path: Path
             dagzoo_root=dagzoo_root,
             dagzoo_config=config_path,
             handoff_root=handoff_root,
-            set_overrides=("runtime.fixed_layout_batch_size_cap=16",),
+            set_overrides=("runtime.fixed_layout_batch_size_cap=128",),
         )
     )
 
-    assert argv[-2:] == ["--set", "runtime.fixed_layout_batch_size_cap=16"]
+    assert argv[-2:] == ["--set", "runtime.fixed_layout_batch_size_cap=128"]
 
 
 def test_run_dagzoo_generate_manifest_rejects_missing_handoff_manifest(

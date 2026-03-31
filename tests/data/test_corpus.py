@@ -766,7 +766,7 @@ def test_materialize_corpus_recipe_caps_cpu_fixed_layout_batch_size(
 
     assert len(captured) == 1
     config = captured[0]
-    assert getattr(config, "set_overrides") == ("runtime.fixed_layout_batch_size_cap=16",)
+    assert getattr(config, "set_overrides") == ("runtime.fixed_layout_batch_size_cap=128",)
 
 
 def test_materialize_corpus_recipe_defers_manifest_characteristics_until_hydration(

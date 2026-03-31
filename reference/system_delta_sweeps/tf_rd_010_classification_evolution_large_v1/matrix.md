@@ -1,6 +1,6 @@
 # System Delta Matrix
 
-This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
+This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/queue.yaml` plus `reference/system_delta_catalog.yaml` and the canonical benchmark registry.
 
 ## Sweep
 
@@ -8,8 +8,6 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Sweep status: `superseded`
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v1`
 - Complexity level: `classification_lg`
-- Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `cacfd18dbacd5ce8f21f312ac0b446322e25f4bc6389bc7d5431eeea45dc555f`
 
 ## Locked Surface
 
