@@ -200,12 +200,12 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
 
     train_stage = captured["train_cfg"].schedule.stages[0]
     assert int(train_stage["steps"]) == 250
-    assert int(captured["train_cfg"].data.train_row_cap) == 96
-    assert int(captured["train_cfg"].data.test_row_cap) == 48
+    assert "train_row_cap" not in captured["train_cfg"].data
+    assert "test_row_cap" not in captured["train_cfg"].data
     assert str(captured["train_cfg"].runtime.device) == "cpu"
     assert int(captured["train_cfg"].runtime.checkpoint_every) == 25
-    assert int(captured["eval_cfg"].data.train_row_cap) == 96
-    assert int(captured["eval_cfg"].data.test_row_cap) == 48
+    assert "train_row_cap" not in captured["eval_cfg"].data
+    assert "test_row_cap" not in captured["eval_cfg"].data
     assert str(captured["eval_cfg"].eval.split) == "test"
 
     telemetry_path = out_root / "telemetry.json"

@@ -115,11 +115,11 @@ def _run_sweep_next(args: argparse.Namespace) -> int:
 
 
 def _run_sweep_render(args: argparse.Namespace) -> int:
-    queue = _load_queue_from_args(args)
     resolved_out_path = sweep_matrix.render_and_write_system_delta_matrix(
-        sweep_id=str(queue["sweep_id"]),
-        queue=queue,
+        sweep_id=str(args.sweep_id),
         registry_path=_registry_path(args),
+        index_path=_index_path(args),
+        catalog_path=_catalog_path(args),
         out_path=None if args.out_path is None else Path(str(args.out_path)),
     )
     print(f"Rendered system delta matrix to {resolved_out_path.expanduser().resolve()}")

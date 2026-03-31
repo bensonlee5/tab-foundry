@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from tab_realdata_hub.manifest import manifest_characteristics
+from tab_foundry.data.manifest_characteristics import compute_manifest_characteristics
 from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
@@ -32,6 +32,7 @@ _VALID_TRAINING_BACKENDS = {
     TRAINING_BACKEND_MANIFEST,
     TRAINING_BACKEND_LEGACY_PRIOR,
 }
+_EXCLUDED_RUNTIME_SURFACE_KEYS = frozenset({"device", "output_dir"})
 
 
 def _utc_now() -> str:
@@ -103,6 +104,7 @@ def build_training_surface_record(
     raw_legacy_prior_cfg = raw_cfg.get("legacy_prior")
     raw_optimizer_cfg = raw_cfg.get("optimizer")
     raw_schedule_cfg = raw_cfg.get("schedule")
+    raw_runtime_cfg = raw_cfg.get("runtime")
     if not isinstance(raw_model_cfg, Mapping):
         raise RuntimeError("training surface record requires cfg.model to be a mapping")
 
@@ -140,6 +142,15 @@ def build_training_surface_record(
         if not isinstance(raw_schedule_cfg, Mapping)
         else {str(key): value for key, value in raw_schedule_cfg.items()}
     )
+    runtime_cfg = (
+        None
+        if not isinstance(raw_runtime_cfg, Mapping)
+        else {
+            str(key): value
+            for key, value in raw_runtime_cfg.items()
+            if str(key) not in _EXCLUDED_RUNTIME_SURFACE_KEYS
+        }
+    )
     if state_dict is None:
         model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     else:
@@ -169,7 +180,9 @@ def build_training_surface_record(
             manifest_payload["manifest_sha256"] = sha256_path(data_surface.manifest_path)
             if include_manifest_characteristics:
                 try:
-                    manifest_payload["characteristics"] = manifest_characteristics(data_surface.manifest_path)
+                    manifest_payload["characteristics"] = compute_manifest_characteristics(
+                        data_surface.manifest_path
+                    )
                 except Exception as exc:  # pragma: no cover - defensive compatibility fallback
                     manifest_payload["characteristics"] = None
                     manifest_payload["characteristics_error"] = str(exc)
@@ -245,8 +258,6 @@ def build_training_surface_record(
             ),
             "manifest": manifest_payload,
             "dagzoo_provenance": data_surface.dagzoo_provenance,
-            "train_row_cap": data_surface.train_row_cap,
-            "test_row_cap": data_surface.test_row_cap,
             "overrides": data_surface.overrides,
         },
         "preprocessing": {
@@ -290,6 +301,8 @@ def build_training_surface_record(
         if resolved_backend is not None:
             training_payload["backend"] = resolved_backend
         payload["training"] = training_payload
+    if runtime_cfg:
+        payload["runtime"] = runtime_cfg
     return payload
 
 

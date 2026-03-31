@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.5] - 2026-03-30
+
+### Added
+
+- User-facing note: added the expanded TF-RD-010 `*_v2` corpus recipes and
+  successor `tf_rd_010_classification_evolution_medium_v2` /
+  `tf_rd_010_classification_evolution_large_v2` sweeps so the active one-epoch
+  execution path now resolves to `159984` manifest records and `2500`
+  optimizer steps without mutating the completed March 30, 2026 `medium_v1`
+  evidence.
+
+### Changed
+
+- User-facing note: the preserved TF-RD-010 `medium_v1` and `large_v1` sweep
+  assets now remain historical reference points, while the active medium/large
+  classification-evolution path is rewired onto the new `v2` successor sweeps
+  backed by the shared expanded corpora.
+- User-facing break: row-level dataset subsampling via `data.train_row_cap` /
+  `data.test_row_cap` has been removed from config composition, data-surface
+  resolution, manifest-backed dataset loading, and tracked sweep metadata.
+  Existing sweeps now train on the full tracked manifest rows instead of
+  runtime row caps.
+- User-facing note: classification `cell_bpc` training now records held-out
+  label accuracy in the existing `train_acc` / `final_train_acc` metrics so
+  prior-dump histories, summaries, and W&B runs continue to surface accuracy
+  alongside BPC/BPF.
+- User-facing note: sweep corpus materialization now prefers an explicit queue
+  row `data.corpus_ref` over nested `data.surface_overrides.corpus_ref`,
+  preventing successor sweeps from silently budgeting against stale historical
+  corpora.
+- User-facing note: sweep execution now forces `runtime.grad_clip=0.0`, so
+  sweep-composed runs execute without gradient clipping even when a row or
+  historical sweep asset still carries a clipping override.
+
+### Fixed
+
+- User-facing note: system-delta matrix rendering now handles sweeps with
+  `anchor_run_id: null` without crashing, and renders pending-anchor state for
+  successor sweeps before the trusted rerun is established.
+
 ## [0.15.4] - 2026-03-30
 
 ### Changed

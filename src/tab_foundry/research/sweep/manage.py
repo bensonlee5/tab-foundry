@@ -19,7 +19,7 @@ from .catalog import (
     load_system_delta_index_payload,
     load_system_delta_sweep_payload,
 )
-from .materialize import guarded_initial_state, materialize_system_delta_queue
+from .materialize import guarded_initial_state
 from .matrix import render_and_write_system_delta_matrix
 from .models import (
     DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
@@ -68,14 +68,14 @@ def _sanitize_model_payload_for_training_experiment(
 
 
 def _effective_queue_corpus_ref(data_payload: Mapping[str, Any]) -> str | None:
+    corpus_ref = data_payload.get("corpus_ref")
+    if isinstance(corpus_ref, str) and corpus_ref.strip():
+        return corpus_ref.strip()
     surface_overrides = data_payload.get("surface_overrides")
     if isinstance(surface_overrides, Mapping):
         nested_corpus_ref = surface_overrides.get("corpus_ref")
         if isinstance(nested_corpus_ref, str) and nested_corpus_ref.strip():
             return nested_corpus_ref.strip()
-    corpus_ref = data_payload.get("corpus_ref")
-    if isinstance(corpus_ref, str) and corpus_ref.strip():
-        return corpus_ref.strip()
     return None
 
 
@@ -389,17 +389,11 @@ def create_sweep(
     )
     write_yaml(resolved_index_path, index_payload.to_payload_dict())
 
-    queue = materialize_system_delta_queue(
-        catalog=catalog,
-        sweep=sweep_payload,
-        queue_instance=queue_payload,
-        catalog_path=catalog_path,
-        sweeps_root=resolved_sweeps_root,
-    )
     matrix_path = render_and_write_system_delta_matrix(
         sweep_id=normalized_sweep_id,
-        queue=queue.to_payload_dict(),
         registry_path=registry_path,
+        index_path=resolved_index_path,
+        catalog_path=catalog_path,
         sweeps_root=resolved_sweeps_root,
     )
 

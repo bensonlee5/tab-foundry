@@ -140,7 +140,6 @@ def run_iris_smoke(
                     {"name": "stage1", "steps": 4, "lr_max": 8.0e-4},
                     {"name": "stage2", "steps": 2, "lr_max": 1.0e-4},
                 ],
-                clear_row_caps=True,
             )
         )
         timings_seconds["train"] = time.perf_counter() - stage_start
@@ -153,7 +152,6 @@ def run_iris_smoke(
                 manifest_path=manifest_path,
                 checkpoint_path=train_result.best_checkpoint,
                 device=resolved_device,
-                clear_row_caps=True,
             )
         )
         timings_seconds["eval"] = time.perf_counter() - stage_start

@@ -1,0 +1,406 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_010_classification_evolution_medium_v3
+rows:
+- order: 1
+  delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
+  status: completed
+  rationale: Establish the TF-RD-010 classification control front before reading any
+    missingness harder-front effect on the smaller medium benchmark rung.
+  hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
+    control corpus (`n_classes_min=2`) against the medium hub manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train
+    on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned medium
+    classification manifest.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
+    from `openml_classification_medium_v1.json` before execution.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline
+    before treating any row outcome as a promotion or defer decision.
+  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration,
+    runtime, and stability as guardrails.
+  next_action: Treat this row as historical no-clipping overfit evidence only, then
+    compare `medium_v4` row 1 against it before authorizing any further medium rerun
+    work under issue `#205`.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets,
+    still capped at <=1024 total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus
+    manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500`
+    optimizer steps with an allowed short final batch.'
+  - This row remains the intended TF-RD-010 medium reference for missingness and class-imbalance
+    reporting on the medium validation pool.
+  - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract
+    rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2`
+    rerun remain historical context only.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
+    evidence only: rows 1-3 hit very early best benchmark steps and then drifted
+    badly, and row 4 was intentionally stopped rather than extended as canonical
+    evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active
+    accumulation/LR pilot.'
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 125
+    max_grad_norm: 166.57754104535064
+    clipped_step_fraction: 0.0
+    best_bpc: 1733.8911195373535
+    final_bpc: 42342.961136550904
+    best_bpf: 1733.891119480133
+    final_bpf: 42342.961136779784
+    best_log_loss: 1.086222860423438
+    final_log_loss: 1.0897063705435235
+    best_brier_score: 0.6595018617281403
+    final_brier_score: 0.662339082213754
+    best_roc_auc: 0.48736514242994994
+    final_roc_auc: 0.47798065825811686
+    final_minus_best_bpc: 40609.07001701355
+    final_minus_best_bpf: 40609.07001729965
+    final_minus_best_log_loss: 0.003483510120085409
+    final_minus_best_brier_score: 0.002837220485613745
+    final_minus_best_roc_auc: -0.009384484171833074
+    drift: 40609.07001701355
+- order: 2
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
+  status: completed
+  rationale: Test whether moderate MCAR exposure improves robustness before structured
+    missingness is considered on the medium validation pool.
+  hypothesis: MCAR may improve BPC and log-loss behavior on the evolved sandwich family
+    without adding the stronger structure of MAR or MNAR.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mcar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mcar_v2
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the clean control row before preferring missingness exposure.
+  - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  - Use the larger hub-backed validation rung later as the main transfer check for
+    any kept missingness front.
+  next_action: Do not extend this package; keep this row as historical overfit evidence
+    and gate any further medium execution on the `medium_v4` row 1 pilot review under
+    issue `#205`.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets,
+    still capped at <=1024 total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus
+    manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500`
+    optimizer steps with an allowed short final batch.'
+  - 'The medium validation pool follows the same hub bundle policy as the large rung:
+    `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
+  - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract
+    rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2`
+    rerun remain historical context only.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
+    evidence only: rows 1-3 hit very early best benchmark steps and then drifted
+    badly, and row 4 was intentionally stopped rather than extended as canonical
+    evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active
+    accumulation/LR pilot.'
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 50
+    max_grad_norm: 113.24739619070533
+    clipped_step_fraction: 0.0
+    best_bpc: 2316.0267997169494
+    final_bpc: 44073.46183696747
+    best_bpf: 2316.0267606258394
+    final_bpf: 44073.46121185303
+    best_log_loss: 1.0785965162319147
+    final_log_loss: 1.0993043992612352
+    best_brier_score: 0.65454582336599
+    final_brier_score: 0.6680016798863458
+    best_roc_auc: 0.49573258208803395
+    final_roc_auc: 0.5076747688700816
+    final_minus_best_bpc: 41757.43503725052
+    final_minus_best_bpf: 41757.434451227185
+    final_minus_best_log_loss: 0.020707883029320584
+    final_minus_best_brier_score: 0.013455856520355858
+    final_minus_best_roc_auc: 0.011942186782047615
+    drift: 41757.43503725052
+    delta_final_bpc: 1730.5007004165673
+    delta_final_bpf: 1730.5000750732434
+    delta_final_log_loss: 0.00959802871771176
+    delta_final_brier_score: 0.005662597672591807
+    delta_final_roc_auc: 0.029694110611964697
+- order: 3
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
+  status: completed
+  rationale: Add a structured missingness row so TF-RD-010 can distinguish random
+    masking from observed-feature-linked masking under the evolved benchmark contract.
+  hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
+    interpretable than MNAR.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mar_v2
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the clean control plus MCAR and MNAR before preferring
+    structured missingness.
+  - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  - Use the larger hub-backed validation rung later as the main transfer check for
+    any kept missingness front.
+  next_action: Do not extend this package; keep this row as historical overfit evidence
+    and gate any further medium execution on the `medium_v4` row 1 pilot review under
+    issue `#205`.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets,
+    still capped at <=1024 total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus
+    manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500`
+    optimizer steps with an allowed short final batch.'
+  - 'The medium validation pool follows the same hub bundle policy as the large rung:
+    `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
+  - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract
+    rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2`
+    rerun remain historical context only.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
+    evidence only: rows 1-3 hit very early best benchmark steps and then drifted
+    badly, and row 4 was intentionally stopped rather than extended as canonical
+    evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active
+    accumulation/LR pilot.'
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 125
+    max_grad_norm: 114.05184596577253
+    clipped_step_fraction: 0.0
+    best_bpc: 2257.0461721897127
+    final_bpc: 33422.221878376
+    best_bpf: 2257.0463284111024
+    final_bpf: 33422.22187843323
+    best_log_loss: 1.0863714198923824
+    final_log_loss: 1.0972306569091677
+    best_brier_score: 0.6596848379988318
+    final_brier_score: 0.666923817689107
+    best_roc_auc: 0.4871127387913755
+    final_roc_auc: 0.5093202123193687
+    final_minus_best_bpc: 31165.17570618629
+    final_minus_best_bpf: 31165.175550022126
+    final_minus_best_log_loss: 0.010859237016785261
+    final_minus_best_brier_score: 0.007238979690275205
+    final_minus_best_roc_auc: 0.022207473527993238
+    drift: 31165.17570618629
+    delta_final_bpc: -8920.7392581749
+    delta_final_bpf: -8920.739258346555
+    delta_final_log_loss: 0.007524286365644173
+    delta_final_brier_score: 0.004584735475352986
+    delta_final_roc_auc: 0.031339554061251884
+- order: 4
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
+  status: ready
+  rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
+    can compare MCAR, MAR, and MNAR under the same medium benchmark contract.
+  hypothesis: MNAR may be the hardest missingness front, but it may also be the least
+    interpretable candidate for the first evolved benchmark package.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mnar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mnar_v2
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the clean control plus MCAR and MAR before preferring
+    the strongest self-masking option.
+  - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  - Use the larger hub-backed validation rung later as the main transfer check for
+    any kept missingness front.
+  next_action: Do not execute this row under `medium_v3`; it was intentionally stopped
+    after rows 1-3 showed severe early-best-step drift. Use the `medium_v4` row 1
+    pilot under issue `#205` instead.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets,
+    still capped at <=1024 total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus
+    manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500`
+    optimizer steps with an allowed short final batch.'
+  - 'The medium validation pool follows the same hub bundle policy as the large rung:
+    `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
+  - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract
+    rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2`
+    rerun remain historical context only.
+  - Trusted rerun work now flows through issues `#202`, `#205`, and `#204`.
+  - '`tf_rd_010_classification_evolution_medium_v3` is preserved historical no-clipping
+    evidence only: rows 1-3 hit very early best benchmark steps and then drifted
+    badly, and row 4 was intentionally stopped rather than extended as canonical
+    evidence. `tf_rd_010_classification_evolution_medium_v4` now owns the active
+    accumulation/LR pilot.'
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []

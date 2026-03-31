@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -20,6 +21,11 @@ from .corpus_loading import (
     _sweep_recipe_paths,
     corpus_outputs_root,
     corpus_record_path,
+)
+from .manifest_characteristics import (
+    compute_manifest_characteristics,
+    load_manifest_characteristics_sidecar,
+    write_manifest_characteristics_sidecar,
 )
 
 
@@ -154,6 +160,56 @@ def _load_record_from_latest_pointer(
     return record if _record_matches_recipe(record, recipe, storage=storage) else None
 
 
+def _copy_record(record: Mapping[str, Any]) -> dict[str, Any]:
+    payload = json.loads(json.dumps(record))
+    if not isinstance(payload, Mapping):
+        raise RuntimeError("copied corpus record must remain a mapping")
+    return {str(key): value for key, value in payload.items()}
+
+
+def hydrate_corpus_record_manifest_characteristics(record: Mapping[str, Any]) -> dict[str, Any]:
+    manifest = record.get("manifest")
+    if not isinstance(manifest, Mapping):
+        return _copy_record(record)
+
+    manifest_path_raw = manifest.get("manifest_path")
+    if not isinstance(manifest_path_raw, str) or not manifest_path_raw.strip():
+        return _copy_record(record)
+    manifest_path = Path(manifest_path_raw).expanduser().resolve()
+
+    raw_characteristics = manifest.get("characteristics")
+    characteristics = raw_characteristics if isinstance(raw_characteristics, Mapping) else {}
+    if characteristics.get("record_count") is not None:
+        return _copy_record(record)
+
+    sidecar_path_raw = characteristics.get("sidecar_path")
+    sidecar_path = (
+        None
+        if not isinstance(sidecar_path_raw, str) or not sidecar_path_raw.strip()
+        else Path(sidecar_path_raw).expanduser().resolve()
+    )
+    full_characteristics = (
+        None
+        if sidecar_path is None
+        else load_manifest_characteristics_sidecar(sidecar_path)
+    )
+    if full_characteristics is None:
+        if sidecar_path is None:
+            full_characteristics = compute_manifest_characteristics(manifest_path)
+        else:
+            full_characteristics = write_manifest_characteristics_sidecar(
+                manifest_path=manifest_path,
+                sidecar_path=sidecar_path,
+            )
+
+    hydrated = _copy_record(record)
+    hydrated_manifest = hydrated.get("manifest")
+    if not isinstance(hydrated_manifest, dict):
+        return hydrated
+    hydrated_manifest["characteristics"] = full_characteristics
+    return hydrated
+
+
 def _matching_corpus_records_for_recipe(
     recipe: CorpusRecipe,
     storage: CorpusRecipeStorageContext,
@@ -179,12 +235,18 @@ def load_corpus_record(
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
+    hydrate_characteristics: bool = False,
 ) -> dict[str, Any]:
     recipe_id, corpus_id = _parse_corpus_ref(corpus_ref)
     if corpus_id is not None:
-        return _load_corpus_record_payload(
+        record = _load_corpus_record_payload(
             corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
             context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+        return (
+            hydrate_corpus_record_manifest_characteristics(record)
+            if hydrate_characteristics
+            else record
         )
 
     selected_recipe = _selected_recipe_for_lookup(
@@ -197,11 +259,19 @@ def load_corpus_record(
         recipe, storage = selected_recipe
         latest_record = _load_record_from_latest_pointer(recipe, storage, repo_root=repo_root)
         if latest_record is not None:
-            return latest_record
+            return (
+                hydrate_corpus_record_manifest_characteristics(latest_record)
+                if hydrate_characteristics
+                else latest_record
+            )
         matches = _matching_corpus_records_for_recipe(recipe, storage, repo_root=repo_root)
         recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
         if len(matches) == 1:
-            return matches[0]
+            return (
+                hydrate_corpus_record_manifest_characteristics(matches[0])
+                if hydrate_characteristics
+                else matches[0]
+            )
         if not matches:
             raise RuntimeError(
                 f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
@@ -216,9 +286,14 @@ def load_corpus_record(
             latest.get("corpus_id"),
             context=f"latest corpus_id for recipe {recipe_id!r}",
         )
-        return _load_corpus_record_payload(
+        record = _load_corpus_record_payload(
             corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
             context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+        return (
+            hydrate_corpus_record_manifest_characteristics(record)
+            if hydrate_characteristics
+            else record
         )
 
     recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
@@ -229,9 +304,14 @@ def load_corpus_record(
     ) if recipe_root.exists() else []
     if len(candidates) == 1:
         corpus_id = candidates[0]
-        return _load_corpus_record_payload(
+        record = _load_corpus_record_payload(
             corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
             context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+        return (
+            hydrate_corpus_record_manifest_characteristics(record)
+            if hydrate_characteristics
+            else record
         )
     if not candidates:
         raise RuntimeError(

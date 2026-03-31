@@ -138,12 +138,13 @@ def plot_loss_curve(
 def checkpoint_snapshots_from_history(history_path: Path, checkpoint_dir: Path) -> list[dict[str, Any]]:
     """Resolve step checkpoints and their elapsed training times."""
 
+    history_records = load_history(history_path)
     step_times = {
         int(record["step"]): resolve_train_elapsed_seconds(
             record,
             context=f"history step={record['step']}",
         )
-        for record in load_history(history_path)
+        for record in history_records
     }
     snapshots: list[dict[str, Any]] = []
     for checkpoint in sorted(checkpoint_dir.glob("step_*.pt")):
@@ -163,5 +164,31 @@ def checkpoint_snapshots_from_history(history_path: Path, checkpoint_dir: Path) 
             }
         )
     if not snapshots:
-        raise RuntimeError(f"no step checkpoints found under {checkpoint_dir}")
+        latest_checkpoint = checkpoint_dir / "latest.pt"
+        if not latest_checkpoint.exists():
+            stage_latest_candidates = sorted(checkpoint_dir.glob("latest_*.pt"))
+            if stage_latest_candidates:
+                latest_checkpoint = max(
+                    stage_latest_candidates,
+                    key=lambda candidate: (candidate.stat().st_mtime_ns, candidate.name),
+                )
+            else:
+                latest_checkpoint = checkpoint_dir / "best.pt"
+        if not latest_checkpoint.exists():
+            raise RuntimeError(f"no step checkpoints found under {checkpoint_dir}")
+
+        latest_record = max(history_records, key=lambda record: int(record["step"]))
+        latest_step = int(latest_record["step"])
+        latest_elapsed_seconds = resolve_train_elapsed_seconds(
+            latest_record,
+            context=f"history step={latest_step}",
+        )
+        snapshots.append(
+            {
+                "step": latest_step,
+                "path": str(latest_checkpoint.resolve()),
+                "elapsed_seconds": max(0.0, float(latest_elapsed_seconds)),
+                "train_elapsed_seconds": max(0.0, float(latest_elapsed_seconds)),
+            }
+        )
     return snapshots

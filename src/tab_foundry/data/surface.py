@@ -64,6 +64,29 @@ def _optional_string(value: Any) -> str | None:
     return str(value)
 
 
+_FORBIDDEN_SUBSAMPLING_KEYS = frozenset({"train_row_cap", "test_row_cap"})
+
+
+def _raise_forbidden_subsampling_keys(
+    *,
+    cfg: Mapping[str, Any],
+    overrides: Mapping[str, Any],
+) -> None:
+    forbidden_locations: list[str] = []
+    for scope_name, mapping in (
+        ("data", cfg),
+        ("data.surface_overrides", overrides),
+    ):
+        for key in sorted(_FORBIDDEN_SUBSAMPLING_KEYS & set(mapping)):
+            forbidden_locations.append(f"{scope_name}.{key}")
+    if forbidden_locations:
+        joined = ", ".join(forbidden_locations)
+        raise ValueError(
+            "Row subsampling is no longer supported. "
+            f"Remove these keys from the config: {joined}"
+        )
+
+
 @dataclass(slots=True, frozen=True)
 class DataSurfaceConfig:
     surface_label: str
@@ -71,8 +94,6 @@ class DataSurfaceConfig:
     manifest_path: Path | None
     filter_policy: str | None
     allow_missing_values: bool
-    train_row_cap: int | None
-    test_row_cap: int | None
     dagzoo_provenance: dict[str, Any] | None
     corpus_ref: str | None
     recipe_id: str | None
@@ -107,6 +128,7 @@ def resolve_data_surface(
         for key, value in overrides.items()
         if key not in {"corpus_lookup_sweep_id", "corpus_lookup_sweeps_root"}
     }
+    _raise_forbidden_subsampling_keys(cfg=cfg, overrides=resolved_overrides)
     resolved_sweep_id = sweep_id if sweep_id is not None else hinted_sweep_id
     resolved_sweeps_root = sweeps_root
     if resolved_sweeps_root is None and hinted_sweeps_root is not None:
@@ -201,12 +223,6 @@ def resolve_data_surface(
             context="data.surface_overrides.dagzoo_provenance",
         )
     )
-    train_row_cap_raw = resolved_overrides.get("train_row_cap")
-    if train_row_cap_raw is None:
-        train_row_cap_raw = cfg.get("train_row_cap")
-    test_row_cap_raw = resolved_overrides.get("test_row_cap")
-    if test_row_cap_raw is None:
-        test_row_cap_raw = cfg.get("test_row_cap")
     surface_label_raw = cfg.get("surface_label")
     if surface_label_raw is None:
         surface_label_raw = resolved_overrides.get("surface_label")
@@ -220,8 +236,6 @@ def resolve_data_surface(
         manifest_path=manifest_path,
         filter_policy=filter_policy,
         allow_missing_values=allow_missing_values,
-        train_row_cap=None if train_row_cap_raw is None else int(train_row_cap_raw),
-        test_row_cap=None if test_row_cap_raw is None else int(test_row_cap_raw),
         dagzoo_provenance=dagzoo_provenance,
         corpus_ref=corpus_ref,
         recipe_id=recipe_id,

@@ -74,7 +74,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - Issue 124 remains the later filtering-policy question rather than part of this broader shape-aware follow-up.
   - Historical execution `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v1` was invalid because manifest-backed training ran through the prior-dump backend.
   - The completed rerun kept dagzoo deferred: the broader multi-invocation surface still underperformed the anchor on final large-bundle log loss and Brier, so issue 127 does not change the representative-data decision.
-  - Runtime row caps (`train_row_cap=512`, `test_row_cap=256`) keep the larger-shape dagzoo shards inside the current row-attention budget while preserving the broader feature-shape mix in the support bundle.
+  - Training now consumes the full tracked manifest rows; the broader feature-shape mix is preserved without runtime row subsampling.
   - Supersedes historical queue run `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v1`; that invalid run id is preserved in queue notes only.
   - Canonical rerun registered as `sd_tf_rd_013_shape_aware_dagzoo_v1_01_delta_data_manifest_root_dagzoo_shape_aware_multi_invocation_v2`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.

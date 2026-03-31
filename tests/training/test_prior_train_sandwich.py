@@ -166,6 +166,20 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
     assert telemetry["regime_budget"]["tokens_per_step"] > 0.0
     assert telemetry["regime_budget"]["objective_metric"] == "final_bpc_at_matched_regime_budget"
+    history = [
+        json.loads(line)
+        for line in (tmp_path / "train_out" / "train_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(history) == 2
+    assert all(0.0 <= float(record["train_acc"]) <= 1.0 for record in history if record["train_acc"] is not None)
+    assert all(
+        0.0 <= float(record["train_acc"]) <= 1.0
+        for record in gradient_history
+        if record["train_acc"] is not None
+    )
+    assert result.metrics["final_train_acc"] is not None
+    assert 0.0 <= float(result.metrics["final_train_acc"]) <= 1.0
     training_surface = json.loads(
         (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
     )

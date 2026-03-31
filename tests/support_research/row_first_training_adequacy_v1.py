@@ -39,14 +39,16 @@ def test_row_first_training_adequacy_v1_is_registered_on_the_tf_rd_013_medium_an
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
-    assert sweeps[SWEEP_ID] == {
-        "parent_sweep_id": "tf_rd_013_dagzoo_size_ladder_v1",
-        "status": "completed",
-        "anchor_run_id": ANCHOR_RUN_ID,
-        "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
-        "control_baseline_id": "cls_benchmark_linear_v2",
-    }
+    entry = sweeps[SWEEP_ID]
+    assert entry["parent_sweep_id"] == "tf_rd_013_dagzoo_size_ladder_v1"
+    assert entry["status"] == "completed"
+    assert entry["anchor_run_id"] == ANCHOR_RUN_ID
+    assert entry["complexity_level"] == "binary_md"
+    assert entry["benchmark_manifest_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    )
+    assert entry["control_baseline_id"] == "cls_benchmark_linear_v2"
+    assert entry["external_benchmarks"] is None
 
 
 def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() -> None:
@@ -109,8 +111,6 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
             "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium",
             "source": "manifest",
             "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-            "train_row_cap": 512,
-            "test_row_cap": 256,
         }
         assert row["training"]["surface_label"] == "linear_warmup_decay"
         assert row["training"]["task_batch_size"] == task_batch_size
@@ -169,8 +169,6 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
             "surface_overrides": {
                 "source": "manifest",
                 "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-                "train_row_cap": 512,
-                "test_row_cap": 256,
             },
         }
         assert entry["default_effective_surface"]["training"]["task_batch_size"] == task_batch_size

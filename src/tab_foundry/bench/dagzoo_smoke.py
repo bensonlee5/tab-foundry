@@ -161,7 +161,6 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
                 ],
                 checkpoint_every=config.checkpoint_every,
                 device=config.device,
-                clear_row_caps=False,
             )
         )
         timings_seconds["train"] = time.perf_counter() - stage_start
@@ -174,7 +173,6 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
                 manifest_path=manifest_path,
                 checkpoint_path=train_result.best_checkpoint,
                 device=config.device,
-                clear_row_caps=False,
             )
         )
         timings_seconds["eval"] = time.perf_counter() - stage_start

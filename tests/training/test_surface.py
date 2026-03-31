@@ -5,6 +5,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 from omegaconf import OmegaConf
+import pytest
 
 from tab_foundry.config import compose_config
 import tab_foundry.data.corpus_loading as corpus_loading_module
@@ -442,46 +443,23 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
 
 
-def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_values(
+def test_build_training_surface_record_rejects_removed_row_cap_subsampling(
     tmp_path: Path,
 ) -> None:
     manifest_path = _write_manifest(tmp_path / "manifest.parquet")
-    overridden_record = build_training_surface_record(
-        raw_cfg={
-            "task": "classification",
-            "model": {"arch": "tabfoundry_staged"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {
-                    "train_row_cap": 3,
-                    "test_row_cap": 2,
+    with pytest.raises(ValueError, match="Row subsampling is no longer supported"):
+        _ = build_training_surface_record(
+            raw_cfg={
+                "task": "classification",
+                "model": {"arch": "tabfoundry_staged"},
+                "data": {
+                    "source": "manifest",
+                    "manifest_path": str(manifest_path),
+                    "train_row_cap": 10,
                 },
             },
-        },
-        run_dir=tmp_path / "run_override",
-    )
-    fallback_record = build_training_surface_record(
-        raw_cfg={
-            "task": "classification",
-            "model": {"arch": "tabfoundry_staged"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {},
-            },
-        },
-        run_dir=tmp_path / "run_top_level",
-    )
-
-    assert overridden_record["data"]["train_row_cap"] == 3
-    assert overridden_record["data"]["test_row_cap"] == 2
-    assert fallback_record["data"]["train_row_cap"] == 10
-    assert fallback_record["data"]["test_row_cap"] == 5
+            run_dir=tmp_path / "run_override",
+        )
 
 
 def test_build_training_surface_record_includes_optional_training_surface(

@@ -540,6 +540,38 @@ def test_dataset_raises_when_unseen_filter_removes_all_test_rows(tmp_path: Path)
         _ = ds[0]
 
 
+def test_dataset_rejects_removed_row_cap_arguments(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    dataset = {
+        "dataset_index": 0,
+        "x_train": np.arange(96 * 2, dtype=np.float32).reshape(96, 2),
+        "y_train": np.asarray([0] * 95 + [1], dtype=np.int64),
+        "x_test": np.arange(32 * 2, dtype=np.float32).reshape(32, 2),
+        "y_test": np.asarray([0] * 31 + [1], dtype=np.int64),
+        "feature_types": ["floating", "floating"],
+        "metadata": _classification_metadata(
+            n_features=2,
+            n_classes=2,
+            seed=7,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    with pytest.raises(TypeError, match="train_row_cap"):
+        _ = PackedParquetTaskDataset(
+            manifest_path=manifest_path,
+            split=str(row["split"]),
+            task="classification",
+            train_row_cap=64,
+            test_row_cap=16,
+        )
+
+
 def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remaps_labels(
     tmp_path: Path,
 ) -> None:

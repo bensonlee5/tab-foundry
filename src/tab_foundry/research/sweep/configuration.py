@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any, Mapping, cast
@@ -21,8 +22,6 @@ _DATA_SURFACE_OVERRIDE_KEYS = frozenset(
         "manifest_path",
         "source",
         "surface_label",
-        "test_row_cap",
-        "train_row_cap",
     }
 )
 
@@ -33,14 +32,76 @@ def _surface_override_merge_mode(*, key: str, value: Any) -> bool:
     return True
 
 
-def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id: str | None) -> str:
-    base = f"sd_{sweep_id}_{order:02d}_{delta_ref}"
-    if existing_run_id is None:
-        return f"{base}_v1"
-    match = re.fullmatch(rf"{re.escape(base)}_v(\d+)", existing_run_id)
+def _row_run_id_base(*, sweep_id: str, order: int, delta_ref: str) -> str:
+    return f"sd_{sweep_id}_{order:02d}_{delta_ref}"
+
+
+def _row_run_id_version(*, base: str, candidate: str | None) -> int | None:
+    if candidate is None:
+        return None
+    match = re.fullmatch(rf"{re.escape(base)}_v(\d+)(?:_.*)?", str(candidate).strip())
     if match is None:
-        return f"{base}_v1"
-    return f"{base}_v{int(match.group(1)) + 1}"
+        return None
+    version = int(match.group(1))
+    return version if version > 0 else None
+
+
+def _delta_root_consumed_versions(*, base: str, delta_root: Path | None) -> set[int]:
+    if delta_root is None or not delta_root.exists() or not delta_root.is_dir():
+        return set()
+    consumed_versions: set[int] = set()
+    try:
+        entries = list(delta_root.iterdir())
+    except OSError:
+        return consumed_versions
+    for entry in entries:
+        version = _row_run_id_version(base=base, candidate=entry.name)
+        if version is not None:
+            consumed_versions.add(version)
+    return consumed_versions
+
+
+def _registry_consumed_versions(*, base: str, registry_path: Path | None) -> set[int]:
+    if registry_path is None:
+        return set()
+    resolved_registry_path = registry_path.expanduser().resolve()
+    if not resolved_registry_path.exists():
+        return set()
+    try:
+        payload = json.loads(resolved_registry_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return set()
+    if not isinstance(payload, Mapping):
+        return set()
+    raw_runs = payload.get("runs")
+    if not isinstance(raw_runs, Mapping):
+        return set()
+    consumed_versions: set[int] = set()
+    for run_id in raw_runs:
+        version = _row_run_id_version(base=base, candidate=str(run_id))
+        if version is not None:
+            consumed_versions.add(version)
+    return consumed_versions
+
+
+def row_id_for_order(
+    sweep_id: str,
+    order: int,
+    delta_ref: str,
+    existing_run_id: str | None,
+    *,
+    delta_root: Path | None = None,
+    registry_path: Path | None = None,
+) -> str:
+    base = _row_run_id_base(sweep_id=sweep_id, order=order, delta_ref=delta_ref)
+    consumed_versions: set[int] = set()
+    existing_version = _row_run_id_version(base=base, candidate=existing_run_id)
+    if existing_version is not None:
+        consumed_versions.add(existing_version)
+    consumed_versions.update(_delta_root_consumed_versions(base=base, delta_root=delta_root))
+    consumed_versions.update(_registry_consumed_versions(base=base, registry_path=registry_path))
+    next_version = max(consumed_versions, default=0) + 1
+    return f"{base}_v{next_version}"
 
 
 def apply_mapping(cfg: DictConfig, prefix: str, payload: Mapping[str, Any]) -> None:
@@ -191,6 +252,8 @@ def compose_cfg(
         override_payload = overrides.get(key)
         if isinstance(override_payload, dict):
             apply_mapping(cfg, key, cast(Mapping[str, Any], override_payload))
+    if sweep_id is not None:
+        OmegaConf.update(cfg, "runtime.grad_clip", 0.0, merge=False)
     return cfg
 
 

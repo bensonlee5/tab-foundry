@@ -272,7 +272,7 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
     assert payload["corpus_refs"] == ["override_recipe/override_recipe__123456789abc"]
 
 
-def test_materialize_sweep_corpora_prefers_surface_override_corpus_ref(
+def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -318,10 +318,13 @@ def test_materialize_sweep_corpora_prefers_surface_override_corpus_ref(
         catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert captured == ["override_recipe"]
-    assert payload["requested_corpus_refs"] == ["override_recipe"]
-    assert payload["requested_recipe_ids"] == ["override_recipe"]
-    assert payload["corpus_refs"] == ["override_recipe/override_recipe__123456789abc"]
+    assert captured == ["top_level_recipe", "override_recipe"]
+    assert payload["requested_corpus_refs"] == ["top_level_recipe", "override_recipe"]
+    assert payload["requested_recipe_ids"] == ["top_level_recipe", "override_recipe"]
+    assert payload["corpus_refs"] == [
+        "top_level_recipe/top_level_recipe__123456789abc",
+        "override_recipe/override_recipe__123456789abc",
+    ]
 
 
 def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(
@@ -930,6 +933,89 @@ def test_create_sweep_defaults_single_epoch_budget_for_new_synthetic_rows_withou
     assert materialized_row["training"]["synthetic_epoch_budget"]["resolution_source"] == "recipe_definition"
 
 
+def test_create_sweep_writes_resolved_queue_with_effective_runtime_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="resolved_queue_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    resolved_queue_path = sweeps_root / "resolved_queue_clone" / "resolved_queue.yaml"
+    assert resolved_queue_path.exists()
+
+    materialized = load_system_delta_queue(
+        sweep_id="resolved_queue_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+    assert materialized["schema"] == "tab-foundry-system-delta-resolved-queue-v1"
+    assert materialized["canonical_resolved_queue_path"].endswith(
+        "reference/system_delta_sweeps/resolved_queue_clone/resolved_queue.yaml"
+    )
+    row = materialized["rows"][0]
+    assert isinstance(row["resolved_surface_fingerprint"], str) and row["resolved_surface_fingerprint"]
+    assert row["resolved_surface"]["runtime"]["grad_clip"] == 0.0
+    assert "train_row_cap" not in row["resolved_surface"]["data"]
+    assert "test_row_cap" not in row["resolved_surface"]["data"]
+
+    matrix = (sweeps_root / "resolved_queue_clone" / "matrix.md").read_text(encoding="utf-8")
+    assert "Resolved queue path:" in matrix
+    assert "Resolved runtime surface:" in matrix
+    assert "grad_clip" in matrix
+
+
+def test_load_system_delta_queue_rejects_stale_resolved_queue_snapshot(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="stale_resolved_queue_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    queue_path = sweeps_root / "stale_resolved_queue_clone" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload["rows"]
+    assert isinstance(rows, list)
+    rows[0]["notes"] = ["stale queue change"]
+    queue_path.write_text(
+        OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="resolved_queue.yaml is stale"):
+        _ = load_system_delta_queue(
+            sweep_id="stale_resolved_queue_clone",
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            sweeps_root=sweeps_root,
+        )
+
+
 def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
     tmp_path: Path,
 ) -> None:
@@ -1338,8 +1424,9 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
     assert materialized["training_config_profile"] == "cls_benchmark_linear_simple"
     assert materialized["surface_role"] == "pfn_control"
     assert materialized["rows"][0]["model"] == {}
+    resolved_model_label = materialized["rows"][0]["resolved_surface"]["labels"]["model"]
     matrix_text = Path(result["matrix_path"]).read_text(encoding="utf-8")
-    assert "Effective labels: model=`cls_benchmark_linear_simple`" in matrix_text
+    assert f"Effective labels: model=`{resolved_model_label}`" in matrix_text
 
 
 def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor(

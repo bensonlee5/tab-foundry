@@ -10,7 +10,7 @@ from typing import Any, Mapping
 
 import yaml
 
-from tab_realdata_hub.manifest import build_manifest, inspect_manifest, manifest_characteristics
+from tab_realdata_hub.manifest import build_manifest
 
 from tab_foundry.hashing import sha256_path
 from tab_foundry.timestamps import utc_now
@@ -32,6 +32,7 @@ from .corpus_loading import (
     load_corpus_recipe,
 )
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
+from .manifest_characteristics import inspect_manifest_summary
 from .dagzoo_handoff import (
     DagzooGeneratedIdentityAccumulator,
     DagzooHandoffInfo,
@@ -349,6 +350,10 @@ def _invocation_record_payload(
     return payload
 
 
+def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:
+    return corpus_root / "manifest_characteristics.json"
+
+
 def materialize_corpus_recipe(
     *,
     recipe_id: str,
@@ -478,7 +483,9 @@ def materialize_corpus_recipe(
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
             }
         )
-        manifest_inspection = inspect_manifest(resolved_manifest_path)
+        manifest_inspection = inspect_manifest_summary(resolved_manifest_path)
+        manifest_persisted_summary = manifest_inspection.get("persisted_summary")
+        characteristics_sidecar_path = _manifest_characteristics_sidecar_path(corpus_root=final_root)
         record: dict[str, Any] = {
             "schema": CORPUS_RECORD_SCHEMA,
             "generated_at_utc": utc_now(),
@@ -508,7 +515,11 @@ def materialize_corpus_recipe(
                 "manifest_path": str(resolved_manifest_path.resolve()),
                 "manifest_sha256": manifest_sha256,
                 "inspection": manifest_inspection,
-                "characteristics": manifest_characteristics(resolved_manifest_path),
+                "characteristics": {
+                    "persisted_summary": manifest_persisted_summary,
+                    "sidecar_path": str(characteristics_sidecar_path.resolve()),
+                    "cache_status": "deferred",
+                },
             },
             "dagzoo_provenance": dagzoo_provenance,
         }

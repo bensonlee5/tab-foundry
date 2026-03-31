@@ -33,12 +33,9 @@ def build_manifest_task_dataset(
         manifest_path=Path(str(data_surface.manifest_path)),
         split=split,
         task=task,
-        train_row_cap=data_surface.train_row_cap,
-        test_row_cap=data_surface.test_row_cap,
         impute_missing=bool(preprocessing_surface.impute_missing),
         all_nan_fill=float(preprocessing_surface.all_nan_fill),
         label_mapping=str(preprocessing_surface.label_mapping),
         unseen_test_label_policy=str(preprocessing_surface.unseen_test_label_policy),
         allow_missing_values=bool(data_surface.allow_missing_values),
-        seed=seed,
     )

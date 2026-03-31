@@ -49,7 +49,7 @@ def test_evaluate_checkpoint_uses_explicit_weights_only_false(
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -106,7 +106,7 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
                 "many_class_train_mode": "full_probs",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -142,7 +142,7 @@ def test_evaluate_checkpoint_rejects_regression_checkpoint_task(
             "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
             "task": "classification",
             "model": {},
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -199,7 +199,7 @@ def test_evaluate_checkpoint_prefers_checkpoint_preprocessing_config(
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "preprocessing": {
                 "surface_label": "runtime_default",
                 "overrides": {"impute_missing": True},
@@ -242,8 +242,6 @@ def test_evaluate_checkpoint_prefers_checkpoint_data_config(
                 },
                 "data": {
                     "manifest_path": "checkpoint_manifest.parquet",
-                    "train_row_cap": 16,
-                    "test_row_cap": 8,
                 },
             },
         }
@@ -275,8 +273,6 @@ def test_evaluate_checkpoint_prefers_checkpoint_data_config(
             },
             "data": {
                 "manifest_path": "runtime_manifest.parquet",
-                "train_row_cap": 64,
-                "test_row_cap": 32,
             },
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
@@ -288,8 +284,6 @@ def test_evaluate_checkpoint_prefers_checkpoint_data_config(
     data_cfg = captured["data_cfg"]
     assert OmegaConf.to_container(data_cfg, resolve=True) == {
         "manifest_path": "checkpoint_manifest.parquet",
-        "train_row_cap": 16,
-        "test_row_cap": 8,
     }
 
 
@@ -337,7 +331,7 @@ def test_evaluate_checkpoint_falls_back_to_runtime_preprocessing_config(
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "preprocessing": {
                 "surface_label": "runtime_all_nan_fill_one",
                 "overrides": {"all_nan_fill": 1.0},
@@ -416,7 +410,7 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -489,7 +483,7 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -550,7 +544,7 @@ def test_evaluate_checkpoint_disables_even_batch_padding_for_task_batching(
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -638,7 +632,7 @@ def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surfa
                 "many_class_base": 4,
                 "input_normalization": "none",
             },
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
     )
@@ -699,7 +693,7 @@ def test_evaluate_checkpoint_rejects_tensor_batched_true_many_class_preflight(
                 "many_class_base": 4,
                 "input_normalization": "none",
             },
-            "data": {"manifest_path": str(manifest_path), "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": str(manifest_path)},
             "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
         }
     )

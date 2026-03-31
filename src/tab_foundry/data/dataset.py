@@ -206,43 +206,6 @@ def load_manifest_record_metadata(
     return metadata, feature_types
 
 
-def _subsample_rows(
-    x: np.ndarray,
-    y: np.ndarray,
-    *,
-    cap: int | None,
-    seed: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    idx = _subsample_indices(x.shape[0], cap=cap, seed=seed)
-    if idx is None:
-        return x, y
-    return x[idx], y[idx]
-
-
-def _subsample_indices(
-    row_count: int,
-    *,
-    cap: int | None,
-    seed: int,
-) -> np.ndarray | None:
-    if cap is None or cap <= 0 or row_count <= cap:
-        return None
-    rng = np.random.default_rng(seed)
-    return np.sort(rng.choice(row_count, size=cap, replace=False))
-
-
-def _subsample_values(
-    values: np.ndarray,
-    *,
-    cap: int | None,
-    seed: int,
-) -> np.ndarray:
-    idx = _subsample_indices(int(values.shape[0]), cap=cap, seed=seed)
-    if idx is None:
-        return values
-    return values[idx]
-
-
 def _read_packed_split_targets(
     split_path: Path,
     *,
@@ -376,26 +339,20 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         *,
         split: str,
         task: str,
-        train_row_cap: int | None = None,
-        test_row_cap: int | None = None,
         impute_missing: bool = True,
         all_nan_fill: float = 0.0,
         label_mapping: str = "train_only_remap",
         unseen_test_label_policy: str = "filter",
         allow_missing_values: bool = False,
-        seed: int = 0,
     ) -> None:
         self.manifest_path = manifest_path.expanduser().resolve()
         self.split = split
         self.task = task
-        self.train_row_cap = train_row_cap
-        self.test_row_cap = test_row_cap
         self.impute_missing = impute_missing
         self.all_nan_fill = float(all_nan_fill)
         self.label_mapping = str(label_mapping)
         self.unseen_test_label_policy = str(unseen_test_label_policy)
         self.allow_missing_values = bool(allow_missing_values)
-        self.seed = int(seed)
 
         table = pq.read_table(self.manifest_path)
         records: list[dict[str, Any]] = table.to_pylist()
@@ -455,19 +412,6 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                     f"{_record_identity_text(record)}"
                 ),
             )
-
-        x_train, y_train = _subsample_rows(
-            x_train,
-            y_train,
-            cap=self.train_row_cap,
-            seed=self.seed + index * 2 + 1,
-        )
-        x_test, y_test = _subsample_rows(
-            x_test,
-            y_test,
-            cap=self.test_row_cap,
-            seed=self.seed + index * 2 + 2,
-        )
 
         processed = preprocess_runtime_task_arrays(
             task=self.task,
@@ -572,16 +516,8 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 f"dataset_index={dataset_index}, expected={expected_n_test}, got={test_labels_raw.shape[0]}"
             )
 
-        train_labels = _subsample_values(
-            np.asarray(train_labels_raw),
-            cap=self.train_row_cap,
-            seed=self.seed + index * 2 + 1,
-        )
-        test_labels = _subsample_values(
-            np.asarray(test_labels_raw),
-            cap=self.test_row_cap,
-            seed=self.seed + index * 2 + 2,
-        )
+        train_labels = np.asarray(train_labels_raw)
+        test_labels = np.asarray(test_labels_raw)
         if self.task != "classification":
             return (
                 int(train_labels.shape[0]),

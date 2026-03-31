@@ -139,6 +139,8 @@ def _run_prior_step_with_microbatch_retry(
                     )
                 batched_kwargs["feature_types"] = feature_types_batch[start:stop]
             if loss_surface == "cell_bpc":
+                if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+                    batched_kwargs["y_test"] = y_all_batch[start:stop, train_test_split_index:]
                 forward_batched_cell_likelihood = getattr(model, "forward_batched_cell_likelihood", None)
                 if not callable(forward_batched_cell_likelihood):
                     raise RuntimeError(
@@ -155,6 +157,10 @@ def _run_prior_step_with_microbatch_retry(
                 weighted_metrics["bpf"] = weighted_metrics.get("bpf", 0.0) + (
                     float(output.bpf.detach().item()) * weight
                 )
+                if output.aux_metrics is not None and output.aux_metrics.get("acc") is not None:
+                    weighted_metrics["acc"] = weighted_metrics.get("acc", 0.0) + (
+                        float(output.aux_metrics["acc"]) * weight
+                    )
             else:
                 logits = forward_batched(**batched_kwargs)
                 if not isinstance(logits, torch.Tensor):

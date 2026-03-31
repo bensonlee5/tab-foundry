@@ -23,8 +23,5 @@ schedule:
     - name: stage3
       steps: 3
       lr_max: 2.0e-5
-data:
-  train_row_cap: 96
-  test_row_cap: 48
 logging:
   run_name: cls-smoke

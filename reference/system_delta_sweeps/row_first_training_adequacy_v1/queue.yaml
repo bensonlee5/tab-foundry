@@ -19,8 +19,6 @@ rows:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
     source: manifest
     corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
@@ -128,8 +126,6 @@ rows:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
     source: manifest
     corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
@@ -242,8 +238,6 @@ rows:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
     source: manifest
     corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
@@ -312,8 +306,6 @@ rows:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
     source: manifest
     corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:

@@ -180,11 +180,11 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
 
     assert telemetry["success"] is True
     assert captured_task_counts == [64, 128]
-    assert captured_cfg["train_cfg"].data.train_row_cap is None
-    assert captured_cfg["train_cfg"].data.test_row_cap is None
+    assert "train_row_cap" not in captured_cfg["train_cfg"].data
+    assert "test_row_cap" not in captured_cfg["train_cfg"].data
     assert [int(stage["steps"]) for stage in captured_cfg["train_cfg"].schedule.stages] == [4, 2]
-    assert captured_cfg["eval_cfg"].data.train_row_cap is None
-    assert captured_cfg["eval_cfg"].data.test_row_cap is None
+    assert "train_row_cap" not in captured_cfg["eval_cfg"].data
+    assert "test_row_cap" not in captured_cfg["eval_cfg"].data
     assert telemetry["config"]["final_num_tasks"] == 128
     assert telemetry["manifest"]["test_records"] == 8
     assert (tmp_path / "run" / "summary.md").exists()

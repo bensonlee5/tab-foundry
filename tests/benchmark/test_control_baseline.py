@@ -273,8 +273,6 @@ def test_freeze_control_baseline_resolves_manifest_from_corpus_backed_checkpoint
             manifest_path=manifest_path.resolve(),
             filter_policy=None,
             allow_missing_values=False,
-            train_row_cap=None,
-            test_row_cap=None,
             dagzoo_provenance=None,
             corpus_ref="toy_recipe/toy_corpus",
             recipe_id="toy_recipe",

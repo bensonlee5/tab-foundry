@@ -3312,8 +3312,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
       training:
@@ -3383,8 +3381,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
       training:
@@ -3454,8 +3450,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
       training:
@@ -3525,8 +3519,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
       training:
@@ -4513,8 +4505,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_small_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run after the TF-RD-008-scale fresh current-corpus control to determine whether the 20-dataset dagzoo support corpus improves the promoted-anchor read.
@@ -4551,8 +4541,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run after the 20-dataset rung so TF-RD-013 can read whether dagzoo quality is size-sensitive rather than uniformly weak.
@@ -4589,8 +4577,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_013_dagzoo_shape_aware_size_large_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run last as the 80-dataset upper size rung before deciding whether TF-RD-013 needs any broader synthetic-data exploration beyond this ladder.

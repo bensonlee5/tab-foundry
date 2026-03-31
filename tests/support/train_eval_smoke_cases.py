@@ -634,7 +634,7 @@ def _classification_cfg(tmp_path: Path) -> object:
         {
             "task": "classification",
             "model": {},
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {"manifest_path": "unused.parquet"},
             "runtime": {
                 "seed": 1,
                 "num_workers": 0,

@@ -5,9 +5,6 @@ model:
   feature_group_size: 1
 runtime:
   output_dir: outputs/cls_manyclass_eval
-data:
-  train_row_cap: 512
-  test_row_cap: 256
 eval:
   split: test
   max_batches: 128

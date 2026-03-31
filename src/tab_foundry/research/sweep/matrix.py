@@ -8,7 +8,7 @@ from typing import Any, Mapping, cast
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
-from .materialize import load_system_delta_queue, ordered_rows
+from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
 from .paths_io import (
     _render_path,
     default_catalog_path,
@@ -18,7 +18,7 @@ from .paths_io import (
     sweep_queue_path,
     write_text,
 )
-from .queue_updates import stage_local_telemetry_metrics
+from .queue_state import completed_queue_metrics_from_registry_run
 
 
 def _require_non_empty_string(value: Any, *, context: str) -> str:
@@ -31,78 +31,6 @@ def _optional_float(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
-
-
-def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float]:
-    metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
-    diagnostics = cast(dict[str, Any], run["training_diagnostics"])
-    comparisons = cast(dict[str, Any], run.get("comparisons", {}))
-    raw_vs_anchor = comparisons.get("vs_anchor", {})
-    vs_anchor = cast(dict[str, Any], raw_vs_anchor if isinstance(raw_vs_anchor, Mapping) else {})
-    expected: dict[str, float] = {}
-
-    best_step = _optional_float(metrics.get("best_step"))
-    if best_step is not None:
-        expected["best_step"] = best_step
-    max_grad_norm = _optional_float(diagnostics.get("max_grad_norm"))
-    if max_grad_norm is not None:
-        expected["max_grad_norm"] = max_grad_norm
-
-    metric_suffixes = (
-        "bpc",
-        "bpf",
-        "roc_auc",
-        "log_loss",
-        "brier_score",
-        "crps",
-        "avg_pinball_loss",
-        "picp_90",
-    )
-    for prefix in ("best", "final"):
-        for suffix in metric_suffixes:
-            key = f"{prefix}_{suffix}"
-            value = _optional_float(metrics.get(key))
-            if value is not None:
-                expected[key] = value
-
-    for suffix in metric_suffixes:
-        best_key = f"best_{suffix}"
-        final_key = f"final_{suffix}"
-        best_value = expected.get(best_key)
-        final_value = expected.get(final_key)
-        if best_value is None or final_value is None:
-            continue
-        expected[f"final_minus_best_{suffix}"] = final_value - best_value
-    if "final_minus_best_bpc" in expected:
-        expected["drift"] = expected["final_minus_best_bpc"]
-    elif "final_minus_best_roc_auc" in expected:
-        expected["drift"] = expected["final_minus_best_roc_auc"]
-
-    comparison_keys = {
-        "final_bpc_delta": "delta_final_bpc",
-        "final_bpf_delta": "delta_final_bpf",
-        "final_log_loss_delta": "delta_final_log_loss",
-        "final_brier_score_delta": "delta_final_brier_score",
-        "final_roc_auc_delta": "delta_final_roc_auc",
-        "final_crps_delta": "delta_final_crps",
-        "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
-        "final_picp_90_delta": "delta_final_picp_90",
-    }
-    for registry_key, queue_key in comparison_keys.items():
-        value = _optional_float(vs_anchor.get(registry_key))
-        if value is not None:
-            expected[queue_key] = value
-    artifacts = cast(dict[str, Any], run.get("artifacts", {}))
-    run_dir_value = artifacts.get("run_dir")
-    if isinstance(run_dir_value, str) and run_dir_value.strip():
-        run_dir = resolve_registry_path_value(run_dir_value)
-        expected.update(
-            {
-                key: float(value)
-                for key, value in stage_local_telemetry_metrics(run_dir).items()
-            }
-        )
-    return expected
 
 
 def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -119,7 +47,28 @@ def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, A
     return rendered
 
 
+def render_data_change_payload(data_payload: Mapping[str, Any]) -> dict[str, Any]:
+    rendered: dict[str, Any] = {}
+    surface_overrides = data_payload.get("surface_overrides")
+    if isinstance(surface_overrides, Mapping) and surface_overrides:
+        rendered.update(dict(surface_overrides))
+    for key, value in data_payload.items():
+        if key in {"surface_label", "surface_overrides"}:
+            continue
+        if value in (None, {}, []):
+            continue
+        rendered[str(key)] = value
+    return rendered
+
+
 def effective_model_label(*, queue: Mapping[str, Any], queue_row: Mapping[str, Any]) -> str:
+    resolved_surface = queue_row.get("resolved_surface")
+    if isinstance(resolved_surface, Mapping):
+        labels = resolved_surface.get("labels")
+        if isinstance(labels, Mapping):
+            model_label = labels.get("model")
+            if isinstance(model_label, str) and model_label.strip():
+                return str(model_label)
     model_payload = queue_row.get("model")
     if isinstance(model_payload, Mapping):
         stage_label = model_payload.get("stage_label")
@@ -205,6 +154,29 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
     }
 
 
+def _run_metric_parts_without_anchor(run: dict[str, Any]) -> list[str]:
+    metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
+    parts: list[str] = []
+    for label, key in (
+        ("final BPC", "final_bpc"),
+        ("final BPF", "final_bpf"),
+        ("final log loss", "final_log_loss"),
+        ("final Brier score", "final_brier_score"),
+        ("best ROC AUC", "best_roc_auc"),
+        ("final ROC AUC", "final_roc_auc"),
+        ("final CRPS", "final_crps"),
+        ("final avg pinball loss", "final_avg_pinball_loss"),
+        ("final PICP 90", "final_picp_90"),
+    ):
+        raw_value = metrics.get(key)
+        if raw_value is not None:
+            parts.append(f"{label} `{float(raw_value):.4f}`")
+    final_training_time = metrics.get("final_training_time")
+    if final_training_time is not None:
+        parts.append(f"final training time `{float(final_training_time):.1f}s`")
+    return parts
+
+
 def _stage_local_stability_summary(queue_metrics: Mapping[str, Any] | None) -> str | None:
     if not isinstance(queue_metrics, Mapping):
         return None
@@ -280,7 +252,7 @@ def validate_system_delta_queue(
         if not isinstance(benchmark_metrics, Mapping):
             issues.append(f"{delta_id}: completed rows must include benchmark_metrics")
             continue
-        expected_metrics = _expected_completed_queue_metrics(run)
+        expected_metrics = completed_queue_metrics_from_registry_run(run)
         for metric_key, expected_value in expected_metrics.items():
             if metric_key not in benchmark_metrics:
                 continue
@@ -302,22 +274,45 @@ def render_system_delta_matrix(
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
     sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
-    anchor_run_id = str(queue["anchor_run_id"])
-    anchor = runs.get(anchor_run_id)
-    if anchor is None:
+    raw_anchor_run_id = queue.get("anchor_run_id")
+    anchor_run_id = (
+        None
+        if raw_anchor_run_id is None or not str(raw_anchor_run_id).strip()
+        else str(raw_anchor_run_id).strip()
+    )
+    anchor = None if anchor_run_id is None else runs.get(anchor_run_id)
+    if anchor_run_id is not None and anchor is None:
         raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
-    anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
+    anchor_metrics = None if anchor is None else cast(dict[str, Any], anchor["tab_foundry_metrics"])
     upstream = cast(dict[str, Any], queue["upstream_reference"])
     anchor_surface = cast(dict[str, Any], queue["anchor_surface"])
     catalog_path = str(queue.get("catalog_path", _render_path(default_catalog_path())))
     canonical_queue_path = str(queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id))))
+    raw_resolved_queue_path = queue.get("canonical_resolved_queue_path")
+    canonical_resolved_queue_path = (
+        str(raw_resolved_queue_path)
+        if isinstance(raw_resolved_queue_path, str) and raw_resolved_queue_path.strip()
+        else None
+    )
+    raw_inputs_fingerprint = queue.get("inputs_fingerprint")
+    inputs_fingerprint = (
+        str(raw_inputs_fingerprint)
+        if isinstance(raw_inputs_fingerprint, str) and raw_inputs_fingerprint.strip()
+        else None
+    )
 
     lines: list[str] = []
     lines.append("# System Delta Matrix")
     lines.append("")
-    lines.append(
-        f"This file is rendered from `{canonical_queue_path}` plus `{catalog_path}` and the canonical benchmark registry."
-    )
+    if canonical_resolved_queue_path is None:
+        lines.append(
+            f"This file is rendered from `{canonical_queue_path}` plus `{catalog_path}` and the canonical benchmark registry."
+        )
+    else:
+        lines.append(
+            f"This file is rendered from `{canonical_resolved_queue_path}` "
+            f"(derived from `{canonical_queue_path}` plus `{catalog_path}`) and the canonical benchmark registry."
+        )
     lines.append("")
     lines.append("## Sweep")
     lines.append("")
@@ -325,10 +320,14 @@ def render_system_delta_matrix(
     lines.append(f"- Sweep status: `{queue.get('sweep_status')}`")
     lines.append(f"- Parent sweep id: `{queue.get('parent_sweep_id')}`")
     lines.append(f"- Complexity level: `{queue.get('complexity_level')}`")
+    if canonical_resolved_queue_path is not None:
+        lines.append(f"- Resolved queue path: `{canonical_resolved_queue_path}`")
+    if inputs_fingerprint is not None:
+        lines.append(f"- Resolved queue inputs fingerprint: `{inputs_fingerprint}`")
     lines.append("")
     lines.append("## Locked Surface")
     lines.append("")
-    lines.append(f"- Anchor run id: `{anchor_run_id}`")
+    lines.append(f"- Anchor run id: `{anchor_run_id if anchor_run_id is not None else 'null'}`")
     benchmark_surface_path = str(queue["benchmark_manifest_path"])
     benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
     lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
@@ -351,29 +350,37 @@ def render_system_delta_matrix(
     lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
     lines.append(f"- Surface role: `{queue.get('surface_role')}`")
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
-    anchor_metric_parts: list[str] = []
-    for label, key in (
-        ("final BPC", "final_bpc"),
-        ("final BPF", "final_bpf"),
-        ("final log loss", "final_log_loss"),
-        ("final Brier score", "final_brier_score"),
-        ("best ROC AUC", "best_roc_auc"),
-        ("final ROC AUC", "final_roc_auc"),
-        ("final CRPS", "final_crps"),
-        ("final avg pinball loss", "final_avg_pinball_loss"),
-        ("final PICP 90", "final_picp_90"),
-    ):
-        raw_value = anchor_metrics.get(key)
-        if raw_value is not None:
-            anchor_metric_parts.append(f"{label} `{float(raw_value):.4f}`")
-    anchor_metric_parts.append(f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`")
-    lines.append(f"- Anchor metrics: {', '.join(anchor_metric_parts)}")
+    if anchor_metrics is None:
+        lines.append("- Anchor metrics: `pending trusted rerun`")
+    else:
+        anchor_metric_parts: list[str] = []
+        for label, key in (
+            ("final BPC", "final_bpc"),
+            ("final BPF", "final_bpf"),
+            ("final log loss", "final_log_loss"),
+            ("final Brier score", "final_brier_score"),
+            ("best ROC AUC", "best_roc_auc"),
+            ("final ROC AUC", "final_roc_auc"),
+            ("final CRPS", "final_crps"),
+            ("final avg pinball loss", "final_avg_pinball_loss"),
+            ("final PICP 90", "final_picp_90"),
+        ):
+            raw_value = anchor_metrics.get(key)
+            if raw_value is not None:
+                anchor_metric_parts.append(f"{label} `{float(raw_value):.4f}`")
+        anchor_metric_parts.append(f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`")
+        lines.append(f"- Anchor metrics: {', '.join(anchor_metric_parts)}")
     lines.append("")
     lines.append("## Anchor Comparison")
     lines.append("")
     upstream_name = str(upstream.get("name", "unknown"))
     upstream_source = str(upstream.get("model_source", "unknown"))
     lines.append(f"Upstream reference: `{upstream_name}` from `{upstream_source}`.")
+    if anchor is None:
+        lines.append("")
+        lines.append(
+            "Pending trusted rerun: no anchor is registered yet, so this matrix records the locked benchmark surface and queue state before the first anchor promotion."
+        )
     lines.append("")
     lines.append(f"| Dimension | Upstream {upstream_name} | Locked anchor | Interpretation |")
     lines.append("| --- | --- | --- | --- |")
@@ -416,12 +423,32 @@ def render_system_delta_matrix(
         lines.append(f"- Upstream delta: {queue_row['upstream_delta']}")
         lines.append(f"- Anchor delta: {queue_row['anchor_delta']}")
         lines.append(f"- Expected effect: {queue_row['expected_effect']}")
+        resolved_surface = (
+            cast(Mapping[str, Any], queue_row.get("resolved_surface"))
+            if isinstance(queue_row.get("resolved_surface"), Mapping)
+            else {}
+        )
+        resolved_labels = (
+            cast(Mapping[str, Any], resolved_surface.get("labels"))
+            if isinstance(resolved_surface.get("labels"), Mapping)
+            else {}
+        )
+        resolved_runtime = (
+            cast(Mapping[str, Any], resolved_surface.get("runtime"))
+            if isinstance(resolved_surface.get("runtime"), Mapping)
+            else {}
+        )
         lines.append(
             f"- Effective labels: model=`{effective_model_label(queue=queue, queue_row=queue_row)}`, "
-            f"data=`{queue_row['data']['surface_label']}`, "
-            f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
-            f"training=`{queue_row['training']['surface_label']}`"
+            f"data=`{resolved_labels.get('data', queue_row['data']['surface_label'])}`, "
+            f"preprocessing=`{resolved_labels.get('preprocessing', queue_row['preprocessing']['surface_label'])}`, "
+            f"training=`{resolved_labels.get('training', queue_row['training']['surface_label'])}`"
         )
+        fingerprint = queue_row.get("resolved_surface_fingerprint")
+        if isinstance(fingerprint, str) and fingerprint.strip():
+            lines.append(f"- Resolved surface fingerprint: `{fingerprint}`")
+        if resolved_runtime:
+            lines.append(f"- Resolved runtime surface: `{dict(resolved_runtime)}`")
         if stage_local_stability is not None:
             lines.append(f"- Stage-local stability: {stage_local_stability}")
         if queue_row["dimension_family"] == "model":
@@ -430,7 +457,9 @@ def render_system_delta_matrix(
             if isinstance(dynamic_model_overrides, Mapping) and dynamic_model_overrides:
                 lines.append(f"- Dynamic model overrides: `{dict(dynamic_model_overrides)}`")
         elif queue_row["dimension_family"] == "data":
-            lines.append(f"- Data overrides: `{queue_row['data'].get('surface_overrides', {})}`")
+            lines.append(
+                f"- Data overrides: `{render_data_change_payload(cast(Mapping[str, Any], queue_row['data']))}`"
+            )
         elif queue_row["dimension_family"] == "training":
             lines.append(f"- Training overrides: `{queue_row['training'].get('overrides', {})}`")
         else:
@@ -516,6 +545,12 @@ def render_system_delta_matrix(
             else:
                 lines.append("- Benchmark metrics: pending")
         else:
+            if anchor is None:
+                lines.append(
+                    f"- Registered run: `{run_id}` with {', '.join(_run_metric_parts_without_anchor(run))}"
+                )
+                lines.append("")
+                continue
             metrics = metric_summary(run, anchor)
             metric_parts = [
                 f"final BPC `{metrics['final_bpc']}`",
@@ -559,6 +594,12 @@ def render_and_write_system_delta_matrix(
         queue
         if queue is not None
         else load_system_delta_queue(
+            path=write_resolved_system_delta_queue(
+                sweep_id=sweep_id,
+                index_path=index_path,
+                catalog_path=catalog_path,
+                sweeps_root=sweeps_root,
+            ),
             sweep_id=sweep_id,
             index_path=index_path,
             catalog_path=catalog_path,

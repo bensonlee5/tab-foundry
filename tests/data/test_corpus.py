@@ -613,6 +613,44 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
 
 
+def test_materialize_corpus_recipe_defers_manifest_characteristics_until_hydration(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    manifest = record["manifest"]
+    characteristics = manifest["characteristics"]
+    sidecar_path = Path(str(characteristics["sidecar_path"]))
+    assert characteristics["cache_status"] == "deferred"
+    assert sidecar_path.name == "manifest_characteristics.json"
+    assert not sidecar_path.exists()
+    assert characteristics["persisted_summary"]["total_records"] == 1
+    assert "record_count" not in characteristics
+
+    unloaded = load_corpus_record(record["corpus_ref"], repo_root=repo_tmp_path)
+    unloaded_characteristics = unloaded["manifest"]["characteristics"]
+    assert unloaded_characteristics["cache_status"] == "deferred"
+    assert "record_count" not in unloaded_characteristics
+
+    hydrated = load_corpus_record(
+        record["corpus_ref"],
+        repo_root=repo_tmp_path,
+        hydrate_characteristics=True,
+    )
+    hydrated_characteristics = hydrated["manifest"]["characteristics"]
+    assert sidecar_path.exists()
+    assert hydrated_characteristics["record_count"] == 1
+    assert hydrated_characteristics["persisted_summary"]["total_records"] == 1
+
+
 def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_rendered_config(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
@@ -1279,7 +1317,6 @@ def test_resolve_data_surface_hydrates_corpus_ref(
         {
             "source": "manifest",
             "corpus_ref": "current_recipe",
-            "train_row_cap": 32,
         }
     )
 
@@ -1288,7 +1325,29 @@ def test_resolve_data_surface_hydrates_corpus_ref(
     assert resolved.recipe_id == "current_recipe"
     assert resolved.manifest_path is not None and resolved.manifest_path.exists()
     assert resolved.allow_missing_values is True
-    assert resolved.train_row_cap == 32
+
+
+def test_resolve_data_surface_rejects_removed_row_cap_subsampling(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _ = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    _patch_corpus_repo_root(monkeypatch, repo_tmp_path)
+
+    with pytest.raises(ValueError, match="Row subsampling is no longer supported"):
+        _ = resolve_data_surface(
+            {
+                "source": "manifest",
+                "corpus_ref": "current_recipe",
+                "train_row_cap": 32,
+            }
+        )
 
 
 def test_resolve_data_surface_uses_sweep_lookup_hint_for_shadowed_corpus_ref(

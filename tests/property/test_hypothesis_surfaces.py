@@ -120,10 +120,6 @@ def test_normalize_benchmark_bundle_rejects_task_id_order_drift(
     override_surface_label=st.one_of(st.none(), _LABEL_TEXT),
     top_allow_missing_values=st.one_of(st.none(), st.booleans()),
     override_allow_missing_values=st.one_of(st.none(), st.booleans()),
-    top_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
-    override_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
-    top_test_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
-    override_test_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
     top_provenance=st.one_of(
         st.none(),
         st.dictionaries(_LABEL_TEXT, st.one_of(_LABEL_TEXT, st.integers(min_value=0, max_value=100)), max_size=4),
@@ -144,10 +140,6 @@ def test_resolve_data_surface_respects_override_precedence(
     override_surface_label: str | None,
     top_allow_missing_values: bool | None,
     override_allow_missing_values: bool | None,
-    top_train_row_cap: int | None,
-    override_train_row_cap: int | None,
-    top_test_row_cap: int | None,
-    override_test_row_cap: int | None,
     top_provenance: dict[str, object] | None,
     override_provenance: dict[str, object] | None,
 ) -> None:
@@ -157,8 +149,6 @@ def test_resolve_data_surface_respects_override_precedence(
         "filter_policy": top_filter_policy,
         "surface_label": top_surface_label,
         "allow_missing_values": top_allow_missing_values,
-        "train_row_cap": top_train_row_cap,
-        "test_row_cap": top_test_row_cap,
         "dagzoo_provenance": top_provenance,
         "surface_overrides": {
             key: value
@@ -168,8 +158,6 @@ def test_resolve_data_surface_respects_override_precedence(
                 "filter_policy": override_filter_policy,
                 "surface_label": override_surface_label,
                 "allow_missing_values": override_allow_missing_values,
-                "train_row_cap": override_train_row_cap,
-                "test_row_cap": override_test_row_cap,
                 "dagzoo_provenance": override_provenance,
             }.items()
             if value is not None
@@ -190,16 +178,12 @@ def test_resolve_data_surface_respects_override_precedence(
         if top_allow_missing_values is not None
         else False
     )
-    expected_train_row_cap = override_train_row_cap if override_train_row_cap is not None else top_train_row_cap
-    expected_test_row_cap = override_test_row_cap if override_test_row_cap is not None else top_test_row_cap
     expected_provenance = override_provenance if override_provenance is not None else top_provenance
 
     assert resolved.source == expected_source
     assert resolved.surface_label == expected_surface_label
     assert resolved.filter_policy == expected_filter_policy
     assert resolved.allow_missing_values is expected_allow_missing_values
-    assert resolved.train_row_cap == expected_train_row_cap
-    assert resolved.test_row_cap == expected_test_row_cap
     assert resolved.dagzoo_provenance == expected_provenance
     if expected_manifest_raw is None:
         assert resolved.manifest_path is None

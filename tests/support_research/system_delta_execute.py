@@ -82,20 +82,43 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _build_paths(tmp_path: Path, sweeps_root: Path, reference_root: Path) -> ExecutionPaths:
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path, keep_runs=True)
     return ExecutionPaths(
         repo_root=tmp_path,
         index_path=sweeps_root / 'index.yaml',
         catalog_path=reference_root / 'system_delta_catalog.yaml',
         sweeps_root=sweeps_root,
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
+
+
+def _write_local_registry_snapshots(
+    tmp_path: Path,
+    *,
+    keep_runs: bool = False,
+) -> tuple[Path, Path]:
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_payload = json.loads(REGISTRY_PATH.read_text(encoding='utf-8'))
+    if isinstance(registry_payload, dict) and not keep_runs:
+        registry_payload['runs'] = {}
+    registry_path.write_text(json.dumps(registry_payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        CONTROL_BASELINE_REGISTRY_PATH.read_text(encoding='utf-8'),
+        encoding='utf-8',
+    )
+    return registry_path, control_baseline_registry_path
 
 
 def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     sweep_id = 'exec_test_sweep'
+    registry_path, _control_baseline_registry_path = _write_local_registry_snapshots(
+        tmp_path,
+        keep_runs=True,
+    )
     _ = create_sweep(
         sweep_id=sweep_id,
         anchor_run_id=ANCHOR_RUN_ID,
@@ -106,7 +129,7 @@ def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
         delta_refs=['delta_anchor_activation_trace_baseline', 'delta_shared_feature_norm'],
         index_path=sweeps_root / 'index.yaml',
         catalog_path=reference_root / 'system_delta_catalog.yaml',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         sweeps_root=sweeps_root,
     )
     program_path = tmp_path / 'program.md'
@@ -209,7 +232,27 @@ def _write_training_surface_record(path: Path, *, backend: str | None) -> None:
     payload: dict[str, Any] = {}
     if backend is not None:
         payload['training'] = {'backend': backend}
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+
+def _write_custom_training_surface_record(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(dict(payload), indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+
+def _write_cfg_training_surface_record(path: Path, cfg: Any) -> None:
+    raw_cfg = OmegaConf.to_container(cfg, resolve=True)
+    if not isinstance(raw_cfg, Mapping):
+        raise RuntimeError('resolved cfg must decode to a mapping')
+    payload = runner_module.build_lightweight_training_surface_record(
+        raw_cfg=cast(Mapping[str, Any], raw_cfg),
+        run_dir=path.parent,
+    )
+    _write_custom_training_surface_record(path, payload)
 
 
 def _write_training_telemetry(path: Path, *, success: bool) -> None:
@@ -230,6 +273,80 @@ def _write_control_baseline_registry(
                 'schema': REGISTRY_SCHEMA,
                 'version': REGISTRY_VERSION,
                 'baselines': {} if baselines is None else baselines,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+
+def _write_minimal_run_registry(
+    path: Path,
+    *,
+    run_ids: list[str] | None = None,
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    run_id: {'run_id': run_id}
+                    for run_id in ([] if run_ids is None else run_ids)
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+
+def _write_anchor_recovery_registry(
+    path: Path,
+    *,
+    run_id: str,
+    sweep_id: str,
+    delta_id: str,
+    queue_order: int,
+    decision: str,
+    conclusion: str,
+    run_dir: Path | None = None,
+) -> None:
+    artifacts: dict[str, Any] = {}
+    if run_dir is not None:
+        artifacts['run_dir'] = str(run_dir.resolve())
+    path.write_text(
+        json.dumps(
+            {
+                'schema': 'tab-foundry-benchmark-runs-v1',
+                'version': 1,
+                'runs': {
+                    run_id: {
+                        'run_id': run_id,
+                        'decision': decision,
+                        'conclusion': conclusion,
+                        'tab_foundry_metrics': {
+                            'best_step': 42.0,
+                            'best_log_loss': 0.41,
+                            'final_log_loss': 0.39,
+                        },
+                        'training_diagnostics': {'max_grad_norm': 7.5},
+                        'comparisons': {
+                            'vs_anchor': {
+                                'final_log_loss_delta': -0.02,
+                            }
+                        },
+                        'artifacts': artifacts,
+                        'sweep': {
+                            'sweep_id': sweep_id,
+                            'delta_id': delta_id,
+                            'queue_order': queue_order,
+                            'run_kind': 'primary',
+                        },
+                    }
+                }
             },
             indent=2,
             sort_keys=True,
@@ -664,6 +781,194 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
     }
 
 
+def test_execute_sweep_recovers_partial_anchor_promotion_before_running_later_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, base_paths, queue_path = _make_exec_sweep(tmp_path)
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    paths = ExecutionPaths(
+        repo_root=base_paths.repo_root,
+        index_path=base_paths.index_path,
+        catalog_path=base_paths.catalog_path,
+        sweeps_root=base_paths.sweeps_root,
+        registry_path=registry_path,
+        program_path=base_paths.program_path,
+        control_baseline_registry_path=base_paths.control_baseline_registry_path,
+    )
+
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][0]['run_id'] = 'historical_anchor_v1'
+    queue['rows'][0]['notes'] = ['Keep the historical note.']
+    queue['rows'][1]['status'] = 'ready'
+    queue['rows'][1]['parent_delta_ref'] = 'delta_anchor_activation_trace_baseline'
+    _write_yaml(queue_path, queue)
+
+    sweep_path = paths.sweeps_root / sweep_id / 'sweep.yaml'
+    sweep_meta = _load_yaml(sweep_path)
+    sweep_meta['anchor_run_id'] = 'recovered_anchor_v2'
+    _write_yaml(sweep_path, sweep_meta)
+    index = _load_yaml(paths.index_path)
+    index['sweeps'][sweep_id]['anchor_run_id'] = 'recovered_anchor_v2'
+    _write_yaml(paths.index_path, index)
+
+    recovered_run_dir = tmp_path / 'recovered_anchor_run'
+    recovered_run_dir.mkdir(parents=True, exist_ok=True)
+    (recovered_run_dir / 'telemetry.json').write_text('{}\n', encoding='utf-8')
+    _write_anchor_recovery_registry(
+        registry_path,
+        run_id='recovered_anchor_v2',
+        sweep_id=sweep_id,
+        delta_id='delta_anchor_activation_trace_baseline',
+        queue_order=1,
+        decision='accept',
+        conclusion='Recovered anchor from the benchmark registry.',
+        run_dir=recovered_run_dir,
+    )
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        calls.append(
+            {
+                'order': int(kwargs['queue_row']['order']),
+                'anchor_run_id': kwargs['anchor_run_id'],
+                'parent_run_id': kwargs['parent_run_id'],
+            }
+        )
+        return 'row_2_v1'
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['row_2_v1']
+    assert calls == [
+        {
+            'order': 2,
+            'anchor_run_id': 'recovered_anchor_v2',
+            'parent_run_id': 'recovered_anchor_v2',
+        }
+    ]
+    recovered_queue = _load_yaml(queue_path)
+    recovered_row = recovered_queue['rows'][0]
+    assert recovered_row['status'] == 'completed'
+    assert recovered_row['run_id'] == 'recovered_anchor_v2'
+    assert recovered_row['decision'] == 'accept'
+    assert recovered_row['interpretation_status'] == 'completed'
+    benchmark_metrics = recovered_row['benchmark_metrics']
+    assert benchmark_metrics['best_step'] == 42.0
+    assert benchmark_metrics['best_log_loss'] == pytest.approx(0.41)
+    assert benchmark_metrics['final_log_loss'] == pytest.approx(0.39)
+    assert benchmark_metrics['final_minus_best_log_loss'] == pytest.approx(-0.02)
+    assert benchmark_metrics['max_grad_norm'] == pytest.approx(7.5)
+    assert benchmark_metrics['delta_final_log_loss'] == pytest.approx(-0.02)
+    assert recovered_row['notes'] == [
+        'Keep the historical note.',
+        'Supersedes historical queue run `historical_anchor_v1`; that registry entry is retained as history only.',
+        'Canonical rerun registered as `recovered_anchor_v2`.',
+        'Recovered anchor from the benchmark registry.',
+    ]
+
+
+def test_execute_sweep_rejects_anchor_only_resume_without_anchor(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'ready'
+    _write_yaml(queue_path, queue)
+
+    sweep_path = paths.sweeps_root / sweep_id / 'sweep.yaml'
+    sweep_meta = _load_yaml(sweep_path)
+    sweep_meta['anchor_run_id'] = None
+    _write_yaml(sweep_path, sweep_meta)
+    index = _load_yaml(paths.index_path)
+    index['sweeps'][sweep_id]['anchor_run_id'] = None
+    _write_yaml(paths.index_path, index)
+
+    def fail_run_row(**_kwargs: Any) -> str:
+        raise AssertionError('run_row should not be called without an anchor')
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fail_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    with pytest.raises(RuntimeError, match='anchor_only sweeps require a resolved anchor'):
+        _ = execute_sweep(
+            sweep_id=sweep_id,
+            prior_dump=Path('/tmp/prior.h5'),
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cuda',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            orders=[2],
+            promote_first_executed_row_to_anchor=True,
+            paths=paths,
+        )
+
+
+def test_execute_sweep_promotes_anchor_before_queue_write_and_matrix_sync(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'completed'
+    queue['rows'][1]['run_id'] = 'historical_row_2_v1'
+    _write_yaml(queue_path, queue)
+
+    events: list[str] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        events.append('run_row')
+        kwargs['queue_row']['status'] = 'completed'
+        kwargs['queue_row']['run_id'] = 'promoted_anchor_v2'
+        return 'promoted_anchor_v2'
+
+    def fake_promote_anchor(**_kwargs: Any) -> dict[str, str]:
+        events.append('promote_anchor')
+        return {'sweep_id': sweep_id, 'anchor_run_id': 'promoted_anchor_v2'}
+
+    def fake_write_yaml(_path: Path, _payload: Mapping[str, Any]) -> None:
+        events.append('write_yaml')
+
+    def fake_sync_sweep_matrix(**_kwargs: Any) -> None:
+        events.append('sync_sweep_matrix')
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'promote_anchor', fake_promote_anchor)
+    monkeypatch.setattr(sweep_execute_module, 'write_yaml', fake_write_yaml)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', fake_sync_sweep_matrix)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        orders=[1],
+        promote_first_executed_row_to_anchor=True,
+        paths=paths,
+    )
+
+    assert executed == ['promoted_anchor_v2']
+    assert events == ['run_row', 'promote_anchor', 'write_yaml', 'sync_sweep_matrix']
+
+
 def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
     queue = _load_yaml(queue_path)
@@ -937,7 +1242,6 @@ def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Pat
             'data': {
                 'surface_label': 'anchor_manifest_default',
                 'corpus_ref': 'tf_rd_013_current_corpus_default_v1',
-                'train_row_cap': 512,
             }
         },
         run_dir=run_dir,
@@ -951,7 +1255,6 @@ def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Pat
     assert cfg.data.allow_missing_values is None
     assert str(cfg.data.surface_overrides.corpus_lookup_sweep_id) == 'tf_rd_013'
     assert str(cfg.data.surface_overrides.corpus_lookup_sweeps_root) == str(sweeps_root.resolve())
-    assert cfg.data.train_row_cap == 512
 
 
 def test_compose_cfg_resolves_sweep_local_corpus_from_nondefault_sweeps_root(
@@ -1014,6 +1317,34 @@ def test_compose_cfg_keeps_explicit_allow_missing_values_with_corpus_ref(tmp_pat
 
     assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_020_missingness_mcar_v1'
     assert cfg.data.allow_missing_values is False
+
+
+def test_compose_cfg_disables_grad_clip_for_sweeps(tmp_path: Path) -> None:
+    row = {
+        'training': {
+            'overrides': {
+                'runtime': {
+                    'grad_clip': 0.5,
+                    'max_steps': 10,
+                }
+            }
+        }
+    }
+
+    nonsweep_cfg = _compose_cfg(
+        row=row,
+        run_dir=tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'local' / 'train',
+        device='cuda',
+    )
+    sweep_cfg = _compose_cfg(
+        row=row,
+        run_dir=tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'tf_rd_clipless' / 'train',
+        device='cuda',
+        sweep_id='tf_rd_clipless',
+    )
+
+    assert float(nonsweep_cfg.runtime.grad_clip) == pytest.approx(0.5)
+    assert float(sweep_cfg.runtime.grad_clip) == pytest.approx(0.0)
 
 
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
@@ -1334,14 +1665,15 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1350,6 +1682,12 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         captured_research_package.update(kwargs)
 
     monkeypatch.setattr(runner_module, 'write_research_package', fake_write_research_package)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_: {'training': {'backend': 'manifest'}},
+    )
     monkeypatch.setattr(
         runner_module,
         'screen_metrics',
@@ -1488,6 +1826,535 @@ def test_archive_incomplete_train_dir_moves_partial_history_aside(tmp_path: Path
     assert (archived_dir / 'train_history.jsonl').exists()
 
 
+def test_row_id_for_order_allocates_v2_for_reset_row_when_delta_root_has_historical_v1(
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'reset_rerun_probe'
+    delta_ref = 'delta_reset_surface'
+    base = f'sd_{sweep_id}_01_{delta_ref}'
+    delta_root = tmp_path / 'outputs' / 'staged_ladder' / 'research' / sweep_id / delta_ref
+    (delta_root / f'{base}_v1').mkdir(parents=True, exist_ok=True)
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(registry_path)
+
+    observed = configuration_module.row_id_for_order(
+        sweep_id,
+        1,
+        delta_ref,
+        None,
+        delta_root=delta_root,
+        registry_path=registry_path,
+    )
+
+    assert observed == f'{base}_v2'
+
+
+def test_row_id_for_order_uses_highest_registry_version_when_filesystem_is_missing(
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'reset_rerun_probe'
+    delta_ref = 'delta_reset_surface'
+    base = f'sd_{sweep_id}_01_{delta_ref}'
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(
+        registry_path,
+        run_ids=[f'{base}_v3'],
+    )
+
+    observed = configuration_module.row_id_for_order(
+        sweep_id,
+        1,
+        delta_ref,
+        None,
+        delta_root=tmp_path / 'missing_delta_root',
+        registry_path=registry_path,
+    )
+
+    assert observed == f'{base}_v4'
+
+
+def test_row_id_for_order_counts_interrupted_versions_as_consumed(tmp_path: Path) -> None:
+    sweep_id = 'reset_rerun_probe'
+    delta_ref = 'delta_reset_surface'
+    base = f'sd_{sweep_id}_01_{delta_ref}'
+    delta_root = tmp_path / 'outputs' / 'staged_ladder' / 'research' / sweep_id / delta_ref
+    (delta_root / f'{base}_v1_interrupted_20260329').mkdir(parents=True, exist_ok=True)
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(registry_path)
+
+    observed = configuration_module.row_id_for_order(
+        sweep_id,
+        1,
+        delta_ref,
+        None,
+        delta_root=delta_root,
+        registry_path=registry_path,
+    )
+
+    assert observed == f'{base}_v2'
+
+
+def test_completed_train_artifacts_exist_accepts_exact_normalized_surface_match(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / 'completed_train_run_surface_match'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_custom_training_surface_record(
+        run_dir / 'training_surface_record.json',
+        {
+            'generated_at_utc': '2026-03-29T15:38:00Z',
+            'run_dir': str(run_dir),
+            'labels': {
+                'model': 'tabfoundry_sandwich',
+                'data': 'tf_rd_010_dagzoo_medium_control',
+                'preprocessing': 'runtime_default',
+                'training': 'prior_cosine_warmup',
+            },
+            'model': {'arch': 'tabfoundry_sandwich', 'many_class_base': 10},
+            'data': {
+                'surface_label': 'tf_rd_010_dagzoo_medium_control',
+                'source': 'manifest',
+                'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v1',
+                'manifest': {
+                    'manifest_path': '/tmp/historical_manifest.parquet',
+                    'manifest_sha256': 'abc123',
+                    'characteristics': {'total_records': 144},
+                },
+            },
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'prior_dump',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 3}],
+            },
+        },
+    )
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='legacy_prior',
+        expected_training_surface_record={
+            'generated_at_utc': '2026-03-30T00:00:00Z',
+            'run_dir': '/tmp/new_run_dir',
+            'labels': {
+                'model': 'tabfoundry_sandwich',
+                'data': 'tf_rd_010_dagzoo_medium_control',
+                'preprocessing': 'runtime_default',
+                'training': 'prior_cosine_warmup',
+            },
+            'model': {'arch': 'tabfoundry_sandwich', 'many_class_base': 10},
+            'data': {
+                'surface_label': 'tf_rd_010_dagzoo_medium_control',
+                'source': 'manifest',
+                'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v1',
+                'manifest': {
+                    'manifest_path': '/tmp/historical_manifest.parquet',
+                    'manifest_sha256': 'abc123',
+                },
+            },
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'legacy_prior',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 3}],
+            },
+        },
+    ) is True
+
+
+def test_completed_train_artifacts_exist_rejects_schedule_mismatch(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_schedule_mismatch'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_custom_training_surface_record(
+        run_dir / 'training_surface_record.json',
+        {
+            'labels': {'training': 'prior_cosine_warmup'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {'source': 'manifest'},
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'manifest',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 400}],
+            },
+        },
+    )
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+        expected_training_surface_record={
+            'labels': {'training': 'prior_cosine_warmup'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {'source': 'manifest'},
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'manifest',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 3}],
+            },
+        },
+    ) is False
+
+
+def test_completed_train_artifacts_exist_rejects_manifest_identity_mismatch(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_manifest_mismatch'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_custom_training_surface_record(
+        run_dir / 'training_surface_record.json',
+        {
+            'labels': {'data': 'anchor_manifest'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {
+                'source': 'manifest',
+                'manifest': {
+                    'manifest_path': '/tmp/historical_manifest.parquet',
+                    'manifest_sha256': 'abc123',
+                },
+            },
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {'backend': 'manifest'},
+        },
+    )
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+        expected_training_surface_record={
+            'labels': {'data': 'anchor_manifest'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {
+                'source': 'manifest',
+                'manifest': {
+                    'manifest_path': '/tmp/current_manifest.parquet',
+                    'manifest_sha256': 'def456',
+                },
+            },
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {'backend': 'manifest'},
+        },
+    ) is False
+
+
+def test_run_row_reset_tf_rd_010_style_row_allocates_fresh_run_id_and_retrains(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v1'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    historical_run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    delta_root = tmp_path / 'outputs' / 'staged_ladder' / 'research' / sweep_id / delta_ref
+    historical_train_dir = delta_root / historical_run_id / 'train'
+    (historical_train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (historical_train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (historical_train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(historical_train_dir / 'telemetry.json', success=True)
+    _write_custom_training_surface_record(
+        historical_train_dir / 'training_surface_record.json',
+        {
+            'labels': {'training': 'prior_cosine_warmup'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {'source': 'manifest'},
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'manifest',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 400}],
+            },
+        },
+    )
+    (historical_train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    manifest_path = tmp_path / 'current_manifest.parquet'
+    manifest_path.write_text('stub', encoding='utf-8')
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'surface_label': 'prior_cosine_warmup',
+            'overrides': {'schedule': {'stages': [{'name': 'prior_dump', 'steps': 3}]}},
+        },
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Reset TF-RD-010 anchor rerun.',
+        'anchor_delta': 'Use the post-reset 3-step contract.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'surface_label': 'prior_cosine_warmup',
+            'overrides': {'schedule': {'stages': [{'name': 'prior_dump', 'steps': 3}]}},
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(registry_path)
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    _write_control_baseline_registry(control_baseline_registry_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_manifest_train(cfg: Any) -> Any:
+        captured['manifest_cfg'] = cfg
+        _write_cfg_training_surface_record(
+            Path(str(cfg.runtime.output_dir)) / 'training_surface_record.json',
+            cfg,
+        )
+        return SimpleNamespace(output_dir=Path(str(cfg.runtime.output_dir)))
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'train_from_manifest_cfg', fake_manifest_train)
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('prior trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 1.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+            'benchmark_manifest_path': str(manifest_path),
+            'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'surface_role': 'custom',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=None,
+        nanotabpfn_root=tmp_path / 'nanotabpfn',
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Run the reset TF-RD-010 medium anchor again.',
+        paths=paths,
+    )
+
+    assert observed_run_id == f'sd_{sweep_id}_01_{delta_ref}_v2'
+    assert str(captured['manifest_cfg'].runtime.output_dir).endswith(f'{observed_run_id}/train')
+    assert queue_row['status'] == 'screened'
+
+
+def test_run_row_archives_completed_but_incompatible_selected_train_dir_and_retrains(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'archive_incompatible_probe'
+    delta_ref = 'delta_reset_surface'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_custom_training_surface_record(
+        train_dir / 'training_surface_record.json',
+        {
+            'labels': {'training': 'prior_cosine_warmup'},
+            'model': {'arch': 'tabfoundry_sandwich'},
+            'data': {'source': 'manifest'},
+            'preprocessing': {'surface_label': 'runtime_default'},
+            'training': {
+                'backend': 'manifest',
+                'surface_label': 'prior_cosine_warmup',
+                'schedule_stages': [{'name': 'prior_dump', 'steps': 400}],
+            },
+        },
+    )
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    manifest_path = tmp_path / 'current_manifest.parquet'
+    manifest_path.write_text('stub', encoding='utf-8')
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'anchor_manifest_default',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'surface_label': 'prior_cosine_warmup',
+            'overrides': {'schedule': {'stages': [{'name': 'prior_dump', 'steps': 3}]}},
+        },
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'training',
+        'family': 'schedule',
+        'description': 'Archive incompatible train outputs before rerun.',
+        'anchor_delta': 'Switch to the reset 3-step contract.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'anchor_manifest_default',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'surface_label': 'prior_cosine_warmup',
+            'overrides': {'schedule': {'stages': [{'name': 'prior_dump', 'steps': 3}]}},
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(registry_path)
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    _write_control_baseline_registry(control_baseline_registry_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_manifest_train(cfg: Any) -> Any:
+        captured['manifest_cfg'] = cfg
+        _write_cfg_training_surface_record(
+            Path(str(cfg.runtime.output_dir)) / 'training_surface_record.json',
+            cfg,
+        )
+        return SimpleNamespace(output_dir=Path(str(cfg.runtime.output_dir)))
+
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'train_from_manifest_cfg', fake_manifest_train)
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 1.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_manifest_path': str(manifest_path),
+            'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'surface_role': 'custom',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=None,
+        nanotabpfn_root=tmp_path / 'nanotabpfn',
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Archive incompatible completed artifacts before retraining.',
+        paths=paths,
+    )
+
+    archived_dirs = sorted(train_dir.parent.glob('train_incompatible_*'))
+    assert observed_run_id == run_id
+    assert str(captured['manifest_cfg'].runtime.output_dir).endswith(f'{run_id}/train')
+    assert archived_dirs
+    assert (archived_dirs[0] / 'train_history.jsonl').exists()
+    assert queue_row['status'] == 'screened'
+
+
 def test_run_row_uses_manifest_trainer_for_manifest_rows(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1513,20 +2380,25 @@ def test_run_row_uses_manifest_trainer_for_manifest_rows(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured: dict[str, Any] = {}
 
     def fake_manifest_train(cfg: Any) -> Any:
         captured['manifest_cfg'] = cfg
+        _write_cfg_training_surface_record(
+            Path(str(cfg.runtime.output_dir)) / 'training_surface_record.json',
+            cfg,
+        )
         return SimpleNamespace(output_dir=tmp_path / 'manifest_train')
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
@@ -1609,14 +2481,15 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured: dict[str, Any] = {}
@@ -1624,6 +2497,10 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
     def fake_prior_train(cfg: Any, *, prior_dump_path: Path) -> Any:
         captured['prior_cfg'] = cfg
         captured['prior_dump_path'] = prior_dump_path
+        _write_cfg_training_surface_record(
+            Path(str(cfg.runtime.output_dir)) / 'training_surface_record.json',
+            cfg,
+        )
         return SimpleNamespace(output_dir=tmp_path / 'prior_train')
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
@@ -1707,14 +2584,15 @@ def test_run_row_requires_prior_dump_for_legacy_prior_rows(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
@@ -1794,14 +2672,15 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1814,10 +2693,15 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         return SimpleNamespace()
 
     monkeypatch.setattr(runner_module, 'compose_cfg', fake_compose_cfg)
+
+    def fake_prior_train(*_args: Any, **_kwargs: Any) -> Any:
+        _write_training_surface_record(train_dir / 'training_surface_record.json', backend='legacy_prior')
+        return SimpleNamespace(output_dir=str(train_dir))
+
     monkeypatch.setattr(
         runner_module,
         'train_tabfoundry_simple_prior',
-        lambda *_args, **_kwargs: SimpleNamespace(output_dir=str(train_dir)),
+        fake_prior_train,
     )
     monkeypatch.setattr(
         runner_module,
@@ -1876,6 +2760,179 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
     assert captured_research_package['surface_role'] == 'hybrid_diagnostic'
 
 
+def test_run_row_uses_materialized_row_for_execution_cfg(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v1'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {},
+        'data': {
+            'source': 'manifest',
+            'corpus_ref': 'tf_rd_010/dagzoo_medium_control',
+        },
+        'training': {
+            'synthetic_epoch_budget': {
+                'epochs': 1,
+                'budget_unit': 'corpus_manifest_records',
+                'allow_partial_final_batch': False,
+                'prior_dump_batch_size': 64,
+            },
+            'overrides': {
+                'schedule': {
+                    'stages': [
+                        {
+                            'mode': 'fit',
+                            'label': 'fit',
+                        }
+                    ]
+                }
+            },
+        },
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'training',
+        'family': 'schedule',
+        'description': 'Resolved synthetic epoch budget for TF-RD-010 medium.',
+        'anchor_delta': 'Use the post-reset 3-step contract.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {},
+        'data': {
+            'source': 'manifest',
+            'corpus_ref': 'tf_rd_010/dagzoo_medium_control',
+        },
+        'training': {
+            'synthetic_epoch_budget': {
+                'epochs': 1,
+                'budget_unit': 'corpus_manifest_records',
+                'allow_partial_final_batch': False,
+                'prior_dump_batch_size': 64,
+                'resolved_task_count': 150,
+                'resolved_task_count_source': 'recipe_definition',
+                'resolved_batch_size': 64,
+            },
+            'overrides': {
+                'runtime': {'max_steps': 3},
+                'schedule': {
+                    'stages': [
+                        {
+                            'mode': 'fit',
+                            'label': 'fit',
+                            'steps': 3,
+                        }
+                    ]
+                },
+            },
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    train_dir.mkdir(parents=True, exist_ok=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
+
+    captured_row: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_kwargs: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+
+    def fake_compose_cfg(**kwargs: Any) -> Any:
+        row = cast(dict[str, Any], kwargs['row'])
+        captured_row.update(row)
+        assert row['training']['overrides']['runtime']['max_steps'] == 3
+        assert row['training']['overrides']['schedule']['stages'][0]['steps'] == 3
+        return OmegaConf.create({'data': {'source': 'manifest'}})
+
+    monkeypatch.setattr(runner_module, 'compose_cfg', fake_compose_cfg)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 42.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'posthoc_update_wandb_summary',
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError('wandb posthoc sync should be skipped')),
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_manifest_path': 'bundle.json',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Use the resolved synthetic epoch budget during execution.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_row['training']['overrides']['runtime']['max_steps'] == 3
+    assert captured_row['training']['overrides']['schedule']['stages'][0]['steps'] == 3
+
+
 def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1922,14 +2979,15 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured_registration: dict[str, Any] = {}
@@ -1937,6 +2995,17 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     captured_benchmark: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -2116,20 +3185,32 @@ def test_run_row_benchmark_full_supports_local_only_benchmark(
         'notes': [],
     }
     queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     captured_benchmark: dict[str, Any] = {}
     captured_bootstrap = {'called': False}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'legacy_prior'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -2332,6 +3413,17 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     captured_benchmark_config: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -2391,9 +3483,9 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_manifest_path': str(bundle_path.resolve()),
-            'training_experiment': 'cls_benchmark_staged',
-            'training_config_profile': 'cls_benchmark_staged',
-            'surface_role': 'architecture_screen',
+            'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'surface_role': 'custom',
         },
         queue_row=queue_row,
         materialized_row=materialized_row,
@@ -2559,6 +3651,17 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     captured_benchmark_config: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -2786,6 +3889,17 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
     captured_benchmark_config: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -2942,6 +4056,17 @@ def test_run_row_benchmark_full_without_reuse_fails_lazily_when_prior_dump_is_mi
     captured: dict[str, Any] = {'bootstrap_called': False}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
 
     def fake_bootstrap(**_kwargs: Any) -> Path:
         captured['bootstrap_called'] = True
@@ -3051,6 +4176,17 @@ def test_run_row_reuse_only_skips_fresh_nanotabpfn_helper_when_no_local_reuse_ex
     captured_benchmark_config: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: {'training': {'backend': 'manifest'}},
+    )
+    monkeypatch.setattr(
+        runner_module._training_state,
+        'completed_train_artifacts_exist',
+        lambda *_args, **_kwargs: True,
+    )
     monkeypatch.setattr(
         runner_module,
         'ensure_nanotabpfn_python',
@@ -3796,17 +4932,24 @@ def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
         },
         'notes': [],
     }
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
         catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
-        registry_path=REGISTRY_PATH,
+        registry_path=registry_path,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+        control_baseline_registry_path=control_baseline_registry_path,
     )
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_: {'training': {'backend': 'legacy_prior'}},
+    )
     monkeypatch.setattr(
         runner_module,
         'screen_metrics',

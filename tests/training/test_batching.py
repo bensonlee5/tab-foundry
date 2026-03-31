@@ -480,23 +480,19 @@ def test_evaluate_loader_respects_manifest_order_for_capped_shuffle_false_loader
     assert metrics["acc"] == pytest.approx(0.5)
 
 
-def test_task_signature_matches_loaded_batch_after_caps_and_label_filtering(
+def test_task_signature_matches_loaded_batch_after_label_filtering(
     tmp_path: Path,
 ) -> None:
     dataset = PackedParquetTaskDataset(
         _write_manifest_dataset(tmp_path),
         split="train",
         task="classification",
-        train_row_cap=2,
-        test_row_cap=3,
-        seed=5,
     )
 
     signature = dataset.task_signature(0)
     loaded_batch = dataset[0]
 
     assert signature == dataset._task_signature(loaded_batch)
-    assert signature != (4, 4, 3, 3)
 
 
 def test_task_signature_fast_path_reads_filtered_split_targets(
@@ -507,9 +503,6 @@ def test_task_signature_fast_path_reads_filtered_split_targets(
         _write_manifest_dataset(tmp_path),
         split="train",
         task="classification",
-        train_row_cap=2,
-        test_row_cap=3,
-        seed=5,
     )
     original_read_table = dataset_module.pq.read_table
     captured_calls: list[dict[str, object]] = []

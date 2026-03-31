@@ -7,6 +7,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   binary_md_v2:
     parent_sweep_id: binary_md_v1
     status: completed
@@ -14,6 +15,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   binary_md_v3:
     parent_sweep_id: binary_md_v2
     status: completed
@@ -21,6 +23,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   stability_ladder:
     parent_sweep_id: binary_md_v3
     status: draft
@@ -28,6 +31,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   stability_followup:
     parent_sweep_id: stability_ladder
     status: completed
@@ -35,6 +39,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   missingness_followup:
     parent_sweep_id: stability_ladder
     status: superseded
@@ -42,6 +47,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   input_norm_followup:
     parent_sweep_id: stability_followup
     status: completed
@@ -49,6 +55,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   input_norm_none_followup:
     parent_sweep_id: input_norm_followup
     status: completed
@@ -56,6 +63,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   cuda_capacity_pilot:
     parent_sweep_id: input_norm_followup
     status: blocked_on_stability_followup
@@ -63,6 +71,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   cuda_budget_followup:
     parent_sweep_id: cuda_capacity_pilot
     status: draft
@@ -70,6 +79,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   cuda_stability_followup:
     parent_sweep_id: cuda_capacity_pilot
     status: completed
@@ -77,6 +87,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   cuda_stack_scale_followup:
     parent_sweep_id: cuda_stability_followup
     status: completed
@@ -84,6 +95,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   shared_surface_bridge_v1:
     parent_sweep_id: binary_md_v1
     status: completed
@@ -91,6 +103,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tokenization_migration_v1:
     parent_sweep_id: shared_surface_bridge_v1
     status: completed
@@ -98,6 +111,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   grouped_token_stability_probe_v1:
     parent_sweep_id: tokenization_migration_v1
     status: completed
@@ -105,6 +119,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   row_embedding_attribution_v1:
     parent_sweep_id: tokenization_migration_v1
     status: superseded
@@ -112,6 +127,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   row_embedding_attribution_v2:
     parent_sweep_id: tokenization_migration_v1
     status: completed
@@ -119,6 +135,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   row_embedding_attribution_v3:
     parent_sweep_id: row_embedding_attribution_v2
     status: completed
@@ -126,6 +143,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   qass_tfcol_adequacy_v1:
     parent_sweep_id: row_embedding_attribution_v3
     status: completed
@@ -133,6 +151,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   qass_tfcol_large_no_missing_validation_v1:
     parent_sweep_id: qass_tfcol_adequacy_v1
     status: completed
@@ -140,6 +159,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   qass_tfcol_large_missing_validation_v1:
     parent_sweep_id: qass_tfcol_large_no_missing_validation_v1
     status: completed
@@ -147,6 +167,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tf_rd_013_data_source_contract_v1:
     parent_sweep_id: qass_tfcol_large_missing_validation_v1
     status: completed
@@ -154,6 +175,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tf_rd_013_shape_aware_dagzoo_v1:
     parent_sweep_id: tf_rd_013_data_source_contract_v1
     status: completed
@@ -161,6 +183,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tf_rd_013_dagzoo_size_ladder_v1:
     parent_sweep_id: tf_rd_013_shape_aware_dagzoo_v1
     status: completed
@@ -168,6 +191,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   row_first_training_adequacy_v1:
     parent_sweep_id: tf_rd_013_dagzoo_size_ladder_v1
     status: completed
@@ -175,6 +199,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tf_rd_020_harder_dagzoo_ladder_v1:
     parent_sweep_id: row_first_training_adequacy_v1
     status: completed
@@ -182,6 +207,7 @@ sweeps:
     complexity_level: binary_md
     benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: null
   tf_rd_018_optimizer_family_v1:
     parent_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
     status: completed
@@ -236,13 +262,45 @@ sweeps:
   tf_rd_010_classification_evolution_medium_v1:
     parent_sweep_id: tf_rd_021b_sandwich_feature_removal_v1
     status: ready
-    anchor_run_id: null
+    anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v4
     complexity_level: classification_md
     benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
   tf_rd_010_classification_evolution_large_v1:
     parent_sweep_id: tf_rd_010_classification_evolution_medium_v1
+    status: superseded
+    anchor_run_id: null
+    complexity_level: classification_lg
+    benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_large_v1
+    external_benchmarks: []
+  tf_rd_010_classification_evolution_medium_v2:
+    parent_sweep_id: tf_rd_010_classification_evolution_medium_v1
+    status: ready
+    anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_010_classification_evolution_medium_v3:
+    parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
+    status: superseded
+    anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_010_classification_evolution_medium_v4:
+    parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
+    status: ready
+    anchor_run_id: null
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_010_classification_evolution_large_v2:
+    parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
     status: ready
     anchor_run_id: null
     complexity_level: classification_lg

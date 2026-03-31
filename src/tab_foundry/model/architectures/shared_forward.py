@@ -19,9 +19,17 @@ def task_num_classes(batch: TaskBatch, *, arch_name: str) -> int:
 
     if batch.num_classes is not None:
         return int(batch.num_classes)
-    if batch.y_train.numel() == 0:
-        raise RuntimeError(f"{arch_name} requires at least one training label")
-    return int(batch.y_train.max().item()) + 1
+    if batch.y_train.numel() == 0 and batch.y_test.numel() == 0:
+        raise RuntimeError(f"{arch_name} requires at least one label")
+    max_label = None
+    if batch.y_train.numel() > 0:
+        max_label = int(batch.y_train.max().item())
+    if batch.y_test.numel() > 0:
+        y_test_max = int(batch.y_test.max().item())
+        max_label = y_test_max if max_label is None else max(max_label, y_test_max)
+    if max_label is None:
+        raise RuntimeError(f"{arch_name} requires at least one label")
+    return max_label + 1
 
 
 def prepare_task_inputs(

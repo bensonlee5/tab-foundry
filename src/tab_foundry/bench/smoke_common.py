@@ -38,15 +38,11 @@ def build_cls_smoke_train_config(
     device: str,
     checkpoint_every: int,
     schedule_stages: Sequence[Mapping[str, Any]],
-    clear_row_caps: bool,
 ) -> DictConfig:
     """Compose the canonical train config for classification smoke harnesses."""
 
     cfg = compose_config(["experiment=cls_smoke", "optimizer=adamw", "logging.use_wandb=false"])
     cfg.data.manifest_path = str(manifest_path)
-    if clear_row_caps:
-        cfg.data.train_row_cap = None
-        cfg.data.test_row_cap = None
     cfg.model.feature_group_size = 1
     cfg.runtime.output_dir = str(output_dir)
     cfg.runtime.device = str(device)
@@ -63,15 +59,11 @@ def build_cls_smoke_eval_config(
     manifest_path: Path,
     checkpoint_path: Path,
     device: str,
-    clear_row_caps: bool,
 ) -> DictConfig:
     """Compose the canonical eval config for classification smoke harnesses."""
 
     cfg = compose_config(["experiment=cls_smoke", "optimizer=adamw", "logging.use_wandb=false"])
     cfg.data.manifest_path = str(manifest_path)
-    if clear_row_caps:
-        cfg.data.train_row_cap = None
-        cfg.data.test_row_cap = None
     cfg.model.feature_group_size = 1
     cfg.runtime.device = str(device)
     cfg.eval.checkpoint = str(checkpoint_path)

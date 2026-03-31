@@ -2270,6 +2270,55 @@ def test_collect_checkpoint_snapshots_supports_plain_training_output(tmp_path: P
     assert snapshots[0]["elapsed_seconds"] == pytest.approx(3.0)
 
 
+def test_collect_checkpoint_snapshots_falls_back_to_latest_checkpoint_when_no_step_snapshots(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    (checkpoint_dir / "best.pt").write_bytes(b"best")
+    (checkpoint_dir / "latest.pt").write_bytes(b"latest")
+    history_path = run_dir / "train_history.jsonl"
+    history_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "step": 1,
+                        "stage": "stage1",
+                        "train_loss": 0.8,
+                        "lr": 1.0e-3,
+                        "elapsed_seconds": 5.0,
+                        "train_elapsed_seconds": 1.0,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "step": 3,
+                        "stage": "stage1",
+                        "train_loss": 0.4,
+                        "lr": 1.0e-3,
+                        "elapsed_seconds": 7.0,
+                        "train_elapsed_seconds": 2.5,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    snapshots = benchmark_module.collect_checkpoint_snapshots(run_dir)
+
+    assert snapshots == [
+        {
+            "step": 3,
+            "path": str((checkpoint_dir / "latest.pt").resolve()),
+            "elapsed_seconds": pytest.approx(2.5),
+        }
+    ]
+
+
 def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

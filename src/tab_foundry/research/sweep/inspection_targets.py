@@ -263,12 +263,18 @@ def resolve_row_target(
                 target_id=f"{int(row['order']):02d}_{str(row['delta_id'])}",
             )
         )
-        spec, training_surface_record = inspection_spec_and_record(
+        spec, fallback_training_surface_record = inspection_spec_and_record(
             row=row,
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
             sweep_id=str(queue["sweep_id"]),
             sweeps_root=sweeps_root,
+        )
+        persisted_resolved_surface = row.get("resolved_surface")
+        training_surface_record = (
+            dict(cast(Mapping[str, Any], persisted_resolved_surface))
+            if isinstance(persisted_resolved_surface, Mapping)
+            else fallback_training_surface_record
         )
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
