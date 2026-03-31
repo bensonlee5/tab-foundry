@@ -14,6 +14,7 @@ import tab_foundry.data.corpus_lookup as corpus_lookup_module
 import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_loading import (
     _generator_fingerprint,
+    build_dagzoo_provenance_summary,
     corpus_id_for_manifest,
     corpus_outputs_root,
     corpus_recipe_index_path,
@@ -56,6 +57,87 @@ def test_corpus_default_paths_follow_shared_repo_root() -> None:
     assert corpus_recipes_root() == REPO_ROOT / "reference" / "corpus_recipes"
     assert corpus_recipe_index_path() == REPO_ROOT / "reference" / "corpus_recipes" / "index.yaml"
     assert corpus_outputs_root() == REPO_ROOT / "outputs" / "corpora"
+
+
+def test_build_dagzoo_provenance_summary_preserves_teacher_conditional_metadata() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v3", repo_root=REPO_ROOT)
+    summary = build_dagzoo_provenance_summary(
+        recipe=recipe,
+        corpus_ref="tf_rd_010_dagzoo_medium_control_v3/abc123",
+        corpus_id="abc123",
+        provenance={
+            "posterior_predictive_factorization": (
+                "independent_p_x_complete_and_p_y_given_x_complete"
+            ),
+            "teacher_conditional_export": True,
+            "teacher_conditional_metric_definition": "label-target log loss per test cell",
+            "target_parent_prior": "near_max_mixture",
+            "target_parent_mode": "max",
+            "target_parent_count_range": {"min": 5, "max": 7},
+            "target_parent_fraction_range": {"min": 0.5, "max": 0.75},
+            "target_parent_regimes_present": ["near_max"],
+            "target_parent_near_max_band_min_fraction": 0.75,
+            "target_parent_below_sqrt_prob": 0.05,
+            "target_parent_midrange_prob": 0.20,
+            "invocations": [
+                {
+                    "handoff_provenance": {
+                        "posterior_predictive_factorization": (
+                            "independent_p_x_complete_and_p_y_given_x_complete"
+                        ),
+                        "teacher_conditional_export": True,
+                        "target_parent_count_range": {"min": 6, "max": 8},
+                        "target_parent_fraction_range": {"min": 0.6, "max": 0.8},
+                        "target_parent_regimes_present": ["midrange", "near_max"],
+                    }
+                }
+            ],
+        },
+    )
+
+    assert summary["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v3"
+    assert summary["corpus_variant"] == "tf_rd_010_dagzoo_medium_control"
+    assert summary["posterior_predictive_factorization"] == (
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    )
+    assert summary["teacher_conditional_export"] is True
+    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
+    assert summary["target_parent_prior"] == "near_max_mixture"
+    assert summary["target_parent_mode"] == "max"
+    assert summary["target_parent_count_range"] == {"min": 5, "max": 7}
+    assert summary["target_parent_fraction_range"] == {"min": 0.5, "max": 0.8}
+    assert summary["target_parent_regimes_present"] == ["midrange", "near_max"]
+    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
+    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
+    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
+    assert summary["review_summary"]["posterior_predictive_factorization"] == (
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    )
+
+
+def test_build_dagzoo_provenance_summary_falls_back_to_recipe_metadata_without_handoff_provenance() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v3", repo_root=REPO_ROOT)
+
+    summary = build_dagzoo_provenance_summary(
+        recipe=recipe,
+        corpus_ref="tf_rd_010_dagzoo_medium_control_v3/abc123",
+        corpus_id="abc123",
+        provenance={},
+    )
+
+    assert summary["posterior_predictive_factorization"] == (
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    )
+    assert summary["teacher_conditional_export"] is True
+    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
+    assert summary["target_parent_prior"] == "near_max_mixture"
+    assert summary["target_parent_mode"] == "max"
+    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
+    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
+    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
+    assert summary["target_parent_count_range"] == {"min": 1, "max": None}
+    assert summary.get("target_parent_fraction_range") is None
+    assert summary.get("target_parent_regimes_present") is None
 
 
 def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) -> None:
@@ -144,6 +226,87 @@ def _write_recipe_registry(repo_root: Path) -> None:
         )
         + "\n",
         encoding="utf-8",
+    )
+
+
+def _register_recipe_fixture(
+    repo_root: Path,
+    *,
+    recipe_id: str,
+    filename: str,
+    contents: str,
+) -> None:
+    recipe_root = repo_root / "reference" / "corpus_recipes"
+    index_path = recipe_root / "index.yaml"
+    index_payload = yaml.safe_load(index_path.read_text(encoding="utf-8"))
+    assert isinstance(index_payload, dict)
+    recipes = index_payload.setdefault("recipes", {})
+    assert isinstance(recipes, dict)
+    recipes[recipe_id] = {"path": filename}
+    index_path.write_text(yaml.safe_dump(index_payload, sort_keys=False), encoding="utf-8")
+    (recipe_root / filename).write_text(contents, encoding="utf-8")
+
+
+def _write_adequacy_recipe_fixture(repo_root: Path) -> None:
+    _register_recipe_fixture(
+        repo_root,
+        recipe_id="adequacy_recipe",
+        filename="adequacy_recipe.yaml",
+        contents="\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-v1",
+                "recipe_id: adequacy_recipe",
+                "kind: dagzoo_single_invocation",
+                "description: Adequacy fallback fixture.",
+                "surface_label: adequacy_surface",
+                "manifest:",
+                "  train_ratio: 0.9",
+                "  val_ratio: 0.05",
+                "  filter_policy: include_all",
+                "  missing_value_policy: allow_any",
+                "provenance_labels:",
+                "  corpus_variant: adequacy_surface",
+                "  comparator_role: control",
+                "  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete",
+                "  teacher_conditional_export: true",
+                "  metric_definition: label-target log loss per test cell",
+                "  target_parent_prior: near_max_mixture",
+                "  target_parent_mode: max",
+                "  target_parent_near_max_band_min_fraction: 0.75",
+                "  target_parent_below_sqrt_prob: 0.05",
+                "  target_parent_midrange_prob: 0.20",
+                "review_summary:",
+                "  config_refs:",
+                "  - configs/default.yaml",
+                "  invocation_count: 1",
+                "  manifest_record_count: 1",
+                "  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete",
+                "  teacher_conditional_export: true",
+                "  metric_definition: label-target log loss per test cell",
+                "  target_parent_prior: near_max_mixture",
+                "  target_parent_mode: max",
+                "  target_parent_near_max_band_min_fraction: 0.75",
+                "  target_parent_below_sqrt_prob: 0.05",
+                "  target_parent_midrange_prob: 0.20",
+                "dagzoo:",
+                "  base_config_ref: configs/default.yaml",
+                "  config_overrides:",
+                "    dataset:",
+                "      target_parent_prior: near_max_mixture",
+                "      target_parent_count_min: 1",
+                "      target_parent_count_max: null",
+                "      target_parent_near_max_band_min_fraction: 0.75",
+                "      target_parent_below_sqrt_prob: 0.05",
+                "      target_parent_midrange_prob: 0.20",
+                "    diagnostics:",
+                "      teacher_conditional_export: true",
+                "  num_datasets: 8",
+                "  seed: 1",
+                "  device: cpu",
+                "  hardware_policy: none",
+            ]
+        )
+        + "\n",
     )
 
 
@@ -712,6 +875,56 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+
+
+def test_materialize_corpus_recipe_backfills_adequacy_metadata_from_recipe_when_handoff_omits_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_adequacy_recipe_fixture(repo_tmp_path)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+
+    record = materialize_corpus_recipe(
+        recipe_id="adequacy_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    summary = record["dagzoo_provenance_summary"]
+    assert summary["posterior_predictive_factorization"] == (
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    )
+    assert summary["teacher_conditional_export"] is True
+    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
+    assert summary["target_parent_prior"] == "near_max_mixture"
+    assert summary["target_parent_mode"] == "max"
+    assert summary["target_parent_count_range"] == {"min": 1, "max": None}
+    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
+    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
+    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
+    assert summary.get("target_parent_fraction_range") is None
+    assert summary.get("target_parent_regimes_present") is None
+
+    dagzoo_provenance = record["dagzoo_provenance"]
+    assert dagzoo_provenance["posterior_predictive_factorization"] == (
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    )
+    assert dagzoo_provenance["posterior_predictive_factorizations"] == [
+        "independent_p_x_complete_and_p_y_given_x_complete"
+    ]
+    assert dagzoo_provenance["teacher_conditional_export"] is True
+    assert dagzoo_provenance["teacher_conditional_metric_definition"] == (
+        "label-target log loss per test cell"
+    )
+    assert dagzoo_provenance["target_parent_prior"] == "near_max_mixture"
+    assert dagzoo_provenance["target_parent_mode"] == "max"
+    assert dagzoo_provenance["target_parent_count_range"] == {"min": 1, "max": None}
+    assert dagzoo_provenance["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
+    assert dagzoo_provenance["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
+    assert dagzoo_provenance["target_parent_midrange_prob"] == pytest.approx(0.20)
+    assert "target_parent_fraction_range" not in dagzoo_provenance
+    assert "target_parent_regimes_present" not in dagzoo_provenance
 
 
 def test_load_corpus_record_backfills_legacy_dagzoo_provenance_summary(
@@ -1490,6 +1703,7 @@ def test_resolve_data_surface_hydrates_corpus_ref(
         "corpus_variant": "current_corpus_default",
         "comparator_role": "control",
         "config_refs": ["configs/default.yaml"],
+        "invocation_count": 1,
         "provenance_labels": {
             "corpus_variant": "current_corpus_default",
             "comparator_role": "control",

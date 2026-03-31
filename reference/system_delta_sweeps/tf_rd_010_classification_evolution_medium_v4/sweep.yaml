@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_010_classification_evolution_medium_v4
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
-status: ready
+status: blocked_on_synthetic_adequacy
 complexity_level: classification_md
 anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -16,21 +16,21 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 medium successor sweep is the active full medium rerun for the expanded one-epoch 2500-step regime. The preserved `tf_rd_010_classification_evolution_medium_v3` package is historical no-clipping evidence only after rows 1-3 hit very early best steps and then drifted badly; row 4 was intentionally stopped and that package should not be extended as canonical evidence.
+  - This TF-RD-010 medium successor sweep is blocked pending `tf_rd_010_synthetic_adequacy_v1` on the factorization-correct `dagzoo` corpus family. The preserved `tf_rd_010_classification_evolution_medium_v3` package and the stopped `medium_v4` CE pilot are historical operational evidence only and should not be extended as canonical evidence while the synthetic factorization is being re-established.
   - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
   - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo front shape while expanding to `159984` corpus manifest records/tasks per front: `144` invocation cells x `1111` datasets, capped at `<=1024` total rows per synthetic dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and class counts covering every integer from `2` through `10`.'
   - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and large classification validation bundles plus their materialized manifest parquet outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
   - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct multiclass head.
-  - Rank rows by `final_log_loss_at_matched_regime_budget`, then inspect calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics as guardrails only.
+  - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics as guardrails only.
   - The medium validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and `cls_benchmark_linear_multiclass_medium_v1` baseline id remain historical TF-RD-010 identifiers for that broader classification pool.
   - 'Trusted executions now follow the expanded repo-default synthetic one-epoch policy for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps rather than the historical fixed 400-step, 3-step reset, or clipped medium_v2 contracts.'
   - The prior 400-step executions, the completed 3-step reset-contract rerun, and the completed clipped medium_v2 rerun remain historical artifacts only and are no longer the active execution path for promotion or defer evidence.
-  - Keep the benchmark contract fixed while this successor package reruns the full medium ladder under exact-shape manifest batching plus the lower linear-decay learning-rate regime.
+  - Keep the benchmark contract fixed while `dagzoo` factorization and synthetic adequacy are being audited; do not rerun this package until the adequacy gate writes an interpretation artifact under issue `#205`.
   - The active rerun keeps `prior_dump_batch_size=64` and `runtime.grad_clip=0.0`, but now batches compatible manifest tasks with `task_batch_size=16` and `runtime.grad_accum_steps=4` so each optimizer update still covers `64` tasks under the same linear-decay schedule (`warmup_ratio=0.10`, `lr_max=1e-3`, `optimizer.min_lr=1e-5`).
-  - Any earlier `medium_v4` attempts recorded under the deprecated `cell_bpc` objective are aborted historical evidence only; the canonical rerun must use `training.loss_surface=classification` and fresh run ids.
-  - The first CE control-row CPU pilot (`...medium_control_v3`) was intentionally stopped at step `1324` after benchmarking the sampled checkpoint ladder through `step_001275.pt`; `step_001200.pt` is the current best sampled checkpoint (`log_loss=0.9988591380293615`), so the next work is model retuning and a fresh rerun rather than extending that pilot to the full budget.
+  - Any earlier `medium_v4` attempts recorded under the deprecated `cell_bpc` objective are aborted historical evidence only; the canonical rerun must use `training.loss_surface=classification`, factorization-correct `v3` corpora, and fresh run ids after the adequacy gate passes.
+  - The first CE control-row CPU pilot (`...medium_control_v3`) was intentionally stopped at step `1324` after benchmarking the sampled checkpoint ladder through `step_001275.pt`; `step_001200.pt` is the current best sampled checkpoint (`log_loss=0.9988591380293615`), but that pilot is now historical operational context only because the `dagzoo` factorization changed. The next work is `tf_rd_010_synthetic_adequacy_v1`, not model retuning or a fresh rerun yet.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.

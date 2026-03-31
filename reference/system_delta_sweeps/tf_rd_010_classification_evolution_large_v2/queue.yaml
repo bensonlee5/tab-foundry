@@ -3,10 +3,10 @@ sweep_id: tf_rd_010_classification_evolution_large_v2
 rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: ready
+  status: blocked_on_synthetic_adequacy
   rationale: Establish the TF-RD-010 classification control front before reading any missingness harder-front effect on the larger benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010 control corpus (`n_classes_min=2`) against the larger hub validation manifest.
-  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned large classification manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned large classification manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -25,7 +25,7 @@ rows:
   data:
     surface_label: tf_rd_010_dagzoo_medium_control
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -47,8 +47,8 @@ rows:
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the large classification manifest from `openml_classification_large_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_large_v1` control baseline before treating any row outcome as a promotion or defer decision.
-  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
-  next_action: Execute this row under issue `#203` as the active large anchor candidate for the expanded one-epoch 2500-step TF-RD-010 successor package.
+  - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect calibration, runtime, and stability as guardrails.
+  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -56,18 +56,18 @@ rows:
   - This row remains the intended TF-RD-010 large reference for missingness transfer and class-imbalance reporting on the large validation pool.
   - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
   - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is the active large successor regime.
+  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
 - order: 2
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: ready
+  status: blocked_on_synthetic_adequacy
   rationale: Test whether moderate MCAR exposure improves robustness on the larger benchmark rung before structured missingness is considered.
-  hypothesis: MCAR may improve BPC and log-loss behavior on the evolved sandwich family under the larger hub validation pool without adding the stronger structure of MAR or MNAR.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
+  hypothesis: MCAR may improve label-target log loss per test cell on the evolved sandwich family under the larger hub validation pool without adding the stronger structure of MAR or MNAR.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -86,7 +86,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mcar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mcar_v2
+    corpus_ref: tf_rd_010_missingness_mcar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -109,7 +109,7 @@ rows:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Execute this row under issue `#203` after the active large anchor is established, then compare it directly against that 2500-step successor anchor before carrying the front forward.
+  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -117,18 +117,18 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
   - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
   - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is the active large successor regime.
+  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
 - order: 3
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: ready
+  status: blocked_on_synthetic_adequacy
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the larger benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large validation pool.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -147,7 +147,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mar_v2
+    corpus_ref: tf_rd_010_missingness_mar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -170,7 +170,7 @@ rows:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Execute this row under issue `#203` after the active large anchor is established, then compare it directly against that 2500-step successor anchor before carrying the front forward.
+  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -178,18 +178,18 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
   - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
   - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is the active large successor regime.
+  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
 - order: 4
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: ready
+  status: blocked_on_synthetic_adequacy
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same larger benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -208,7 +208,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mnar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mnar_v2
+    corpus_ref: tf_rd_010_missingness_mnar_v3
   preprocessing:
     surface_label: runtime_default
   training:
@@ -231,7 +231,7 @@ rows:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Execute this row under issue `#203` after the active large anchor is established, then compare it directly against that 2500-step successor anchor before carrying the front forward.
+  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
@@ -239,9 +239,9 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
   - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
   - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is the active large successor regime.
+  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
