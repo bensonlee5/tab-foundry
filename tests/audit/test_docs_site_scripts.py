@@ -99,6 +99,7 @@ def test_sync_hugo_content_writes_front_matter_and_rewrites_links(
     assert "[linked](/tab-foundry/docs/linked/)" in text
     assert "[unsynced](https://github.com/bensonlee5/tab-foundry/blob/main/docs/other.md)" in text
     assert "# Source" not in text.split("---\n\n", 1)[-1]
+    assert 'aliases:\n  - "/docs/source.html"' in text
 
 
 def test_sync_hugo_content_check_mode_reports_stale_output(

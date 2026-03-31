@@ -714,6 +714,61 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
 
 
+def test_load_corpus_record_backfills_legacy_dagzoo_provenance_summary(
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+    legacy_record = _write_legacy_unscoped_corpus_record(
+        repo_root=repo_tmp_path,
+        sweep_id=None,
+        recipe_id="current_recipe",
+        seed=16,
+    )
+
+    loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
+
+    assert loaded["corpus_ref"] == legacy_record["corpus_ref"]
+    assert loaded["dagzoo_provenance_summary"] == {
+        "corpus_ref": legacy_record["corpus_ref"],
+        "recipe_id": "current_recipe",
+        "corpus_id": legacy_record["corpus_id"],
+        "recipe_kind": "dagzoo_single_invocation",
+        "surface_label": "anchor_manifest_default",
+        "corpus_variant": "current_corpus_default",
+        "comparator_role": "control",
+        "config_refs": ["configs/default.yaml"],
+        "provenance_labels": {
+            "corpus_variant": "current_corpus_default",
+            "comparator_role": "control",
+        },
+        "invocation_count": 1,
+    }
+
+
+def test_materialize_corpus_recipe_caps_cpu_fixed_layout_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    captured: list[object] = []
+
+    def _run(config) -> object:
+        captured.append(config)
+        return _fake_run_dagzoo_generate(config)
+
+    _patch_dagzoo_generate(monkeypatch, _run)
+
+    _ = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    assert len(captured) == 1
+    config = captured[0]
+    assert getattr(config, "set_overrides") == ("runtime.fixed_layout_batch_size_cap=16",)
+
+
 def test_materialize_corpus_recipe_defers_manifest_characteristics_until_hydration(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,

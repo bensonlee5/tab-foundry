@@ -14,7 +14,11 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.training.surface import build_training_surface_record
 
-from tests.data.test_corpus import _fake_run_dagzoo_generate, _write_recipe_registry
+from tests.data.test_corpus import (
+    _fake_run_dagzoo_generate,
+    _write_legacy_unscoped_corpus_record,
+    _write_recipe_registry,
+)
 
 
 def _write_manifest(path: Path) -> Path:
@@ -342,6 +346,40 @@ def test_build_training_surface_record_persists_corpus_identity(
     assert surface_record["data"]["corpus_record_path"] == record["corpus_record_path"]
     assert surface_record["data"]["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
     assert "invocations" not in surface_record["data"]["dagzoo_provenance"]
+
+
+def test_build_training_surface_record_compacts_legacy_corpus_record_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    _write_recipe_registry(repo_root)
+    legacy_record = _write_legacy_unscoped_corpus_record(
+        repo_root=repo_root,
+        sweep_id=None,
+        recipe_id="current_recipe",
+        seed=16,
+    )
+    monkeypatch.setattr(corpus_loading_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_lookup_module, "_repo_root", lambda: repo_root)
+
+    surface_record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "corpus_ref": "current_recipe",
+            },
+        },
+        run_dir=tmp_path / "run_with_legacy_corpus",
+    )
+
+    assert surface_record["data"]["corpus_ref"] == legacy_record["corpus_ref"]
+    assert surface_record["data"]["dagzoo_provenance"]["corpus_variant"] == "current_corpus_default"
+    assert surface_record["data"]["dagzoo_provenance"]["invocation_count"] == 1
+    assert "invocations" not in surface_record["data"]["dagzoo_provenance"]
+    assert "commands" not in surface_record["data"]["dagzoo_provenance"]
 
 
 def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:

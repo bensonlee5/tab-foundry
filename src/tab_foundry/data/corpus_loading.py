@@ -93,6 +93,14 @@ def _copy_jsonable(value: Any) -> Any:
     return json.loads(json.dumps(value))
 
 
+def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        str(key): value
+        for key, value in payload.items()
+        if value is not None
+    }
+
+
 def _resolve_from_root(root: Path, raw_path: Path) -> Path:
     expanded = raw_path.expanduser()
     return expanded.resolve() if expanded.is_absolute() else (root / expanded).resolve()
@@ -116,6 +124,118 @@ def _optional_string(value: Any) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
     return str(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_mapping(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    return {str(key): item for key, item in value.items()}
+
+
+def _recipe_like_value(recipe: Any, field_name: str) -> Any:
+    if isinstance(recipe, Mapping):
+        return recipe.get(field_name)
+    return getattr(recipe, field_name, None)
+
+
+def _recipe_like_invocations(recipe: Any) -> list[Any]:
+    raw_invocations = _recipe_like_value(recipe, "invocations")
+    if isinstance(raw_invocations, tuple):
+        return list(raw_invocations)
+    if isinstance(raw_invocations, list):
+        return raw_invocations
+    return []
+
+
+def _invocation_config_ref(invocation: Any) -> str | None:
+    if isinstance(invocation, Mapping):
+        return _optional_string(invocation.get("config_ref")) or _optional_string(
+            invocation.get("base_config_ref")
+        )
+    return _optional_string(getattr(invocation, "config_ref", None)) or _optional_string(
+        getattr(invocation, "base_config_ref", None)
+    )
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [normalized for item in value if (normalized := _optional_string(item)) is not None]
+
+
+def build_dagzoo_provenance_summary(
+    *,
+    recipe: Any,
+    corpus_ref: str,
+    corpus_id: str,
+    provenance: Mapping[str, Any] | None = None,
+    surface_label: str | None = None,
+) -> dict[str, Any]:
+    raw_provenance = {} if not isinstance(provenance, Mapping) else {str(key): item for key, item in provenance.items()}
+    provenance_labels = _optional_mapping(_recipe_like_value(recipe, "provenance_labels")) or {}
+    generator = _optional_mapping(_recipe_like_value(recipe, "generator")) or {}
+    review_summary = _optional_mapping(_recipe_like_value(recipe, "review_summary")) or {}
+    resolved_recipe_id = (
+        _optional_string(_recipe_like_value(recipe, "recipe_id"))
+        or _optional_string(raw_provenance.get("recipe_id"))
+        or _ensure_non_empty_string(corpus_ref.partition("/")[0], context="corpus_ref recipe_id")
+    )
+    resolved_surface_label = (
+        _optional_string(surface_label)
+        or _optional_string(raw_provenance.get("surface_label"))
+        or _optional_string(_recipe_like_value(recipe, "surface_label"))
+    )
+    config_refs = _string_list(raw_provenance.get("config_refs"))
+    if not config_refs:
+        config_refs = _string_list(review_summary.get("config_refs"))
+    if not config_refs:
+        config_refs = sorted(
+            {
+                config_ref
+                for invocation in _recipe_like_invocations(recipe)
+                if (config_ref := _invocation_config_ref(invocation)) is not None
+            }
+        )
+    invocation_count = _optional_int(review_summary.get("invocation_count"))
+    if invocation_count is None and isinstance(raw_provenance.get("invocations"), list):
+        invocation_count = len(raw_provenance["invocations"])
+    manifest_record_count = _optional_int(review_summary.get("manifest_record_count"))
+    return _drop_none_values(
+        {
+            "corpus_ref": _ensure_non_empty_string(corpus_ref, context="corpus_ref"),
+            "recipe_id": resolved_recipe_id,
+            "corpus_id": _ensure_non_empty_string(corpus_id, context="corpus_id"),
+            "recipe_kind": (
+                _optional_string(raw_provenance.get("recipe_kind"))
+                or _optional_string(_recipe_like_value(recipe, "kind"))
+            ),
+            "surface_label": resolved_surface_label,
+            "corpus_variant": (
+                _optional_string(raw_provenance.get("corpus_variant"))
+                or _optional_string(provenance_labels.get("corpus_variant"))
+                or resolved_surface_label
+            ),
+            "comparator_role": (
+                _optional_string(raw_provenance.get("comparator_role"))
+                or _optional_string(provenance_labels.get("comparator_role"))
+            ),
+            "config_refs": config_refs,
+            "provenance_labels": _copy_jsonable(provenance_labels) if provenance_labels else None,
+            "generator_fingerprint": _optional_string(generator.get("fingerprint")),
+            "invocation_count": invocation_count,
+            "manifest_record_count": manifest_record_count,
+            "review_summary": _copy_jsonable(review_summary) if review_summary else None,
+        }
+    )
 
 
 def _coerce_int(value: Any, *, context: str) -> int:
@@ -835,5 +955,17 @@ def _load_corpus_record_payload(record_path: Path, *, context: str) -> dict[str,
     if payload.get("schema") != CORPUS_RECORD_SCHEMA:
         raise RuntimeError(
             f"corpus record schema must be {CORPUS_RECORD_SCHEMA!r}, got {payload.get('schema')!r}: {record_path}"
+        )
+    if "dagzoo_provenance_summary" not in payload and isinstance(payload.get("dagzoo_provenance"), Mapping):
+        raw_provenance = cast(Mapping[str, Any], payload["dagzoo_provenance"])
+        raw_corpus_ref = payload.get("corpus_ref", raw_provenance.get("corpus_ref"))
+        raw_corpus_id = payload.get("corpus_id", raw_provenance.get("corpus_id"))
+        raw_surface_label = payload.get("surface_label")
+        payload["dagzoo_provenance_summary"] = build_dagzoo_provenance_summary(
+            recipe=payload.get("recipe"),
+            corpus_ref=_ensure_non_empty_string(raw_corpus_ref, context="corpus record corpus_ref"),
+            corpus_id=_ensure_non_empty_string(raw_corpus_id, context="corpus record corpus_id"),
+            provenance=raw_provenance,
+            surface_label=_optional_string(raw_surface_label),
         )
     return payload

@@ -27,6 +27,7 @@ from .corpus_loading import (
     _repo_root,
     _resolve_from_root,
     _write_latest_pointer,
+    build_dagzoo_provenance_summary,
     corpus_id_for_manifest,
     corpus_outputs_root,
     load_corpus_recipe,
@@ -40,6 +41,9 @@ from tab_realdata_hub.dagzoo_handoff import (
     verify_dagzoo_handoff_matches_generated_corpus,
 )
 from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
+
+
+_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP = 16
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:
@@ -77,47 +81,6 @@ def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in payload.items()
         if value is not None
     }
-
-
-def _dagzoo_provenance_summary(
-    *,
-    recipe: Any,
-    corpus_ref: str,
-    corpus_id: str,
-) -> dict[str, Any]:
-    generator = recipe.generator if isinstance(recipe.generator, Mapping) else {}
-    review_summary = recipe.review_summary if isinstance(recipe.review_summary, Mapping) else {}
-    return _drop_none_values(
-        {
-            "corpus_ref": corpus_ref,
-            "recipe_id": recipe.recipe_id,
-            "corpus_id": corpus_id,
-            "recipe_kind": recipe.kind,
-            "surface_label": recipe.surface_label,
-            "corpus_variant": recipe.provenance_labels.get("corpus_variant", recipe.surface_label),
-            "comparator_role": recipe.provenance_labels.get("comparator_role"),
-            "config_refs": sorted(
-                {_invocation_requested_config_ref(invocation) for invocation in recipe.invocations}
-            ),
-            "provenance_labels": dict(recipe.provenance_labels),
-            "generator_fingerprint": (
-                str(generator.get("fingerprint"))
-                if isinstance(generator.get("fingerprint"), str) and str(generator.get("fingerprint")).strip()
-                else None
-            ),
-            "invocation_count": (
-                int(review_summary["invocation_count"])
-                if review_summary.get("invocation_count") is not None
-                else None
-            ),
-            "manifest_record_count": (
-                int(review_summary["manifest_record_count"])
-                if review_summary.get("manifest_record_count") is not None
-                else None
-            ),
-            "review_summary": dict(review_summary) if review_summary else None,
-        }
-    )
 
 
 def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdentityAccumulator:
@@ -248,6 +211,13 @@ def _dagzoo_generate_config(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
     )
+    requested_device = None if spec.device is None else str(spec.device).strip().lower()
+    set_overrides: tuple[str, ...] = (
+        (
+            f"runtime.fixed_layout_batch_size_cap="
+            f"{_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP}"
+        ),
+    ) if requested_device in (None, "", "auto", "cpu") else ()
     return DagzooGenerateConfig(
         dagzoo_root=dagzoo_root,
         dagzoo_config=_invocation_dagzoo_config_path(
@@ -271,6 +241,7 @@ def _dagzoo_generate_config(
         missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
         missing_mar_logit_scale=spec.missing_mar_logit_scale,
         missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
+        set_overrides=set_overrides,
     )
 
 
@@ -507,7 +478,7 @@ def materialize_corpus_recipe(
             )
             for spec in recipe.invocations
         ]
-        dagzoo_provenance_summary = _dagzoo_provenance_summary(
+        dagzoo_provenance_summary = build_dagzoo_provenance_summary(
             recipe=recipe,
             corpus_ref=corpus_ref,
             corpus_id=corpus_id,

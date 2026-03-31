@@ -29,7 +29,7 @@ rows:
   data:
     surface_label: tf_rd_010_dagzoo_medium_control
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v2
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
   preprocessing:
     surface_label: runtime_default
   training:
@@ -133,7 +133,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mcar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mcar_v2
+    corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
   preprocessing:
     surface_label: runtime_default
   training:
@@ -241,7 +241,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mar_v2
+    corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
   preprocessing:
     surface_label: runtime_default
   training:
@@ -350,7 +350,7 @@ rows:
   data:
     surface_label: tf_rd_010_missingness_mnar
     source: manifest
-    corpus_ref: tf_rd_010_missingness_mnar_v2
+    corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10
   preprocessing:
     surface_label: runtime_default
   training:

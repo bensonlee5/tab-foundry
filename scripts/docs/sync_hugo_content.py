@@ -305,8 +305,9 @@ def _front_matter(title: str, spec: PageSpec, source_rel: str, content: str) -> 
         payload["linkTitle"] = spec.link_title
     if spec.description:
         payload["description"] = spec.description
-    if spec.aliases:
-        payload["aliases"] = list(spec.aliases)
+    aliases = _merged_aliases(spec)
+    if aliases:
+        payload["aliases"] = aliases
     if spec.toc_hide:
         payload["toc_hide"] = True
     if spec.hide_summary:
@@ -318,6 +319,24 @@ def _front_matter(title: str, spec: PageSpec, source_rel: str, content: str) -> 
     if mermaid and "mermaid" not in payload:
         payload["mermaid"] = True
     return "---\n" + "\n".join(_yaml_dump(payload)) + "\n---\n\n"
+
+
+def _legacy_public_aliases(source_rel: str) -> tuple[str, ...]:
+    if source_rel == "README.md" or not source_rel.endswith(".md"):
+        return ()
+
+    stem = posixpath.splitext(source_rel)[0]
+    if stem.endswith("/README"):
+        return (f"/{stem[:-len('/README')].strip('/')}/",)
+    return (f"/{stem}.html",)
+
+
+def _merged_aliases(spec: PageSpec) -> list[str]:
+    merged: list[str] = []
+    for alias in (*spec.aliases, *_legacy_public_aliases(spec.source_rel)):
+        if alias not in merged:
+            merged.append(alias)
+    return merged
 
 
 def _output_rel_path(route: str) -> Path:
