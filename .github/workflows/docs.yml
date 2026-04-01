@@ -115,7 +115,7 @@ jobs:
               ),
               (
                   f"{SITE_URL}/docs/",
-                  ("Start Here", "/docs/repo-overview/"),
+                  ("Start Here", "/docs/getting-started/repo-overview/"),
                   ("Jekyll v3.10.0",),
               ),
               (
