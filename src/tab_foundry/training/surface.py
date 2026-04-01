@@ -116,10 +116,11 @@ def build_training_surface_record(
         }
     else:
         data_cfg = {str(key): value for key, value in raw_data_cfg.items()}
+    raw_data_surface_overrides = data_cfg.get("surface_overrides")
     data_surface_overrides = (
         {}
-        if not isinstance(data_cfg.get("surface_overrides"), Mapping)
-        else {str(key): value for key, value in data_cfg["surface_overrides"].items()}
+        if not isinstance(raw_data_surface_overrides, Mapping)
+        else {str(key): value for key, value in raw_data_surface_overrides.items()}
     )
     preprocessing_cfg = (
         None

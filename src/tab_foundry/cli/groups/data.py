@@ -266,6 +266,11 @@ def _run_corpus_finalize_staged(args: argparse.Namespace) -> int:
         if not isinstance(compatibility, dict)
         else str(compatibility.get("verdict", "")).strip().lower()
     )
+    compatibility_summary = (
+        None
+        if not isinstance(compatibility, dict)
+        else compatibility.get("summary")
+    )
     exit_code = 1 if compatibility_verdict == "fail" else 0
     if bool(args.json):
         _print_json_payload(result)
@@ -283,7 +288,7 @@ def _run_corpus_finalize_staged(args: argparse.Namespace) -> int:
             print(
                 "Manifest preflight:",
                 f"verdict={compatibility_verdict}",
-                f"summary={compatibility.get('summary')}",
+                f"summary={compatibility_summary}",
             )
     return exit_code
 
