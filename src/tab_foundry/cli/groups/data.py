@@ -12,6 +12,7 @@ from tab_foundry.data.corpus_loading import list_corpus_recipes
 from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.data.corpus_materialization import (
     default_materialize_processes,
+    finalize_staged_corpus_recipe,
     materialize_corpus_recipe,
 )
 from tab_foundry.data.corpus_reporting import (
@@ -28,6 +29,7 @@ from tab_realdata_hub.manifest import build_manifest
 _DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
 _HARDWARE_POLICY_CHOICES = ("none", "cuda_tiered_v1")
 _MISSINGNESS_MECHANISM_CHOICES = ("none", "mcar", "mar", "mnar")
+_VERIFY_CHOICES = ("fast", "full")
 
 
 def _positive_int(raw: str) -> int:
@@ -229,6 +231,61 @@ def _run_corpus_materialize(args: argparse.Namespace) -> int:
     print(f"Manifest: {record['manifest']['manifest_path']}")
     print(f"Surface label: {record['surface_label']}")
     return 0
+
+
+def _run_corpus_finalize_staged(args: argparse.Namespace) -> int:
+    result = finalize_staged_corpus_recipe(
+        recipe_id=str(args.recipe),
+        dagzoo_root=Path(str(args.dagzoo_root)),
+        verify=str(args.verify),
+        stage_root=(
+            None
+            if args.stage_root is None
+            else Path(str(args.stage_root))
+        ),
+        force=bool(args.force),
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+    )
+    record = result["record"]
+    manifest_preflight = None
+    if args.experiment is not None or args.override:
+        manifest_preflight = data_inspect_module.manifest_inspect_payload(
+            Path(str(record["manifest"]["manifest_path"])),
+            experiment=None if args.experiment is None else str(args.experiment),
+            overrides=[str(value) for value in args.override],
+        )
+        result["manifest_preflight"] = manifest_preflight
+
+    compatibility = (
+        None
+        if not isinstance(manifest_preflight, dict)
+        else manifest_preflight.get("compatibility")
+    )
+    compatibility_verdict = (
+        None
+        if not isinstance(compatibility, dict)
+        else str(compatibility.get("verdict", "")).strip().lower()
+    )
+    exit_code = 1 if compatibility_verdict == "fail" else 0
+    if bool(args.json):
+        _print_json_payload(result)
+        return exit_code
+
+    print(f"Corpus finalized from stage: {record['corpus_ref']}")
+    print(f"Recipe: {record['recipe_id']}")
+    print(f"Manifest: {record['manifest']['manifest_path']}")
+    print(f"Surface label: {record['surface_label']}")
+    print(f"Verification mode: {result['verification']['mode']}")
+    if manifest_preflight is not None:
+        if compatibility_verdict is None:
+            print("Manifest preflight: unavailable")
+        else:
+            print(
+                "Manifest preflight:",
+                f"verdict={compatibility_verdict}",
+                f"summary={compatibility.get('summary')}",
+            )
+    return exit_code
 
 
 def _run_corpus_inspect(args: argparse.Namespace) -> int:
@@ -483,6 +540,43 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     materialize_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     materialize_parser.set_defaults(func=_run_corpus_materialize)
+
+    finalize_staged_parser = corpus_nested.add_parser(
+        "finalize-staged",
+        help="Promote an already materialized .staging corpus into a first-class corpus record",
+    )
+    finalize_staged_parser.add_argument("--recipe", required=True, help="Tracked corpus recipe id")
+    finalize_staged_parser.add_argument(
+        "--sweep-id",
+        default=None,
+        help="Optional sweep id to resolve sweep-local corpus recipes first",
+    )
+    finalize_staged_parser.add_argument("--dagzoo-root", required=True, help="Local dagzoo checkout root")
+    finalize_staged_parser.add_argument(
+        "--stage-root",
+        default=None,
+        help="Optional staged corpus root override. Defaults to outputs/corpora/<recipe>/.staging",
+    )
+    finalize_staged_parser.add_argument(
+        "--verify",
+        choices=_VERIFY_CHOICES,
+        default="fast",
+        help="Staged corpus verification level before promotion",
+    )
+    finalize_staged_parser.add_argument(
+        "--experiment",
+        default=None,
+        help="Optional experiment name for manifest compatibility preflight after promotion",
+    )
+    finalize_staged_parser.add_argument(
+        "--override",
+        action="append",
+        default=[],
+        help="Optional Hydra override applied on top of --experiment or repo defaults",
+    )
+    finalize_staged_parser.add_argument("--force", action="store_true", help="Replace an existing local materialization")
+    finalize_staged_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    finalize_staged_parser.set_defaults(func=_run_corpus_finalize_staged)
 
     inspect_parser = corpus_nested.add_parser(
         "inspect",

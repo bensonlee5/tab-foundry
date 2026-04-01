@@ -116,6 +116,11 @@ def build_training_surface_record(
         }
     else:
         data_cfg = {str(key): value for key, value in raw_data_cfg.items()}
+    data_surface_overrides = (
+        {}
+        if not isinstance(data_cfg.get("surface_overrides"), Mapping)
+        else {str(key): value for key, value in data_cfg["surface_overrides"].items()}
+    )
     preprocessing_cfg = (
         None
         if not isinstance(raw_preprocessing_cfg, Mapping)
@@ -186,6 +191,29 @@ def build_training_surface_record(
                     manifest_payload["characteristics"] = None
                     manifest_payload["characteristics_error"] = str(exc)
 
+    raw_requested_corpus_ref = data_surface_overrides.get("requested_corpus_ref")
+    if raw_requested_corpus_ref is None:
+        raw_requested_corpus_ref = data_cfg.get("requested_corpus_ref")
+    if raw_requested_corpus_ref is None:
+        raw_requested_corpus_ref = data_cfg.get("corpus_ref")
+    requested_corpus_ref = (
+        None
+        if raw_requested_corpus_ref is None
+        else str(raw_requested_corpus_ref).strip() or None
+    )
+    raw_materialization_state = data_surface_overrides.get("materialization_state")
+    if raw_materialization_state is None:
+        raw_materialization_state = data_cfg.get("materialization_state")
+    if raw_materialization_state is None:
+        if data_surface.corpus_record_path is not None:
+            materialization_state = "finalized"
+        elif data_surface.manifest_path is not None:
+            materialization_state = "direct_manifest"
+        else:
+            materialization_state = None
+    else:
+        materialization_state = str(raw_materialization_state).strip().lower() or None
+
     model_payload: dict[str, Any] = {
         "arch": str(model_spec.arch),
         "stage": None if model_spec.stage is None else str(model_spec.stage),
@@ -248,6 +276,8 @@ def build_training_surface_record(
             "filter_policy": data_surface.filter_policy,
             "allow_missing_values": bool(data_surface.allow_missing_values),
             "corpus_ref": data_surface.corpus_ref,
+            "requested_corpus_ref": requested_corpus_ref,
+            "materialization_state": materialization_state,
             "recipe_id": data_surface.recipe_id,
             "corpus_id": data_surface.corpus_id,
             "corpus_record_path": (

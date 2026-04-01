@@ -5,6 +5,7 @@ from pathlib import Path
 
 from accelerate.data_loader import BatchSamplerShard
 import numpy as np
+from omegaconf import OmegaConf
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -12,6 +13,7 @@ import torch
 from torch import nn
 
 import tab_foundry.data.dataset as dataset_module
+import tab_foundry.data.sources.manifest as manifest_source_module
 import tab_foundry.training.trainer_metrics as trainer_metrics_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_foundry.data.factory import _ManifestTaskBatchSampler, build_task_loader
@@ -395,6 +397,35 @@ def test_build_task_loader_construction_defers_task_signature_resolution(
         _ = next(iter(loader))
 
 
+def test_packed_parquet_task_dataset_can_seed_shuffle_manifest_records(tmp_path: Path) -> None:
+    manifest_path = _write_manifest_dataset(
+        tmp_path,
+        datasets=[
+            _manifest_task_payload(dataset_index=1, order_tag="task_0"),
+            _manifest_task_payload(dataset_index=2, order_tag="task_1"),
+            _manifest_task_payload(dataset_index=3, order_tag="task_2"),
+            _manifest_task_payload(dataset_index=4, order_tag="task_3"),
+            _manifest_task_payload(dataset_index=5, order_tag="task_4"),
+        ],
+    )
+
+    dataset = PackedParquetTaskDataset(
+        manifest_path,
+        split="train",
+        task="classification",
+        shuffle_records=True,
+        shuffle_seed=7,
+    )
+
+    observed = [int(record["dataset_index"]) for record in dataset.records]
+    expected = [
+        [1, 2, 3, 4, 5][int(index)]
+        for index in np.random.default_rng(7).permutation(5).tolist()
+    ]
+
+    assert observed == expected
+
+
 def test_build_task_loader_preserves_manifest_order_when_shuffle_is_false(tmp_path: Path) -> None:
     manifest_path = _write_manifest_dataset(
         tmp_path,
@@ -428,6 +459,40 @@ def test_build_task_loader_preserves_manifest_order_when_shuffle_is_false(tmp_pa
         "task_2",
         "task_3",
     ]
+
+
+def test_build_manifest_task_dataset_shuffles_train_split_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest_path = _write_manifest_dataset(tmp_path)
+    captured_calls: list[dict[str, object]] = []
+
+    def _capture_dataset(*args: object, **kwargs: object) -> str:
+        captured_calls.append({str(key): value for key, value in kwargs.items()})
+        return "captured"
+
+    monkeypatch.setattr(manifest_source_module, "PackedParquetTaskDataset", _capture_dataset)
+
+    train_dataset = manifest_source_module.build_manifest_task_dataset(
+        OmegaConf.create({"source": "manifest", "manifest_path": str(manifest_path)}),
+        split="train",
+        task="classification",
+        seed=11,
+    )
+    val_dataset = manifest_source_module.build_manifest_task_dataset(
+        OmegaConf.create({"source": "manifest", "manifest_path": str(manifest_path)}),
+        split="val",
+        task="classification",
+        seed=11,
+    )
+
+    assert train_dataset == "captured"
+    assert val_dataset == "captured"
+    assert captured_calls[0]["shuffle_records"] is True
+    assert captured_calls[0]["shuffle_seed"] == 11
+    assert captured_calls[1]["shuffle_records"] is False
+    assert captured_calls[1]["shuffle_seed"] == 11
 
 
 def test_evaluate_loader_respects_manifest_order_for_capped_shuffle_false_loader(

@@ -451,6 +451,7 @@ def _load_manifest_task_record(
     split: str,
     task: str,
     record: dict[str, Any],
+    include_metadata: bool = True,
 ) -> _LoadedManifestTaskRecord:
     required_keys = {"dataset_index", "train_path", "test_path"}
     missing = sorted(required_keys - set(record))
@@ -464,16 +465,20 @@ def _load_manifest_task_record(
     test_path = _resolve_record_path(manifest_path, str(record["test_path"]))
     x_train, y_train = _read_packed_split(train_path, dataset_index=dataset_index)
     x_test, y_test = _read_packed_split(test_path, dataset_index=dataset_index)
-    metadata, feature_types = load_manifest_record_metadata(
-        manifest_path,
-        record=record,
-        expected_feature_count=int(x_train.shape[1]),
-    )
-    if feature_types is None:
-        raise RuntimeError(
-            "manifest-backed task dataset requires explicit feature_types metadata: "
-            f"{_record_identity_text(record)}"
+    if include_metadata:
+        metadata, feature_types = load_manifest_record_metadata(
+            manifest_path,
+            record=record,
+            expected_feature_count=int(x_train.shape[1]),
         )
+        if feature_types is None:
+            raise RuntimeError(
+                "manifest-backed task dataset requires explicit feature_types metadata: "
+                f"{_record_identity_text(record)}"
+            )
+    else:
+        metadata = {}
+        feature_types = []
 
     expected_n_train = int(record.get("n_train", -1))
     expected_n_test = int(record.get("n_test", -1))
@@ -567,11 +572,14 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         *,
         split: str,
         task: str,
+        shuffle_records: bool = False,
+        shuffle_seed: int = 0,
         impute_missing: bool = True,
         all_nan_fill: float = 0.0,
         label_mapping: str = "train_only_remap",
         unseen_test_label_policy: str = "filter",
         allow_missing_values: bool = False,
+        load_metadata: bool = True,
     ) -> None:
         self.manifest_path = manifest_path.expanduser().resolve()
         self.split = split
@@ -581,12 +589,22 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         self.label_mapping = str(label_mapping)
         self.unseen_test_label_policy = str(unseen_test_label_policy)
         self.allow_missing_values = bool(allow_missing_values)
+        self.load_metadata = bool(load_metadata)
 
-        table = pq.read_table(self.manifest_path)
-        records: list[dict[str, Any]] = table.to_pylist()
+        table = pq.read_table(
+            self.manifest_path,
+            filters=[
+                ("split", "=", str(split)),
+                ("task", "=", str(task)),
+            ],
+        )
         self.records = [
-            record for record in records if record.get("split") == split and record.get("task") == task
+            {str(key): value for key, value in cast(Mapping[str, Any], record).items()}
+            for record in table.to_pylist()
         ]
+        if shuffle_records and len(self.records) > 1:
+            order = np.random.default_rng(int(shuffle_seed)).permutation(len(self.records)).tolist()
+            self.records = [self.records[int(index)] for index in order]
         if not self.records:
             raise RuntimeError(
                 f"no records found for split={split!r}, task={task!r} in {self.manifest_path}"
@@ -620,6 +638,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             split=self.split,
             task=self.task,
             record=record,
+            include_metadata=self.load_metadata,
         )
         x_train = loaded.x_train
         y_train = loaded.y_train

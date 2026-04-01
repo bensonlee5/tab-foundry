@@ -5,8 +5,8 @@ canonical_sweep_path: reference/system_delta_sweeps/tf_rd_010_classification_evo
 canonical_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/queue.yaml
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/matrix.md
 sweep_id: tf_rd_010_classification_evolution_large_v2
-parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
-sweep_status: blocked_on_synthetic_adequacy
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+sweep_status: blocked_on_anchor_selection
 complexity_level: classification_lg
 anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
@@ -21,10 +21,11 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 large successor sweep is blocked pending `tf_rd_010_synthetic_adequacy_v1`
-    and a future factorization-correct medium successor. The preserved `tf_rd_010_classification_evolution_large_v1`
-    reset-contract package remains historical context only and should not be reused
-    for new canonical evidence.
+  - This TF-RD-010 large successor sweep is blocked on selecting and trusting the
+    refreshed medium control anchor, not on rerunning synthetic adequacy from scratch.
+    The completed `tf_rd_010_synthetic_adequacy_v3` production-control training leg
+    is the reusable control training artifact, while the stale top-level pilot summary
+    remains blocked canary output only.
   - Treat issues `#52`, `#99`, `#197`, `#198`, and `#200` as historical setup context
     only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
@@ -44,19 +45,20 @@ anchor_surface:
     as label-target log loss per test cell, while still reporting calibration, runtime,
     and stability guardrails.
   - The large validation rung follows the upstream hub bundle policy `min_classes=2`,
-    `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and `cls_benchmark_linear_multiclass_large_v1`
-    baseline id remain historical TF-RD-010 identifiers for that broader classification
-    pool.
-  - 'Trusted executions now follow the expanded repo-default synthetic one-epoch policy
-    for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at
-    `prior_dump_batch_size=64`, resolving to `2500` optimizer steps rather than the
-    historical fixed 400-step or 3-step reset contracts.'
-  - The prior 400-step executions and the preserved 3-step reset-contract package
-    remain historical artifacts only and are no longer the active execution path for
-    promotion or defer evidence.
-  - Keep the benchmark contract fixed while `dagzoo` factorization and medium learnability
-    are being audited; do not execute this larger rung until the adequacy gate is
-    interpreted and a fresh medium successor is trusted.
+    `max_classes=10`, and `max_missing_pct=20.0`; the repo-local `openml_classification_large_v1`
+    manifest is still a stale placeholder and must not be treated as canonical benchmark-facing
+    evidence.
+  - 'Trusted executions use the same pilot-aligned one-epoch training contract as
+    the refreshed medium package: one pass over `159984` corpus manifest records/tasks
+    at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps with `task_batch_size=16`,
+    `runtime.grad_accum_steps=4`, `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`,
+    `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - The large control row should benchmark the same completed pilot training artifact
+    on the intended hub-backed large classification manifest after the medium control
+    anchor is benchmarked and trusted; do not retrain the control row for `large_v2`.
+  - Missingness rows remain blocked until the medium control anchor exists and curated
+    missingness fronts exist, because the control row is curated `accepted_only` `v5`
+    while missingness rows remain `include_all` `v3`.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
@@ -100,14 +102,14 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Establish the TF-RD-010 classification control front before reading any
     missingness harder-front effect on the larger benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
     control corpus (`n_classes_min=2`) against the larger hub validation manifest.
-  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train
-    on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned large
-    classification manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and benchmark
+    the completed control pilot trained on `tf_rd_010_dagzoo_medium_control_curated_v5`
+    against the hub-owned large classification manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -129,7 +131,7 @@ rows:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v3
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -138,13 +140,16 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
           steps: 2500
       runtime:
+        grad_accum_steps: 4
         max_steps: 2500
-    task_batch_size: 1
+      optimizer:
+        min_lr: 1.0e-05
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -153,7 +158,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: local_corpus_record
+      resolution_source: recipe_definition
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the large classification manifest
     from `openml_classification_large_v1.json` before execution.
@@ -166,9 +171,12 @@ rows:
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted
-    medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  next_action: Wait for the medium control anchor to be benchmarked, registered, and
+    promoted, then benchmark the same completed pilot control run on the intended
+    hub-backed large classification manifest as `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_curated_v5`;
+    do not retrain row 1.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
@@ -180,12 +188,15 @@ rows:
     optimizer steps with an allowed short final batch.'
   - This row remains the intended TF-RD-010 large reference for missingness transfer
     and class-imbalance reporting on the large validation pool.
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
-    non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference
-    remains historical context only; `tf_rd_010_classification_evolution_large_v2`
-    is a blocked historical draft until synthetic adequacy is interpreted.
+  - '`tf_rd_010_classification_evolution_large_v2` now shares the pilot-aligned training
+    surface with the refreshed medium package: `task_batch_size=16`, `grad_accum_steps=4`,
+    `runtime.grad_clip=0.0`, `max_steps=2500`, linear schedule with `warmup_ratio=0.10`,
+    `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - Reuse the completed pilot control training artifact at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`;
+    do not retrain the control row for `large_v2`.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed large classification
+    manifest.
   dynamic_model_overrides: null
   screen_metrics: null
   benchmark_metrics: null
@@ -234,6 +245,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -242,22 +255,7 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -271,8 +269,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -301,105 +297,20 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v3/tf_rd_010_dagzoo_medium_control_v3__05c164a2860f
-      recipe_id: tf_rd_010_dagzoo_medium_control_v3
-      corpus_id: tf_rd_010_dagzoo_medium_control_v3__05c164a2860f
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_v3/tf_rd_010_dagzoo_medium_control_v3__05c164a2860f/corpus_record.json
-      manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_v3/tf_rd_010_dagzoo_medium_control_v3__05c164a2860f/manifest.parquet
-        manifest_sha256: 05c164a2860f3d182c5d4dc17350b5d8e14ce683038de12b1a0c1f78bf2c4d33
-      dagzoo_provenance:
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_v3__05c164a2860f
-        corpus_ref: tf_rd_010_dagzoo_medium_control_v3/tf_rd_010_dagzoo_medium_control_v3__05c164a2860f
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        generator_fingerprint: 08163566e2ab
-        invocation_count: 144
-        manifest_record_count: 159984
-        posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v3
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          metric_definition: label-target log loss per test cell
-          per_invocation_num_datasets: 1111
-          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_parent_below_sqrt_prob: 0.05
-          target_parent_midrange_prob: 0.2
-          target_parent_mode: max
-          target_parent_near_max_band_min_fraction: 0.75
-          target_parent_prior: near_max_mixture
-          task_grid: balanced_rows_features_classes_v1
-          teacher_conditional_export: true
-        recipe_id: tf_rd_010_dagzoo_medium_control_v3
-        recipe_kind: dagzoo_python_generated
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          metric_definition: label-target log loss per test cell
-          missingness: null
-          num_datasets_per_invocation: 1111
-          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_parent_below_sqrt_prob: 0.05
-          target_parent_midrange_prob: 0.2
-          target_parent_mode: max
-          target_parent_near_max_band_min_fraction: 0.75
-          target_parent_prior: near_max_mixture
-          teacher_conditional_export: true
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_parent_below_sqrt_prob: 0.05
-        target_parent_count_range:
-          max: 20
-          min: 1
-        target_parent_fraction_range:
-          max: 1.0
-          min: 0.07142857142857142
-        target_parent_midrange_prob: 0.2
-        target_parent_mode: max
-        target_parent_near_max_band_min_fraction: 0.75
-        target_parent_prior: near_max_mixture
-        target_parent_regimes_present:
-        - midrange
-        - near_max
-        - sparse_tail
-        teacher_conditional_export: true
-        teacher_conditional_metric_definition: label-target log loss per test cell
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: null
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
         surface_label: tf_rd_010_dagzoo_medium_control
-        corpus_ref: tf_rd_010_dagzoo_medium_control_v3
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
         filter_policy: null
         dagzoo_provenance: null
         allow_missing_values: null
@@ -419,14 +330,14 @@ rows:
       surface_label: prior_cosine_warmup
       loss_surface: classification
       apply_schedule: true
-      task_batch_size: 1
+      task_batch_size: 16
       optimizer_name: schedulefree_adamw
-      optimizer_min_lr: 0.004
+      optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
-        lr_max: 0.004
-        lr_schedule: cosine
-        warmup_ratio: 0.05
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
         steps: 2500
       overrides: {}
       backend: manifest
@@ -435,17 +346,17 @@ rows:
       mixed_precision: 'no'
       num_workers: 0
       grad_clip: 0.0
-      grad_accum_steps: 1
+      grad_accum_steps: 4
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 4db515fe871587ab48b94e605d1eafb83a88b5ab55939ecad7050c295d65402b
+  resolved_surface_fingerprint: db3d4d5e84ddcd1af92308fc86f283e1509c009ce8b0206a97cd4612ee9084a5
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Test whether moderate MCAR exposure improves robustness on the larger
     benchmark rung before structured missingness is considered.
   hypothesis: MCAR may improve label-target log loss per test cell on the evolved
@@ -483,13 +394,16 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
           steps: 2500
       runtime:
+        grad_accum_steps: 4
         max_steps: 2500
-    task_batch_size: 1
+      optimizer:
+        min_lr: 1.0e-05
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -510,9 +424,13 @@ rows:
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted
-    medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
+    while this missingness row remains `include_all` `v3`
+  next_action: Keep this row blocked until the medium control anchor is benchmarked
+    and promoted and curated missingness fronts exist; do not benchmark or retrain
+    this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
@@ -525,12 +443,13 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung:
     `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering
     the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
-    non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference
-    remains historical context only; `tf_rd_010_classification_evolution_large_v2`
-    is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
+    while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated
+    missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed large classification
+    manifest.
   dynamic_model_overrides: null
   screen_metrics: null
   benchmark_metrics: null
@@ -578,6 +497,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -586,22 +507,7 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -615,8 +521,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -647,6 +551,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mcar_v3
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mcar_v3
       corpus_id: null
       corpus_record_path: null
@@ -676,14 +582,14 @@ rows:
       surface_label: prior_cosine_warmup
       loss_surface: classification
       apply_schedule: true
-      task_batch_size: 1
+      task_batch_size: 16
       optimizer_name: schedulefree_adamw
-      optimizer_min_lr: 0.004
+      optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
-        lr_max: 0.004
-        lr_schedule: cosine
-        warmup_ratio: 0.05
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
         steps: 2500
       overrides: {}
       backend: manifest
@@ -692,17 +598,17 @@ rows:
       mixed_precision: 'no'
       num_workers: 0
       grad_clip: 0.0
-      grad_accum_steps: 1
+      grad_accum_steps: 4
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 5f8f23bd7032dbd97cd0bde6ceac1fcbb3f7421940ebed5d3c7f13cef03a540a
+  resolved_surface_fingerprint: 995d37d1a01450ad97757de24b4bc9dd9d91e134942c79a2001353dd51a33592
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random
     masking from observed-feature-linked masking under the larger benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
@@ -739,13 +645,16 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
           steps: 2500
       runtime:
+        grad_accum_steps: 4
         max_steps: 2500
-    task_batch_size: 1
+      optimizer:
+        min_lr: 1.0e-05
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -767,9 +676,13 @@ rows:
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted
-    medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
+    while this missingness row remains `include_all` `v3`
+  next_action: Keep this row blocked until the medium control anchor is benchmarked
+    and promoted and curated missingness fronts exist; do not benchmark or retrain
+    this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
@@ -782,12 +695,13 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung:
     `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering
     the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
-    non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference
-    remains historical context only; `tf_rd_010_classification_evolution_large_v2`
-    is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
+    while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated
+    missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed large classification
+    manifest.
   dynamic_model_overrides: null
   screen_metrics: null
   benchmark_metrics: null
@@ -835,6 +749,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -843,22 +759,7 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -872,8 +773,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -904,6 +803,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mar_v3
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mar_v3
       corpus_id: null
       corpus_record_path: null
@@ -933,14 +834,14 @@ rows:
       surface_label: prior_cosine_warmup
       loss_surface: classification
       apply_schedule: true
-      task_batch_size: 1
+      task_batch_size: 16
       optimizer_name: schedulefree_adamw
-      optimizer_min_lr: 0.004
+      optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
-        lr_max: 0.004
-        lr_schedule: cosine
-        warmup_ratio: 0.05
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
         steps: 2500
       overrides: {}
       backend: manifest
@@ -949,17 +850,17 @@ rows:
       mixed_precision: 'no'
       num_workers: 0
       grad_clip: 0.0
-      grad_accum_steps: 1
+      grad_accum_steps: 4
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: bd854d4f7e321a49bdc0ab6a13b429da6d6e7bd771a8c09e3ceed613dbae6071
+  resolved_surface_fingerprint: 11a430b5f5fa7d5bfe9055fa6d99334c5db5428eef20e16f4d2e5f518062dba7
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
     can compare MCAR, MAR, and MNAR under the same larger benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least
@@ -996,13 +897,16 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
           steps: 2500
       runtime:
+        grad_accum_steps: 4
         max_steps: 2500
-    task_batch_size: 1
+      optimizer:
+        min_lr: 1.0e-05
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -1024,9 +928,13 @@ rows:
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted
-    medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
+    while this missingness row remains `include_all` `v3`
+  next_action: Keep this row blocked until the medium control anchor is benchmarked
+    and promoted and curated missingness fronts exist; do not benchmark or retrain
+    this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
@@ -1039,12 +947,13 @@ rows:
   - 'The large validation pool follows the same hub bundle policy as the medium rung:
     `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering
     the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as
-    non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference
-    remains historical context only; `tf_rd_010_classification_evolution_large_v2`
-    is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
+    while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated
+    missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed large classification
+    manifest.
   dynamic_model_overrides: null
   screen_metrics: null
   benchmark_metrics: null
@@ -1093,6 +1002,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -1101,22 +1012,7 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -1130,8 +1026,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -1162,6 +1056,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mnar_v3
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mnar_v3
       corpus_id: null
       corpus_record_path: null
@@ -1191,14 +1087,14 @@ rows:
       surface_label: prior_cosine_warmup
       loss_surface: classification
       apply_schedule: true
-      task_batch_size: 1
+      task_batch_size: 16
       optimizer_name: schedulefree_adamw
-      optimizer_min_lr: 0.004
+      optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
-        lr_max: 0.004
-        lr_schedule: cosine
-        warmup_ratio: 0.05
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
         steps: 2500
       overrides: {}
       backend: manifest
@@ -1207,13 +1103,13 @@ rows:
       mixed_precision: 'no'
       num_workers: 0
       grad_clip: 0.0
-      grad_accum_steps: 1
+      grad_accum_steps: 4
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 0f2fada8aad3291fbee0be9dd09723d2e6e088cc953be49f70bd2793618df1cd
+  resolved_surface_fingerprint: 06e855120e76bfedb0eed931904d480d7996198504cb73097dcf5f3c9bf796a1
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/resolved_queue.yaml
-inputs_fingerprint: 09bcbe00aab8a727b17669b2374e8b2522b1304a234c0e8fadea3ba0996b176f
+inputs_fingerprint: 7d8fc06562bbf77c4ca67c28e0540cf7276f1d8f650b1cbc170ae2bbd4a9f0f9

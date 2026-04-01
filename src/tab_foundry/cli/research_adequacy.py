@@ -1,4 +1,4 @@
-"""CLI wiring for `tab-foundry research adequacy pilot`."""
+"""CLI wiring for `tab-foundry research adequacy` commands."""
 
 from __future__ import annotations
 
@@ -7,7 +7,12 @@ import sys
 from pathlib import Path
 
 from tab_foundry.data.corpus_materialization import default_materialize_processes
-from tab_foundry.research.adequacy.pilot import run_adequacy_pilot
+from tab_foundry.research.adequacy.pilot import (
+    finalize_adequacy_pilot,
+    run_adequacy_pilot,
+)
+
+_CONTRACT_CHECK_CHOICES = ("fast", "full")
 
 
 def _positive_int(raw: str) -> int:
@@ -62,6 +67,37 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         default=None,
         help="Per-dagzoo subprocess CPU thread budget. Use 'auto' for the balanced default.",
     )
+    parser.add_argument(
+        "--contract-check",
+        choices=_CONTRACT_CHECK_CHOICES,
+        default="fast",
+        help="Latent-target contract verification level",
+    )
+    return parser
+
+
+def configure_finalize_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument(
+        "--adequacy-id",
+        required=True,
+        help="Synthetic adequacy spec id to finalize",
+    )
+    parser.add_argument(
+        "--dagzoo-root",
+        required=True,
+        help="Path to the sibling dagzoo checkout used to resolve staged corpus previews",
+    )
+    parser.add_argument(
+        "--out-root",
+        default=None,
+        help="Optional output root override for pilot artifacts",
+    )
+    parser.add_argument(
+        "--contract-check",
+        choices=_CONTRACT_CHECK_CHOICES,
+        default="fast",
+        help="Latent-target contract verification level",
+    )
     return parser
 
 
@@ -86,6 +122,29 @@ def run_from_args(args: argparse.Namespace) -> int:
             if args.materialize_worker_threads is None
             else int(args.materialize_worker_threads)
         ),
+        contract_check=str(args.contract_check),
+    )
+    summary_paths = summary.get("summary_paths", {})
+    print(
+        "Adequacy pilot complete.",
+        f"adequacy_id={summary['adequacy_id']}",
+        f"interpretation={summary['provisional_interpretation']['bucket']}",
+        f"summary={summary_paths.get('summary_md')}",
+        flush=True,
+    )
+    return 0
+
+
+def run_finalize_from_args(args: argparse.Namespace) -> int:
+    summary = finalize_adequacy_pilot(
+        adequacy_id=str(args.adequacy_id),
+        dagzoo_root=Path(str(args.dagzoo_root)).expanduser().resolve(),
+        out_root=(
+            None
+            if args.out_root is None
+            else Path(str(args.out_root)).expanduser().resolve()
+        ),
+        contract_check=str(args.contract_check),
     )
     summary_paths = summary.get("summary_paths", {})
     print(

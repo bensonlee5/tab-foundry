@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_010_classification_evolution_large_v2
-parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
-status: blocked_on_synthetic_adequacy
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+status: blocked_on_anchor_selection
 complexity_level: classification_lg
 anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
@@ -16,7 +16,7 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 large successor sweep is blocked pending `tf_rd_010_synthetic_adequacy_v1` and a future factorization-correct medium successor. The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract package remains historical context only and should not be reused for new canonical evidence.
+  - This TF-RD-010 large successor sweep is blocked on selecting and trusting the refreshed medium control anchor, not on rerunning synthetic adequacy from scratch. The completed `tf_rd_010_synthetic_adequacy_v3` production-control training leg is the reusable control training artifact, while the stale top-level pilot summary remains blocked canary output only.
   - Treat issues `#52`, `#99`, `#197`, `#198`, and `#200` as historical setup context only rather than active execution evidence.
   - Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
@@ -24,10 +24,10 @@ anchor_surface:
   - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and large classification validation bundles plus their materialized manifest parquet outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
   - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct multiclass head.
   - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, while still reporting calibration, runtime, and stability guardrails.
-  - The large validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and `cls_benchmark_linear_multiclass_large_v1` baseline id remain historical TF-RD-010 identifiers for that broader classification pool.
-  - 'Trusted executions now follow the expanded repo-default synthetic one-epoch policy for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps rather than the historical fixed 400-step or 3-step reset contracts.'
-  - The prior 400-step executions and the preserved 3-step reset-contract package remain historical artifacts only and are no longer the active execution path for promotion or defer evidence.
-  - Keep the benchmark contract fixed while `dagzoo` factorization and medium learnability are being audited; do not execute this larger rung until the adequacy gate is interpreted and a fresh medium successor is trusted.
+  - The large validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the repo-local `openml_classification_large_v1` manifest is still a stale placeholder and must not be treated as canonical benchmark-facing evidence.
+  - 'Trusted executions use the same pilot-aligned one-epoch training contract as the refreshed medium package: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps with `task_batch_size=16`, `runtime.grad_accum_steps=4`, `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - The large control row should benchmark the same completed pilot training artifact on the intended hub-backed large classification manifest after the medium control anchor is benchmarked and trusted; do not retrain the control row for `large_v2`.
+  - Missingness rows remain blocked until the medium control anchor exists and curated missingness fronts exist, because the control row is curated `accepted_only` `v5` while missingness rows remain `include_all` `v3`.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.

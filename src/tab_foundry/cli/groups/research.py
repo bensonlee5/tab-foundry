@@ -26,6 +26,12 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     research_adequacy_cli.configure_parser(adequacy_pilot_parser)
     adequacy_pilot_parser.set_defaults(func=research_adequacy_cli.run_from_args)
+    adequacy_finalize_parser = adequacy_nested.add_parser(
+        "finalize",
+        help="Finalize the lean synthetic adequacy pilot from existing artifacts",
+    )
+    research_adequacy_cli.configure_finalize_parser(adequacy_finalize_parser)
+    adequacy_finalize_parser.set_defaults(func=research_adequacy_cli.run_finalize_from_args)
 
     sweep_parser = nested.add_parser("sweep", help="System-delta sweep workflows")
     sweep_nested = sweep_parser.add_subparsers(dest="sweep_command", required=True)
