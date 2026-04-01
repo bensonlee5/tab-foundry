@@ -18,11 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_tf_rd_010_synthetic_adequacy_spec_is_registered() -> None:
-    path = synthetic_adequacy_spec_path("tf_rd_010_synthetic_adequacy_v2", repo_root=REPO_ROOT)
-    spec = load_synthetic_adequacy_spec("tf_rd_010_synthetic_adequacy_v2", repo_root=REPO_ROOT)
+    path = synthetic_adequacy_spec_path("tf_rd_010_synthetic_adequacy_v3", repo_root=REPO_ROOT)
+    spec = load_synthetic_adequacy_spec("tf_rd_010_synthetic_adequacy_v3", repo_root=REPO_ROOT)
 
     assert path.exists()
-    assert spec.adequacy_id == "tf_rd_010_synthetic_adequacy_v2"
+    assert spec.adequacy_id == "tf_rd_010_synthetic_adequacy_v3"
     assert spec.status == "ready"
     assert spec.metric_definition == LABEL_TARGET_LOG_LOSS_PER_TEST_CELL
     assert spec.blocked_sweeps == (
@@ -30,11 +30,11 @@ def test_tf_rd_010_synthetic_adequacy_spec_is_registered() -> None:
         "tf_rd_010_classification_evolution_large_v2",
     )
     assert [block.block_id for block in spec.blocks] == [
-        "latent_target_canary_easy_v2",
-        "production_control_v4",
+        "latent_target_canary_curated_v3",
+        "production_control_curated_v5",
     ]
-    assert spec.blocks[0].corpus_ref == "tf_rd_010_latent_target_canary_v2"
-    assert spec.blocks[1].corpus_ref == "tf_rd_010_dagzoo_medium_control_v4"
+    assert spec.blocks[0].corpus_ref == "tf_rd_010_latent_target_canary_curated_v3"
+    assert spec.blocks[1].corpus_ref == "tf_rd_010_dagzoo_medium_control_curated_v5"
     assert spec.blocks[0].predictors == ("chance", "logistic_regression")
     assert spec.blocks[1].predictors == ("chance", "sandwich")
     assert "generator_problem" in spec.decision_buckets

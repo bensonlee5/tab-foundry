@@ -145,8 +145,8 @@ def test_select_provisional_interpretation_marks_training_regime_problem() -> No
             "inconclusive": "inconclusive",
         },
         latent_target_contract={
-            "latent_target_canary_easy_v2": {"required": True, "present": True},
-            "production_control_v4": {"required": True, "present": True},
+            "latent_target_canary_curated_v3": {"required": True, "present": True},
+            "production_control_curated_v5": {"required": True, "present": True},
         },
         canary_summary=_healthy_canary_summary(),
         production_control_summary={
@@ -242,7 +242,7 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
 
     out_root = tmp_path / "adequacy"
     summary = pilot_module.run_adequacy_pilot(
-        adequacy_id="tf_rd_010_synthetic_adequacy_v2",
+        adequacy_id="tf_rd_010_synthetic_adequacy_v3",
         dagzoo_root=tmp_path / "dagzoo",
         out_root=out_root,
     )
@@ -253,7 +253,7 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
     assert summary_json_path.exists()
     assert summary_md_path.exists()
     persisted = json.loads(summary_json_path.read_text(encoding="utf-8"))
-    assert persisted["adequacy_id"] == "tf_rd_010_synthetic_adequacy_v2"
+    assert persisted["adequacy_id"] == "tf_rd_010_synthetic_adequacy_v3"
     assert "Production Control Pilot" in summary_md_path.read_text(encoding="utf-8")
 
 
@@ -293,7 +293,7 @@ def test_run_adequacy_pilot_fails_fast_and_writes_blocking_summary_when_contract
     out_root = tmp_path / "adequacy"
     with pytest.raises(RuntimeError, match="latent-target contract validation failed"):
         _ = pilot_module.run_adequacy_pilot(
-            adequacy_id="tf_rd_010_synthetic_adequacy_v2",
+            adequacy_id="tf_rd_010_synthetic_adequacy_v3",
             dagzoo_root=tmp_path / "dagzoo",
             out_root=out_root,
         )

@@ -43,19 +43,20 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 def test_tf_rd_010_latent_target_recipe_ids_are_registered() -> None:
     index = _load_yaml(RECIPE_ROOT / "index.yaml")
     recipes = index["recipes"]
-    assert recipes["tf_rd_010_dagzoo_medium_control_v4"] == {
-        "path": "tf_rd_010_dagzoo_medium_control_v4.yaml"
+    assert recipes["tf_rd_010_dagzoo_medium_control_curated_v5"] == {
+        "path": "tf_rd_010_dagzoo_medium_control_curated_v5.yaml"
     }
-    assert recipes["tf_rd_010_latent_target_canary_v2"] == {
-        "path": "tf_rd_010_latent_target_canary_v2.yaml"
+    assert recipes["tf_rd_010_latent_target_canary_curated_v3"] == {
+        "path": "tf_rd_010_latent_target_canary_curated_v3.yaml"
     }
 
 
-def test_tf_rd_010_dagzoo_medium_control_v4_preserves_balanced_shape_without_teacher_controls() -> None:
-    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v4", repo_root=REPO_ROOT).to_dict()
+def test_tf_rd_010_dagzoo_medium_control_curated_v5_preserves_balanced_shape_without_teacher_controls() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_curated_v5", repo_root=REPO_ROOT).to_dict()
 
     assert recipe["surface_label"] == "tf_rd_010_dagzoo_medium_control"
-    assert recipe["provenance_labels"]["corpus_recipe_version"] == "v4"
+    assert recipe["manifest"]["filter_policy"] == "accepted_only"
+    assert recipe["provenance_labels"]["corpus_recipe_version"] == "v5"
     assert recipe["provenance_labels"]["target_derivation"] == "tabiclv2_latent_node"
     assert recipe["review_summary"]["target_derivation"] == "tabiclv2_latent_node"
 
@@ -95,10 +96,11 @@ def test_tf_rd_010_dagzoo_medium_control_v4_preserves_balanced_shape_without_tea
     assert grid == EXPECTED_GRID
 
 
-def test_tf_rd_010_latent_target_canary_v2_tracks_row_ladder_without_teacher_controls() -> None:
-    recipe = load_corpus_recipe("tf_rd_010_latent_target_canary_v2", repo_root=REPO_ROOT).to_dict()
+def test_tf_rd_010_latent_target_canary_curated_v3_tracks_row_ladder_without_teacher_controls() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_latent_target_canary_curated_v3", repo_root=REPO_ROOT).to_dict()
 
     assert recipe["surface_label"] == "tf_rd_010_latent_target_canary"
+    assert recipe["manifest"]["filter_policy"] == "accepted_only"
     assert recipe["provenance_labels"]["target_derivation"] == "tabiclv2_latent_node"
     assert recipe["review_summary"]["grid_family"] == "latent_target_canary_rows_only_v2"
 

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence, cast
 
 import yaml
 
@@ -40,10 +40,18 @@ from tab_realdata_hub.dagzoo_handoff import (
     load_dagzoo_handoff_info,
     verify_dagzoo_handoff_matches_generated_corpus,
 )
-from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
+from .dagzoo_workflow import (
+    DagzooFilterConfig,
+    build_dagzoo_filter_argv,
+    DagzooGenerateConfig,
+    build_dagzoo_generate_argv,
+    run_dagzoo_filter,
+    run_dagzoo_generate,
+)
 
 
-_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP = 128
+_ACCEPTED_ONLY_MAX_ROUNDS = 8
+_ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER = 4
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:
@@ -81,6 +89,23 @@ def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in payload.items()
         if value is not None
     }
+
+
+def _read_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(f"{context} must decode to a JSON object: {path}")
+    return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+
+
+def _invocation_filter_payloads(
+    invocation_payloads: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {str(key): value for key, value in cast(Mapping[str, Any], payload["filter"]).items()}
+        for payload in invocation_payloads
+        if isinstance(payload.get("filter"), Mapping)
+    ]
 
 
 def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
@@ -167,6 +192,45 @@ def _invocation_paths(*, corpus_root: Path, invocation_id: str) -> tuple[Path, P
     return invocation_root, invocation_root / "handoff_manifest.json"
 
 
+def _invocation_rounds_root(*, corpus_root: Path, invocation_id: str) -> Path:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    )
+    return invocation_root / ".rounds"
+
+
+def _invocation_round_root(*, corpus_root: Path, invocation_id: str, round_index: int) -> Path:
+    return _invocation_rounds_root(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    ) / f"round_{int(round_index):02d}"
+
+
+def _invocation_filter_root(*, corpus_root: Path, invocation_id: str) -> Path:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    )
+    return invocation_root / "filter"
+
+
+def _invocation_curated_root(*, corpus_root: Path, invocation_id: str) -> Path:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    )
+    return invocation_root / "curated"
+
+
+def _invocation_materialization_summary_path(*, corpus_root: Path, invocation_id: str) -> Path:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    )
+    return invocation_root / "materialization_summary.json"
+
+
 def _invocation_rendered_config_path(*, corpus_root: Path, invocation_id: str) -> Path:
     invocation_root, _handoff_manifest_path = _invocation_paths(
         corpus_root=corpus_root,
@@ -220,18 +284,17 @@ def _dagzoo_generate_config(
     corpus_root: Path,
     spec: DagzooInvocationRecipe,
     write_rendered_config: bool,
+    handoff_root: Path | None = None,
+    num_datasets: int | None = None,
 ) -> DagzooGenerateConfig:
-    invocation_root, _handoff_manifest_path = _invocation_paths(
-        corpus_root=corpus_root,
-        invocation_id=spec.invocation_id,
+    resolved_handoff_root = (
+        handoff_root.expanduser().resolve()
+        if handoff_root is not None
+        else _invocation_paths(
+            corpus_root=corpus_root,
+            invocation_id=spec.invocation_id,
+        )[0]
     )
-    requested_device = None if spec.device is None else str(spec.device).strip().lower()
-    set_overrides: tuple[str, ...] = (
-        (
-            f"runtime.fixed_layout_batch_size_cap="
-            f"{_CPU_CORPUS_MATERIALIZATION_FIXED_LAYOUT_BATCH_SIZE_CAP}"
-        ),
-    ) if requested_device in (None, "", "auto", "cpu") else ()
     return DagzooGenerateConfig(
         dagzoo_root=dagzoo_root,
         dagzoo_config=_invocation_dagzoo_config_path(
@@ -240,8 +303,8 @@ def _dagzoo_generate_config(
             spec=spec,
             write_rendered_config=write_rendered_config,
         ),
-        handoff_root=invocation_root,
-        num_datasets=int(spec.num_datasets),
+        handoff_root=resolved_handoff_root,
+        num_datasets=int(spec.num_datasets if num_datasets is None else num_datasets),
         seed=spec.seed,
         rows=spec.rows,
         device=spec.device,
@@ -255,7 +318,331 @@ def _dagzoo_generate_config(
         missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
         missing_mar_logit_scale=spec.missing_mar_logit_scale,
         missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
-        set_overrides=set_overrides,
+        set_overrides=(),
+    )
+
+
+def _stringify_command(argv: list[str]) -> str:
+    return " ".join(str(part) for part in argv)
+
+
+def _aggregate_handoff_provenance(
+    handoff_provenances: list[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    target_derivations = sorted(
+        {
+            str(value).strip()
+            for provenance in handoff_provenances
+            for value in (provenance.get("target_derivation"),)
+            if isinstance(value, str) and str(value).strip()
+        }
+    )
+    count_bounds = [
+        bound
+        for provenance in handoff_provenances
+        for bound in (
+            provenance.get("target_relevant_feature_count_range"),
+            provenance.get("target_parent_count_range"),
+        )
+        if isinstance(bound, Mapping)
+    ]
+    fraction_bounds = [
+        bound
+        for provenance in handoff_provenances
+        for bound in (
+            provenance.get("target_relevant_feature_fraction_range"),
+            provenance.get("target_parent_fraction_range"),
+        )
+        if isinstance(bound, Mapping)
+    ]
+    minimum_counts = [
+        int(bound["min"])
+        for bound in count_bounds
+        if bound.get("min") is not None
+    ]
+    maximum_counts = [
+        int(bound["max"])
+        for bound in count_bounds
+        if bound.get("max") is not None
+    ]
+    minimum_fractions = [
+        float(bound["min"])
+        for bound in fraction_bounds
+        if bound.get("min") is not None
+    ]
+    maximum_fractions = [
+        float(bound["max"])
+        for bound in fraction_bounds
+        if bound.get("max") is not None
+    ]
+    payload = _drop_none_values(
+        {
+            "target_derivation": (
+                target_derivations[0] if len(target_derivations) == 1 else None
+            ),
+            "target_relevant_feature_count_range": (
+                {
+                    "min": min(minimum_counts),
+                    "max": max(maximum_counts),
+                }
+                if minimum_counts and maximum_counts
+                else None
+            ),
+            "target_relevant_feature_fraction_range": (
+                {
+                    "min": min(minimum_fractions),
+                    "max": max(maximum_fractions),
+                }
+                if minimum_fractions and maximum_fractions
+                else None
+            ),
+        }
+    )
+    return payload or None
+
+
+def _copy_curated_round_shards(
+    *,
+    round_curated_dir: Path,
+    final_curated_dir: Path,
+    next_shard_index: int,
+) -> int:
+    if not round_curated_dir.exists():
+        return next_shard_index
+    final_curated_dir.mkdir(parents=True, exist_ok=True)
+    for shard_dir in sorted(path for path in round_curated_dir.glob("shard_*") if path.is_dir()):
+        destination = final_curated_dir / f"shard_{next_shard_index:05d}"
+        shutil.copytree(shard_dir, destination)
+        next_shard_index += 1
+    return next_shard_index
+
+
+def _write_accepted_only_filter_artifacts(
+    *,
+    filter_root: Path,
+    rounds: Sequence[Mapping[str, Any]],
+    target_accepted_datasets: int,
+    total_generated_datasets: int,
+    accepted_datasets: int,
+    rejected_datasets: int,
+    curated_accepted_datasets: int,
+) -> None:
+    filter_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = filter_root / "filter_manifest.ndjson"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        for round_payload in rounds:
+            round_manifest_path = Path(str(round_payload["filter_manifest_path"]))
+            if not round_manifest_path.exists():
+                raise RuntimeError(f"round filter manifest is missing: {round_manifest_path}")
+            text = round_manifest_path.read_text(encoding="utf-8")
+            if text:
+                handle.write(text)
+                if not text.endswith("\n"):
+                    handle.write("\n")
+    summary_path = filter_root / "filter_summary.json"
+    acceptance_rate = (
+        None
+        if total_generated_datasets <= 0
+        else float(accepted_datasets) / float(total_generated_datasets)
+    )
+    summary_path.write_text(
+        json.dumps(
+            {
+                "filter_policy": "accepted_only",
+                "round_count": len(rounds),
+                "target_accepted_datasets": int(target_accepted_datasets),
+                "total_datasets": int(total_generated_datasets),
+                "accepted_datasets": int(accepted_datasets),
+                "rejected_datasets": int(rejected_datasets),
+                "curated_accepted_datasets": int(curated_accepted_datasets),
+                "acceptance_rate": acceptance_rate,
+                "generated_budget_cap": (
+                    int(target_accepted_datasets) * _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER
+                ),
+                "round_budget_cap": _ACCEPTED_ONLY_MAX_ROUNDS,
+                "rounds": [
+                    {
+                        "round_index": int(round_payload["round_index"]),
+                        "requested_generated_datasets": int(
+                            round_payload["requested_generated_datasets"]
+                        ),
+                        "generated_datasets": int(round_payload["generated_datasets"]),
+                        "accepted_datasets": int(round_payload["accepted_datasets"]),
+                        "rejected_datasets": int(round_payload["rejected_datasets"]),
+                        "curated_accepted_datasets": int(
+                            round_payload["curated_accepted_datasets"]
+                        ),
+                    }
+                    for round_payload in rounds
+                ],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _materialize_accepted_only_invocation(
+    *,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    spec: DagzooInvocationRecipe,
+) -> None:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    invocation_root.mkdir(parents=True, exist_ok=True)
+    accepted_target = int(spec.num_datasets)
+    generated_budget_cap = accepted_target * _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER
+    final_filter_root = _invocation_filter_root(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    final_curated_root = _invocation_curated_root(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+
+    total_generated_datasets = 0
+    accepted_datasets = 0
+    rejected_datasets = 0
+    curated_accepted_datasets = 0
+    next_shard_index = 0
+    round_payloads: list[dict[str, Any]] = []
+    handoff_provenances: list[Mapping[str, Any]] = []
+
+    for round_index in range(1, _ACCEPTED_ONLY_MAX_ROUNDS + 1):
+        if curated_accepted_datasets >= accepted_target:
+            break
+        if total_generated_datasets >= generated_budget_cap:
+            break
+
+        requested_generated_datasets = accepted_target - curated_accepted_datasets
+        round_root = _invocation_round_root(
+            corpus_root=corpus_root,
+            invocation_id=spec.invocation_id,
+            round_index=round_index,
+        )
+        round_root.mkdir(parents=True, exist_ok=True)
+        generate_config = _dagzoo_generate_config(
+            dagzoo_root=dagzoo_root,
+            corpus_root=corpus_root,
+            spec=spec,
+            write_rendered_config=(round_index == 1),
+            handoff_root=round_root,
+            num_datasets=requested_generated_datasets,
+        )
+        handoff = run_dagzoo_generate(generate_config)
+        filter_config = DagzooFilterConfig(
+            dagzoo_root=dagzoo_root,
+            input_dir=handoff.generated_dir,
+            filter_out_dir=round_root / "filter",
+            curated_out_dir=round_root / "curated",
+        )
+        filter_result = run_dagzoo_filter(filter_config)
+        if filter_result.curated_out_dir is None:
+            raise RuntimeError(
+                "dagzoo filter did not produce a curated output directory for accepted_only"
+            )
+
+        total_generated_datasets += int(filter_result.total_datasets)
+        accepted_datasets += int(filter_result.accepted_datasets)
+        rejected_datasets += int(filter_result.rejected_datasets)
+        curated_accepted_datasets += int(filter_result.curated_accepted_datasets)
+        next_shard_index = _copy_curated_round_shards(
+            round_curated_dir=filter_result.curated_out_dir,
+            final_curated_dir=final_curated_root,
+            next_shard_index=next_shard_index,
+        )
+        handoff_provenance = getattr(handoff, "provenance", None)
+        if isinstance(handoff_provenance, Mapping):
+            handoff_provenances.append(
+                {str(key): value for key, value in handoff_provenance.items()}
+            )
+        round_payloads.append(
+            {
+                "round_index": round_index,
+                "requested_generated_datasets": requested_generated_datasets,
+                "generated_datasets": int(filter_result.total_datasets),
+                "accepted_datasets": int(filter_result.accepted_datasets),
+                "rejected_datasets": int(filter_result.rejected_datasets),
+                "curated_accepted_datasets": int(filter_result.curated_accepted_datasets),
+                "filter_manifest_path": str(filter_result.manifest_path),
+                "filter_summary_path": str(filter_result.summary_path),
+            }
+        )
+        if curated_accepted_datasets >= accepted_target:
+            break
+
+    if curated_accepted_datasets != accepted_target:
+        raise RuntimeError(
+            "accepted_only materialization did not reach the requested accepted dataset target "
+            f"for invocation {spec.invocation_id!r}: "
+            f"accepted={curated_accepted_datasets} target={accepted_target} "
+            f"rounds={len(round_payloads)} generated={total_generated_datasets} "
+            f"generated_budget_cap={generated_budget_cap}"
+        )
+    if total_generated_datasets > generated_budget_cap:
+        raise RuntimeError(
+            "accepted_only materialization exceeded the generated dataset budget "
+            f"for invocation {spec.invocation_id!r}: "
+            f"generated={total_generated_datasets} budget_cap={generated_budget_cap}"
+        )
+
+    _write_accepted_only_filter_artifacts(
+        filter_root=final_filter_root,
+        rounds=round_payloads,
+        target_accepted_datasets=accepted_target,
+        total_generated_datasets=total_generated_datasets,
+        accepted_datasets=accepted_datasets,
+        rejected_datasets=rejected_datasets,
+        curated_accepted_datasets=curated_accepted_datasets,
+    )
+
+    materialization_summary_path = _invocation_materialization_summary_path(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    materialization_summary_path.write_text(
+        json.dumps(
+            {
+                "filter_policy": "accepted_only",
+                "target_accepted_datasets": accepted_target,
+                "generated_datasets": total_generated_datasets,
+                "accepted_datasets": accepted_datasets,
+                "rejected_datasets": rejected_datasets,
+                "curated_accepted_datasets": curated_accepted_datasets,
+                "acceptance_rate": (
+                    None
+                    if total_generated_datasets <= 0
+                    else float(accepted_datasets) / float(total_generated_datasets)
+                ),
+                "round_count": len(round_payloads),
+                "rounds": [
+                    {
+                        "round_index": int(round_payload["round_index"]),
+                        "requested_generated_datasets": int(
+                            round_payload["requested_generated_datasets"]
+                        ),
+                        "generated_datasets": int(round_payload["generated_datasets"]),
+                        "accepted_datasets": int(round_payload["accepted_datasets"]),
+                        "rejected_datasets": int(round_payload["rejected_datasets"]),
+                        "curated_accepted_datasets": int(
+                            round_payload["curated_accepted_datasets"]
+                        ),
+                    }
+                    for round_payload in round_payloads
+                ],
+                "handoff_provenance": _aggregate_handoff_provenance(handoff_provenances),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -315,7 +702,15 @@ def _materialize_invocation(
     dagzoo_root: Path,
     corpus_root: Path,
     spec: DagzooInvocationRecipe,
+    filter_policy: str,
 ) -> None:
+    if str(filter_policy).strip() == "accepted_only":
+        _materialize_accepted_only_invocation(
+            dagzoo_root=dagzoo_root,
+            corpus_root=corpus_root,
+            spec=spec,
+        )
+        return
     invocation_root, _handoff_manifest_path = _invocation_paths(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
@@ -341,7 +736,10 @@ def _invocation_record_payload(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
     )
-    handoff = load_dagzoo_handoff_info(handoff_manifest_path)
+    materialization_summary_path = _invocation_materialization_summary_path(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
     generate_config = _dagzoo_generate_config(
         dagzoo_root=dagzoo_root,
         corpus_root=corpus_root,
@@ -357,16 +755,140 @@ def _invocation_record_payload(
         "rows": spec.rows,
         "device": spec.device,
         "hardware_policy": str(spec.hardware_policy),
-        "command": " ".join(build_dagzoo_generate_argv(generate_config)),
         "resolved_config_path": str(resolved_config_path),
         "invocation_root": str(invocation_root.resolve()),
-        "handoff": handoff.to_summary_dict(),
     }
-    handoff_provenance = getattr(handoff, "provenance", None)
-    if isinstance(handoff_provenance, Mapping):
-        payload["handoff_provenance"] = _drop_none_values(
-            {str(key): value for key, value in handoff_provenance.items()}
+    if materialization_summary_path.exists():
+        summary_payload = _read_json_mapping(
+            materialization_summary_path,
+            context=f"materialization summary for invocation {spec.invocation_id!r}",
         )
+        rounds_payload = []
+        command_list: list[str] = []
+        for round_payload in cast(list[Any], summary_payload.get("rounds", [])):
+            if not isinstance(round_payload, Mapping):
+                raise RuntimeError(
+                    "accepted_only materialization summary rounds must contain mappings"
+                )
+            normalized_round_payload = {
+                str(key): value for key, value in round_payload.items()
+            }
+            round_index = int(normalized_round_payload["round_index"])
+            requested_generated_datasets = int(
+                normalized_round_payload["requested_generated_datasets"]
+            )
+            round_root = _invocation_round_root(
+                corpus_root=corpus_root,
+                invocation_id=spec.invocation_id,
+                round_index=round_index,
+            )
+            round_handoff = load_dagzoo_handoff_info(round_root / "handoff_manifest.json")
+            round_generate_config = _dagzoo_generate_config(
+                dagzoo_root=dagzoo_root,
+                corpus_root=corpus_root,
+                spec=spec,
+                write_rendered_config=False,
+                handoff_root=round_root,
+                num_datasets=requested_generated_datasets,
+            )
+            round_filter_config = DagzooFilterConfig(
+                dagzoo_root=dagzoo_root,
+                input_dir=round_handoff.generated_dir,
+                filter_out_dir=round_root / "filter",
+                curated_out_dir=round_root / "curated",
+            )
+            generate_command = _stringify_command(
+                build_dagzoo_generate_argv(round_generate_config)
+            )
+            filter_command = _stringify_command(
+                build_dagzoo_filter_argv(round_filter_config)
+            )
+            command_list.extend([generate_command, filter_command])
+            round_entry: dict[str, Any] = {
+                "round_index": round_index,
+                "requested_generated_datasets": requested_generated_datasets,
+                "generated_datasets": int(normalized_round_payload["generated_datasets"]),
+                "accepted_datasets": int(normalized_round_payload["accepted_datasets"]),
+                "rejected_datasets": int(normalized_round_payload["rejected_datasets"]),
+                "curated_accepted_datasets": int(
+                    normalized_round_payload["curated_accepted_datasets"]
+                ),
+                "generate_command": generate_command,
+                "filter_command": filter_command,
+                "handoff": round_handoff.to_summary_dict(),
+            }
+            round_handoff_provenance = getattr(round_handoff, "provenance", None)
+            if isinstance(round_handoff_provenance, Mapping):
+                round_entry["handoff_provenance"] = _drop_none_values(
+                    {str(key): value for key, value in round_handoff_provenance.items()}
+                )
+            rounds_payload.append(round_entry)
+        payload.update(
+            {
+                "filter_policy": "accepted_only",
+                "command": command_list[0] if command_list else None,
+                "commands": command_list,
+                "rounds": rounds_payload,
+                "filter": _drop_none_values(
+                    {
+                        "filter_policy": "accepted_only",
+                        "target_accepted_datasets": int(
+                            summary_payload.get("target_accepted_datasets", spec.num_datasets)
+                        ),
+                        "generated_datasets": int(summary_payload.get("generated_datasets", 0)),
+                        "accepted_datasets": int(summary_payload.get("accepted_datasets", 0)),
+                        "rejected_datasets": int(summary_payload.get("rejected_datasets", 0)),
+                        "curated_accepted_datasets": int(
+                            summary_payload.get("curated_accepted_datasets", 0)
+                        ),
+                        "acceptance_rate": summary_payload.get("acceptance_rate"),
+                        "round_count": int(summary_payload.get("round_count", len(rounds_payload))),
+                        "filter_manifest_path": str(
+                            (
+                                _invocation_filter_root(
+                                    corpus_root=corpus_root,
+                                    invocation_id=spec.invocation_id,
+                                )
+                                / "filter_manifest.ndjson"
+                            ).resolve()
+                        ),
+                        "filter_summary_path": str(
+                            (
+                                _invocation_filter_root(
+                                    corpus_root=corpus_root,
+                                    invocation_id=spec.invocation_id,
+                                )
+                                / "filter_summary.json"
+                            ).resolve()
+                        ),
+                        "curated_dir": str(
+                            _invocation_curated_root(
+                                corpus_root=corpus_root,
+                                invocation_id=spec.invocation_id,
+                            ).resolve()
+                        ),
+                    }
+                ),
+            }
+        )
+        handoff_provenance = summary_payload.get("handoff_provenance")
+        if isinstance(handoff_provenance, Mapping):
+            payload["handoff_provenance"] = _drop_none_values(
+                {str(key): value for key, value in handoff_provenance.items()}
+            )
+    else:
+        handoff = load_dagzoo_handoff_info(handoff_manifest_path)
+        payload.update(
+            {
+                "command": _stringify_command(build_dagzoo_generate_argv(generate_config)),
+                "handoff": handoff.to_summary_dict(),
+            }
+        )
+        handoff_provenance = getattr(handoff, "provenance", None)
+        if isinstance(handoff_provenance, Mapping):
+            payload["handoff_provenance"] = _drop_none_values(
+                {str(key): value for key, value in handoff_provenance.items()}
+            )
     if spec.config_ref is not None:
         payload["config_ref"] = str(spec.config_ref)
     if spec.base_config_ref is not None:
@@ -424,13 +946,24 @@ def materialize_corpus_recipe(
     stage_root.mkdir(parents=True, exist_ok=True)
 
     try:
+        filter_policy = str(recipe.manifest_policy.filter_policy)
         for spec in recipe.invocations:
             _materialize_invocation(
                 dagzoo_root=resolved_dagzoo_root,
                 corpus_root=stage_root,
                 spec=spec,
+                filter_policy=filter_policy,
             )
-        if len(recipe.invocations) == 1:
+        if filter_policy == "accepted_only":
+            generated_roots = [
+                _invocation_curated_root(
+                    corpus_root=stage_root,
+                    invocation_id=spec.invocation_id,
+                )
+                for spec in recipe.invocations
+            ]
+            dagzoo_handoff_manifest_path = None
+        elif len(recipe.invocations) == 1:
             single_handoff = load_dagzoo_handoff_info(
                 _invocation_paths(
                     corpus_root=stage_root,
@@ -516,6 +1049,7 @@ def materialize_corpus_recipe(
                 "invocations": invocation_payloads,
             },
         )
+        invocation_filter_payloads = _invocation_filter_payloads(invocation_payloads)
         dagzoo_provenance = _drop_none_values(
             {
                 "corpus_ref": corpus_ref,
@@ -527,8 +1061,42 @@ def materialize_corpus_recipe(
                 "config_refs": sorted(
                     {_invocation_requested_config_ref(invocation) for invocation in recipe.invocations}
                 ),
-                "commands": [payload["command"] for payload in invocation_payloads],
-                "curated_root_lineage": [],
+                "commands": [
+                    command
+                    for payload in invocation_payloads
+                    for command in (
+                        cast(list[Any], payload.get("commands"))
+                        if isinstance(payload.get("commands"), list)
+                        else (
+                            [payload.get("command")]
+                            if payload.get("command") is not None
+                            else []
+                        )
+                    )
+                    if isinstance(command, str) and command.strip()
+                ],
+                "filter_policy": dagzoo_provenance_summary.get("filter_policy"),
+                "accepted_datasets": dagzoo_provenance_summary.get("accepted_datasets"),
+                "rejected_datasets": dagzoo_provenance_summary.get("rejected_datasets"),
+                "curated_accepted_datasets": dagzoo_provenance_summary.get(
+                    "curated_accepted_datasets"
+                ),
+                "acceptance_rate": dagzoo_provenance_summary.get("acceptance_rate"),
+                "filter_manifest_paths": [
+                    filter_payload.get("filter_manifest_path")
+                    for filter_payload in invocation_filter_payloads
+                    if filter_payload.get("filter_manifest_path") is not None
+                ],
+                "filter_summary_paths": [
+                    filter_payload.get("filter_summary_path")
+                    for filter_payload in invocation_filter_payloads
+                    if filter_payload.get("filter_summary_path") is not None
+                ],
+                "curated_root_lineage": [
+                    filter_payload.get("curated_dir")
+                    for filter_payload in invocation_filter_payloads
+                    if filter_payload.get("curated_dir") is not None
+                ],
                 "invocations": invocation_payloads,
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
                 "target_derivation": dagzoo_provenance_summary.get("target_derivation"),

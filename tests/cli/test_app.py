@@ -557,7 +557,7 @@ DISPATCH_CASES = (
                 "adequacy",
                 "pilot",
                 "--adequacy-id",
-                "tf_rd_010_synthetic_adequacy_v2",
+                "tf_rd_010_synthetic_adequacy_v3",
                 "--dagzoo-root",
                 "/tmp/dagzoo",
                 "--device",
@@ -576,7 +576,7 @@ DISPATCH_CASES = (
                 "out_root": _path_attr("out_root"),
             },
             expected={
-                "adequacy_id": "tf_rd_010_synthetic_adequacy_v2",
+                "adequacy_id": "tf_rd_010_synthetic_adequacy_v3",
                 "dagzoo_root": "/tmp/dagzoo",
                 "device": "cpu",
                 "force": True,

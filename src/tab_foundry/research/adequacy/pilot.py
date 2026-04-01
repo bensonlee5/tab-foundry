@@ -28,11 +28,11 @@ from tab_foundry.training.trainer import train
 from tab_foundry.types import TaskBatch
 
 
-_SUPPORTED_ADEQUACY_ID = "tf_rd_010_synthetic_adequacy_v2"
+_SUPPORTED_ADEQUACY_ID = "tf_rd_010_synthetic_adequacy_v3"
 _SUPPORTED_DEVICE = "cpu"
 _LATENT_TARGET_DERIVATION = "tabiclv2_latent_node"
-_CANARY_BLOCK_ID = "latent_target_canary_easy_v2"
-_PRODUCTION_BLOCK_ID = "production_control_v4"
+_CANARY_BLOCK_ID = "latent_target_canary_curated_v3"
+_PRODUCTION_BLOCK_ID = "production_control_curated_v5"
 _TRAINING_EXPERIMENT = "cls_benchmark_sandwich_classification_evolution_v1"
 _CANARY_PREDICTORS = frozenset({"chance", "logistic_regression"})
 _SUMMARY_JSON_NAME = "summary.json"
@@ -89,6 +89,15 @@ def _finite_float_or_none(value: Any) -> float | None:
     if not math.isfinite(numeric):
         return None
     return numeric
+
+
+def _int_or_none(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _json_safe(value: Any) -> Any:
@@ -438,10 +447,79 @@ def inspect_corpus_latent_target_contract(
                 missing_reasons.append(f"row_total={int(row_total)}: {reason}")
 
     provenance_summary = _optional_mapping(corpus_record.get("dagzoo_provenance_summary")) or {}
+    dagzoo_provenance = _optional_mapping(corpus_record.get("dagzoo_provenance")) or {}
     if provenance_summary.get("target_derivation") != _LATENT_TARGET_DERIVATION:
         missing_reasons.append(
             f"corpus_record.dagzoo_provenance_summary.target_derivation must equal {_LATENT_TARGET_DERIVATION!r}"
         )
+
+    invocation_payloads = cast(list[Any], dagzoo_provenance.get("invocations", []))
+    target_accepted_datasets = 0
+    if not invocation_payloads:
+        missing_reasons.append("corpus_record.dagzoo_provenance.invocations is missing")
+    for invocation in invocation_payloads:
+        if not isinstance(invocation, Mapping):
+            missing_reasons.append("corpus_record.dagzoo_provenance.invocations must contain mappings")
+            continue
+        normalized_invocation = {
+            str(key): value for key, value in cast(Mapping[str, Any], invocation).items()
+        }
+        invocation_id = str(normalized_invocation.get("invocation_id", "unknown"))
+        requested_count = _int_or_none(normalized_invocation.get("num_datasets"))
+        if requested_count is None or requested_count <= 0:
+            missing_reasons.append(
+                f"invocation {invocation_id!r} is missing a positive num_datasets target"
+            )
+            continue
+        target_accepted_datasets += requested_count
+        filter_payload = _optional_mapping(normalized_invocation.get("filter"))
+        if filter_payload is None:
+            missing_reasons.append(
+                f"invocation {invocation_id!r} is missing accepted_only filter provenance"
+            )
+            continue
+        if str(filter_payload.get("filter_policy", "")).strip() != "accepted_only":
+            missing_reasons.append(
+                f"invocation {invocation_id!r} filter_policy must equal 'accepted_only'"
+            )
+        curated_accepted = _int_or_none(filter_payload.get("curated_accepted_datasets"))
+        if curated_accepted != requested_count:
+            missing_reasons.append(
+                f"invocation {invocation_id!r} curated_accepted_datasets "
+                f"must equal authored target {requested_count}, got {curated_accepted!r}"
+            )
+        accepted_count = _int_or_none(filter_payload.get("accepted_datasets"))
+        if accepted_count is None or accepted_count < requested_count:
+            missing_reasons.append(
+                f"invocation {invocation_id!r} accepted_datasets must be at least {requested_count}"
+            )
+        for required_path_key in ("filter_manifest_path", "filter_summary_path", "curated_dir"):
+            raw_path = filter_payload.get(required_path_key)
+            if not isinstance(raw_path, str) or not raw_path.strip():
+                missing_reasons.append(
+                    f"invocation {invocation_id!r} filter provenance is missing {required_path_key}"
+                )
+                continue
+            if not Path(raw_path).expanduser().resolve().exists():
+                missing_reasons.append(
+                    f"invocation {invocation_id!r} {required_path_key} does not exist"
+                )
+
+    accepted_datasets = _int_or_none(provenance_summary.get("accepted_datasets"))
+    curated_accepted_datasets = _int_or_none(provenance_summary.get("curated_accepted_datasets"))
+    if str(provenance_summary.get("filter_policy", "")).strip() != "accepted_only":
+        missing_reasons.append(
+            "corpus_record.dagzoo_provenance_summary.filter_policy must equal 'accepted_only'"
+        )
+    if target_accepted_datasets > 0:
+        if accepted_datasets is None or accepted_datasets < target_accepted_datasets:
+            missing_reasons.append(
+                "corpus_record.dagzoo_provenance_summary.accepted_datasets must meet the authored target"
+            )
+        if curated_accepted_datasets != target_accepted_datasets:
+            missing_reasons.append(
+                "corpus_record.dagzoo_provenance_summary.curated_accepted_datasets must equal the authored target"
+            )
 
     return {
         "required": True,
@@ -454,6 +532,14 @@ def inspect_corpus_latent_target_contract(
             "target_relevant_feature_fraction_range": provenance_summary.get(
                 "target_relevant_feature_fraction_range"
             ),
+        },
+        "filter_provenance": {
+            "filter_policy": provenance_summary.get("filter_policy"),
+            "target_accepted_datasets": target_accepted_datasets,
+            "accepted_datasets": accepted_datasets,
+            "rejected_datasets": _int_or_none(provenance_summary.get("rejected_datasets")),
+            "curated_accepted_datasets": curated_accepted_datasets,
+            "acceptance_rate": _finite_float_or_none(provenance_summary.get("acceptance_rate")),
         },
         "manifest_path": str(manifest_path),
         "classification_task_count": len(records),
@@ -857,12 +943,22 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
         "",
         "## Corpora",
         "",
-        "| Block | Requested | Materialized | Latent target contract |",
-        "| --- | --- | --- | --- |",
+        "| Block | Requested | Materialized | Latent target contract | Curated accepted | Acceptance rate |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for block_id, payload in materialized_corpora.items():
         corpus_payload = _ensure_mapping(payload, context=f"materialized_corpora.{block_id}")
         contract_payload = _optional_mapping(latent_target_contract.get(block_id)) or {}
+        filter_payload = _optional_mapping(contract_payload.get("filter_provenance")) or {}
+        target_accepted = _int_or_none(filter_payload.get("target_accepted_datasets"))
+        curated_accepted = _int_or_none(filter_payload.get("curated_accepted_datasets"))
+        curated_display = "n/a"
+        if target_accepted is not None:
+            curated_display = (
+                f"`{curated_accepted}`/`{target_accepted}`"
+                if curated_accepted is not None
+                else f"`?`/`{target_accepted}`"
+            )
         lines.append(
             "| "
             + " | ".join(
@@ -871,6 +967,8 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
                     f"`{corpus_payload['requested_corpus_ref']}`",
                     f"`{corpus_payload['materialized_corpus_ref']}`",
                     "`present`" if contract_payload.get("present") else "`missing`",
+                    curated_display,
+                    _markdown_float(filter_payload.get("acceptance_rate")),
                 ]
             )
             + " |"
@@ -943,6 +1041,42 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _write_blocking_summary(
+    *,
+    adequacy_id: str,
+    blocked_sweeps: tuple[str, ...] | list[str],
+    pilot_root: Path,
+    materialized_corpora: Mapping[str, Any],
+    latent_target_contract: Mapping[str, Any],
+    canary_summary: Mapping[str, Any] | None,
+    definition: str | None,
+    reasoning: list[str],
+) -> None:
+    summary = {
+        "adequacy_id": adequacy_id,
+        "status": "blocked",
+        "blocked_sweeps": list(blocked_sweeps),
+        "materialized_corpora": _json_safe(materialized_corpora),
+        "latent_target_contract": _json_safe(latent_target_contract),
+        "canary_baselines": _json_safe(canary_summary),
+        "production_control_pilot": None,
+        "provisional_interpretation": {
+            "bucket": "generator_problem",
+            "definition": definition,
+            "reasoning": list(reasoning),
+        },
+        "summary_paths": {
+            "summary_json": str((pilot_root / _SUMMARY_JSON_NAME).resolve()),
+            "summary_md": str((pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()),
+        },
+    }
+    _write_json(pilot_root / _SUMMARY_JSON_NAME, summary)
+    (pilot_root / _SUMMARY_MARKDOWN_NAME).write_text(
+        render_adequacy_pilot_markdown(summary),
+        encoding="utf-8",
+    )
+
+
 def run_adequacy_pilot(
     *,
     adequacy_id: str,
@@ -966,30 +1100,55 @@ def run_adequacy_pilot(
     canary_summary: dict[str, Any] | None = None
 
     for block in spec.blocks:
-        corpus_record = materialize_corpus_ref(
-            corpus_ref=block.corpus_ref,
-            dagzoo_root=dagzoo_root,
-            force=force,
-            repo_root=repo_root,
-        )
-        materialized_corpora[block.block_id] = {
-            "requested_corpus_ref": block.corpus_ref,
-            "materialized_corpus_ref": str(corpus_record["corpus_ref"]),
-            "recipe_id": str(corpus_record["recipe_id"]),
-            "corpus_id": str(corpus_record["corpus_id"]),
-            "surface_label": str(corpus_record["surface_label"]),
-            "manifest_path": str(_manifest_path_from_corpus_record(corpus_record)),
-            "corpus_record_path": str(corpus_record["corpus_record_path"]),
-        }
-        latent_target_contract[block.block_id] = inspect_corpus_latent_target_contract(
-            block=block,
-            corpus_record=corpus_record,
-        )
-        if block.block_id == _CANARY_BLOCK_ID:
-            canary_summary = score_canary_block(
-                block,
+        try:
+            corpus_record = materialize_corpus_ref(
+                corpus_ref=block.corpus_ref,
+                dagzoo_root=dagzoo_root,
+                force=force,
+                repo_root=repo_root,
+            )
+            materialized_corpora[block.block_id] = {
+                "requested_corpus_ref": block.corpus_ref,
+                "materialized_corpus_ref": str(corpus_record["corpus_ref"]),
+                "recipe_id": str(corpus_record["recipe_id"]),
+                "corpus_id": str(corpus_record["corpus_id"]),
+                "surface_label": str(corpus_record["surface_label"]),
+                "manifest_path": str(_manifest_path_from_corpus_record(corpus_record)),
+                "corpus_record_path": str(corpus_record["corpus_record_path"]),
+            }
+            latent_target_contract[block.block_id] = inspect_corpus_latent_target_contract(
+                block=block,
                 corpus_record=corpus_record,
             )
+            filter_provenance = _optional_mapping(
+                latent_target_contract[block.block_id].get("filter_provenance")
+            )
+            if filter_provenance is not None:
+                materialized_corpora[block.block_id]["filter_provenance"] = filter_provenance
+            if block.block_id == _CANARY_BLOCK_ID:
+                canary_summary = score_canary_block(
+                    block,
+                    corpus_record=corpus_record,
+                )
+        except Exception as exc:
+            reasoning = [
+                f"{block.block_id} failed during corpus materialization or validation: "
+                f"{type(exc).__name__}: {exc}"
+            ]
+            _write_blocking_summary(
+                adequacy_id=adequacy_id,
+                blocked_sweeps=spec.blocked_sweeps,
+                pilot_root=pilot_root,
+                materialized_corpora=materialized_corpora,
+                latent_target_contract=latent_target_contract,
+                canary_summary=canary_summary,
+                definition=spec.decision_buckets.get("generator_problem"),
+                reasoning=reasoning,
+            )
+            raise RuntimeError(
+                "adequacy pilot blocked during corpus materialization or validation; "
+                f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
+            ) from exc
 
     missing_contract_blocks = [
         block_id
@@ -997,34 +1156,38 @@ def run_adequacy_pilot(
         if bool(payload.get("required")) and not bool(payload.get("present"))
     ]
     if missing_contract_blocks:
-        summary = {
-            "adequacy_id": adequacy_id,
-            "status": "blocked",
-            "blocked_sweeps": list(spec.blocked_sweeps),
-            "materialized_corpora": materialized_corpora,
-            "latent_target_contract": latent_target_contract,
-            "canary_baselines": canary_summary,
-            "production_control_pilot": None,
-            "provisional_interpretation": {
-                "bucket": "generator_problem",
-                "definition": spec.decision_buckets.get("generator_problem"),
-                "reasoning": [
-                    "latent-target contract validation failed for "
-                    + ", ".join(sorted(missing_contract_blocks))
-                ],
-            },
-            "summary_paths": {
-                "summary_json": str((pilot_root / _SUMMARY_JSON_NAME).resolve()),
-                "summary_md": str((pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()),
-            },
-        }
-        _write_json(pilot_root / _SUMMARY_JSON_NAME, summary)
-        (pilot_root / _SUMMARY_MARKDOWN_NAME).write_text(
-            render_adequacy_pilot_markdown(summary),
-            encoding="utf-8",
+        _write_blocking_summary(
+            adequacy_id=adequacy_id,
+            blocked_sweeps=spec.blocked_sweeps,
+            pilot_root=pilot_root,
+            materialized_corpora=materialized_corpora,
+            latent_target_contract=latent_target_contract,
+            canary_summary=canary_summary,
+            definition=spec.decision_buckets.get("generator_problem"),
+            reasoning=[
+                "latent-target contract validation failed for "
+                + ", ".join(sorted(missing_contract_blocks))
+            ],
         )
         raise RuntimeError(
             "latent-target contract validation failed for one or more adequacy blocks; "
+            f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
+        )
+
+    canary_failure_reasons = _canary_failure_reasons(canary_summary)
+    if canary_failure_reasons:
+        _write_blocking_summary(
+            adequacy_id=adequacy_id,
+            blocked_sweeps=spec.blocked_sweeps,
+            pilot_root=pilot_root,
+            materialized_corpora=materialized_corpora,
+            latent_target_contract=latent_target_contract,
+            canary_summary=canary_summary,
+            definition=spec.decision_buckets.get("generator_problem"),
+            reasoning=canary_failure_reasons,
+        )
+        raise RuntimeError(
+            "canary baseline validation failed for the adequacy pilot; "
             f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
         )
 
