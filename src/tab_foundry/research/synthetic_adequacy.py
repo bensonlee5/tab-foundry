@@ -12,7 +12,7 @@ import yaml
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 
 
-SYNTHETIC_ADEQUACY_SCHEMA = "tab-foundry-synthetic-adequacy-v1"
+SYNTHETIC_ADEQUACY_SCHEMA = "tab-foundry-synthetic-adequacy-v2"
 LABEL_TARGET_LOG_LOSS_PER_TEST_CELL = "label-target log loss per test cell"
 _PROBABILITY_MATRIX_NDIM = 2
 _REPLICATE_TENSOR_NDIM = 3
@@ -86,7 +86,6 @@ class SyntheticAdequacyBlock:
     n_ladder: tuple[int, ...]
     predictors: tuple[str, ...]
     repeats_per_n: int
-    teacher_conditionals: str
     notes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -97,7 +96,6 @@ class SyntheticAdequacyBlock:
             "n_ladder": list(self.n_ladder),
             "predictors": list(self.predictors),
             "repeats_per_n": self.repeats_per_n,
-            "teacher_conditionals": self.teacher_conditionals,
             "notes": list(self.notes),
         }
 
@@ -170,10 +168,6 @@ def load_synthetic_adequacy_spec(
                     )
                 ),
                 repeats_per_n=int(repeats_per_n),
-                teacher_conditionals=_require_non_empty_string(
-                    block.get("teacher_conditionals"),
-                    context=f"blocks[{index}].teacher_conditionals",
-                ),
                 notes=tuple(
                     _require_string_list(block.get("notes", []), context=f"blocks[{index}].notes")
                     if block.get("notes")

@@ -8,32 +8,34 @@ no_list: true
 
 ## Start Here
 
-Start with the owner doc that directly answers your question.
+Start with the audience route that matches the work, then drop into the owner
+doc for the exact contract or runbook.
 
-## Core Entry Points
+## Audience Paths
 
-- [Repo Overview]({{< relref "/docs/repo-overview.md" >}}): front-door repo
-  overview and quickstart.
+- [Getting Started]({{< relref "/docs/getting-started/_index.md" >}}):
+  quickest route for new readers, repo overview, glossary, and contribution
+  basics.
+- [ML Engineering]({{< relref "/docs/ml-engineering/_index.md" >}}):
+  workflows, artifacts, export bundles, and runtime handoff.
+- [Research]({{< relref "/docs/research-contributors/_index.md" >}}):
+  sweeps, problem framing, active architecture, and research execution policy.
+- [Development]({{< relref "/docs/development/_index.md" >}}):
+  roadmap, package ownership, dependency boundaries, and model config.
+
+## Owner Docs
+
+- [Repo Overview]({{< relref "/docs/getting-started/repo-overview.md" >}}):
+  repo overview and quickstart.
+- [Artifacts & Inference]({{< relref "/docs/ml-engineering/artifacts-and-inference.md" >}}):
+  artifact mental model and runtime handoff route.
 - [Workflows]({{< relref "/docs/ml-engineering/workflows.md" >}}): command
-  examples and artifact expectations.
-- [Sweep Contract]({{< relref "/docs/research-contributors/sweep-contract.md" >}}):
-  selected system-delta sweep policy.
-- [Roadmap]({{< relref "/docs/development/roadmap.md" >}}): planning state and
-  TF-RD sequencing.
-- [Model Architecture]({{< relref "/docs/development/model-architecture.md" >}}):
-  current sandwich/simple/staged surface.
-- [Codebase Navigation]({{< relref "/docs/development/codebase-navigation.md" >}}):
-  package ownership and entrypoint boundaries.
-
-## Supporting References
-
-- [Inference Contract]({{< relref "/docs/ml-engineering/inference.md" >}}):
-  export-bundle schema and runtime handoff details.
-- [Contributing]({{< relref "/docs/getting-started/contributing.md" >}}): how
-  to choose the right unit of work and prepare a branch for review.
-- [Glossary]({{< relref "/docs/getting-started/glossary.md" >}}): shared
-  vocabulary for sweeps, artifacts, and architecture.
+  runbooks and artifact expectations.
+- [Sweeps]({{< relref "/docs/research-contributors/sweeps.md" >}}):
+  sweep discipline and inspect-first flow.
 - [Problem Formulation]({{< relref "/docs/getting-started/problem-formulation.md" >}}):
   mathematical statement of the dagzoo prior and sandwich objectives.
+- [Codebase Navigation]({{< relref "/docs/development/codebase-navigation.md" >}}):
+  package ownership and entrypoint boundaries.
 - [References]({{< relref "/docs/reference" >}}): papers, evidence,
   and repo-local research notes.

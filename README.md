@@ -19,6 +19,18 @@ exports inference bundles you can deploy. You control the full pipeline: what
 data gets generated, which model surface is active, how training runs, and
 what gets exported.
 
+## Read The Docs
+
+The published docs are the fastest route to workflows, architecture, and
+research context: [bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/).
+
+- New to the repo:
+  [Getting Started](https://bensonlee5.github.io/tab-foundry/docs/getting-started/)
+- Working on artifacts, runs, export, or verification:
+  [ML Engineering](https://bensonlee5.github.io/tab-foundry/docs/ml-engineering/)
+- Working on architecture, sweeps, or synthetic data:
+  [Research](https://bensonlee5.github.io/tab-foundry/docs/research-contributors/)
+
 ## How It Works
 
 ```mermaid
@@ -61,7 +73,8 @@ cd tab-foundry
 ```
 
 For setup details and runbook examples, see [docs/workflows.md](docs/workflows.md)
-and [CONTRIBUTING.md](CONTRIBUTING.md).
+and [CONTRIBUTING.md](CONTRIBUTING.md). For the docs-first view of the same
+paths, start at the [published docs site](https://bensonlee5.github.io/tab-foundry/).
 
 Python `3.14` is the pinned runtime for this repo, and the standard local setup
 assumes a repo-local `.venv`.

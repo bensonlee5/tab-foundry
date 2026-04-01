@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Any, Mapping, cast
+from typing import Any, Mapping
 
 import yaml
 
@@ -83,18 +83,25 @@ def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdentityAccumulator:
+def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
     resolved_generated_dir = generated_dir.expanduser().resolve()
+    catalog_paths = sorted(resolved_generated_dir.rglob("dataset_catalog.ndjson"))
+    if catalog_paths:
+        return catalog_paths
     metadata_paths = sorted(resolved_generated_dir.rglob("metadata.ndjson"))
-    if not metadata_paths:
-        raise RuntimeError(
-            "dagzoo generated directory does not contain metadata.ndjson: "
-            f"{resolved_generated_dir}"
-        )
+    if metadata_paths:
+        return metadata_paths
+    raise RuntimeError(
+        "dagzoo generated directory does not contain dataset_catalog.ndjson or metadata.ndjson: "
+        f"{resolved_generated_dir}"
+    )
+
+
+def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdentityAccumulator:
     scanned_identity = DagzooGeneratedIdentityAccumulator()
-    for metadata_path in metadata_paths:
+    for catalog_path in _dagzoo_public_catalog_paths(generated_dir):
         for line_number, raw_line in enumerate(
-            metadata_path.read_text(encoding="utf-8").splitlines(),
+            catalog_path.read_text(encoding="utf-8").splitlines(),
             start=1,
         ):
             if not raw_line.strip():
@@ -103,29 +110,23 @@ def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdent
                 payload = json.loads(raw_line)
             except json.JSONDecodeError as exc:
                 raise RuntimeError(
-                    "failed to parse dagzoo metadata record while verifying handoff: "
-                    f"path={metadata_path}, line={line_number}"
+                    "failed to parse dagzoo catalog record while verifying handoff: "
+                    f"path={catalog_path}, line={line_number}"
                 ) from exc
             if not isinstance(payload, Mapping):
                 raise RuntimeError(
-                    "dagzoo metadata NDJSON record must decode to an object: "
-                    f"path={metadata_path}, line={line_number}"
+                    "dagzoo catalog NDJSON record must decode to an object: "
+                    f"path={catalog_path}, line={line_number}"
                 )
             dataset_index = payload.get("dataset_index")
-            metadata = payload.get("metadata")
             if dataset_index is None:
                 raise RuntimeError(
-                    "dagzoo metadata record missing dataset_index while verifying handoff: "
-                    f"path={metadata_path}, line={line_number}"
+                    "dagzoo catalog record missing dataset_index while verifying handoff: "
+                    f"path={catalog_path}, line={line_number}"
                 )
-            if not isinstance(metadata, Mapping):
-                raise RuntimeError(
-                    "dagzoo metadata record missing object payload at key 'metadata' "
-                    f"while verifying handoff: path={metadata_path}, line={line_number}"
-                )
-            scanned_identity.add_metadata(
-                metadata,
-                metadata_path=metadata_path,
+            scanned_identity.add_record(
+                payload,
+                record_path=catalog_path,
                 dataset_index=int(dataset_index),
             )
     return scanned_identity
@@ -146,6 +147,19 @@ def _verified_invocation_handoff(
         scanned_identity=_scan_dagzoo_generated_identity(handoff.generated_dir),
     )
     return handoff
+
+
+def _manifest_source_root(*, handoff: DagzooHandoffInfo, filter_policy: str) -> Path:
+    normalized_filter_policy = str(filter_policy).strip()
+    if normalized_filter_policy == "accepted_only":
+        if handoff.curated_dir is None:
+            raise RuntimeError(
+                "filter_policy='accepted_only' requires a curated dagzoo corpus. "
+                "Run `dagzoo filter --in "
+                f"{handoff.generated_dir} --out <filter_dir> --curated-out <curated_dir>` first."
+            )
+        return handoff.curated_dir
+    return handoff.generated_dir
 
 
 def _invocation_paths(*, corpus_root: Path, invocation_id: str) -> tuple[Path, Path]:
@@ -335,13 +349,6 @@ def _invocation_record_payload(
         write_rendered_config=False,
     )
     resolved_config_path = _resolve_from_root(dagzoo_root, generate_config.dagzoo_config)
-    raw_handoff_manifest = json.loads(handoff_manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(raw_handoff_manifest, Mapping):
-        raise RuntimeError(
-            "dagzoo handoff manifest must decode to a mapping for "
-            f"invocation {spec.invocation_id!r}: {handoff_manifest_path}"
-        )
-    handoff_provenance = raw_handoff_manifest.get("provenance")
     payload = {
         "invocation_id": str(spec.invocation_id),
         "requested_config_ref": _invocation_requested_config_ref(spec),
@@ -355,8 +362,11 @@ def _invocation_record_payload(
         "invocation_root": str(invocation_root.resolve()),
         "handoff": handoff.to_summary_dict(),
     }
+    handoff_provenance = getattr(handoff, "provenance", None)
     if isinstance(handoff_provenance, Mapping):
-        payload["handoff_provenance"] = _copy_jsonable(cast(Mapping[str, Any], handoff_provenance))
+        payload["handoff_provenance"] = _drop_none_values(
+            {str(key): value for key, value in handoff_provenance.items()}
+        )
     if spec.config_ref is not None:
         payload["config_ref"] = str(spec.config_ref)
     if spec.base_config_ref is not None:
@@ -427,7 +437,12 @@ def materialize_corpus_recipe(
                     invocation_id=recipe.invocations[0].invocation_id,
                 )[1]
             )
-            generated_roots = [single_handoff.generated_dir]
+            generated_roots = [
+                _manifest_source_root(
+                    handoff=single_handoff,
+                    filter_policy=str(recipe.manifest_policy.filter_policy),
+                )
+            ]
             dagzoo_handoff_manifest_path = single_handoff.handoff_manifest_path
         else:
             verified_handoffs = [
@@ -437,7 +452,13 @@ def materialize_corpus_recipe(
                 )
                 for spec in recipe.invocations
             ]
-            generated_roots = [handoff.generated_dir for handoff in verified_handoffs]
+            generated_roots = [
+                _manifest_source_root(
+                    handoff=handoff,
+                    filter_policy=str(recipe.manifest_policy.filter_policy),
+                )
+                for handoff in verified_handoffs
+            ]
             dagzoo_handoff_manifest_path = None
         manifest_path = stage_root / "manifest.parquet"
         _ = build_manifest(
@@ -487,75 +508,13 @@ def materialize_corpus_recipe(
             )
             for spec in recipe.invocations
         ]
-        posterior_predictive_factorizations = sorted(
-            {
-                str(factorization).strip()
-                for payload in invocation_payloads
-                for factorization in (
-                    cast(Mapping[str, Any], payload.get("handoff_provenance", {})).get(
-                        "posterior_predictive_factorization"
-                    ),
-                )
-                if isinstance(factorization, str) and factorization.strip()
-            }
-        )
-        teacher_conditional_exports = {
-            bool(export_enabled)
-            for payload in invocation_payloads
-            for export_enabled in (
-                cast(Mapping[str, Any], payload.get("handoff_provenance", {})).get(
-                    "teacher_conditional_export"
-                ),
-            )
-            if isinstance(export_enabled, bool)
-        }
-        resolved_teacher_conditional_export = (
-            next(iter(teacher_conditional_exports))
-            if len(teacher_conditional_exports) == 1
-            else None
-        )
         dagzoo_provenance_summary = build_dagzoo_provenance_summary(
             recipe=recipe,
             corpus_ref=corpus_ref,
             corpus_id=corpus_id,
             provenance={
                 "invocations": invocation_payloads,
-                "posterior_predictive_factorization": (
-                    posterior_predictive_factorizations[0]
-                    if len(posterior_predictive_factorizations) == 1
-                    else None
-                ),
-                "posterior_predictive_factorizations": (
-                    posterior_predictive_factorizations
-                    if len(posterior_predictive_factorizations) > 1
-                    else None
-                ),
-                "teacher_conditional_export": resolved_teacher_conditional_export,
-                "teacher_conditional_metric_definition": (
-                    "label-target log loss per test cell"
-                    if resolved_teacher_conditional_export
-                    else None
-                ),
             },
-        )
-        resolved_posterior_predictive_factorization = dagzoo_provenance_summary.get(
-            "posterior_predictive_factorization"
-        )
-        resolved_posterior_predictive_factorizations = (
-            posterior_predictive_factorizations
-            if len(posterior_predictive_factorizations) > 1
-            else (
-                [resolved_posterior_predictive_factorization]
-                if isinstance(resolved_posterior_predictive_factorization, str)
-                and resolved_posterior_predictive_factorization
-                else None
-            )
-        )
-        resolved_teacher_conditional_export = dagzoo_provenance_summary.get(
-            "teacher_conditional_export"
-        )
-        resolved_teacher_conditional_metric_definition = dagzoo_provenance_summary.get(
-            "teacher_conditional_metric_definition"
         )
         dagzoo_provenance = _drop_none_values(
             {
@@ -572,33 +531,12 @@ def materialize_corpus_recipe(
                 "curated_root_lineage": [],
                 "invocations": invocation_payloads,
                 "dagzoo_git": _git_info(resolved_dagzoo_root),
-                "posterior_predictive_factorization": resolved_posterior_predictive_factorization,
-                "posterior_predictive_factorizations": (
-                    resolved_posterior_predictive_factorizations
+                "target_derivation": dagzoo_provenance_summary.get("target_derivation"),
+                "target_relevant_feature_count_range": dagzoo_provenance_summary.get(
+                    "target_relevant_feature_count_range"
                 ),
-                "teacher_conditional_export": resolved_teacher_conditional_export,
-                "teacher_conditional_metric_definition": (
-                    resolved_teacher_conditional_metric_definition
-                ),
-                "target_parent_prior": dagzoo_provenance_summary.get("target_parent_prior"),
-                "target_parent_mode": dagzoo_provenance_summary.get("target_parent_mode"),
-                "target_parent_regimes_present": dagzoo_provenance_summary.get(
-                    "target_parent_regimes_present"
-                ),
-                "target_parent_count_range": dagzoo_provenance_summary.get(
-                    "target_parent_count_range"
-                ),
-                "target_parent_fraction_range": dagzoo_provenance_summary.get(
-                    "target_parent_fraction_range"
-                ),
-                "target_parent_near_max_band_min_fraction": dagzoo_provenance_summary.get(
-                    "target_parent_near_max_band_min_fraction"
-                ),
-                "target_parent_below_sqrt_prob": dagzoo_provenance_summary.get(
-                    "target_parent_below_sqrt_prob"
-                ),
-                "target_parent_midrange_prob": dagzoo_provenance_summary.get(
-                    "target_parent_midrange_prob"
+                "target_relevant_feature_fraction_range": dagzoo_provenance_summary.get(
+                    "target_relevant_feature_fraction_range"
                 ),
             }
         )

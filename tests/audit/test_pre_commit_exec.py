@@ -77,7 +77,7 @@ def test_build_command_rejects_missing_binary(tmp_path: Path) -> None:
     )
 
     with pytest.raises(RuntimeError, match="Missing"):
-        pre_commit_exec.build_command(["mdformat", "README.md"], tool_roots=roots)
+        pre_commit_exec.build_command(["missing-tool", "README.md"], tool_roots=roots)
 
 
 def test_resolve_tool_roots_prefers_worktree_python(tmp_path: Path) -> None:

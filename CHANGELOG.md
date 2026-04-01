@@ -1578,8 +1578,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added repo-managed `pre-commit` hooks for `ruff`, `mypy`, and `mdformat`,
-  plus local and CI documentation for the shared quality workflow.
+- Added repo-managed `pre-commit` hooks for `ruff`, `mypy`, and Markdown docs
+  checks, plus local and CI documentation for the shared quality workflow.
 - Added an Iris-backed smoke harness that generates manifest-compatible packed
   tasks, trains a real checkpoint through the existing pipeline, evaluates that
   checkpoint, and writes `telemetry.json` plus `summary.md` artifacts.

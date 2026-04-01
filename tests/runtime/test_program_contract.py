@@ -170,6 +170,10 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
 
     required_statements = [
         "bensonlee5.github.io/tab-foundry",
+        "## Read The Docs",
+        "https://bensonlee5.github.io/tab-foundry/docs/getting-started/",
+        "https://bensonlee5.github.io/tab-foundry/docs/ml-engineering/",
+        "https://bensonlee5.github.io/tab-foundry/docs/research-contributors/",
         "`tab-foundry` is the canonical packaged CLI",
         "`./scripts/dev`",
         "`scripts/bench/`",

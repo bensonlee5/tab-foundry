@@ -60,11 +60,8 @@ tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
 
-Format Markdown directly when docs change:
-
-```bash
-./.venv/bin/mdformat --exclude docs/development/model-architecture.md AGENTS.md README.md CHANGELOG.md program.md docs reference
-```
+Docs and reference changes are covered by the audit checks in `./scripts/dev verify affected`
+and `./scripts/dev verify paths`.
 
 ## Dataset Curation Gate
 

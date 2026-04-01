@@ -155,10 +155,11 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         source_rel="README.md",
-        route="repo-overview",
-        weight=110,
+        route="getting-started/repo-overview",
+        weight=10,
         description="Top-level repo overview, docs routing, and quickstart.",
         link_title="Repo Overview",
+        aliases=("/docs/repo-overview/",),
         toc_hide=True,
         hide_summary=True,
     ),
@@ -216,8 +217,23 @@ def _strip_matching_h1(content: str, title: str) -> str:
 
 
 def _rewrite_katex_math(content: str) -> str:
+    def _normalize_math_source(body: str) -> str:
+        normalized = body.strip("\n")
+        while True:
+            collapsed = re.sub(r"\\\\(?=[A-Za-z])", r"\\", normalized)
+            if collapsed == normalized:
+                break
+            normalized = collapsed
+        normalized = normalized.replace(r"\_", "_")
+        normalized = normalized.replace(r"\*", "*")
+        normalized = normalized.replace(r"\[", "[")
+        normalized = normalized.replace(r"\]", "]")
+        normalized = normalized.replace(r"\(", "(")
+        normalized = normalized.replace(r"\)", ")")
+        return normalized
+
     def escape_inline_math(body: str) -> str:
-        escaped = html.escape(body)
+        escaped = html.escape(body, quote=True)
         pieces: list[str] = []
         prev = ""
         for ch in escaped:
@@ -231,8 +247,13 @@ def _rewrite_katex_math(content: str) -> str:
         return "".join(pieces)
 
     def display_replacer(match: re.Match[str]) -> str:
-        body = html.escape(match.group(1).strip("\n"))
-        return f'\n<div class="math-display">\n{body}\n</div>\n\n'
+        normalized = _normalize_math_source(match.group(1))
+        escaped_attr = html.escape(normalized, quote=True)
+        escaped_text = html.escape(normalized)
+        return (
+            '\n<div class="math-display" '
+            f'data-katex-source="{escaped_attr}">\n{escaped_text}\n</div>\n\n'
+        )
 
     content = re.sub(
         r"(?ms)^\$\$\s*\n(.*?)\n\$\$\s*$",
@@ -249,10 +270,20 @@ def _rewrite_katex_math(content: str) -> str:
         display_replacer,
         content,
     )
+    content = re.sub(
+        r"(?m)^\\\[\s*(.+?)\s*\\\]\s*$",
+        display_replacer,
+        content,
+    )
 
     def inline_replacer(match: re.Match[str]) -> str:
-        body = escape_inline_math(match.group(1))
-        return f'<span class="math-inline">{body}</span>'
+        normalized = _normalize_math_source(match.group(1))
+        escaped_attr = html.escape(normalized, quote=True)
+        escaped_text = escape_inline_math(normalized)
+        return (
+            '<span class="math-inline" '
+            f'data-katex-source="{escaped_attr}">{escaped_text}</span>'
+        )
 
     content = re.sub(
         r"\\\((.+?)\\\)",

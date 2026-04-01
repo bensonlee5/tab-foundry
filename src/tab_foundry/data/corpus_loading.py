@@ -253,6 +253,33 @@ def _aggregate_range_bounds(bounds: list[dict[str, Any]]) -> dict[str, Any] | No
     return result or None
 
 
+def _normalized_float_range_from_mapping(value: Any) -> dict[str, float] | None:
+    mapping = _optional_mapping(value)
+    if mapping is None:
+        return None
+    result: dict[str, float] = {}
+    minimum = _optional_float(mapping.get("min"))
+    maximum = _optional_float(mapping.get("max"))
+    if minimum is not None:
+        result["min"] = float(minimum)
+    if maximum is not None:
+        result["max"] = float(maximum)
+    return result or None
+
+
+def _aggregate_float_range_bounds(bounds: list[dict[str, float]]) -> dict[str, float] | None:
+    minima = [float(bound["min"]) for bound in bounds if "min" in bound]
+    maxima = [float(bound["max"]) for bound in bounds if "max" in bound]
+    if not minima and not maxima:
+        return None
+    result: dict[str, float] = {}
+    if minima:
+        result["min"] = float(min(minima))
+    if maxima:
+        result["max"] = float(max(maxima))
+    return result or None
+
+
 def _invocation_config_overrides(invocation: Any) -> dict[str, Any]:
     if isinstance(invocation, Mapping):
         return _optional_mapping(invocation.get("config_overrides")) or {}
@@ -598,6 +625,55 @@ def build_dagzoo_provenance_summary(
         for fraction in (_optional_float(bound.get("max")),)
         if fraction is not None
     ]
+    target_derivations = _first_non_empty_group(
+        [
+            _string_candidates(raw_provenance.get("target_derivation")),
+            _string_candidates(
+                *[
+                    item.get("target_derivation")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _string_candidates(provenance_labels.get("target_derivation")),
+            _string_candidates(review_summary.get("target_derivation")),
+        ]
+    )
+    if target_derivations is None:
+        target_derivations = []
+    target_relevant_feature_count_range = _first_non_empty_group(
+        [
+            _normalized_range_from_mapping(raw_provenance.get("target_relevant_feature_count_range")),
+            _aggregate_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        _normalized_range_from_mapping(item.get("target_relevant_feature_count_range"))
+                        for item in invocation_handoff_provenances
+                    )
+                    if bound is not None
+                ]
+            ),
+            _normalized_range_from_mapping(provenance_labels.get("target_relevant_feature_count_range")),
+            _normalized_range_from_mapping(review_summary.get("target_relevant_feature_count_range")),
+        ]
+    )
+    target_relevant_feature_fraction_range = _first_non_empty_group(
+        [
+            _normalized_float_range_from_mapping(raw_provenance.get("target_relevant_feature_fraction_range")),
+            _aggregate_float_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        _normalized_float_range_from_mapping(item.get("target_relevant_feature_fraction_range"))
+                        for item in invocation_handoff_provenances
+                    )
+                    if bound is not None
+                ]
+            ),
+            _normalized_float_range_from_mapping(provenance_labels.get("target_relevant_feature_fraction_range")),
+            _normalized_float_range_from_mapping(review_summary.get("target_relevant_feature_fraction_range")),
+        ]
+    )
     return _drop_none_values(
         {
             "corpus_ref": _ensure_non_empty_string(corpus_ref, context="corpus_ref"),
@@ -675,6 +751,11 @@ def build_dagzoo_provenance_summary(
                 if len(target_parent_midrange_probs) == 1
                 else None
             ),
+            "target_derivation": (
+                target_derivations[0] if len(target_derivations) == 1 else None
+            ),
+            "target_relevant_feature_count_range": target_relevant_feature_count_range,
+            "target_relevant_feature_fraction_range": target_relevant_feature_fraction_range,
             "review_summary": _copy_jsonable(review_summary) if review_summary else None,
         }
     )

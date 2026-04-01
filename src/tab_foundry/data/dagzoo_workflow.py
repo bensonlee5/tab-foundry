@@ -158,13 +158,30 @@ def run_dagzoo_generate(config: DagzooGenerateConfig) -> DagzooHandoffInfo:
     return handoff
 
 
+def _manifest_data_root(*, handoff: DagzooHandoffInfo, filter_policy: str) -> Path:
+    normalized_filter_policy = str(filter_policy).strip()
+    if normalized_filter_policy == "accepted_only":
+        if handoff.curated_dir is None:
+            raise RuntimeError(
+                "filter_policy='accepted_only' requires a curated dagzoo corpus. "
+                "Run `dagzoo filter --in "
+                f"{handoff.generated_dir} --out <filter_dir> --curated-out <curated_dir>` first."
+            )
+        return handoff.curated_dir
+    return handoff.generated_dir
+
+
 def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> DagzooGenerateManifestResult:
     """Run dagzoo generate through the CLI and materialize one tab-foundry manifest."""
 
     handoff = run_dagzoo_generate(config)
+    data_root = _manifest_data_root(
+        handoff=handoff,
+        filter_policy=str(config.filter_policy),
+    )
 
     summary = build_manifest(
-        data_roots=[handoff.generated_dir],
+        data_roots=[data_root],
         out_path=config.out_manifest.expanduser().resolve(),
         train_ratio=float(config.train_ratio),
         val_ratio=float(config.val_ratio),

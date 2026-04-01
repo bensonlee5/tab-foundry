@@ -46,8 +46,12 @@ recipes:
     path: tf_rd_010_dagzoo_medium_control_v2.yaml
   tf_rd_010_dagzoo_medium_control_v3:
     path: tf_rd_010_dagzoo_medium_control_v3.yaml
+  tf_rd_010_dagzoo_medium_control_v4:
+    path: tf_rd_010_dagzoo_medium_control_v4.yaml
   tf_rd_010_factorized_canary_v1:
     path: tf_rd_010_factorized_canary_v1.yaml
+  tf_rd_010_latent_target_canary_v2:
+    path: tf_rd_010_latent_target_canary_v2.yaml
   tf_rd_010_missingness_mcar_v2:
     path: tf_rd_010_missingness_mcar_v2.yaml
   tf_rd_010_missingness_mcar_v3:

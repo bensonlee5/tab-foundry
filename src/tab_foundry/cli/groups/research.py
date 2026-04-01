@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+import tab_foundry.cli.research_adequacy as research_adequacy_cli
 import tab_foundry.cli.research_diff as research_diff_cli
 import tab_foundry.cli.research_execute as research_execute_cli
 import tab_foundry.cli.research_graph as research_graph_cli
@@ -16,6 +17,15 @@ import tab_foundry.cli.research_sweep_core as research_sweep_core_cli
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("research", help="Research workflows")
     nested = parser.add_subparsers(dest="research_command", required=True)
+
+    adequacy_parser = nested.add_parser("adequacy", help="Synthetic adequacy workflows")
+    adequacy_nested = adequacy_parser.add_subparsers(dest="adequacy_command", required=True)
+    adequacy_pilot_parser = adequacy_nested.add_parser(
+        "pilot",
+        help="Run the lean synthetic adequacy pilot",
+    )
+    research_adequacy_cli.configure_parser(adequacy_pilot_parser)
+    adequacy_pilot_parser.set_defaults(func=research_adequacy_cli.run_from_args)
 
     sweep_parser = nested.add_parser("sweep", help="System-delta sweep workflows")
     sweep_nested = sweep_parser.add_subparsers(dest="sweep_command", required=True)

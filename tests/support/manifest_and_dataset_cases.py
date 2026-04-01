@@ -947,10 +947,11 @@ def test_manifest_paths_are_relative_to_manifest_dir(tmp_path: Path) -> None:
 
     assert not Path(str(row["train_path"])).is_absolute()
     assert not Path(str(row["test_path"])).is_absolute()
-    assert not Path(str(row["metadata_path"])).is_absolute()
-    assert int(row["metadata_offset_bytes"]) >= 0
-    assert int(row["metadata_size_bytes"]) > 0
-    assert len(str(row["metadata_sha256"])) == 64
+    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+    assert not Path(str(row[f"{locator_prefix}_path"])).is_absolute()
+    assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
+    assert int(row[f"{locator_prefix}_size_bytes"]) > 0
+    assert len(str(row[f"{locator_prefix}_sha256"])) == 64
 
 
 def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
@@ -1041,10 +1042,11 @@ def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    metadata_path = shard_dir / "metadata.ndjson"
+    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+    catalog_path = (manifest_path.parent / str(row[f"{locator_prefix}_path"])).resolve()
 
-    offset = int(row["metadata_offset_bytes"])
-    with metadata_path.open("r+b") as handle:
+    offset = int(row[f"{locator_prefix}_offset_bytes"])
+    with catalog_path.open("r+b") as handle:
         handle.seek(offset + 1)
         original = handle.read(1)
         handle.seek(offset + 1)
