@@ -1343,6 +1343,7 @@ def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None
 
 def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    manifest_path = REPO_ROOT / "data" / "manifests" / "bench" / "openml_classification_medium_v1" / "manifest.parquet"
 
     result = create_sweep(
         sweep_id="binary_sm_v2",
@@ -1379,7 +1380,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         created_sweep["anchor_surface"]["notes"][0]
         == "The locked anchor is benchmark registry run "
         "`01_nano_exact_md_prior_parity_fix_binary_medium_v1` on manifest "
-        "`/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet` "
+        f"`{manifest_path}` "
         "sourced from `openml_classification_medium` (10 tasks)."
     )
     assert "openml_classification_small" not in created_sweep["anchor_surface"]["notes"][0]
