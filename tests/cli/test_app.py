@@ -439,6 +439,10 @@ DISPATCH_CASES = (
                 "binary_md_v1",
                 "--dagzoo-root",
                 "/tmp/dagzoo",
+                "--materialize-processes",
+                "3",
+                "--materialize-worker-threads",
+                "2",
                 "--force",
                 "--json",
             ),
@@ -447,12 +451,16 @@ DISPATCH_CASES = (
             fields={
                 "sweep_id": _optional_str_attr("sweep_id"),
                 "dagzoo_root": _path_attr("dagzoo_root"),
+                "materialize_processes": _int_attr("materialize_processes"),
+                "materialize_worker_threads": _int_attr("materialize_worker_threads"),
                 "force": _bool_attr("force"),
                 "json": _bool_attr("json"),
             },
             expected={
                 "sweep_id": "binary_md_v1",
                 "dagzoo_root": "/tmp/dagzoo",
+                "materialize_processes": 3,
+                "materialize_worker_threads": 2,
                 "force": True,
                 "json": True,
             },
@@ -562,6 +570,10 @@ DISPATCH_CASES = (
                 "/tmp/dagzoo",
                 "--device",
                 "cpu",
+                "--materialize-processes",
+                "3",
+                "--materialize-worker-threads",
+                "2",
                 "--force",
                 "--out-root",
                 "/tmp/adequacy",
@@ -572,6 +584,8 @@ DISPATCH_CASES = (
                 "adequacy_id": _str_attr("adequacy_id"),
                 "dagzoo_root": _path_attr("dagzoo_root"),
                 "device": _str_attr("device"),
+                "materialize_processes": _int_attr("materialize_processes"),
+                "materialize_worker_threads": _int_attr("materialize_worker_threads"),
                 "force": _bool_attr("force"),
                 "out_root": _path_attr("out_root"),
             },
@@ -579,6 +593,8 @@ DISPATCH_CASES = (
                 "adequacy_id": "tf_rd_010_synthetic_adequacy_v3",
                 "dagzoo_root": "/tmp/dagzoo",
                 "device": "cpu",
+                "materialize_processes": 3,
+                "materialize_worker_threads": 2,
                 "force": True,
                 "out_root": "/tmp/adequacy",
             },
@@ -692,6 +708,10 @@ DISPATCH_CASES = (
                 "tf_rd_020_harder_dagzoo_ladder_v1",
                 "--dagzoo-root",
                 "/tmp/dagzoo",
+                "--materialize-processes",
+                "3",
+                "--materialize-worker-threads",
+                "2",
                 "--force",
             ),
             module=data_group,
@@ -700,12 +720,16 @@ DISPATCH_CASES = (
                 "recipe": _str_attr("recipe"),
                 "sweep_id": _optional_str_attr("sweep_id"),
                 "dagzoo_root": _path_attr("dagzoo_root"),
+                "materialize_processes": _int_attr("materialize_processes"),
+                "materialize_worker_threads": _int_attr("materialize_worker_threads"),
                 "force": _bool_attr("force"),
             },
             expected={
                 "recipe": "tf_rd_013_current_corpus_default_v1",
                 "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1",
                 "dagzoo_root": "/tmp/dagzoo",
+                "materialize_processes": 3,
+                "materialize_worker_threads": 2,
                 "force": True,
             },
         ),
@@ -994,6 +1018,92 @@ def test_nested_cli_data_commands_reject_invalid_split_ratios(
     ],
 )
 def test_nested_cli_dev_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        _ = cli_module.build_parser().parse_args(argv)
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [
+            "data",
+            "corpus",
+            "materialize",
+            "--recipe",
+            "recipe_a",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-processes",
+            "0",
+        ],
+        [
+            "research",
+            "adequacy",
+            "pilot",
+            "--adequacy-id",
+            "tf_rd_010_synthetic_adequacy_v3",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-processes",
+            "-1",
+        ],
+        [
+            "research",
+            "sweep",
+            "materialize-corpora",
+            "--sweep-id",
+            "binary_md_v1",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-processes",
+            "0",
+        ],
+    ],
+)
+def test_materialize_processes_rejects_non_positive_values(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        _ = cli_module.build_parser().parse_args(argv)
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [
+            "data",
+            "corpus",
+            "materialize",
+            "--recipe",
+            "recipe_a",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-worker-threads",
+            "0",
+        ],
+        [
+            "research",
+            "adequacy",
+            "pilot",
+            "--adequacy-id",
+            "tf_rd_010_synthetic_adequacy_v3",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-worker-threads",
+            "-1",
+        ],
+        [
+            "research",
+            "sweep",
+            "materialize-corpora",
+            "--sweep-id",
+            "binary_md_v1",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--materialize-worker-threads",
+            "0",
+        ],
+    ],
+)
+def test_materialize_worker_threads_rejects_non_positive_values(argv: list[str]) -> None:
     with pytest.raises(SystemExit):
         _ = cli_module.build_parser().parse_args(argv)
 

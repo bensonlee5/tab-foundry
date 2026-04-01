@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+from collections import deque
+from dataclasses import dataclass, field
 import json
+import math
+import os
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Any, Mapping, Sequence, cast
+import sys
+import time
+from typing import Any, Callable, Mapping, Sequence, cast
 
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.parquet as pq
 import yaml
 
 from tab_realdata_hub.manifest import build_manifest
@@ -16,6 +25,8 @@ from tab_foundry.hashing import sha256_path
 from tab_foundry.timestamps import utc_now
 
 from .corpus_loading import (
+    CorpusRecipe,
+    CorpusRecipeStorageContext,
     CORPUS_RECORD_SCHEMA,
     DagzooInvocationRecipe,
     _copy_jsonable,
@@ -50,8 +61,104 @@ from .dagzoo_workflow import (
 )
 
 
-_ACCEPTED_ONLY_MAX_ROUNDS = 8
 _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER = 4
+_INITIAL_ACCEPTED_ONLY_EXPECTED_ACCEPTANCE_RATE = 0.70
+_ACCEPTED_ONLY_MIN_EXPECTED_ACCEPTANCE_RATE = 0.25
+_ACCEPTED_ONLY_MAX_EXPECTED_ACCEPTANCE_RATE = 0.95
+_DEFAULT_MATERIALIZE_PROCESS_CAP = 8
+_DEFAULT_MATERIALIZE_LARGE_MACHINE_CPU_THRESHOLD = 8
+_DEFAULT_MATERIALIZE_RESERVED_CORES_LARGE_MACHINE = 2
+_DEFAULT_MATERIALIZE_RESERVED_CORES_SMALL_MACHINE = 1
+_INVOCATION_SUBPROCESS_POLL_INTERVAL_SECONDS = 0.1
+
+
+@dataclass(slots=True)
+class _PendingCorpusMaterialization:
+    recipe: CorpusRecipe
+    storage: CorpusRecipeStorageContext
+    dagzoo_root: Path
+    repo_root: Path
+    recipe_root: Path
+    stage_root: Path
+    sweep_id: str | None
+    sweeps_root: Path | None
+    invocation_queue: deque[DagzooInvocationRecipe]
+    remaining_invocations: int
+    shape_acceptance_rates: dict[tuple[int | None, int | None, int | None], list[float]] = field(
+        default_factory=dict
+    )
+    row_acceptance_rates: dict[int, list[float]] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class _ActiveInvocationProcess:
+    process: subprocess.Popen[str]
+    pending: _PendingCorpusMaterialization | None
+    spec: DagzooInvocationRecipe
+
+
+def _resolved_cpu_count(*, cpu_count: int | None = None) -> int:
+    resolved = os.cpu_count() if cpu_count is None else int(cpu_count)
+    if resolved is None or resolved <= 0:
+        return 1
+    return int(resolved)
+
+
+def _materialization_reserved_cores(*, cpu_count: int | None = None) -> int:
+    resolved = _resolved_cpu_count(cpu_count=cpu_count)
+    if resolved >= _DEFAULT_MATERIALIZE_LARGE_MACHINE_CPU_THRESHOLD:
+        return _DEFAULT_MATERIALIZE_RESERVED_CORES_LARGE_MACHINE
+    return _DEFAULT_MATERIALIZE_RESERVED_CORES_SMALL_MACHINE
+
+
+def _materialization_usable_cpu_budget(*, cpu_count: int | None = None) -> int:
+    resolved = _resolved_cpu_count(cpu_count=cpu_count)
+    reserved = _materialization_reserved_cores(cpu_count=resolved)
+    return max(1, resolved - reserved)
+
+
+def default_materialize_processes(*, cpu_count: int | None = None) -> int:
+    usable_budget = _materialization_usable_cpu_budget(cpu_count=cpu_count)
+    return min(_DEFAULT_MATERIALIZE_PROCESS_CAP, usable_budget)
+
+
+def default_materialize_worker_threads(
+    *,
+    cpu_count: int | None = None,
+    materialize_processes: int | None = None,
+) -> int:
+    usable_budget = _materialization_usable_cpu_budget(cpu_count=cpu_count)
+    resolved_processes = _resolve_materialize_processes(materialize_processes)
+    return max(1, usable_budget // max(1, resolved_processes))
+
+
+def _resolve_materialize_processes(materialize_processes: int | None) -> int:
+    if materialize_processes is None:
+        return default_materialize_processes()
+    resolved = int(materialize_processes)
+    if resolved <= 0:
+        raise ValueError(
+            f"materialize_processes must be a positive integer, got {materialize_processes!r}"
+        )
+    return resolved
+
+
+def _resolve_materialize_worker_threads(
+    materialize_worker_threads: int | None,
+    *,
+    materialize_processes: int | None,
+) -> int:
+    if materialize_worker_threads is None:
+        return default_materialize_worker_threads(
+            materialize_processes=materialize_processes
+        )
+    resolved = int(materialize_worker_threads)
+    if resolved <= 0:
+        raise ValueError(
+            "materialize_worker_threads must be a positive integer, "
+            f"got {materialize_worker_threads!r}"
+        )
+    return resolved
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:
@@ -278,6 +385,103 @@ def _invocation_dagzoo_config_path(
     return rendered_config_path.resolve()
 
 
+def _int_or_none(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _float_or_none(value: Any) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _invocation_fixed_dimension(
+    spec: DagzooInvocationRecipe,
+    *,
+    base_key: str,
+) -> int | None:
+    dataset_overrides = spec.config_overrides.get("dataset")
+    if not isinstance(dataset_overrides, Mapping):
+        return None
+    direct_value = _int_or_none(dataset_overrides.get(base_key))
+    if direct_value is not None:
+        return direct_value
+    minimum = _int_or_none(dataset_overrides.get(f"{base_key}_min"))
+    maximum = _int_or_none(dataset_overrides.get(f"{base_key}_max"))
+    if minimum is not None and maximum is not None and minimum == maximum:
+        return minimum
+    return None
+
+
+def _invocation_shape_key(
+    spec: DagzooInvocationRecipe,
+) -> tuple[int | None, int | None, int | None]:
+    row_total = _int_or_none(spec.rows)
+    n_features = _invocation_fixed_dimension(spec, base_key="n_features")
+    n_classes = _invocation_fixed_dimension(spec, base_key="n_classes")
+    return (row_total, n_features, n_classes)
+
+
+def _clamp_expected_acceptance_rate(rate: float | None) -> float | None:
+    if rate is None or not math.isfinite(rate):
+        return None
+    return min(
+        _ACCEPTED_ONLY_MAX_EXPECTED_ACCEPTANCE_RATE,
+        max(_ACCEPTED_ONLY_MIN_EXPECTED_ACCEPTANCE_RATE, float(rate)),
+    )
+
+
+def _initial_expected_acceptance_rate(
+    pending: _PendingCorpusMaterialization,
+    *,
+    spec: DagzooInvocationRecipe,
+) -> float | None:
+    shape_key = _invocation_shape_key(spec)
+    shape_rates = pending.shape_acceptance_rates.get(shape_key)
+    if shape_rates:
+        return _clamp_expected_acceptance_rate(sum(shape_rates) / float(len(shape_rates)))
+    row_total = shape_key[0]
+    if row_total is not None:
+        row_rates = pending.row_acceptance_rates.get(int(row_total))
+        if row_rates:
+            return _clamp_expected_acceptance_rate(sum(row_rates) / float(len(row_rates)))
+    return None
+
+
+def _record_completed_invocation_acceptance_rate(
+    pending: _PendingCorpusMaterialization,
+    *,
+    spec: DagzooInvocationRecipe,
+) -> None:
+    summary_path = _invocation_materialization_summary_path(
+        corpus_root=pending.stage_root,
+        invocation_id=spec.invocation_id,
+    )
+    if not summary_path.exists():
+        return
+    summary_payload = _read_json_mapping(
+        summary_path,
+        context=f"accepted_only materialization summary for invocation {spec.invocation_id!r}",
+    )
+    acceptance_rate = _float_or_none(summary_payload.get("acceptance_rate"))
+    clamped_rate = _clamp_expected_acceptance_rate(acceptance_rate)
+    if clamped_rate is None:
+        return
+    shape_key = _invocation_shape_key(spec)
+    pending.shape_acceptance_rates.setdefault(shape_key, []).append(clamped_rate)
+    row_total = shape_key[0]
+    if row_total is not None:
+        pending.row_acceptance_rates.setdefault(int(row_total), []).append(clamped_rate)
+
+
 def _dagzoo_generate_config(
     *,
     dagzoo_root: Path,
@@ -286,6 +490,7 @@ def _dagzoo_generate_config(
     write_rendered_config: bool,
     handoff_root: Path | None = None,
     num_datasets: int | None = None,
+    worker_threads: int | None = None,
 ) -> DagzooGenerateConfig:
     resolved_handoff_root = (
         handoff_root.expanduser().resolve()
@@ -318,6 +523,7 @@ def _dagzoo_generate_config(
         missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
         missing_mar_logit_scale=spec.missing_mar_logit_scale,
         missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
+        worker_threads=worker_threads,
         set_overrides=(),
     )
 
@@ -406,15 +612,99 @@ def _copy_curated_round_shards(
     round_curated_dir: Path,
     final_curated_dir: Path,
     next_shard_index: int,
-) -> int:
+    max_datasets: int | None = None,
+) -> tuple[int, int]:
     if not round_curated_dir.exists():
-        return next_shard_index
+        return next_shard_index, 0
     final_curated_dir.mkdir(parents=True, exist_ok=True)
+    remaining_datasets = None if max_datasets is None else max(0, int(max_datasets))
+    copied_datasets = 0
     for shard_dir in sorted(path for path in round_curated_dir.glob("shard_*") if path.is_dir()):
+        if remaining_datasets == 0:
+            break
         destination = final_curated_dir / f"shard_{next_shard_index:05d}"
-        shutil.copytree(shard_dir, destination)
+        resolved_shard_dir = shard_dir
+        if not any(
+            candidate.exists()
+            for candidate in (
+                resolved_shard_dir / "dataset_catalog.ndjson",
+                resolved_shard_dir / "metadata.ndjson",
+            )
+        ):
+            nested_shards = sorted(
+                path for path in resolved_shard_dir.glob("shard_*") if path.is_dir()
+            )
+            if len(nested_shards) == 1:
+                resolved_shard_dir = nested_shards[0]
+        shard_catalog_path = next(
+            (
+                candidate
+                for candidate in (
+                    resolved_shard_dir / "dataset_catalog.ndjson",
+                    resolved_shard_dir / "metadata.ndjson",
+                )
+                if candidate.exists()
+            ),
+            None,
+        )
+        if shard_catalog_path is None:
+            raise RuntimeError(
+                f"curated shard is missing dataset catalog metadata: {resolved_shard_dir}"
+            )
+        catalog_lines = [
+            line
+            for line in shard_catalog_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        if not catalog_lines:
+            continue
+        if remaining_datasets is None or len(catalog_lines) <= remaining_datasets:
+            shutil.copytree(resolved_shard_dir, destination)
+            copied_in_shard = len(catalog_lines)
+        else:
+            selected_lines = catalog_lines[:remaining_datasets]
+            selected_dataset_indices = [
+                int(
+                    cast(Mapping[str, Any], json.loads(raw_line)).get(
+                        "dataset_index",
+                        -1,
+                    )
+                )
+                for raw_line in selected_lines
+            ]
+            if any(dataset_index < 0 for dataset_index in selected_dataset_indices):
+                raise RuntimeError(
+                    "curated shard catalog record is missing dataset_index while trimming "
+                    f"accepted_only output: {shard_catalog_path}"
+                )
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / shard_catalog_path.name).write_text(
+                "\n".join(selected_lines) + "\n",
+                encoding="utf-8",
+            )
+            for split_filename in ("train.parquet", "test.parquet"):
+                split_path = resolved_shard_dir / split_filename
+                if not split_path.exists():
+                    raise RuntimeError(
+                        f"curated shard is missing split parquet while trimming output: {split_path}"
+                    )
+                table = pq.read_table(split_path)
+                dataset_index_values = pa.array(
+                    selected_dataset_indices,
+                    type=table["dataset_index"].type,
+                )
+                mask = pc.is_in(table["dataset_index"], value_set=dataset_index_values)
+                pq.write_table(
+                    table.filter(mask),
+                    destination / split_filename,
+                    compression="zstd",
+                )
+            copied_in_shard = len(selected_lines)
         next_shard_index += 1
-    return next_shard_index
+        copied_datasets += copied_in_shard
+        if remaining_datasets is not None:
+            remaining_datasets -= copied_in_shard
+    return next_shard_index, copied_datasets
 
 
 def _write_accepted_only_filter_artifacts(
@@ -426,6 +716,7 @@ def _write_accepted_only_filter_artifacts(
     accepted_datasets: int,
     rejected_datasets: int,
     curated_accepted_datasets: int,
+    materialize_worker_threads: int | None = None,
 ) -> None:
     filter_root.mkdir(parents=True, exist_ok=True)
     manifest_path = filter_root / "filter_manifest.ndjson"
@@ -459,7 +750,11 @@ def _write_accepted_only_filter_artifacts(
                 "generated_budget_cap": (
                     int(target_accepted_datasets) * _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER
                 ),
-                "round_budget_cap": _ACCEPTED_ONLY_MAX_ROUNDS,
+                "materialize_worker_threads": (
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
+                ),
                 "rounds": [
                     {
                         "round_index": int(round_payload["round_index"]),
@@ -489,6 +784,8 @@ def _materialize_accepted_only_invocation(
     dagzoo_root: Path,
     corpus_root: Path,
     spec: DagzooInvocationRecipe,
+    materialize_worker_threads: int | None = None,
+    initial_expected_acceptance_rate: float | None = None,
 ) -> None:
     invocation_root, _handoff_manifest_path = _invocation_paths(
         corpus_root=corpus_root,
@@ -514,15 +811,40 @@ def _materialize_accepted_only_invocation(
     round_payloads: list[dict[str, Any]] = []
     handoff_provenances: list[Mapping[str, Any]] = []
 
-    for round_index in range(1, _ACCEPTED_ONLY_MAX_ROUNDS + 1):
-        if curated_accepted_datasets >= accepted_target:
-            break
-        if total_generated_datasets >= generated_budget_cap:
-            break
-
+    round_index = 1
+    while (
+        curated_accepted_datasets < accepted_target
+        and total_generated_datasets < generated_budget_cap
+    ):
         remaining_generated_budget = generated_budget_cap - total_generated_datasets
+        remaining_accepted_datasets = accepted_target - curated_accepted_datasets
+        requested_generated_datasets = remaining_accepted_datasets
+        if total_generated_datasets <= 0:
+            expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                initial_expected_acceptance_rate
+            )
+            if expected_acceptance_rate is None:
+                expected_acceptance_rate = _INITIAL_ACCEPTED_ONLY_EXPECTED_ACCEPTANCE_RATE
+            requested_generated_datasets = int(
+                math.ceil(
+                    float(remaining_accepted_datasets) / float(expected_acceptance_rate)
+                )
+            )
+        elif curated_accepted_datasets > 0:
+            empirical_acceptance_rate = (
+                float(curated_accepted_datasets) / float(total_generated_datasets)
+            )
+            if 0.0 < empirical_acceptance_rate < 1.0:
+                requested_generated_datasets = max(
+                    requested_generated_datasets,
+                    int(
+                        math.ceil(
+                            float(remaining_accepted_datasets) / empirical_acceptance_rate
+                        )
+                    ),
+                )
         requested_generated_datasets = min(
-            accepted_target - curated_accepted_datasets,
+            requested_generated_datasets,
             remaining_generated_budget,
         )
         if requested_generated_datasets <= 0:
@@ -540,6 +862,7 @@ def _materialize_accepted_only_invocation(
             write_rendered_config=(round_index == 1),
             handoff_root=round_root,
             num_datasets=requested_generated_datasets,
+            worker_threads=materialize_worker_threads,
         )
         handoff = run_dagzoo_generate(generate_config)
         filter_config = DagzooFilterConfig(
@@ -547,6 +870,7 @@ def _materialize_accepted_only_invocation(
             input_dir=handoff.generated_dir,
             filter_out_dir=round_root / "filter",
             curated_out_dir=round_root / "curated",
+            worker_threads=materialize_worker_threads,
         )
         filter_result = run_dagzoo_filter(filter_config)
         if filter_result.curated_out_dir is None:
@@ -557,12 +881,13 @@ def _materialize_accepted_only_invocation(
         total_generated_datasets += int(filter_result.total_datasets)
         accepted_datasets += int(filter_result.accepted_datasets)
         rejected_datasets += int(filter_result.rejected_datasets)
-        curated_accepted_datasets += int(filter_result.curated_accepted_datasets)
-        next_shard_index = _copy_curated_round_shards(
+        next_shard_index, committed_curated_datasets = _copy_curated_round_shards(
             round_curated_dir=filter_result.curated_out_dir,
             final_curated_dir=final_curated_root,
             next_shard_index=next_shard_index,
+            max_datasets=accepted_target - curated_accepted_datasets,
         )
+        curated_accepted_datasets += int(committed_curated_datasets)
         handoff_provenance = getattr(handoff, "provenance", None)
         if isinstance(handoff_provenance, Mapping):
             handoff_provenances.append(
@@ -575,17 +900,19 @@ def _materialize_accepted_only_invocation(
                 "generated_datasets": int(filter_result.total_datasets),
                 "accepted_datasets": int(filter_result.accepted_datasets),
                 "rejected_datasets": int(filter_result.rejected_datasets),
-                "curated_accepted_datasets": int(filter_result.curated_accepted_datasets),
+                "curated_accepted_datasets": int(committed_curated_datasets),
                 "filter_manifest_path": str(filter_result.manifest_path),
                 "filter_summary_path": str(filter_result.summary_path),
             }
         )
         if curated_accepted_datasets >= accepted_target:
             break
+        round_index += 1
 
     if curated_accepted_datasets != accepted_target:
         raise RuntimeError(
-            "accepted_only materialization did not reach the requested accepted dataset target "
+            "accepted_only materialization exhausted the generated dataset budget before "
+            "reaching the requested accepted dataset target "
             f"for invocation {spec.invocation_id!r}: "
             f"accepted={curated_accepted_datasets} target={accepted_target} "
             f"rounds={len(round_payloads)} generated={total_generated_datasets} "
@@ -606,6 +933,7 @@ def _materialize_accepted_only_invocation(
         accepted_datasets=accepted_datasets,
         rejected_datasets=rejected_datasets,
         curated_accepted_datasets=curated_accepted_datasets,
+        materialize_worker_threads=materialize_worker_threads,
     )
 
     materialization_summary_path = _invocation_materialization_summary_path(
@@ -627,6 +955,16 @@ def _materialize_accepted_only_invocation(
                     else float(accepted_datasets) / float(total_generated_datasets)
                 ),
                 "round_count": len(round_payloads),
+                "materialize_worker_threads": (
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
+                ),
+                "initial_expected_acceptance_rate": (
+                    None
+                    if initial_expected_acceptance_rate is None
+                    else float(initial_expected_acceptance_rate)
+                ),
                 "rounds": [
                     {
                         "round_index": int(round_payload["round_index"]),
@@ -657,6 +995,8 @@ def materialize_corpus_ref(
     corpus_ref: str,
     dagzoo_root: Path,
     force: bool = False,
+    materialize_processes: int | None = None,
+    materialize_worker_threads: int | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
@@ -668,6 +1008,8 @@ def materialize_corpus_ref(
             recipe_id=recipe_id,
             dagzoo_root=dagzoo_root,
             force=force,
+            materialize_processes=materialize_processes,
+            materialize_worker_threads=materialize_worker_threads,
             repo_root=repo_root,
             sweep_id=sweep_id,
             sweeps_root=sweeps_root,
@@ -687,6 +1029,8 @@ def materialize_corpus_ref(
         recipe_id=recipe_id,
         dagzoo_root=dagzoo_root,
         force=force,
+        materialize_processes=materialize_processes,
+        materialize_worker_threads=materialize_worker_threads,
         repo_root=repo_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
@@ -703,18 +1047,109 @@ def materialize_corpus_ref(
     return record
 
 
+def materialize_corpus_refs_batch(
+    *,
+    corpus_refs: Sequence[str],
+    dagzoo_root: Path,
+    force: bool = False,
+    materialize_processes: int | None = None,
+    materialize_worker_threads: int | None = None,
+    prioritized_recipe_ids: Sequence[str] = (),
+    on_corpus_materialized: Callable[[dict[str, Any]], None] | None = None,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    normalized_refs = [
+        _ensure_non_empty_string(corpus_ref, context="corpus_ref") for corpus_ref in corpus_refs
+    ]
+    prepared_corpora: list[_PendingCorpusMaterialization] = []
+    records_by_recipe_id: dict[str, dict[str, Any]] = {}
+    records_by_exact_ref: dict[str, dict[str, Any]] = {}
+    seen_recipe_ids: set[str] = set()
+
+    try:
+        for normalized_ref in normalized_refs:
+            recipe_id, separator, _corpus_id = normalized_ref.partition("/")
+            if separator:
+                record = materialize_corpus_ref(
+                    corpus_ref=normalized_ref,
+                    dagzoo_root=resolved_dagzoo_root,
+                    force=force,
+                    materialize_processes=materialize_processes,
+                    materialize_worker_threads=materialize_worker_threads,
+                    repo_root=resolved_repo_root,
+                    sweep_id=sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+                records_by_exact_ref[normalized_ref] = record
+                records_by_recipe_id.setdefault(str(record["recipe_id"]), record)
+                if on_corpus_materialized is not None:
+                    on_corpus_materialized(record)
+                continue
+            if recipe_id in seen_recipe_ids or recipe_id in records_by_recipe_id:
+                continue
+            seen_recipe_ids.add(recipe_id)
+            prepared = _prepare_recipe_materialization(
+                recipe_id=recipe_id,
+                dagzoo_root=resolved_dagzoo_root,
+                force=force,
+                repo_root=resolved_repo_root,
+                sweep_id=sweep_id,
+                sweeps_root=sweeps_root,
+            )
+            if isinstance(prepared, dict):
+                records_by_recipe_id[recipe_id] = prepared
+                if on_corpus_materialized is not None:
+                    on_corpus_materialized(prepared)
+                continue
+            prepared_corpora.append(prepared)
+
+        if prepared_corpora:
+            finalized_records = _materialize_pending_corpora_with_shared_subprocess_fanout(
+                pending_corpora=prepared_corpora,
+                force=force,
+                materialize_processes=materialize_processes,
+                materialize_worker_threads=materialize_worker_threads,
+                prioritized_recipe_ids=prioritized_recipe_ids,
+                on_corpus_materialized=on_corpus_materialized,
+            )
+            records_by_recipe_id.update(
+                {str(record["recipe_id"]): record for record in finalized_records}
+            )
+
+        resolved_records: list[dict[str, Any]] = []
+        for normalized_ref in normalized_refs:
+            recipe_id, separator, _corpus_id = normalized_ref.partition("/")
+            if separator:
+                resolved_records.append(records_by_exact_ref[normalized_ref])
+                continue
+            resolved_records.append(records_by_recipe_id[recipe_id])
+        return resolved_records
+    finally:
+        for pending in prepared_corpora:
+            if pending.stage_root.exists():
+                shutil.rmtree(pending.stage_root)
+
+
 def _materialize_invocation(
     *,
     dagzoo_root: Path,
     corpus_root: Path,
     spec: DagzooInvocationRecipe,
     filter_policy: str,
+    materialize_worker_threads: int | None = None,
+    initial_expected_acceptance_rate: float | None = None,
 ) -> None:
     if str(filter_policy).strip() == "accepted_only":
         _materialize_accepted_only_invocation(
             dagzoo_root=dagzoo_root,
             corpus_root=corpus_root,
             spec=spec,
+            materialize_worker_threads=materialize_worker_threads,
+            initial_expected_acceptance_rate=initial_expected_acceptance_rate,
         )
         return
     invocation_root, _handoff_manifest_path = _invocation_paths(
@@ -728,8 +1163,692 @@ def _materialize_invocation(
             corpus_root=corpus_root,
             spec=spec,
             write_rendered_config=True,
+            worker_threads=materialize_worker_threads,
         )
     )
+
+
+def materialize_recipe_invocation(
+    *,
+    recipe_id: str,
+    invocation_id: str,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    materialize_worker_threads: int | None = None,
+    initial_expected_acceptance_rate: float | None = None,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> None:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=resolved_repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    spec = next(
+        (
+            invocation
+            for invocation in recipe.invocations
+            if str(invocation.invocation_id) == str(invocation_id)
+        ),
+        None,
+    )
+    if spec is None:
+        raise RuntimeError(
+            f"recipe {recipe_id!r} does not define invocation {invocation_id!r}"
+        )
+    _materialize_invocation(
+        dagzoo_root=dagzoo_root.expanduser().resolve(),
+        corpus_root=corpus_root.expanduser().resolve(),
+        spec=spec,
+        filter_policy=str(recipe.manifest_policy.filter_policy),
+        materialize_worker_threads=materialize_worker_threads,
+        initial_expected_acceptance_rate=initial_expected_acceptance_rate,
+    )
+
+
+def _invocation_worker_argv(
+    *,
+    recipe_id: str,
+    invocation_id: str,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    repo_root: Path,
+    materialize_worker_threads: int | None,
+    initial_expected_acceptance_rate: float | None,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> list[str]:
+    argv = [
+        sys.executable,
+        "-m",
+        "tab_foundry.data.corpus_materialization_worker",
+        "--recipe-id",
+        str(recipe_id),
+        "--invocation-id",
+        str(invocation_id),
+        "--dagzoo-root",
+        str(dagzoo_root.expanduser().resolve()),
+        "--corpus-root",
+        str(corpus_root.expanduser().resolve()),
+        "--repo-root",
+        str(repo_root.expanduser().resolve()),
+    ]
+    if materialize_worker_threads is not None:
+        argv.extend(
+            ["--materialize-worker-threads", str(int(materialize_worker_threads))]
+        )
+    if initial_expected_acceptance_rate is not None:
+        argv.extend(
+            [
+                "--initial-expected-acceptance-rate",
+                str(float(initial_expected_acceptance_rate)),
+            ]
+        )
+    if sweep_id is not None:
+        argv.extend(["--sweep-id", str(sweep_id)])
+    if sweeps_root is not None:
+        argv.extend(["--sweeps-root", str(sweeps_root.expanduser().resolve())])
+    return argv
+
+
+def _terminate_active_invocation_subprocesses(
+    active_processes: Mapping[int, _ActiveInvocationProcess],
+) -> None:
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is None:
+            process.terminate()
+    deadline = time.monotonic() + 5.0
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is not None:
+            continue
+        remaining = deadline - time.monotonic()
+        try:
+            process.wait(timeout=max(0.0, remaining))
+        except subprocess.TimeoutExpired:
+            process.kill()
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is None:
+            process.wait()
+
+
+def _materialize_invocations_with_subprocess_fanout(
+    *,
+    recipe_id: str,
+    invocations: Sequence[DagzooInvocationRecipe],
+    dagzoo_root: Path,
+    corpus_root: Path,
+    repo_root: Path,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+    materialize_processes: int | None,
+    materialize_worker_threads: int | None,
+) -> None:
+    max_processes = min(_resolve_materialize_processes(materialize_processes), len(invocations))
+    resolved_worker_threads = _resolve_materialize_worker_threads(
+        materialize_worker_threads,
+        materialize_processes=max_processes,
+    )
+    shape_acceptance_rates: dict[tuple[int | None, int | None, int | None], list[float]] = {}
+    row_acceptance_rates: dict[int, list[float]] = {}
+    if max_processes <= 1:
+        for spec in invocations:
+            shape_key = _invocation_shape_key(spec)
+            shape_rates = shape_acceptance_rates.get(shape_key)
+            initial_expected_acceptance_rate = None
+            if shape_rates:
+                initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                    sum(shape_rates) / float(len(shape_rates))
+                )
+            elif shape_key[0] is not None:
+                row_rates = row_acceptance_rates.get(int(shape_key[0]))
+                if row_rates:
+                    initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                        sum(row_rates) / float(len(row_rates))
+                    )
+            materialize_recipe_invocation(
+                recipe_id=recipe_id,
+                invocation_id=str(spec.invocation_id),
+                dagzoo_root=dagzoo_root,
+                corpus_root=corpus_root,
+                materialize_worker_threads=resolved_worker_threads,
+                initial_expected_acceptance_rate=initial_expected_acceptance_rate,
+                repo_root=repo_root,
+                sweep_id=sweep_id,
+                sweeps_root=sweeps_root,
+            )
+            summary_path = _invocation_materialization_summary_path(
+                corpus_root=corpus_root,
+                invocation_id=spec.invocation_id,
+            )
+            if summary_path.exists():
+                summary_payload = _read_json_mapping(
+                    summary_path,
+                    context=(
+                        f"accepted_only materialization summary for invocation "
+                        f"{spec.invocation_id!r}"
+                    ),
+                )
+                acceptance_rate = _clamp_expected_acceptance_rate(
+                    _float_or_none(summary_payload.get("acceptance_rate"))
+                )
+                if acceptance_rate is not None:
+                    shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
+                    row_total = shape_key[0]
+                    if row_total is not None:
+                        row_acceptance_rates.setdefault(int(row_total), []).append(
+                            acceptance_rate
+                        )
+        return
+
+    pending = deque(invocations)
+    active_processes: dict[int, _ActiveInvocationProcess] = {}
+    try:
+        while pending or active_processes:
+            while pending and len(active_processes) < max_processes:
+                spec = pending.popleft()
+                shape_key = _invocation_shape_key(spec)
+                shape_rates = shape_acceptance_rates.get(shape_key)
+                initial_expected_acceptance_rate = None
+                if shape_rates:
+                    initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                        sum(shape_rates) / float(len(shape_rates))
+                    )
+                elif shape_key[0] is not None:
+                    row_rates = row_acceptance_rates.get(int(shape_key[0]))
+                    if row_rates:
+                        initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                            sum(row_rates) / float(len(row_rates))
+                        )
+                process = subprocess.Popen(
+                    _invocation_worker_argv(
+                        recipe_id=recipe_id,
+                        invocation_id=str(spec.invocation_id),
+                        dagzoo_root=dagzoo_root,
+                        corpus_root=corpus_root,
+                        repo_root=repo_root,
+                        materialize_worker_threads=resolved_worker_threads,
+                        initial_expected_acceptance_rate=initial_expected_acceptance_rate,
+                        sweep_id=sweep_id,
+                        sweeps_root=sweeps_root,
+                    ),
+                    cwd=repo_root,
+                    text=True,
+                )
+                active_processes[int(process.pid)] = _ActiveInvocationProcess(
+                    process=process,
+                    pending=None,
+                    spec=spec,
+                )
+
+            completed_pid: int | None = None
+            completed_active_process: _ActiveInvocationProcess | None = None
+            completed_returncode: int | None = None
+            while completed_active_process is None:
+                for pid, active_process in list(active_processes.items()):
+                    process = active_process.process
+                    returncode = process.poll()
+                    if returncode is None:
+                        continue
+                    completed_pid = pid
+                    completed_active_process = active_process
+                    completed_returncode = int(returncode)
+                    break
+                if completed_active_process is None:
+                    time.sleep(_INVOCATION_SUBPROCESS_POLL_INTERVAL_SECONDS)
+            assert completed_pid is not None
+            del active_processes[completed_pid]
+            if completed_returncode != 0:
+                assert completed_active_process is not None
+                raise RuntimeError(
+                    "invocation materialization subprocess failed: "
+                    f"invocation_id={completed_active_process.spec.invocation_id} "
+                    f"returncode={completed_returncode} "
+                    f"argv={completed_active_process.process.args!r}"
+                )
+            assert completed_active_process is not None
+            summary_path = _invocation_materialization_summary_path(
+                corpus_root=corpus_root,
+                invocation_id=completed_active_process.spec.invocation_id,
+            )
+            if summary_path.exists():
+                summary_payload = _read_json_mapping(
+                    summary_path,
+                    context=(
+                        f"accepted_only materialization summary for invocation "
+                        f"{completed_active_process.spec.invocation_id!r}"
+                    ),
+                )
+                acceptance_rate = _clamp_expected_acceptance_rate(
+                    _float_or_none(summary_payload.get("acceptance_rate"))
+                )
+                if acceptance_rate is not None:
+                    shape_key = _invocation_shape_key(completed_active_process.spec)
+                    shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
+                    row_total = shape_key[0]
+                    if row_total is not None:
+                        row_acceptance_rates.setdefault(int(row_total), []).append(
+                            acceptance_rate
+                        )
+        return
+    finally:
+        if active_processes:
+            _terminate_active_invocation_subprocesses(active_processes)
+
+
+def _prepare_recipe_materialization(
+    *,
+    recipe_id: str,
+    dagzoo_root: Path,
+    force: bool,
+    repo_root: Path,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> dict[str, Any] | _PendingCorpusMaterialization:
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    storage = _recipe_storage_context(recipe, repo_root=repo_root)
+    if not force:
+        existing_record = _load_reusable_corpus_record(
+            recipe.recipe_id,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        if existing_record is not None and _record_matches_recipe(
+            existing_record,
+            recipe,
+            storage=storage,
+        ):
+            return existing_record
+
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe.recipe_id
+    stage_root = recipe_root / ".staging"
+    if stage_root.exists():
+        shutil.rmtree(stage_root)
+    stage_root.mkdir(parents=True, exist_ok=True)
+    return _PendingCorpusMaterialization(
+        recipe=recipe,
+        storage=storage,
+        dagzoo_root=dagzoo_root,
+        repo_root=repo_root,
+        recipe_root=recipe_root,
+        stage_root=stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+        invocation_queue=deque(recipe.invocations),
+        remaining_invocations=len(recipe.invocations),
+    )
+
+
+def _finalize_materialized_recipe(
+    pending: _PendingCorpusMaterialization,
+    *,
+    force: bool,
+) -> dict[str, Any]:
+    recipe = pending.recipe
+    storage = pending.storage
+    resolved_repo_root = pending.repo_root
+    resolved_dagzoo_root = pending.dagzoo_root
+    recipe_root = pending.recipe_root
+    stage_root = pending.stage_root
+    sweep_id = pending.sweep_id
+    sweeps_root = pending.sweeps_root
+
+    filter_policy = str(recipe.manifest_policy.filter_policy)
+    if filter_policy == "accepted_only":
+        generated_roots = [
+            _invocation_curated_root(
+                corpus_root=stage_root,
+                invocation_id=spec.invocation_id,
+            )
+            for spec in recipe.invocations
+        ]
+        dagzoo_handoff_manifest_path = None
+    elif len(recipe.invocations) == 1:
+        single_handoff = load_dagzoo_handoff_info(
+            _invocation_paths(
+                corpus_root=stage_root,
+                invocation_id=recipe.invocations[0].invocation_id,
+            )[1]
+        )
+        generated_roots = [
+            _manifest_source_root(
+                handoff=single_handoff,
+                filter_policy=str(recipe.manifest_policy.filter_policy),
+            )
+        ]
+        dagzoo_handoff_manifest_path = single_handoff.handoff_manifest_path
+    else:
+        verified_handoffs = [
+            _verified_invocation_handoff(
+                corpus_root=stage_root,
+                spec=spec,
+            )
+            for spec in recipe.invocations
+        ]
+        generated_roots = [
+            _manifest_source_root(
+                handoff=handoff,
+                filter_policy=str(recipe.manifest_policy.filter_policy),
+            )
+            for handoff in verified_handoffs
+        ]
+        dagzoo_handoff_manifest_path = None
+
+    manifest_path = stage_root / "manifest.parquet"
+    _ = build_manifest(
+        data_roots=generated_roots,
+        out_path=manifest_path,
+        train_ratio=float(recipe.manifest_policy.train_ratio),
+        val_ratio=float(recipe.manifest_policy.val_ratio),
+        filter_policy=str(recipe.manifest_policy.filter_policy),
+        missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
+        dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+    )
+    manifest_sha256 = sha256_path(manifest_path)
+    corpus_id = corpus_id_for_manifest(
+        recipe_id=recipe.recipe_id,
+        manifest_sha256=manifest_sha256,
+        recipe_identity=(storage.recipe_identity if storage.uses_scoped_identity else None),
+    )
+    corpus_ref = f"{recipe.recipe_id}/{corpus_id}"
+    final_root = recipe_root / corpus_id
+    if final_root.exists():
+        if force:
+            shutil.rmtree(final_root)
+        else:
+            existing_record = _load_reusable_corpus_record(
+                corpus_ref,
+                repo_root=resolved_repo_root,
+                sweep_id=sweep_id,
+                sweeps_root=sweeps_root,
+            )
+            if existing_record is not None and _record_matches_recipe(
+                existing_record,
+                recipe,
+                storage=storage,
+            ):
+                shutil.rmtree(stage_root)
+                return existing_record
+            shutil.rmtree(final_root)
+    shutil.move(str(stage_root), str(final_root))
+    resolved_manifest_path = final_root / "manifest.parquet"
+    invocation_payloads = [
+        _invocation_record_payload(
+            dagzoo_root=resolved_dagzoo_root,
+            corpus_root=final_root,
+            spec=spec,
+        )
+        for spec in recipe.invocations
+    ]
+    dagzoo_provenance_summary = build_dagzoo_provenance_summary(
+        recipe=recipe,
+        corpus_ref=corpus_ref,
+        corpus_id=corpus_id,
+        provenance={
+            "invocations": invocation_payloads,
+        },
+    )
+    invocation_filter_payloads = _invocation_filter_payloads(invocation_payloads)
+    dagzoo_provenance = _drop_none_values(
+        {
+            "corpus_ref": corpus_ref,
+            "recipe_id": recipe.recipe_id,
+            "corpus_id": corpus_id,
+            "recipe_kind": recipe.kind,
+            "corpus_variant": recipe.provenance_labels.get("corpus_variant", recipe.surface_label),
+            "comparator_role": recipe.provenance_labels.get("comparator_role"),
+            "config_refs": sorted(
+                {_invocation_requested_config_ref(invocation) for invocation in recipe.invocations}
+            ),
+            "commands": [
+                command
+                for payload in invocation_payloads
+                for command in (
+                    cast(list[Any], payload.get("commands"))
+                    if isinstance(payload.get("commands"), list)
+                    else ([payload.get("command")] if payload.get("command") is not None else [])
+                )
+                if isinstance(command, str) and command.strip()
+            ],
+            "filter_policy": dagzoo_provenance_summary.get("filter_policy"),
+            "accepted_datasets": dagzoo_provenance_summary.get("accepted_datasets"),
+            "rejected_datasets": dagzoo_provenance_summary.get("rejected_datasets"),
+            "curated_accepted_datasets": dagzoo_provenance_summary.get(
+                "curated_accepted_datasets"
+            ),
+            "acceptance_rate": dagzoo_provenance_summary.get("acceptance_rate"),
+            "filter_manifest_paths": [
+                filter_payload.get("filter_manifest_path")
+                for filter_payload in invocation_filter_payloads
+                if filter_payload.get("filter_manifest_path") is not None
+            ],
+            "filter_summary_paths": [
+                filter_payload.get("filter_summary_path")
+                for filter_payload in invocation_filter_payloads
+                if filter_payload.get("filter_summary_path") is not None
+            ],
+            "curated_root_lineage": [
+                filter_payload.get("curated_dir")
+                for filter_payload in invocation_filter_payloads
+                if filter_payload.get("curated_dir") is not None
+            ],
+            "invocations": invocation_payloads,
+            "dagzoo_git": _git_info(resolved_dagzoo_root),
+            "target_derivation": dagzoo_provenance_summary.get("target_derivation"),
+            "target_relevant_feature_count_range": dagzoo_provenance_summary.get(
+                "target_relevant_feature_count_range"
+            ),
+            "target_relevant_feature_fraction_range": dagzoo_provenance_summary.get(
+                "target_relevant_feature_fraction_range"
+            ),
+        }
+    )
+    manifest_inspection = inspect_manifest_summary(resolved_manifest_path)
+    manifest_persisted_summary = manifest_inspection.get("persisted_summary")
+    characteristics_sidecar_path = _manifest_characteristics_sidecar_path(corpus_root=final_root)
+    record: dict[str, Any] = {
+        "schema": CORPUS_RECORD_SCHEMA,
+        "generated_at_utc": utc_now(),
+        "recipe_id": recipe.recipe_id,
+        "corpus_id": corpus_id,
+        "corpus_ref": corpus_ref,
+        "recipe_path": str(recipe.recipe_path),
+        "recipe_identity": storage.recipe_identity,
+        "recipe_relative_path": storage.recipe_relative_path,
+        "surface_label": recipe.surface_label,
+        "surface_label_recommendation": recipe.surface_label,
+        "recipe": recipe.to_dict(),
+        "artifacts": {
+            "corpus_root": str(final_root.resolve()),
+            "manifest_path": str(resolved_manifest_path.resolve()),
+            "latest_pointer_path": str(
+                _latest_pointer_path(
+                    recipe_id=recipe.recipe_id,
+                    repo_root=resolved_repo_root,
+                    recipe_identity=(
+                        storage.recipe_identity if storage.uses_scoped_identity else None
+                    ),
+                )
+            ),
+        },
+        "manifest": {
+            "manifest_path": str(resolved_manifest_path.resolve()),
+            "manifest_sha256": manifest_sha256,
+            "inspection": manifest_inspection,
+            "characteristics": {
+                "persisted_summary": manifest_persisted_summary,
+                "sidecar_path": str(characteristics_sidecar_path.resolve()),
+                "cache_status": "deferred",
+            },
+        },
+        "dagzoo_provenance": dagzoo_provenance,
+        "dagzoo_provenance_summary": dagzoo_provenance_summary,
+    }
+    record_path = final_root / "corpus_record.json"
+    record["corpus_record_path"] = str(record_path.resolve())
+    record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    latest_path = _write_latest_pointer(
+        recipe_id=recipe.recipe_id,
+        corpus_id=corpus_id,
+        corpus_ref=corpus_ref,
+        record_path=record_path,
+        recipe_path=recipe.recipe_path,
+        recipe_identity=storage.recipe_identity,
+        repo_root=resolved_repo_root,
+        scoped_recipe_identity=(
+            storage.recipe_identity if storage.uses_scoped_identity else None
+        ),
+    )
+    record["artifacts"]["latest_pointer_path"] = str(latest_path.resolve())
+    record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return record
+
+
+def _pop_next_pending_invocation(
+    pending_corpora: Sequence[_PendingCorpusMaterialization],
+    *,
+    next_index: list[int],
+) -> tuple[_PendingCorpusMaterialization, DagzooInvocationRecipe] | None:
+    if not pending_corpora:
+        return None
+    start_index = next_index[0] % len(pending_corpora)
+    for offset in range(len(pending_corpora)):
+        index = (start_index + offset) % len(pending_corpora)
+        pending = pending_corpora[index]
+        if not pending.invocation_queue:
+            continue
+        next_index[0] = index + 1
+        return pending, pending.invocation_queue.popleft()
+    return None
+
+
+def _materialize_pending_corpora_with_shared_subprocess_fanout(
+    *,
+    pending_corpora: Sequence[_PendingCorpusMaterialization],
+    force: bool,
+    materialize_processes: int | None,
+    materialize_worker_threads: int | None,
+    prioritized_recipe_ids: Sequence[str],
+    on_corpus_materialized: Callable[[dict[str, Any]], None] | None = None,
+) -> list[dict[str, Any]]:
+    if not pending_corpora:
+        return []
+
+    total_invocations = sum(int(pending.remaining_invocations) for pending in pending_corpora)
+    max_processes = min(_resolve_materialize_processes(materialize_processes), total_invocations)
+    resolved_worker_threads = _resolve_materialize_worker_threads(
+        materialize_worker_threads,
+        materialize_processes=max_processes,
+    )
+    prioritized_ids = {str(recipe_id) for recipe_id in prioritized_recipe_ids}
+    priority_corpora = [
+        pending for pending in pending_corpora if pending.recipe.recipe_id in prioritized_ids
+    ]
+    regular_corpora = [
+        pending for pending in pending_corpora if pending.recipe.recipe_id not in prioritized_ids
+    ]
+    priority_index = [0]
+    regular_index = [0]
+    active_processes: dict[int, _ActiveInvocationProcess] = {}
+    finalized_records: list[dict[str, Any]] = []
+
+    try:
+        while active_processes or any(pending.remaining_invocations > 0 for pending in pending_corpora):
+            while len(active_processes) < max_processes:
+                next_task = _pop_next_pending_invocation(
+                    priority_corpora,
+                    next_index=priority_index,
+                )
+                if next_task is None:
+                    next_task = _pop_next_pending_invocation(
+                        regular_corpora,
+                        next_index=regular_index,
+                    )
+                if next_task is None:
+                    break
+                pending, spec = next_task
+                initial_expected_acceptance_rate = None
+                if str(pending.recipe.manifest_policy.filter_policy).strip() == "accepted_only":
+                    initial_expected_acceptance_rate = _initial_expected_acceptance_rate(
+                        pending,
+                        spec=spec,
+                    )
+                process = subprocess.Popen(
+                    _invocation_worker_argv(
+                        recipe_id=pending.recipe.recipe_id,
+                        invocation_id=str(spec.invocation_id),
+                        dagzoo_root=pending.dagzoo_root,
+                        corpus_root=pending.stage_root,
+                        repo_root=pending.repo_root,
+                        materialize_worker_threads=resolved_worker_threads,
+                        initial_expected_acceptance_rate=initial_expected_acceptance_rate,
+                        sweep_id=pending.sweep_id,
+                        sweeps_root=pending.sweeps_root,
+                    ),
+                    cwd=pending.repo_root,
+                    text=True,
+                )
+                active_processes[int(process.pid)] = _ActiveInvocationProcess(
+                    process=process,
+                    pending=pending,
+                    spec=spec,
+                )
+
+            completed_pid: int | None = None
+            completed_active_process: _ActiveInvocationProcess | None = None
+            completed_returncode: int | None = None
+            while completed_active_process is None:
+                for pid, active_process in list(active_processes.items()):
+                    returncode = active_process.process.poll()
+                    if returncode is None:
+                        continue
+                    completed_pid = pid
+                    completed_active_process = active_process
+                    completed_returncode = int(returncode)
+                    break
+                if completed_active_process is None:
+                    time.sleep(_INVOCATION_SUBPROCESS_POLL_INTERVAL_SECONDS)
+
+            assert completed_pid is not None
+            del active_processes[completed_pid]
+            assert completed_active_process is not None
+            if completed_returncode != 0:
+                raise RuntimeError(
+                    "invocation materialization subprocess failed: "
+                    f"recipe_id={completed_active_process.pending.recipe.recipe_id if completed_active_process.pending is not None else 'unknown'} "
+                    f"invocation_id={completed_active_process.spec.invocation_id} "
+                    f"returncode={completed_returncode} "
+                    f"argv={completed_active_process.process.args!r}"
+                )
+
+            completed_pending = completed_active_process.pending
+            assert completed_pending is not None
+            if str(completed_pending.recipe.manifest_policy.filter_policy).strip() == "accepted_only":
+                _record_completed_invocation_acceptance_rate(
+                    completed_pending,
+                    spec=completed_active_process.spec,
+                )
+            completed_pending.remaining_invocations -= 1
+            if completed_pending.remaining_invocations <= 0:
+                record = _finalize_materialized_recipe(completed_pending, force=force)
+                finalized_records.append(record)
+                if on_corpus_materialized is not None:
+                    on_corpus_materialized(record)
+        return finalized_records
+    finally:
+        if active_processes:
+            _terminate_active_invocation_subprocesses(active_processes)
 
 
 def _invocation_record_payload(
@@ -769,6 +1888,9 @@ def _invocation_record_payload(
             materialization_summary_path,
             context=f"materialization summary for invocation {spec.invocation_id!r}",
         )
+        materialize_worker_threads = _int_or_none(
+            summary_payload.get("materialize_worker_threads")
+        )
         rounds_payload = []
         command_list: list[str] = []
         for round_payload in cast(list[Any], summary_payload.get("rounds", [])):
@@ -802,6 +1924,7 @@ def _invocation_record_payload(
                 input_dir=round_handoff.generated_dir,
                 filter_out_dir=round_root / "filter",
                 curated_out_dir=round_root / "curated",
+                worker_threads=materialize_worker_threads,
             )
             generate_command = _stringify_command(
                 build_dagzoo_generate_argv(round_generate_config)
@@ -918,261 +2041,38 @@ def materialize_corpus_recipe(
     recipe_id: str,
     dagzoo_root: Path,
     force: bool = False,
+    materialize_processes: int | None = None,
+    materialize_worker_threads: int | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
-    recipe = load_corpus_recipe(
-        recipe_id,
+    prepared = _prepare_recipe_materialization(
+        recipe_id=recipe_id,
+        dagzoo_root=resolved_dagzoo_root,
+        force=force,
         repo_root=resolved_repo_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
     )
-    storage = _recipe_storage_context(recipe, repo_root=resolved_repo_root)
-    if not force:
-        existing_record = _load_reusable_corpus_record(
-            recipe.recipe_id,
-            repo_root=resolved_repo_root,
-            sweep_id=sweep_id,
-            sweeps_root=sweeps_root,
-        )
-        if existing_record is not None and _record_matches_recipe(
-            existing_record,
-            recipe,
-            storage=storage,
-        ):
-            return existing_record
-
-    recipe_root = corpus_outputs_root(repo_root=resolved_repo_root) / recipe.recipe_id
-    stage_root = recipe_root / ".staging"
-    if stage_root.exists():
-        shutil.rmtree(stage_root)
-    stage_root.mkdir(parents=True, exist_ok=True)
+    if isinstance(prepared, dict):
+        return prepared
 
     try:
-        filter_policy = str(recipe.manifest_policy.filter_policy)
-        for spec in recipe.invocations:
-            _materialize_invocation(
-                dagzoo_root=resolved_dagzoo_root,
-                corpus_root=stage_root,
-                spec=spec,
-                filter_policy=filter_policy,
-            )
-        if filter_policy == "accepted_only":
-            generated_roots = [
-                _invocation_curated_root(
-                    corpus_root=stage_root,
-                    invocation_id=spec.invocation_id,
-                )
-                for spec in recipe.invocations
-            ]
-            dagzoo_handoff_manifest_path = None
-        elif len(recipe.invocations) == 1:
-            single_handoff = load_dagzoo_handoff_info(
-                _invocation_paths(
-                    corpus_root=stage_root,
-                    invocation_id=recipe.invocations[0].invocation_id,
-                )[1]
-            )
-            generated_roots = [
-                _manifest_source_root(
-                    handoff=single_handoff,
-                    filter_policy=str(recipe.manifest_policy.filter_policy),
-                )
-            ]
-            dagzoo_handoff_manifest_path = single_handoff.handoff_manifest_path
-        else:
-            verified_handoffs = [
-                _verified_invocation_handoff(
-                    corpus_root=stage_root,
-                    spec=spec,
-                )
-                for spec in recipe.invocations
-            ]
-            generated_roots = [
-                _manifest_source_root(
-                    handoff=handoff,
-                    filter_policy=str(recipe.manifest_policy.filter_policy),
-                )
-                for handoff in verified_handoffs
-            ]
-            dagzoo_handoff_manifest_path = None
-        manifest_path = stage_root / "manifest.parquet"
-        _ = build_manifest(
-            data_roots=generated_roots,
-            out_path=manifest_path,
-            train_ratio=float(recipe.manifest_policy.train_ratio),
-            val_ratio=float(recipe.manifest_policy.val_ratio),
-            filter_policy=str(recipe.manifest_policy.filter_policy),
-            missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
-            dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+        _materialize_invocations_with_subprocess_fanout(
+            recipe_id=prepared.recipe.recipe_id,
+            invocations=prepared.recipe.invocations,
+            dagzoo_root=prepared.dagzoo_root,
+            corpus_root=prepared.stage_root,
+            repo_root=prepared.repo_root,
+            sweep_id=prepared.sweep_id,
+            sweeps_root=prepared.sweeps_root,
+            materialize_processes=materialize_processes,
+            materialize_worker_threads=materialize_worker_threads,
         )
-        manifest_sha256 = sha256_path(manifest_path)
-        corpus_id = corpus_id_for_manifest(
-            recipe_id=recipe.recipe_id,
-            manifest_sha256=manifest_sha256,
-            recipe_identity=(
-                storage.recipe_identity if storage.uses_scoped_identity else None
-            ),
-        )
-        corpus_ref = f"{recipe.recipe_id}/{corpus_id}"
-        final_root = recipe_root / corpus_id
-        if final_root.exists():
-            if force:
-                shutil.rmtree(final_root)
-            else:
-                existing_record = _load_reusable_corpus_record(
-                    corpus_ref,
-                    repo_root=resolved_repo_root,
-                    sweep_id=sweep_id,
-                    sweeps_root=sweeps_root,
-                )
-                if existing_record is not None and _record_matches_recipe(
-                    existing_record,
-                    recipe,
-                    storage=storage,
-                ):
-                    shutil.rmtree(stage_root)
-                    return existing_record
-                shutil.rmtree(final_root)
-        shutil.move(str(stage_root), str(final_root))
-        resolved_manifest_path = final_root / "manifest.parquet"
-        invocation_payloads = [
-            _invocation_record_payload(
-                dagzoo_root=resolved_dagzoo_root,
-                corpus_root=final_root,
-                spec=spec,
-            )
-            for spec in recipe.invocations
-        ]
-        dagzoo_provenance_summary = build_dagzoo_provenance_summary(
-            recipe=recipe,
-            corpus_ref=corpus_ref,
-            corpus_id=corpus_id,
-            provenance={
-                "invocations": invocation_payloads,
-            },
-        )
-        invocation_filter_payloads = _invocation_filter_payloads(invocation_payloads)
-        dagzoo_provenance = _drop_none_values(
-            {
-                "corpus_ref": corpus_ref,
-                "recipe_id": recipe.recipe_id,
-                "corpus_id": corpus_id,
-                "recipe_kind": recipe.kind,
-                "corpus_variant": recipe.provenance_labels.get("corpus_variant", recipe.surface_label),
-                "comparator_role": recipe.provenance_labels.get("comparator_role"),
-                "config_refs": sorted(
-                    {_invocation_requested_config_ref(invocation) for invocation in recipe.invocations}
-                ),
-                "commands": [
-                    command
-                    for payload in invocation_payloads
-                    for command in (
-                        cast(list[Any], payload.get("commands"))
-                        if isinstance(payload.get("commands"), list)
-                        else (
-                            [payload.get("command")]
-                            if payload.get("command") is not None
-                            else []
-                        )
-                    )
-                    if isinstance(command, str) and command.strip()
-                ],
-                "filter_policy": dagzoo_provenance_summary.get("filter_policy"),
-                "accepted_datasets": dagzoo_provenance_summary.get("accepted_datasets"),
-                "rejected_datasets": dagzoo_provenance_summary.get("rejected_datasets"),
-                "curated_accepted_datasets": dagzoo_provenance_summary.get(
-                    "curated_accepted_datasets"
-                ),
-                "acceptance_rate": dagzoo_provenance_summary.get("acceptance_rate"),
-                "filter_manifest_paths": [
-                    filter_payload.get("filter_manifest_path")
-                    for filter_payload in invocation_filter_payloads
-                    if filter_payload.get("filter_manifest_path") is not None
-                ],
-                "filter_summary_paths": [
-                    filter_payload.get("filter_summary_path")
-                    for filter_payload in invocation_filter_payloads
-                    if filter_payload.get("filter_summary_path") is not None
-                ],
-                "curated_root_lineage": [
-                    filter_payload.get("curated_dir")
-                    for filter_payload in invocation_filter_payloads
-                    if filter_payload.get("curated_dir") is not None
-                ],
-                "invocations": invocation_payloads,
-                "dagzoo_git": _git_info(resolved_dagzoo_root),
-                "target_derivation": dagzoo_provenance_summary.get("target_derivation"),
-                "target_relevant_feature_count_range": dagzoo_provenance_summary.get(
-                    "target_relevant_feature_count_range"
-                ),
-                "target_relevant_feature_fraction_range": dagzoo_provenance_summary.get(
-                    "target_relevant_feature_fraction_range"
-                ),
-            }
-        )
-        manifest_inspection = inspect_manifest_summary(resolved_manifest_path)
-        manifest_persisted_summary = manifest_inspection.get("persisted_summary")
-        characteristics_sidecar_path = _manifest_characteristics_sidecar_path(corpus_root=final_root)
-        record: dict[str, Any] = {
-            "schema": CORPUS_RECORD_SCHEMA,
-            "generated_at_utc": utc_now(),
-            "recipe_id": recipe.recipe_id,
-            "corpus_id": corpus_id,
-            "corpus_ref": corpus_ref,
-            "recipe_path": str(recipe.recipe_path),
-            "recipe_identity": storage.recipe_identity,
-            "recipe_relative_path": storage.recipe_relative_path,
-            "surface_label": recipe.surface_label,
-            "surface_label_recommendation": recipe.surface_label,
-            "recipe": recipe.to_dict(),
-            "artifacts": {
-                "corpus_root": str(final_root.resolve()),
-                "manifest_path": str(resolved_manifest_path.resolve()),
-                "latest_pointer_path": str(
-                    _latest_pointer_path(
-                        recipe_id=recipe.recipe_id,
-                        repo_root=resolved_repo_root,
-                        recipe_identity=(
-                            storage.recipe_identity if storage.uses_scoped_identity else None
-                        ),
-                    )
-                ),
-            },
-            "manifest": {
-                "manifest_path": str(resolved_manifest_path.resolve()),
-                "manifest_sha256": manifest_sha256,
-                "inspection": manifest_inspection,
-                "characteristics": {
-                    "persisted_summary": manifest_persisted_summary,
-                    "sidecar_path": str(characteristics_sidecar_path.resolve()),
-                    "cache_status": "deferred",
-                },
-            },
-            "dagzoo_provenance": dagzoo_provenance,
-            "dagzoo_provenance_summary": dagzoo_provenance_summary,
-        }
-        record_path = final_root / "corpus_record.json"
-        record["corpus_record_path"] = str(record_path.resolve())
-        record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        latest_path = _write_latest_pointer(
-            recipe_id=recipe.recipe_id,
-            corpus_id=corpus_id,
-            corpus_ref=corpus_ref,
-            record_path=record_path,
-            recipe_path=recipe.recipe_path,
-            recipe_identity=storage.recipe_identity,
-            repo_root=resolved_repo_root,
-            scoped_recipe_identity=(
-                storage.recipe_identity if storage.uses_scoped_identity else None
-            ),
-        )
-        record["artifacts"]["latest_pointer_path"] = str(latest_path.resolve())
-        record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        return record
+        return _finalize_materialized_recipe(prepared, force=force)
     finally:
-        if stage_root.exists():
-            shutil.rmtree(stage_root)
+        if prepared.stage_root.exists():
+            shutil.rmtree(prepared.stage_root)

@@ -10,7 +10,10 @@ import subprocess
 import tab_foundry.cli.data_inspect as data_inspect_module
 from tab_foundry.data.corpus_loading import list_corpus_recipes
 from tab_foundry.data.corpus_lookup import load_corpus_record
-from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
+from tab_foundry.data.corpus_materialization import (
+    default_materialize_processes,
+    materialize_corpus_recipe,
+)
 from tab_foundry.data.corpus_reporting import (
     corpus_compare_payload,
     corpus_results_payload,
@@ -32,6 +35,12 @@ def _positive_int(raw: str) -> int:
     if value <= 0:
         raise argparse.ArgumentTypeError(f"Expected a positive integer, got {raw}.")
     return value
+
+
+def _positive_int_or_auto(raw: str) -> int | None:
+    if str(raw).strip().lower() == "auto":
+        return None
+    return _positive_int(raw)
 
 
 def _seed_32bit_int(raw: str) -> int:
@@ -204,6 +213,12 @@ def _run_corpus_materialize(args: argparse.Namespace) -> int:
         recipe_id=str(args.recipe),
         dagzoo_root=Path(str(args.dagzoo_root)),
         force=bool(args.force),
+        materialize_processes=int(args.materialize_processes),
+        materialize_worker_threads=(
+            None
+            if args.materialize_worker_threads is None
+            else int(args.materialize_worker_threads)
+        ),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
     )
     if bool(args.json):
@@ -454,6 +469,18 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     materialize_parser.add_argument("--dagzoo-root", required=True, help="Local dagzoo checkout root")
     materialize_parser.add_argument("--force", action="store_true", help="Replace an existing local materialization")
+    materialize_parser.add_argument(
+        "--materialize-processes",
+        type=_positive_int,
+        default=default_materialize_processes(),
+        help="Maximum concurrent invocation subprocesses to use while materializing the corpus",
+    )
+    materialize_parser.add_argument(
+        "--materialize-worker-threads",
+        type=_positive_int_or_auto,
+        default=None,
+        help="Per-dagzoo subprocess CPU thread budget. Use 'auto' for the balanced default.",
+    )
     materialize_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     materialize_parser.set_defaults(func=_run_corpus_materialize)
 

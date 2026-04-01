@@ -4,8 +4,6 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
-import threading
-import time
 from types import SimpleNamespace
 
 from omegaconf import OmegaConf
@@ -144,37 +142,52 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
     )
     captured: list[dict[str, object]] = []
 
-    def _fake_materialize_corpus_ref(
+    def _fake_materialize_corpus_refs_batch(
         *,
-        corpus_ref: str,
+        corpus_refs: list[str],
         dagzoo_root: Path,
         force: bool = False,
+        materialize_processes: int | None = None,
+        materialize_worker_threads: int | None = None,
         repo_root: Path | None = None,
         sweep_id: str | None = None,
         sweeps_root: Path | None = None,
-    ) -> dict[str, object]:
-        recipe_id = str(corpus_ref).split("/", 1)[0]
-        captured.append(
-            {
-                "corpus_ref": corpus_ref,
-                "dagzoo_root": str(dagzoo_root),
-                "force": force,
-                "repo_root": None if repo_root is None else str(repo_root),
-                "sweep_id": sweep_id,
-                "sweeps_root": None if sweeps_root is None else str(sweeps_root),
-            }
-        )
-        return {
-            "recipe_id": recipe_id,
-            "corpus_ref": (
-                str(corpus_ref)
-                if "/" in str(corpus_ref)
-                else f"{recipe_id}/{recipe_id}__123456789abc"
-            ),
-            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
-        }
+    ) -> list[dict[str, object]]:
+        del materialize_worker_threads
+        records: list[dict[str, object]] = []
+        for corpus_ref in corpus_refs:
+            recipe_id = str(corpus_ref).split("/", 1)[0]
+            captured.append(
+                {
+                    "corpus_ref": corpus_ref,
+                    "dagzoo_root": str(dagzoo_root),
+                    "force": force,
+                    "materialize_processes": materialize_processes,
+                    "repo_root": None if repo_root is None else str(repo_root),
+                    "sweep_id": sweep_id,
+                    "sweeps_root": None if sweeps_root is None else str(sweeps_root),
+                }
+            )
+            records.append(
+                {
+                    "recipe_id": recipe_id,
+                    "corpus_ref": (
+                        str(corpus_ref)
+                        if "/" in str(corpus_ref)
+                        else f"{recipe_id}/{recipe_id}__123456789abc"
+                    ),
+                    "manifest": {
+                        "manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())
+                    },
+                }
+            )
+        return records
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    monkeypatch.setattr(
+        materialize_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
 
     payload = materialize_sweep_corpora(
         dagzoo_root=tmp_path / "dagzoo",
@@ -193,6 +206,7 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
                 "corpus_ref": "local_recipe",
                 "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
                 "force": True,
+                "materialize_processes": None,
                 "repo_root": str(tmp_path.resolve()),
                 "sweep_id": "tf_rd_local",
                 "sweeps_root": None,
@@ -201,6 +215,7 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
                 "corpus_ref": "global_recipe",
                 "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
                 "force": True,
+                "materialize_processes": None,
                 "repo_root": str(tmp_path.resolve()),
                 "sweep_id": "tf_rd_local",
                 "sweeps_root": None,
@@ -209,6 +224,7 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
                 "corpus_ref": "local_recipe/local_recipe__cached",
                 "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
                 "force": True,
+                "materialize_processes": None,
                 "repo_root": str(tmp_path.resolve()),
                 "sweep_id": "tf_rd_local",
                 "sweeps_root": None,
@@ -255,17 +271,28 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
     )
     captured: list[str] = []
 
-    def _fake_materialize_corpus_ref(**kwargs) -> dict[str, object]:
-        corpus_ref = str(kwargs["corpus_ref"])
-        captured.append(corpus_ref)
-        recipe_id = corpus_ref.split("/", 1)[0]
-        return {
-            "recipe_id": recipe_id,
-            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
-            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
-        }
+    def _fake_materialize_corpus_refs_batch(**kwargs) -> list[dict[str, object]]:
+        records: list[dict[str, object]] = []
+        for corpus_ref in kwargs["corpus_refs"]:
+            corpus_ref = str(corpus_ref)
+            captured.append(corpus_ref)
+            recipe_id = corpus_ref.split("/", 1)[0]
+            records.append(
+                {
+                    "recipe_id": recipe_id,
+                    "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+                    "manifest": {
+                        "manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())
+                    },
+                }
+            )
+        return records
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    monkeypatch.setattr(
+        materialize_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
 
     payload = materialize_sweep_corpora(
         dagzoo_root=tmp_path / "dagzoo",
@@ -307,17 +334,28 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
     )
     captured: list[str] = []
 
-    def _fake_materialize_corpus_ref(**kwargs) -> dict[str, object]:
-        corpus_ref = str(kwargs["corpus_ref"])
-        captured.append(corpus_ref)
-        recipe_id = corpus_ref.split("/", 1)[0]
-        return {
-            "recipe_id": recipe_id,
-            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
-            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
-        }
+    def _fake_materialize_corpus_refs_batch(**kwargs) -> list[dict[str, object]]:
+        records: list[dict[str, object]] = []
+        for corpus_ref in kwargs["corpus_refs"]:
+            corpus_ref = str(corpus_ref)
+            captured.append(corpus_ref)
+            recipe_id = corpus_ref.split("/", 1)[0]
+            records.append(
+                {
+                    "recipe_id": recipe_id,
+                    "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+                    "manifest": {
+                        "manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())
+                    },
+                }
+            )
+        return records
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    monkeypatch.setattr(
+        materialize_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
 
     payload = materialize_sweep_corpora(
         dagzoo_root=tmp_path / "dagzoo",
@@ -336,7 +374,7 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
     ]
 
 
-def test_materialize_sweep_corpora_runs_distinct_corpus_materializations_in_parallel(
+def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_materialization(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -351,45 +389,47 @@ def test_materialize_sweep_corpora_runs_distinct_corpus_materializations_in_para
             ],
         },
     )
-    lock = threading.Lock()
-    ready = threading.Event()
-    active = 0
-    max_active = 0
-    call_count = 0
+    captured_materialize_processes: list[int] = []
 
-    def _fake_materialize_corpus_ref(**kwargs) -> dict[str, object]:
-        nonlocal active, max_active, call_count
-        corpus_ref = str(kwargs["corpus_ref"])
-        recipe_id = corpus_ref.split("/", 1)[0]
-        with lock:
-            call_count += 1
-            active += 1
-            max_active = max(max_active, active)
-            if call_count >= 2:
-                ready.set()
-        if not ready.wait(timeout=1.5):
-            raise AssertionError("distinct corpus materializations did not overlap")
-        time.sleep(0.05)
-        with lock:
-            active -= 1
-        return {
-            "recipe_id": recipe_id,
-            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
-            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
-        }
+    captured_materialize_worker_threads: list[int | None] = []
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    def _fake_materialize_corpus_refs_batch(**kwargs) -> list[dict[str, object]]:
+        captured_materialize_processes.append(int(kwargs["materialize_processes"]))
+        captured_materialize_worker_threads.append(kwargs["materialize_worker_threads"])
+        records: list[dict[str, object]] = []
+        for corpus_ref in kwargs["corpus_refs"]:
+            corpus_ref = str(corpus_ref)
+            recipe_id = corpus_ref.split("/", 1)[0]
+            records.append(
+                {
+                    "recipe_id": recipe_id,
+                    "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+                    "manifest": {
+                        "manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())
+                    },
+                }
+            )
+        return records
+
+    monkeypatch.setattr(
+        materialize_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
 
     payload = materialize_sweep_corpora(
         dagzoo_root=tmp_path / "dagzoo",
         sweep_id="tf_rd_local",
         force=True,
+        materialize_processes=3,
+        materialize_worker_threads=2,
         index_path=tmp_path / "index.yaml",
         catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
     )
 
     assert payload["requested_corpus_refs"] == ["recipe_a", "recipe_b"]
-    assert max_active >= 2
+    assert captured_materialize_processes == [3]
+    assert captured_materialize_worker_threads == [2]
 
 
 def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(
@@ -411,13 +451,17 @@ def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref
         },
     )
 
-    def _failing_materialize_corpus_ref(**_kwargs) -> dict[str, object]:
+    def _failing_materialize_corpus_refs_batch(**_kwargs) -> list[dict[str, object]]:
         raise RuntimeError(
             "requested corpus_ref 'local_recipe/local_recipe__cached' is pinned to an exact corpus id, "
             "but materializing recipe 'local_recipe' produced 'local_recipe/local_recipe__123456789abc'"
         )
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _failing_materialize_corpus_ref)
+    monkeypatch.setattr(
+        materialize_module,
+        "materialize_corpus_refs_batch",
+        _failing_materialize_corpus_refs_batch,
+    )
 
     with pytest.raises(RuntimeError, match="pinned to an exact corpus id"):
         _ = materialize_sweep_corpora(

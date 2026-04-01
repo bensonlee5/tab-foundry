@@ -317,6 +317,10 @@ def test_build_training_surface_record_persists_corpus_identity(
     repo_root.mkdir(parents=True, exist_ok=True)
     _write_recipe_registry(repo_root)
     dagzoo_root = tmp_path / "dagzoo"
+    dagzoo_python = dagzoo_root / ".venv" / "bin" / "python"
+    dagzoo_python.parent.mkdir(parents=True, exist_ok=True)
+    dagzoo_python.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    dagzoo_python.chmod(0o755)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
     monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)

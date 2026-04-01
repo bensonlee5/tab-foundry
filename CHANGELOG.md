@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.9] - 2026-04-01
+
+### Changed
+
+- User-facing note: automatic corpus materialization now defaults to a more
+  aggressive CPU budget, using up to `8` invocation subprocesses with
+  auto-balanced per-subprocess worker threads. On a `10`-CPU machine this now
+  resolves to `8x1` instead of `4x2`.
+
 ## [0.15.8] - 2026-04-01
 
 ### Changed

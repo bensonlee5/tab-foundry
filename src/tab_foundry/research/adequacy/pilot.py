@@ -15,8 +15,11 @@ from omegaconf import OmegaConf
 from sklearn.linear_model import LogisticRegression
 
 from tab_foundry.config import compose_config
-from tab_foundry.data.corpus_materialization import materialize_corpus_ref
-from tab_foundry.data.dataset import PackedParquetTaskDataset, load_manifest_record_metadata
+from tab_foundry.data.corpus_materialization import materialize_corpus_refs_batch
+from tab_foundry.data.dataset import (
+    PackedParquetTaskDataset,
+    load_manifest_record_catalog,
+)
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.research.synthetic_adequacy import (
     SyntheticAdequacyBlock,
@@ -180,122 +183,57 @@ def _classification_manifest_records(manifest_path: Path) -> list[dict[str, Any]
 
 
 def validate_latent_target_metadata(
-    metadata: Mapping[str, Any],
+    catalog_record: Mapping[str, Any],
     *,
     n_features: int | None = None,
 ) -> dict[str, Any]:
     missing_reasons: list[str] = []
-    prior = _optional_mapping(metadata.get("prior"))
-    lineage = _optional_mapping(metadata.get("lineage"))
-    assignments = None if lineage is None else _optional_mapping(lineage.get("assignments"))
-
-    target_derivation = None if prior is None else prior.get("target_derivation")
+    target_derivation = catalog_record.get("target_derivation")
     if target_derivation != _LATENT_TARGET_DERIVATION:
         missing_reasons.append(
-            f"metadata.prior.target_derivation must equal {_LATENT_TARGET_DERIVATION!r}"
+            f"catalog.target_derivation must equal {_LATENT_TARGET_DERIVATION!r}"
         )
 
-    feature_to_node: list[int] | None = None
-    target_to_node: int | None = None
-    target_relevant_features: list[int] | None = None
+    feature_count = int(n_features) if n_features is not None else None
     target_relevant_feature_count: int | None = None
     target_relevant_feature_fraction: float | None = None
-
-    if assignments is None:
-        missing_reasons.append("metadata.lineage.assignments is missing")
+    target_relevance = _optional_mapping(catalog_record.get("target_relevance"))
+    if target_relevance is None:
+        missing_reasons.append("catalog.target_relevance is missing")
     else:
-        raw_feature_to_node = assignments.get("feature_to_node")
-        if not isinstance(raw_feature_to_node, list) or not raw_feature_to_node:
+        target_relevant_feature_count = _int_or_none(target_relevance.get("feature_count"))
+        if target_relevant_feature_count is None:
+            missing_reasons.append("catalog.target_relevance.feature_count must be an integer")
+        elif target_relevant_feature_count < 0:
             missing_reasons.append(
-                "metadata.lineage.assignments.feature_to_node must be a non-empty list"
+                "catalog.target_relevance.feature_count must be non-negative"
             )
-        else:
-            try:
-                feature_to_node = [int(value) for value in raw_feature_to_node]
-            except (TypeError, ValueError):
-                missing_reasons.append(
-                    "metadata.lineage.assignments.feature_to_node must contain integers"
-                )
-            else:
-                if n_features is not None and len(feature_to_node) != int(n_features):
-                    missing_reasons.append(
-                        "metadata.lineage.assignments.feature_to_node length does not match n_features"
-                    )
-
-        raw_target_to_node = assignments.get("target_to_node")
-        if isinstance(raw_target_to_node, bool) or not isinstance(raw_target_to_node, int):
-            missing_reasons.append("metadata.lineage.assignments.target_to_node must be an integer")
-        else:
-            target_to_node = int(raw_target_to_node)
-            if target_to_node < 0:
-                missing_reasons.append("metadata.lineage.assignments.target_to_node must be non-negative")
-
-        raw_relevant_features = assignments.get("target_relevant_features")
-        if not isinstance(raw_relevant_features, list):
-            missing_reasons.append(
-                "metadata.lineage.assignments.target_relevant_features must be a list"
-            )
-        else:
-            try:
-                target_relevant_features = [int(value) for value in raw_relevant_features]
-            except (TypeError, ValueError):
-                missing_reasons.append(
-                    "metadata.lineage.assignments.target_relevant_features must contain integers"
-                )
-            else:
-                if len(set(target_relevant_features)) != len(target_relevant_features):
-                    missing_reasons.append(
-                        "metadata.lineage.assignments.target_relevant_features must be unique"
-                    )
-                if feature_to_node is not None:
-                    feature_count = len(feature_to_node)
-                    invalid_feature_indices = [
-                        feature_index
-                        for feature_index in target_relevant_features
-                        if feature_index < 0 or feature_index >= feature_count
-                    ]
-                    if invalid_feature_indices:
-                        missing_reasons.append(
-                            "metadata.lineage.assignments.target_relevant_features contains out-of-range indices"
-                        )
-
-        raw_relevant_count = assignments.get("target_relevant_feature_count")
-        if isinstance(raw_relevant_count, bool) or not isinstance(raw_relevant_count, int):
-            missing_reasons.append(
-                "metadata.lineage.assignments.target_relevant_feature_count must be an integer"
-            )
-        else:
-            target_relevant_feature_count = int(raw_relevant_count)
-            if target_relevant_feature_count < 0:
-                missing_reasons.append(
-                    "metadata.lineage.assignments.target_relevant_feature_count must be non-negative"
-                )
 
         target_relevant_feature_fraction = _finite_float_or_none(
-            assignments.get("target_relevant_feature_fraction")
+            target_relevance.get("feature_fraction")
         )
         if target_relevant_feature_fraction is None or not (
             0.0 <= target_relevant_feature_fraction <= 1.0
         ):
             missing_reasons.append(
-                "metadata.lineage.assignments.target_relevant_feature_fraction must be finite in [0, 1]"
+                "catalog.target_relevance.feature_fraction must be finite in [0, 1]"
             )
 
         if (
-            target_relevant_features is not None
+            feature_count is not None
             and target_relevant_feature_count is not None
-            and len(target_relevant_features) != target_relevant_feature_count
+            and target_relevant_feature_count > feature_count
         ):
             missing_reasons.append(
-                "metadata.lineage.assignments.target_relevant_feature_count does not match target_relevant_features"
+                "catalog.target_relevance.feature_count must be within [0, n_features]"
             )
         if (
-            feature_to_node is not None
+            feature_count is not None
             and target_relevant_feature_count is not None
             and target_relevant_feature_fraction is not None
-            and len(feature_to_node) > 0
+            and feature_count > 0
         ):
-            expected_fraction = float(target_relevant_feature_count) / float(len(feature_to_node))
+            expected_fraction = float(target_relevant_feature_count) / float(feature_count)
             if not math.isclose(
                 target_relevant_feature_fraction,
                 expected_fraction,
@@ -303,7 +241,7 @@ def validate_latent_target_metadata(
                 abs_tol=1.0e-9,
             ):
                 missing_reasons.append(
-                    "metadata.lineage.assignments.target_relevant_feature_fraction does not match feature count / n_features"
+                    "catalog.target_relevance.feature_fraction does not match feature_count / n_features"
                 )
 
     return {
@@ -311,8 +249,7 @@ def validate_latent_target_metadata(
         "target_derivation": (
             None if target_derivation is None else str(target_derivation)
         ),
-        "feature_count": None if feature_to_node is None else len(feature_to_node),
-        "target_to_node": target_to_node,
+        "feature_count": feature_count,
         "target_relevant_feature_count": target_relevant_feature_count,
         "target_relevant_feature_fraction": target_relevant_feature_fraction,
         "missing_reasons": missing_reasons,
@@ -421,13 +358,12 @@ def inspect_corpus_latent_target_contract(
                 f"manifest is missing a classification record for row_total={int(row_total)}"
             )
             continue
-        metadata, _feature_types = load_manifest_record_metadata(
+        catalog_record = load_manifest_record_catalog(
             manifest_path,
             record=sample_record,
-            require_feature_types=False,
         )
         validation = validate_latent_target_metadata(
-            metadata,
+            catalog_record,
             n_features=int(sample_record["n_features"]),
         )
         sample_entry = {
@@ -1077,12 +1013,30 @@ def _write_blocking_summary(
     )
 
 
+def _materialized_corpus_payload(
+    *,
+    block: SyntheticAdequacyBlock,
+    corpus_record: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "requested_corpus_ref": block.corpus_ref,
+        "materialized_corpus_ref": str(corpus_record["corpus_ref"]),
+        "recipe_id": str(corpus_record["recipe_id"]),
+        "corpus_id": str(corpus_record["corpus_id"]),
+        "surface_label": str(corpus_record["surface_label"]),
+        "manifest_path": str(_manifest_path_from_corpus_record(corpus_record)),
+        "corpus_record_path": str(corpus_record["corpus_record_path"]),
+    }
+
+
 def run_adequacy_pilot(
     *,
     adequacy_id: str,
     dagzoo_root: Path,
     device: str = _SUPPORTED_DEVICE,
     force: bool = False,
+    materialize_processes: int | None = None,
+    materialize_worker_threads: int | None = None,
     out_root: Path | None = None,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
@@ -1098,24 +1052,31 @@ def run_adequacy_pilot(
     materialized_corpora: dict[str, dict[str, Any]] = {}
     latent_target_contract: dict[str, dict[str, Any]] = {}
     canary_summary: dict[str, Any] | None = None
+    blocking_summary_written = False
 
+    blocks_by_recipe_id: dict[str, list[SyntheticAdequacyBlock]] = {}
     for block in spec.blocks:
-        try:
-            corpus_record = materialize_corpus_ref(
-                corpus_ref=block.corpus_ref,
-                dagzoo_root=dagzoo_root,
-                force=force,
-                repo_root=repo_root,
+        recipe_id, _separator, _corpus_id = str(block.corpus_ref).partition("/")
+        blocks_by_recipe_id.setdefault(recipe_id, []).append(block)
+
+    summary_md_path = pilot_root / _SUMMARY_MARKDOWN_NAME
+    canary_recipe_id = next(
+        (
+            str(block.corpus_ref).partition("/")[0]
+            for block in spec.blocks
+            if block.block_id == _CANARY_BLOCK_ID
+        ),
+        None,
+    )
+
+    def _on_corpus_materialized(corpus_record: dict[str, Any]) -> None:
+        nonlocal blocking_summary_written, canary_summary
+        recipe_id = str(corpus_record["recipe_id"])
+        for block in blocks_by_recipe_id.get(recipe_id, []):
+            materialized_corpora[block.block_id] = _materialized_corpus_payload(
+                block=block,
+                corpus_record=corpus_record,
             )
-            materialized_corpora[block.block_id] = {
-                "requested_corpus_ref": block.corpus_ref,
-                "materialized_corpus_ref": str(corpus_record["corpus_ref"]),
-                "recipe_id": str(corpus_record["recipe_id"]),
-                "corpus_id": str(corpus_record["corpus_id"]),
-                "surface_label": str(corpus_record["surface_label"]),
-                "manifest_path": str(_manifest_path_from_corpus_record(corpus_record)),
-                "corpus_record_path": str(corpus_record["corpus_record_path"]),
-            }
             latent_target_contract[block.block_id] = inspect_corpus_latent_target_contract(
                 block=block,
                 corpus_record=corpus_record,
@@ -1125,30 +1086,106 @@ def run_adequacy_pilot(
             )
             if filter_provenance is not None:
                 materialized_corpora[block.block_id]["filter_provenance"] = filter_provenance
-            if block.block_id == _CANARY_BLOCK_ID:
-                canary_summary = score_canary_block(
-                    block,
-                    corpus_record=corpus_record,
-                )
-        except Exception as exc:
-            reasoning = [
-                f"{block.block_id} failed during corpus materialization or validation: "
-                f"{type(exc).__name__}: {exc}"
-            ]
-            _write_blocking_summary(
-                adequacy_id=adequacy_id,
-                blocked_sweeps=spec.blocked_sweeps,
-                pilot_root=pilot_root,
-                materialized_corpora=materialized_corpora,
-                latent_target_contract=latent_target_contract,
-                canary_summary=canary_summary,
-                definition=spec.decision_buckets.get("generator_problem"),
-                reasoning=reasoning,
+            if block.block_id != _CANARY_BLOCK_ID:
+                continue
+            canary_summary = score_canary_block(
+                block,
+                corpus_record=corpus_record,
             )
-            raise RuntimeError(
-                "adequacy pilot blocked during corpus materialization or validation; "
-                f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
-            ) from exc
+            contract_payload = latent_target_contract[block.block_id]
+            if bool(contract_payload.get("required")) and not bool(contract_payload.get("present")):
+                _write_blocking_summary(
+                    adequacy_id=adequacy_id,
+                    blocked_sweeps=spec.blocked_sweeps,
+                    pilot_root=pilot_root,
+                    materialized_corpora=materialized_corpora,
+                    latent_target_contract=latent_target_contract,
+                    canary_summary=canary_summary,
+                    definition=spec.decision_buckets.get("generator_problem"),
+                    reasoning=[
+                        "latent-target contract validation failed for "
+                        + str(block.block_id)
+                    ],
+                )
+                blocking_summary_written = True
+                raise RuntimeError(
+                    "latent-target contract validation failed for the canary corpus; "
+                    f"wrote blocking summary to {summary_md_path.resolve()}"
+                )
+            canary_failure_reasons = _canary_failure_reasons(canary_summary)
+            if canary_failure_reasons:
+                _write_blocking_summary(
+                    adequacy_id=adequacy_id,
+                    blocked_sweeps=spec.blocked_sweeps,
+                    pilot_root=pilot_root,
+                    materialized_corpora=materialized_corpora,
+                    latent_target_contract=latent_target_contract,
+                    canary_summary=canary_summary,
+                    definition=spec.decision_buckets.get("generator_problem"),
+                    reasoning=canary_failure_reasons,
+                )
+                blocking_summary_written = True
+                raise RuntimeError(
+                    "canary baseline validation failed for the adequacy pilot; "
+                    f"wrote blocking summary to {summary_md_path.resolve()}"
+                )
+
+    try:
+        _ = materialize_corpus_refs_batch(
+            corpus_refs=[block.corpus_ref for block in spec.blocks],
+            dagzoo_root=dagzoo_root,
+            force=force,
+            materialize_processes=materialize_processes,
+            materialize_worker_threads=materialize_worker_threads,
+            prioritized_recipe_ids=(
+                [] if canary_recipe_id is None else [canary_recipe_id]
+            ),
+            on_corpus_materialized=_on_corpus_materialized,
+            repo_root=repo_root,
+        )
+    except Exception as exc:
+        if blocking_summary_written:
+            raise
+        _write_blocking_summary(
+            adequacy_id=adequacy_id,
+            blocked_sweeps=spec.blocked_sweeps,
+            pilot_root=pilot_root,
+            materialized_corpora=materialized_corpora,
+            latent_target_contract=latent_target_contract,
+            canary_summary=canary_summary,
+            definition=spec.decision_buckets.get("generator_problem"),
+            reasoning=[
+                "corpus materialization or validation failed: "
+                f"{type(exc).__name__}: {exc}"
+            ],
+        )
+        blocking_summary_written = True
+        raise RuntimeError(
+            "adequacy pilot blocked during corpus materialization or validation; "
+            f"wrote blocking summary to {summary_md_path.resolve()}"
+        ) from exc
+
+    missing_block_ids = [
+        block.block_id for block in spec.blocks if block.block_id not in materialized_corpora
+    ]
+    if missing_block_ids:
+        _write_blocking_summary(
+            adequacy_id=adequacy_id,
+            blocked_sweeps=spec.blocked_sweeps,
+            pilot_root=pilot_root,
+            materialized_corpora=materialized_corpora,
+            latent_target_contract=latent_target_contract,
+            canary_summary=canary_summary,
+            definition=spec.decision_buckets.get("generator_problem"),
+            reasoning=[
+                "missing materialized adequacy blocks: "
+                + ", ".join(sorted(missing_block_ids))
+            ],
+        )
+        raise RuntimeError(
+            "adequacy pilot did not materialize every required corpus; "
+            f"wrote blocking summary to {summary_md_path.resolve()}"
+        )
 
     missing_contract_blocks = [
         block_id

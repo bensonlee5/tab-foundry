@@ -369,6 +369,47 @@ def load_manifest_record_metadata(
     return metadata, feature_types
 
 
+def load_manifest_record_catalog(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Load the public packed-catalog record for one manifest row."""
+
+    required_keys = {"dataset_index"}
+    locator_keys = {
+        "catalog_path",
+        "catalog_offset_bytes",
+        "catalog_size_bytes",
+        "catalog_sha256",
+    }
+    legacy_locator_keys = {
+        "metadata_path",
+        "metadata_offset_bytes",
+        "metadata_size_bytes",
+        "metadata_sha256",
+    }
+    missing = sorted(required_keys - set(record))
+    if missing or (not locator_keys.issubset(record) and not legacy_locator_keys.issubset(record)):
+        raise RuntimeError(
+            "manifest record is missing required packed-contract fields: "
+            f"missing={missing}"
+        )
+
+    dataset_index = int(record["dataset_index"])
+    catalog_record = _load_manifest_record_catalog(
+        manifest_path,
+        record=record,
+    )
+    metadata_dataset_index = int(catalog_record.get("dataset_index", -1))
+    if metadata_dataset_index != dataset_index:
+        raise RuntimeError(
+            "metadata dataset_index mismatch for manifest record: "
+            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={manifest_path}"
+        )
+    return catalog_record
+
+
 def _read_packed_split_targets(
     split_path: Path,
     *,

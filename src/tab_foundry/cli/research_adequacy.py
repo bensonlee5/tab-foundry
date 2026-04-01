@@ -6,7 +6,21 @@ import argparse
 import sys
 from pathlib import Path
 
+from tab_foundry.data.corpus_materialization import default_materialize_processes
 from tab_foundry.research.adequacy.pilot import run_adequacy_pilot
+
+
+def _positive_int(raw: str) -> int:
+    value = int(raw)
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f"Expected a positive integer, got {raw}.")
+    return value
+
+
+def _positive_int_or_auto(raw: str) -> int | None:
+    if str(raw).strip().lower() == "auto":
+        return None
+    return _positive_int(raw)
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -36,6 +50,18 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         default=None,
         help="Optional output root override for pilot artifacts",
     )
+    parser.add_argument(
+        "--materialize-processes",
+        type=_positive_int,
+        default=default_materialize_processes(),
+        help="Maximum concurrent invocation subprocesses to use while materializing pilot corpora",
+    )
+    parser.add_argument(
+        "--materialize-worker-threads",
+        type=_positive_int_or_auto,
+        default=None,
+        help="Per-dagzoo subprocess CPU thread budget. Use 'auto' for the balanced default.",
+    )
     return parser
 
 
@@ -53,6 +79,12 @@ def run_from_args(args: argparse.Namespace) -> int:
             None
             if args.out_root is None
             else Path(str(args.out_root)).expanduser().resolve()
+        ),
+        materialize_processes=int(args.materialize_processes),
+        materialize_worker_threads=(
+            None
+            if args.materialize_worker_threads is None
+            else int(args.materialize_worker_threads)
         ),
     )
     summary_paths = summary.get("summary_paths", {})

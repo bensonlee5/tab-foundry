@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import subprocess
 from typing import Any, Mapping, cast
@@ -32,6 +33,7 @@ class DagzooGenerateConfig:
     missing_mar_observed_fraction: float | None = None
     missing_mar_logit_scale: float | None = None
     missing_mnar_logit_scale: float | None = None
+    worker_threads: int | None = None
     set_overrides: tuple[str, ...] = ()
 
 
@@ -63,6 +65,7 @@ class DagzooFilterConfig:
     input_dir: Path
     filter_out_dir: Path
     curated_out_dir: Path | None = None
+    worker_threads: int | None = None
     set_overrides: tuple[str, ...] = ()
 
 
@@ -97,15 +100,47 @@ def _append_dagzoo_set_override(argv: list[str], *, key: str, value: object) -> 
     argv.extend(["--set", f"{key}={value}"])
 
 
+def _dagzoo_python_executable(dagzoo_root: Path) -> Path:
+    executable = dagzoo_root.expanduser().resolve() / ".venv" / "bin" / "python"
+    if not executable.exists():
+        raise RuntimeError(
+            "dagzoo venv interpreter does not exist; expected "
+            f"{executable}. Bootstrap ../dagzoo/.venv before materializing corpora."
+        )
+    if not executable.is_file():
+        raise RuntimeError(f"dagzoo venv interpreter must be a file: {executable}")
+    return executable
+
+
+_THREAD_BUDGET_ENV_VARS = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+)
+
+
+def _dagzoo_subprocess_env(*, worker_threads: int | None) -> dict[str, str] | None:
+    if worker_threads is None:
+        return None
+    resolved_threads = int(worker_threads)
+    env = dict(os.environ)
+    for env_var in _THREAD_BUDGET_ENV_VARS:
+        env[env_var] = str(resolved_threads)
+    return env
+
+
 def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
     """Build the dagzoo CLI argv for one generate run."""
 
     dagzoo_root = config.dagzoo_root.expanduser().resolve()
+    dagzoo_python = _dagzoo_python_executable(dagzoo_root)
     dagzoo_config = _resolve_from_root(dagzoo_root, config.dagzoo_config)
     handoff_root = _resolve_from_root(dagzoo_root, config.handoff_root)
     argv = [
-        "uv",
-        "run",
+        str(dagzoo_python),
+        "-m",
         "dagzoo",
         "generate",
         "--config",
@@ -173,11 +208,12 @@ def build_dagzoo_filter_argv(config: DagzooFilterConfig) -> list[str]:
     """Build the dagzoo CLI argv for one filter run."""
 
     dagzoo_root = config.dagzoo_root.expanduser().resolve()
+    dagzoo_python = _dagzoo_python_executable(dagzoo_root)
     input_dir = _resolve_from_root(dagzoo_root, config.input_dir)
     filter_out_dir = _resolve_from_root(dagzoo_root, config.filter_out_dir)
     argv = [
-        "uv",
-        "run",
+        str(dagzoo_python),
+        "-m",
         "dagzoo",
         "filter",
         "--in",
@@ -194,6 +230,8 @@ def build_dagzoo_filter_argv(config: DagzooFilterConfig) -> list[str]:
         )
     for override in config.set_overrides:
         argv.extend(["--set", str(cast(str, override))])
+    if config.worker_threads is not None:
+        argv.extend(["--set", f"filter.n_jobs={int(config.worker_threads)}"])
     return argv
 
 
@@ -210,7 +248,12 @@ def run_dagzoo_generate(config: DagzooGenerateConfig) -> DagzooHandoffInfo:
         raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config}")
 
     argv = build_dagzoo_generate_argv(config)
-    subprocess.run(argv, cwd=dagzoo_root, check=True)
+    subprocess.run(
+        argv,
+        cwd=dagzoo_root,
+        check=True,
+        env=_dagzoo_subprocess_env(worker_threads=config.worker_threads),
+    )
 
     handoff_root = _resolve_from_root(dagzoo_root, config.handoff_root)
     handoff = load_dagzoo_handoff_info(handoff_root / "handoff_manifest.json")
@@ -233,7 +276,12 @@ def run_dagzoo_filter(config: DagzooFilterConfig) -> DagzooFilterResult:
     if not input_dir.exists():
         raise RuntimeError(f"dagzoo filter input does not exist: {input_dir}")
     argv = build_dagzoo_filter_argv(config)
-    subprocess.run(argv, cwd=dagzoo_root, check=True)
+    subprocess.run(
+        argv,
+        cwd=dagzoo_root,
+        check=True,
+        env=_dagzoo_subprocess_env(worker_threads=config.worker_threads),
+    )
 
     filter_out_dir = _resolve_from_root(dagzoo_root, config.filter_out_dir)
     manifest_path = filter_out_dir / "filter_manifest.ndjson"
@@ -293,6 +341,7 @@ def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> Dagzoo
                 input_dir=handoff.generated_dir,
                 filter_out_dir=handoff.handoff_manifest_path.parent / "filter",
                 curated_out_dir=handoff.curated_dir or (handoff.handoff_manifest_path.parent / "curated"),
+                worker_threads=config.worker_threads,
             )
         )
         if filter_result.curated_out_dir is None:
