@@ -9,8 +9,6 @@ from tab_foundry.export.contracts import (
     compute_v3_manifest_sha256,
     ExportModelSpec,
     ExportPreprocessorState,
-    LegacyPreprocessorState,
-    SCHEMA_VERSION_V2,
     SCHEMA_VERSION_V3,
     validate_inference_config_dict,
     validate_manifest_dict,
@@ -26,15 +24,10 @@ def _load_fixture(name: str) -> dict[str, object]:
     return payload
 
 
-def test_manifest_v2_fixture_validates() -> None:
+def test_manifest_v2_fixture_is_rejected() -> None:
     payload = _load_fixture("manifest_v2.json")
-    manifest = validate_manifest_dict(payload)
-    assert manifest.schema_version == SCHEMA_VERSION_V2
-    assert manifest.task == "classification"
-    assert manifest.model.feature_group_size == 1
-    assert manifest.model.input_normalization == "none"
-    assert manifest.model.norm_type == "layernorm"
-    assert manifest.model.tfrow_norm == "layernorm"
+    with pytest.raises(ValueError, match="Unsupported schema version"):
+        _ = validate_manifest_dict(payload)
 
 
 def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> None:
@@ -98,50 +91,6 @@ def test_manifest_v3_validation_accepts_additive_staged_surface_fields() -> None
     assert manifest.model.pre_encoder_clip == pytest.approx(10.0)
 
 
-def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> None:
-    payload = _load_fixture("manifest_v2.json")
-    model_raw = payload["model"]
-    assert isinstance(model_raw, dict)
-    model_payload = dict(model_raw)
-    for key in (
-        "input_normalization",
-        "norm_type",
-        "tfcol_n_heads",
-        "tfcol_n_layers",
-        "tfcol_n_inducing",
-        "tfrow_n_heads",
-        "tfrow_n_layers",
-        "tfrow_cls_tokens",
-        "tfrow_norm",
-        "tficl_n_heads",
-        "tficl_n_layers",
-        "tficl_ff_expansion",
-        "many_class_base",
-        "head_hidden_dim",
-        "use_digit_position_embed",
-    ):
-        model_payload.pop(key, None)
-    payload["model"] = model_payload
-
-    manifest = validate_manifest_dict(payload)
-
-    assert manifest.model.input_normalization == "none"
-    assert manifest.model.norm_type == "layernorm"
-    assert manifest.model.tfcol_n_heads == 8
-    assert manifest.model.tfcol_n_layers == 3
-    assert manifest.model.tfcol_n_inducing == 128
-    assert manifest.model.tfrow_n_heads == 8
-    assert manifest.model.tfrow_n_layers == 3
-    assert manifest.model.tfrow_cls_tokens == 4
-    assert manifest.model.tfrow_norm == "layernorm"
-    assert manifest.model.tficl_n_heads == 8
-    assert manifest.model.tficl_n_layers == 12
-    assert manifest.model.tficl_ff_expansion == 2
-    assert manifest.model.many_class_base == 10
-    assert manifest.model.head_hidden_dim == 1024
-    assert manifest.model.use_digit_position_embed is True
-
-
 def test_manifest_v3_validation_requires_input_normalization() -> None:
     payload = _load_fixture("manifest_v3.json")
     model_raw = payload["model"]
@@ -182,19 +131,17 @@ def test_manifest_v3_validation_rejects_invalid_input_normalization() -> None:
         validate_manifest_dict(payload)
 
 
-def test_v2_section_fixtures_validate() -> None:
+def test_v2_section_fixtures_are_rejected() -> None:
     v2_inference_payload = _load_fixture("inference_config_classification_v2.json")
     v2_preproc_payload = _load_fixture("preprocessor_state_v2.json")
 
     v2_cfg = validate_inference_config_dict(v2_inference_payload)
-    v2_state = validate_preprocessor_state_dict(v2_preproc_payload, schema_version=SCHEMA_VERSION_V2)
 
     assert v2_cfg.model_arch == "tabfoundry_staged"
     assert v2_cfg.model_stage == "nano_exact"
     assert v2_cfg.feature_group_size == 1
-    assert isinstance(v2_state, LegacyPreprocessorState)
-    assert v2_state.feature_order_policy == "lexicographic_f_columns"
-    assert v2_state.classification_label_policy["unseen_test_label"] == "filter"
+    with pytest.raises(ValueError, match="Unsupported schema version"):
+        _ = validate_preprocessor_state_dict(v2_preproc_payload, schema_version="tab-foundry-export-v2")
 
 
 def test_v3_section_validation_supports_classification_policy() -> None:

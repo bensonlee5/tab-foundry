@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import json
 from typing import Any, Callable, Mapping, cast
 
 import torch
@@ -40,39 +39,12 @@ from tab_foundry.bench.registry.summary_metrics import (
     tab_foundry_metrics_from_summary,
 )
 from tab_foundry.data.surface import resolve_data_surface
-from tab_foundry.training.instability import telemetry_path
-
-
 def empty_registry() -> dict[str, Any]:
     return {
         "schema": REGISTRY_SCHEMA,
         "version": REGISTRY_VERSION,
         "runs": {},
     }
-
-
-def _prior_dump_path_from_telemetry(run_dir: Path) -> Path | None:
-    """Resolve the legacy prior-dump input path from training telemetry when present."""
-
-    resolved_telemetry_path = telemetry_path(run_dir)
-    if not resolved_telemetry_path.exists():
-        return None
-    with resolved_telemetry_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, Mapping):
-        raise RuntimeError(f"telemetry must be a JSON object: {resolved_telemetry_path}")
-    raw_missingness = payload.get("missingness")
-    if not isinstance(raw_missingness, Mapping):
-        return None
-    raw_prior_dump = raw_missingness.get("prior_dump")
-    if not isinstance(raw_prior_dump, Mapping):
-        return None
-    raw_path = raw_prior_dump.get("path")
-    if not isinstance(raw_path, str) or not raw_path.strip():
-        return None
-    return Path(str(raw_path)).expanduser().resolve()
-
-
 def sweep_payload(
     *,
     sweep_id: str | None,
@@ -251,12 +223,9 @@ def derive_benchmark_run_record(
             else data_cfg.get("manifest_path")
         )
         if manifest_path_raw is None:
-            if str(data_surface.source).strip().lower() == "prior_dump":
-                manifest_path = _prior_dump_path_from_telemetry(resolved_run_dir)
-            if manifest_path is None:
-                raise RuntimeError(
-                    "checkpoint config must include a non-empty effective data.manifest_path"
-                )
+            raise RuntimeError(
+                "checkpoint config must include a non-empty effective data.manifest_path"
+            )
         else:
             manifest_path = resolve_config_path_fn(manifest_path_raw)
     seed_raw = runtime_cfg.get("seed")

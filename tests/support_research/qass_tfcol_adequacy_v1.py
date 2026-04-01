@@ -86,7 +86,7 @@ def test_qass_tfcol_adequacy_v1_is_registered_but_not_active() -> None:
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": None,
     }
@@ -107,7 +107,10 @@ def test_qass_tfcol_adequacy_v1_metadata_and_rows_match_plan() -> None:
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("calibration-first" in note for note in notes)
-    assert any("large_no_missing" in note for note in notes)
+    assert any(
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet" in note
+        for note in notes
+    )
     assert any("reuse" in note for note in notes)
 
     rows = queue["rows"]
@@ -207,4 +210,4 @@ def test_qass_tfcol_adequacy_v1_matrix_records_the_tfcol_followup() -> None:
     assert "delta_qass_context_tfcol_layers1_v1" in matrix
     assert "delta_qass_context_tfcol_heads4_v1" in matrix
     assert "prior_linear_warmup_decay" in matrix
-    assert "openml_binary_large_no_missing_v1.json" in matrix
+    assert "data/manifests/bench/openml_classification_medium_v1/manifest.parquet" in matrix

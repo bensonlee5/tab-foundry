@@ -60,18 +60,11 @@ def _read_ndjson_record_by_offset(
 
 
 def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, int, str]:
-    if "catalog_path" in record:
-        return (
-            str(record["catalog_path"]),
-            int(record["catalog_offset_bytes"]),
-            int(record["catalog_size_bytes"]),
-            str(record["catalog_sha256"]),
-        )
     return (
-        str(record["metadata_path"]),
-        int(record["metadata_offset_bytes"]),
-        int(record["metadata_size_bytes"]),
-        str(record["metadata_sha256"]),
+        str(record["catalog_path"]),
+        int(record["catalog_offset_bytes"]),
+        int(record["catalog_size_bytes"]),
+        str(record["catalog_sha256"]),
     )
 
 
@@ -311,14 +304,8 @@ def load_manifest_record_metadata(
         "catalog_size_bytes",
         "catalog_sha256",
     }
-    legacy_locator_keys = {
-        "metadata_path",
-        "metadata_offset_bytes",
-        "metadata_size_bytes",
-        "metadata_sha256",
-    }
     missing = sorted(required_keys - set(record))
-    if missing or (not locator_keys.issubset(record) and not legacy_locator_keys.issubset(record)):
+    if missing or not locator_keys.issubset(record):
         raise RuntimeError(
             "manifest record is missing required packed-contract fields: "
             f"missing={missing}"
@@ -383,14 +370,8 @@ def load_manifest_record_catalog(
         "catalog_size_bytes",
         "catalog_sha256",
     }
-    legacy_locator_keys = {
-        "metadata_path",
-        "metadata_offset_bytes",
-        "metadata_size_bytes",
-        "metadata_sha256",
-    }
     missing = sorted(required_keys - set(record))
-    if missing or (not locator_keys.issubset(record) and not legacy_locator_keys.issubset(record)):
+    if missing or not locator_keys.issubset(record):
         raise RuntimeError(
             "manifest record is missing required packed-contract fields: "
             f"missing={missing}"

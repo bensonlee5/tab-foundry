@@ -1127,7 +1127,7 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert summary["accepted_datasets"] == 1
     assert summary["curated_accepted_datasets"] == 1
     invocation = dagzoo_provenance["invocations"][0]
-    assert invocation["rounds"][0]["filter_command"].endswith("filter.n_jobs=2")
+    assert "filter.n_jobs" not in invocation["rounds"][0]["filter_command"]
     assert Path(str(record["manifest"]["manifest_path"])).exists()
 
 

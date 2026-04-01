@@ -6,7 +6,7 @@ from torch import nn
 
 from .resolved import ResolvedStageSurface
 from .subsystems import (
-    DirectClassifierHead,
+    DirectMulticlassHead,
     IdentityColumnEncoder,
     LabelTokenTargetConditioner,
     MeanPaddedLinearTargetConditioner,
@@ -175,4 +175,4 @@ def build_direct_head(
 ) -> nn.Module:
     if surface.head == "binary_direct":
         return NanoBinaryHead(d_icl, head_hidden_dim)
-    return DirectClassifierHead(d_icl, head_hidden_dim, many_class_base)
+    return DirectMulticlassHead(d_icl, head_hidden_dim, many_class_base)

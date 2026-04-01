@@ -190,7 +190,7 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert training_surface["model"]["architecture"]["integer_likelihood"] == "hybrid_mixture"
 
 
-def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_dump(
+def test_train_tabfoundry_sandwich_prior_rejects_prior_dump_without_feature_types(
     tmp_path: Path,
 ) -> None:
     path = _write_prior_dump(
@@ -253,29 +253,15 @@ def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_d
         }
     )
 
-    result = prior_train_module.train_tabfoundry_simple_prior(
-        cfg,
-        prior_dump_path=path,
-        batch_size=1,
-    )
-
-    assert result.global_step == 1
-    telemetry = json.loads(
-        (tmp_path / "train_out_missing_feature_types" / "telemetry.json").read_text(
-            encoding="utf-8"
+    with pytest.raises(RuntimeError, match="requires an explicit 'feature_types' dataset"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
         )
-    )
-    assert telemetry["success"] is True
+
     with h5py.File(path, "r") as handle:
-        materialized = np.asarray(handle["feature_types"])
-    decoded = [
-        [
-            value.decode("utf-8") if isinstance(value, (bytes, bytearray)) else str(value)
-            for value in row
-        ]
-        for row in materialized.tolist()
-    ]
-    assert decoded == [["floating", "floating"]]
+        assert handle.get("feature_types") is None
 
 
 def test_train_tabfoundry_sandwich_prior_handles_synthetic_missingness_without_nan_skip(

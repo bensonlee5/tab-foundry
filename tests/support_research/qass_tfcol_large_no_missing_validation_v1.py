@@ -75,7 +75,7 @@ def test_qass_tfcol_large_no_missing_validation_v1_is_registered_but_not_active(
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_large_no_missing_v1.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_large_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": None,
     }
@@ -97,7 +97,10 @@ def test_qass_tfcol_large_no_missing_validation_v1_metadata_and_rows_match_plan(
     assert isinstance(notes, list)
     assert any("validation sweep" in note for note in notes)
     assert any("vs_parent" in note for note in notes)
-    assert any("large_v1.json" in note for note in notes)
+    assert any(
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet" in note
+        for note in notes
+    )
     assert any("reuse" in note for note in notes)
     assert any("passed narrowly" in note for note in notes)
 
@@ -169,6 +172,6 @@ def test_qass_tfcol_large_no_missing_validation_v1_matrix_records_the_bundle_shi
     assert "delta_qass_no_column_v3" in matrix
     assert "delta_qass_context_tfcol_heads4_v1" in matrix
     assert "prior_linear_warmup_decay" in matrix
-    assert "openml_binary_large_no_missing_v1.json" in matrix
+    assert "data/manifests/bench/openml_classification_large_v1/manifest.parquet" in matrix
     assert "vs_parent" in matrix
     assert "narrow validation pass" in matrix

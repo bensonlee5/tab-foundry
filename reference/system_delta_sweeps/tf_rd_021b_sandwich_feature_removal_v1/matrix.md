@@ -9,12 +9,12 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 - Parent sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
 - Complexity level: `binary_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `0da8444c8e61d0ff741d0b54ad1bf3c9cd403074cb9489f12bc714839bed395d`
+- Resolved queue inputs fingerprint: `1abca7c6bc942217221215adbf3ec2a1448fa47afff22cd12ee500e4fb059273`
 
 ## Locked Surface
 
 - Anchor run id: `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `none`
 - Training experiment: `cls_benchmark_sandwich_hybrid_prior`
@@ -64,8 +64,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: The hybrid successor added repeated latent self-refinement between cross-attention segments; this row tests whether that feature can be removed outright.
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross` from `4` to `0`.
 - Expected effect: If the structural gain comes from stage-0 full-cell access and dual readout more than from latent recycling, removing the self-attention stack may be only weakly harmful.
-- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `6513e32bb33fce1b84393696ab13ffe0dd13a0dc48f67efe0407324b30e2b00e`
+- Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `daa8e2880fd1c1fc9b686043f21e608ca2191d07611a8f6bb82f755941c1821c`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -96,8 +96,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: FF expansion is one of the simplest capacity axes to simplify before introducing broader scaling laws.
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
-- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `e2df1e335a608ffa9a3f50770af61b322fefedb1c1a7f3f4a5689f6715450845`
+- Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `a969600e5ea7307bea21582d11bc04d13a3e54e616d1d5486ce91afc085b6f0d`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -128,8 +128,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: After the completed single-knob screen, this row tests whether the simplest acceptable parent can remove the self-refinement feature and retain only minimal trunk MLP expansion.
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If the hybrid path is structurally adequate already, combining self-attention removal with 1x FF expansion may preserve most of the fit while simplifying the trunk materially.
-- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `8604e7c6891f92389c577fa0a8aeedc206a6affcb687f72a2ba3158018a183c1`
+- Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `af30ea825400595b892b58557e83097e34e82da4652aa8280a3e9317ae84c896`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -160,8 +160,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Upstream delta: This is the smallest removal-first parent expressible on the current sandwich surface without adding new zero-valued FF or summary-token semantics.
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis` from `4` to `1`.
 - Expected effect: If the hybrid architecture mainly needs the stage-0 full-cell path and the final cell-stream readout, this compound simplification may preserve bounded quality with the smallest remaining nonzero summary/FF settings.
-- Effective labels: model=`tabfoundry_sandwich`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `669968270ae99c94721d23699b2dcfcd1291c53f1016101bc3a8550fec7ba3dc`
+- Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `cfc826242fc7d58fcc16e1d1df9e2d8e089f8e3b66fa6fbc81454189aabbcffa`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:

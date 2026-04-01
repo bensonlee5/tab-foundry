@@ -4,7 +4,7 @@ parent_sweep_id: null
 status: completed
 complexity_level: binary_md
 anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
-benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
 training_experiment: cls_benchmark_staged_prior

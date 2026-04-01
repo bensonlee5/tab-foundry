@@ -585,13 +585,8 @@ def build_production_control_config(
     run_dir: Path,
     device: str,
 ) -> Any:
-    cfg = compose_config(
-        [
-            f"experiment={_TRAINING_EXPERIMENT}",
-            "logging.use_wandb=false",
-        ]
-    )
-    cfg.data.corpus_ref = str(corpus_ref)
+    cfg = compose_config([f"experiment={_TRAINING_EXPERIMENT}"])
+    OmegaConf.update(cfg, "data.corpus_ref", str(corpus_ref), merge=False, force_add=True)
     cfg.runtime.device = str(device)
     cfg.runtime.mixed_precision = "no"
     cfg.runtime.num_workers = 0

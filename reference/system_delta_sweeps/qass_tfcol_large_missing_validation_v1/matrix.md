@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/qass_tfcol_large_missi
 ## Locked Surface
 
 - Anchor run id: `sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged`
 - Training config profile: `cls_benchmark_staged`

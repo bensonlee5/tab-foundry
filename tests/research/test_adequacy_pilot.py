@@ -295,6 +295,19 @@ def test_select_provisional_interpretation_marks_training_regime_problem() -> No
     assert interpretation["definition"] == "training"
 
 
+def test_build_production_control_config_keeps_wandb_enabled(tmp_path: Path) -> None:
+    run_dir = tmp_path / "pilot" / "train"
+
+    cfg = pilot_module.build_production_control_config(
+        corpus_ref="tf_rd_010_dagzoo_medium_control_curated_v5/materialized",
+        run_dir=run_dir,
+        device="cpu",
+    )
+
+    assert bool(cfg.logging.use_wandb) is True
+    assert str(cfg.logging.history_jsonl_path) == str((run_dir / "train_history.jsonl").resolve())
+
+
 def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

@@ -4,7 +4,7 @@ parent_sweep_id: tokenization_migration_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2
-benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_prior
 training_config_profile: cls_benchmark_staged_prior

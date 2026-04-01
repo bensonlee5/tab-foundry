@@ -41,7 +41,7 @@ def test_row_embedding_attribution_is_registered_but_not_active() -> None:
         "status": "superseded",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": None,
     }

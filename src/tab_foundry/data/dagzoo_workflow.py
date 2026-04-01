@@ -230,8 +230,8 @@ def build_dagzoo_filter_argv(config: DagzooFilterConfig) -> list[str]:
         )
     for override in config.set_overrides:
         argv.extend(["--set", str(cast(str, override))])
-    if config.worker_threads is not None:
-        argv.extend(["--set", f"filter.n_jobs={int(config.worker_threads)}"])
+    # Dagzoo's structural filter no longer accepts filter.n_jobs as a config
+    # override, so keep the worker budget in subprocess env vars only.
     return argv
 
 

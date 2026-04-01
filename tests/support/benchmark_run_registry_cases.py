@@ -538,7 +538,7 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
     assert surface_record["data"]["corpus_id"] == "current_recipe__123456789abc"
 
 
-def test_derive_benchmark_run_record_uses_prior_dump_path_from_telemetry_when_manifest_absent(
+def test_derive_benchmark_run_record_rejects_missing_manifest_when_absent_on_legacy_prior(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -551,8 +551,8 @@ def test_derive_benchmark_run_record_uses_prior_dump_path_from_telemetry_when_ma
         run_name="prior_dump_surface",
         checkpoint_data_cfg={
             "manifest_path": None,
-            "source": "prior_dump",
-            "surface_label": "prior_dump",
+            "source": "legacy_prior",
+            "surface_label": "legacy_prior",
             "surface_overrides": {
                 "manifest_path": None,
             },
@@ -561,22 +561,12 @@ def test_derive_benchmark_run_record_uses_prior_dump_path_from_telemetry_when_ma
     _write_telemetry(run_dir / "telemetry.json", prior_dump_path=str(prior_dump_path.resolve()))
     monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
-    record = registry_module.derive_benchmark_run_record(
-        run_dir=run_dir,
-        comparison_summary_path=summary_path,
-        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
-    )
-
-    surface_record = json.loads(
-        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
-    )
-    assert record["manifest_path"] == "outputs/prior_dumps/300k_150x5_2.h5"
-    assert benchmark_registry.resolve_registry_path_value(
-        record["manifest_path"],
-        root=repo_root,
-    ) == prior_dump_path.resolve()
-    assert surface_record["data"]["source"] == "prior_dump"
-    assert surface_record["data"]["manifest"] is None
+    with pytest.raises(RuntimeError, match="checkpoint config must include a non-empty effective data.manifest_path"):
+        registry_module.derive_benchmark_run_record(
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        )
 
 
 def test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint(

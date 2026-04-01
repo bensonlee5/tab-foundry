@@ -15,7 +15,7 @@ Environment assumptions:
   - `../dagzoo/configs/benchmark_cpu.yaml` with `2048` datasets
   - `../dagzoo/configs/default.yaml` with `4096` datasets
   - `../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml` with `128` datasets
-- The curated comparator baseline remains pinned to `src/tab_foundry/bench/openml_binary_large_v1.json`.
+- The curated comparator baseline remains pinned to `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
 
 Historical support surface:
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-import tab_foundry.bench.openml_benchmark_bundle as bundle_module
+import tab_foundry.bench.openml_bundle as bundle_module
 import tab_foundry.cli.bench_bundle_openml as bundle_cli_module
 
 

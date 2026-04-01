@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021a_sandwich_op
 ## Locked Surface
 
 - Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_sandwich_prior`

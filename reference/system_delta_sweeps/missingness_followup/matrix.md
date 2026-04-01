@@ -39,5 +39,5 @@ and the optional synthetic prior-missingness setting.
 - `table_block_style: prenorm`, `head: binary_direct`
 - `row_pool: target_column`, `context_encoder: none`, `column_encoder: none`
 - `training.surface_label: prior_cosine_warmup`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
 - `data.surface_overrides.allow_missing_values: true`

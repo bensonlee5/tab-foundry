@@ -9,7 +9,7 @@ parent_sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
 sweep_status: completed
 complexity_level: binary_md
 anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
-benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_v2
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_hybrid_prior
@@ -139,8 +139,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -242,7 +242,7 @@ rows:
   resolved_surface:
     labels:
       model: tabfoundry_sandwich
-      data: prior_dump
+      data: legacy_prior
       preprocessing: runtime_default
       training: prior_cosine_warmup
     model:
@@ -317,8 +317,8 @@ rows:
         ff_expansion: 2
         self_attention_per_cross: 0
     data:
-      surface_label: prior_dump
-      source: prior_dump
+      surface_label: legacy_prior
+      source: legacy_prior
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
@@ -328,9 +328,9 @@ rows:
       manifest: null
       dagzoo_provenance: null
       overrides:
-        source: prior_dump
+        source: legacy_prior
         manifest_path: null
-        surface_label: prior_dump
+        surface_label: legacy_prior
         corpus_ref: null
         filter_policy: null
         dagzoo_provenance: null
@@ -380,7 +380,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 6513e32bb33fce1b84393696ab13ffe0dd13a0dc48f67efe0407324b30e2b00e
+  resolved_surface_fingerprint: daa8e2880fd1c1fc9b686043f21e608ca2191d07611a8f6bb82f755941c1821c
 - order: 2
   delta_id: delta_tf_rd_021b_sandwich_ffexp1_v1
   status: completed
@@ -406,8 +406,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -505,7 +505,7 @@ rows:
   resolved_surface:
     labels:
       model: tabfoundry_sandwich
-      data: prior_dump
+      data: legacy_prior
       preprocessing: runtime_default
       training: prior_cosine_warmup
     model:
@@ -580,8 +580,8 @@ rows:
         ff_expansion: 1
         self_attention_per_cross: 4
     data:
-      surface_label: prior_dump
-      source: prior_dump
+      surface_label: legacy_prior
+      source: legacy_prior
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
@@ -591,9 +591,9 @@ rows:
       manifest: null
       dagzoo_provenance: null
       overrides:
-        source: prior_dump
+        source: legacy_prior
         manifest_path: null
-        surface_label: prior_dump
+        surface_label: legacy_prior
         corpus_ref: null
         filter_policy: null
         dagzoo_provenance: null
@@ -643,7 +643,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: e2df1e335a608ffa9a3f50770af61b322fefedb1c1a7f3f4a5689f6715450845
+  resolved_surface_fingerprint: a969600e5ea7307bea21582d11bc04d13a3e54e616d1d5486ce91afc085b6f0d
 - order: 3
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
   status: completed
@@ -670,8 +670,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -773,7 +773,7 @@ rows:
   resolved_surface:
     labels:
       model: tabfoundry_sandwich
-      data: prior_dump
+      data: legacy_prior
       preprocessing: runtime_default
       training: prior_cosine_warmup
     model:
@@ -848,8 +848,8 @@ rows:
         ff_expansion: 1
         self_attention_per_cross: 0
     data:
-      surface_label: prior_dump
-      source: prior_dump
+      surface_label: legacy_prior
+      source: legacy_prior
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
@@ -859,9 +859,9 @@ rows:
       manifest: null
       dagzoo_provenance: null
       overrides:
-        source: prior_dump
+        source: legacy_prior
         manifest_path: null
-        surface_label: prior_dump
+        surface_label: legacy_prior
         corpus_ref: null
         filter_policy: null
         dagzoo_provenance: null
@@ -911,7 +911,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 8604e7c6891f92389c577fa0a8aeedc206a6affcb687f72a2ba3158018a183c1
+  resolved_surface_fingerprint: af30ea825400595b892b58557e83097e34e82da4652aa8280a3e9317ae84c896
 - order: 4
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
   status: completed
@@ -939,8 +939,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -1044,7 +1044,7 @@ rows:
   resolved_surface:
     labels:
       model: tabfoundry_sandwich
-      data: prior_dump
+      data: legacy_prior
       preprocessing: runtime_default
       training: prior_cosine_warmup
     model:
@@ -1119,8 +1119,8 @@ rows:
         ff_expansion: 1
         self_attention_per_cross: 0
     data:
-      surface_label: prior_dump
-      source: prior_dump
+      surface_label: legacy_prior
+      source: legacy_prior
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
@@ -1130,9 +1130,9 @@ rows:
       manifest: null
       dagzoo_provenance: null
       overrides:
-        source: prior_dump
+        source: legacy_prior
         manifest_path: null
-        surface_label: prior_dump
+        surface_label: legacy_prior
         corpus_ref: null
         filter_policy: null
         dagzoo_provenance: null
@@ -1182,6 +1182,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 669968270ae99c94721d23699b2dcfcd1291c53f1016101bc3a8550fec7ba3dc
+  resolved_surface_fingerprint: cfc826242fc7d58fcc16e1d1df9e2d8e089f8e3b66fa6fbc81454189aabbcffa
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
-inputs_fingerprint: 0da8444c8e61d0ff741d0b54ad1bf3c9cd403074cb9489f12bc714839bed395d
+inputs_fingerprint: 1abca7c6bc942217221215adbf3ec2a1448fa47afff22cd12ee500e4fb059273

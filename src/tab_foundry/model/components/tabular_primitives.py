@@ -92,12 +92,7 @@ class DirectMulticlassHead(nn.Module):
         return self.net(rows)
 
 
-class DirectClassifierHead(DirectMulticlassHead):
-    """Backward-compatible alias for staged surfaces that still use the old name."""
-
-
 __all__ = [
-    "DirectClassifierHead",
     "DirectMulticlassHead",
     "FeatureTypeFiLM",
     "LabelTokenTargetConditioner",

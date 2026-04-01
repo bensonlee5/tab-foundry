@@ -33,14 +33,12 @@ from tab_foundry.preprocessing import (
 )
 
 
-SCHEMA_VERSION_V2: Final = "tab-foundry-export-v2"
 SCHEMA_VERSION_V3: Final = "tab-foundry-export-v3"
-SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, SCHEMA_VERSION_V3)
+SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V3,)
 SUPPORTED_TASKS = ("classification",)
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
 EXPECTED_GROUP_SHIFTS = [0, 1, 3]
 EXPECTED_MANY_CLASS_THRESHOLD = 10
-EXPECTED_V2_FEATURE_ORDER_POLICY = "lexicographic_f_columns"
 EXPECTED_MISSING_VALUE_ALL_NAN_FILL = 0.0
 
 
@@ -73,12 +71,12 @@ def _validate_hex_digest(value: str) -> str:
     return value
 
 
-class _ManifestModelPayloadV2(_ContractsPayloadModel):
+class _ManifestModelPayloadV3(_ContractsPayloadModel):
     arch: StrictStr
     stage: StrictStr | None = None
     d_col: StrictInt
     d_icl: StrictInt
-    input_normalization: StrictStr | None = None
+    input_normalization: StrictStr
     feature_group_size: StrictInt
     many_class_train_mode: StrictStr
     max_mixed_radix_digits: StrictInt
@@ -100,10 +98,6 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
     sandwich_layers: StrictInt | None = None
     sandwich_heads: StrictInt | None = None
     sandwich_ff_expansion: StrictInt | None = None
-
-
-class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
-    input_normalization: StrictStr
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -178,28 +172,11 @@ class _ProducerInfoPayload(_ContractsPayloadModel):
     git_sha: StrictStr | None = None
 
 
-class _ExportFilesPayload(_ContractsPayloadModel):
-    weights: StrictStr
-    inference_config: StrictStr
-    preprocessor_state: StrictStr
-
-
 class _ExportWeightsPayload(_ContractsPayloadModel):
     file: StrictStr
     sha256: StrictStr
 
     @field_validator("sha256")
-    @classmethod
-    def _validate_sha256(cls, value: str) -> str:
-        return _validate_hex_digest(value)
-
-
-class _ExportChecksumsPayload(_ContractsPayloadModel):
-    weights: StrictStr
-    inference_config: StrictStr
-    preprocessor_state: StrictStr
-
-    @field_validator("weights", "inference_config", "preprocessor_state")
     @classmethod
     def _validate_sha256(cls, value: str) -> str:
         return _validate_hex_digest(value)
@@ -219,27 +196,6 @@ class _DtypePolicyPayload(_ContractsPayloadModel):
                 raise ValueError(
                     f"preprocessor_state.dtype_policy.{key} must equal {expected!r}, got {actual!r}"
                 )
-        return self
-
-
-class _LegacyMissingValuePolicyPayload(_ContractsPayloadModel):
-    strategy: StrictStr
-    all_nan_fill: float
-
-    @model_validator(mode="after")
-    def _validate_expected_values(self) -> "_LegacyMissingValuePolicyPayload":
-        if self.strategy != MISSING_VALUE_STRATEGY_TRAIN_MEAN:
-            raise ValueError(
-                "preprocessor_state.missing_value_policy.strategy must equal "
-                f"{MISSING_VALUE_STRATEGY_TRAIN_MEAN!r}"
-            )
-        if not math.isfinite(float(self.all_nan_fill)):
-            raise ValueError("preprocessor_state.missing_value_policy.all_nan_fill must be finite")
-        if float(self.all_nan_fill) != EXPECTED_MISSING_VALUE_ALL_NAN_FILL:
-            raise ValueError(
-                "preprocessor_state.missing_value_policy.all_nan_fill must equal "
-                f"{EXPECTED_MISSING_VALUE_ALL_NAN_FILL}"
-            )
         return self
 
 
@@ -285,24 +241,6 @@ class _ClassificationLabelPolicyPayload(_ContractsPayloadModel):
         return self
 
 
-class _LegacyPreprocessorStatePayload(_ContractsPayloadModel):
-    feature_order_policy: StrictStr
-    missing_value_policy: _LegacyMissingValuePolicyPayload
-    classification_label_policy: _ClassificationLabelPolicyPayload
-    dtype_policy: _DtypePolicyPayload
-    feature_types: list[StrictStr] | None = None
-
-    @field_validator("feature_order_policy")
-    @classmethod
-    def _validate_feature_order_policy(cls, value: str) -> str:
-        if value != EXPECTED_V2_FEATURE_ORDER_POLICY:
-            raise ValueError(
-                "preprocessor_state.feature_order_policy must equal "
-                f"{EXPECTED_V2_FEATURE_ORDER_POLICY!r}"
-            )
-        return value
-
-
 class _ExportPreprocessorStatePayload(_ContractsPayloadModel):
     feature_order_policy: StrictStr
     missing_value_policy: _ExportMissingValuePolicyPayload
@@ -318,21 +256,6 @@ class _ExportPreprocessorStatePayload(_ContractsPayloadModel):
                 f"{FEATURE_ORDER_POLICY_POSITIONAL!r}"
             )
         return value
-
-
-class _ManifestPayloadV2(_ContractsPayloadModel):
-    schema_version: Literal["tab-foundry-export-v2"]
-    producer: _ProducerInfoPayload
-    task: Literal["classification"]
-    model: _ManifestModelPayloadV2
-    created_at_utc: StrictStr
-    files: _ExportFilesPayload
-    checksums: _ExportChecksumsPayload
-
-    @field_validator("created_at_utc")
-    @classmethod
-    def _validate_created_at_utc(cls, value: str) -> str:
-        return _validate_created_at_utc(value)
 
 
 class _ManifestPayloadV3(_ContractsPayloadModel):
@@ -522,16 +445,6 @@ class ExportModelSpec:
 
 
 @dataclass(slots=True)
-class ExportFiles:
-    weights: str
-    inference_config: str
-    preprocessor_state: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(asdict(self))
-
-
-@dataclass(slots=True)
 class ExportWeights:
     file: str
     sha256: str
@@ -558,17 +471,6 @@ class InferenceConfig:
         if self.quantile_levels is None:
             payload.pop("quantile_levels", None)
         return payload
-
-
-@dataclass(slots=True)
-class LegacyPreprocessorState:
-    feature_order_policy: str
-    missing_value_policy: dict[str, Any]
-    classification_label_policy: dict[str, Any]
-    dtype_policy: dict[str, Any]
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(asdict(self))
 
 
 @dataclass(slots=True)
@@ -610,10 +512,8 @@ class ExportManifest:
     created_at_utc: str
     manifest_sha256: str | None = None
     inference: InferenceConfig | None = None
-    preprocessor: LegacyPreprocessorState | ExportPreprocessorState | None = None
+    preprocessor: ExportPreprocessorState | None = None
     weights: ExportWeights | None = None
-    files: ExportFiles | None = None
-    checksums: dict[str, str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -623,21 +523,13 @@ class ExportManifest:
             "model": self.model.to_dict(),
             "created_at_utc": self.created_at_utc,
         }
-        if self.schema_version == SCHEMA_VERSION_V3:
-            if self.inference is None or self.preprocessor is None or self.weights is None:
-                raise RuntimeError("v3 manifest requires inference, preprocessor, and weights")
-            payload["inference"] = self.inference.to_dict()
-            payload["preprocessor"] = self.preprocessor.to_dict()
-            payload["weights"] = self.weights.to_dict()
-            if self.manifest_sha256 is not None:
-                payload["manifest_sha256"] = self.manifest_sha256
-            return payload
-        for field_name in ("stage_label", "module_overrides", "staged_dropout", "pre_encoder_clip"):
-            payload["model"].pop(field_name, None)
-        if self.files is None or self.checksums is None:
-            raise RuntimeError("v2 manifest requires files and checksums")
-        payload["files"] = self.files.to_dict()
-        payload["checksums"] = dict(self.checksums)
+        if self.inference is None or self.preprocessor is None or self.weights is None:
+            raise RuntimeError("v3 manifest requires inference, preprocessor, and weights")
+        payload["inference"] = self.inference.to_dict()
+        payload["preprocessor"] = self.preprocessor.to_dict()
+        payload["weights"] = self.weights.to_dict()
+        if self.manifest_sha256 is not None:
+            payload["manifest_sha256"] = self.manifest_sha256
         return payload
 
 
@@ -645,4 +537,4 @@ class ExportManifest:
 class ValidatedBundle:
     manifest: ExportManifest
     inference_config: InferenceConfig
-    preprocessor_state: LegacyPreprocessorState | ExportPreprocessorState
+    preprocessor_state: ExportPreprocessorState

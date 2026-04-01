@@ -536,8 +536,8 @@ deltas:
         sandwich_heads: 8
         sandwich_ff_expansion: 2
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -605,8 +605,8 @@ deltas:
         sandwich_heads: 8
         sandwich_ff_expansion: 2
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -674,8 +674,8 @@ deltas:
         sandwich_heads: 8
         sandwich_ff_expansion: 2
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -742,8 +742,8 @@ deltas:
         sandwich_heads: 8
         sandwich_ff_expansion: 2
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -810,8 +810,8 @@ deltas:
         sandwich_heads: 8
         sandwich_ff_expansion: 2
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -882,8 +882,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -956,8 +956,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1030,8 +1030,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1104,8 +1104,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1178,8 +1178,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1252,8 +1252,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1326,8 +1326,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1400,8 +1400,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1474,8 +1474,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1548,8 +1548,8 @@ deltas:
         sandwich_pre_row_attention_layers: 0
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1622,8 +1622,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 0
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1696,8 +1696,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1770,8 +1770,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1844,8 +1844,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:
@@ -1918,8 +1918,8 @@ deltas:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
       data:
-        source: prior_dump
-        surface_label: prior_dump
+        source: legacy_prior
+        surface_label: legacy_prior
       preprocessing:
         surface_label: runtime_default
       training:

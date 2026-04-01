@@ -915,7 +915,7 @@ def test_manifest_dataset_id_is_unique_across_nested_runs_with_same_root(tmp_pat
 def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     offsets = _write_dataset(shard_dir, filter_status="accepted", filter_accepted=True)
-    metadata_offset, metadata_size, metadata_sha256 = offsets[0]
+    metadata_offset, metadata_size, catalog_sha256 = offsets[0]
 
     manifest_dir = tmp_path / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -930,10 +930,10 @@ def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) 
         "dataset_index": 0,
         "train_path": os.path.relpath(shard_dir / "train.parquet", manifest_dir),
         "test_path": os.path.relpath(shard_dir / "test.parquet", manifest_dir),
-        "metadata_path": os.path.relpath(shard_dir / "metadata.ndjson", manifest_dir),
-        "metadata_offset_bytes": metadata_offset,
-        "metadata_size_bytes": metadata_size,
-        "metadata_sha256": metadata_sha256,
+        "catalog_path": os.path.relpath(shard_dir / "metadata.ndjson", manifest_dir),
+        "catalog_offset_bytes": metadata_offset,
+        "catalog_size_bytes": metadata_size,
+        "catalog_sha256": catalog_sha256,
         "n_train": 16,
         "n_test": 8,
         "n_features": 4,
