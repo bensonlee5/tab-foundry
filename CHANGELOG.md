@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-04-01
+
+### Changed
+
+- User-facing break: export validation and the reference runtime are now
+  `tab-foundry-export-v3` only. Older v2 bundles are rejected outright, and
+  obsolete sidecar-era or missing-checksum v3 bundles must be regenerated.
+- User-facing break: packed manifest rows must now carry the canonical
+  `catalog_*` locator fields. Legacy `metadata_*` fallback fields are no longer
+  accepted by manifest-backed dataset loading.
+- User-facing break: benchmark comparison and system-delta sweep inputs are now
+  manifest-only. Legacy JSON benchmark-bundle execution inputs and the old
+  sweep-side JSON fallback path have been removed.
+- User-facing break: prior-dump training surfaces now require the canonical
+  `legacy_prior` backend naming and explicit `feature_types` metadata. The old
+  `prior_dump` backend alias and mutation-on-read feature-type backfill have
+  been removed.
+
 ## [0.15.9] - 2026-04-01
 
 ### Changed

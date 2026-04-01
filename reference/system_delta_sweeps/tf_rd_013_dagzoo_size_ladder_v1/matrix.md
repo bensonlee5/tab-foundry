@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_
 ## Locked Surface
 
 - Anchor run id: `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_large_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`

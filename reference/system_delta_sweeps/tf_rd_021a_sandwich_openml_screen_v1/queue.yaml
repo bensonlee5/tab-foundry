@@ -25,8 +25,8 @@ rows:
     sandwich_heads: 8
     sandwich_ff_expansion: 2
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -138,8 +138,8 @@ rows:
     sandwich_heads: 8
     sandwich_ff_expansion: 2
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -211,8 +211,8 @@ rows:
     sandwich_heads: 8
     sandwich_ff_expansion: 2
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -283,8 +283,8 @@ rows:
     sandwich_heads: 8
     sandwich_ff_expansion: 2
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -356,8 +356,8 @@ rows:
     sandwich_heads: 8
     sandwich_ff_expansion: 2
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:

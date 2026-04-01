@@ -171,9 +171,9 @@ Out of scope here:
   remain validator-readable and default to `true` until regenerated.
 - Existing v3 bundles without the additive staged-surface model fields remain
   validator-readable and default those values until regenerated.
-- `tab-foundry-export-v2` bundles remain validator-readable during migration.
-- `tab-foundry-export-v1` bundles are intentionally unsupported and must be
-  regenerated onto the current classification-only staged/simple surface.
+- `tab-foundry-export-v2` and `tab-foundry-export-v1` bundles are
+  intentionally unsupported and must be regenerated onto the current
+  classification-only export surface.
 - Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
   grouped-token checkpoints that omitted that field are intentionally rejected
   and must be regenerated or loaded with an explicit `feature_group_size`

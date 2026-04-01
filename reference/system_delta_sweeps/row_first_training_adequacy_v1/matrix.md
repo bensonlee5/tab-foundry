@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/row_first_training_ade
 ## Locked Surface
 
 - Anchor run id: `sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_corpus`

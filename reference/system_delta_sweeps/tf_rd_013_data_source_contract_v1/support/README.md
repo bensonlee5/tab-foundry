@@ -12,7 +12,7 @@ Environment assumptions:
 - `TAB_FOUNDRY_ROOT` is this repo root.
 - `DAGZOO_ROOT` defaults to the sibling checkout `../dagzoo`.
 - The dagzoo config ref is the sibling repo's default config, `../dagzoo/configs/default.yaml`.
-- The curated comparator baseline is pinned to `src/tab_foundry/bench/openml_binary_large_v1.json`.
+- The curated comparator baseline is pinned to `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
 
 Historical support surface:
 

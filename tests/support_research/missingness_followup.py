@@ -34,7 +34,7 @@ def test_missingness_followup_is_registered_but_not_active() -> None:
         "status": "superseded",
         "anchor_run_id": None,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_large_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": None,
     }
@@ -48,7 +48,7 @@ def test_missingness_followup_metadata_and_rows_match_the_plan() -> None:
     assert sweep["sweep_id"] == "missingness_followup"
     assert sweep["parent_sweep_id"] == "stability_ladder"
     assert sweep["status"] == "superseded"
-    assert sweep["benchmark_manifest_path"] == "src/tab_foundry/bench/openml_binary_large_v1.json"
+    assert sweep["benchmark_manifest_path"] == "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     assert sweep["anchor_context"]["model"]["stage"] == "prenorm_block"
     assert sweep["anchor_context"]["surface_labels"]["data"] == "benchmark_large_allow_missing"
     notes = sweep["anchor_surface"]["notes"]

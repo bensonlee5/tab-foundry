@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/row_embedding_attribut
 ## Locked Surface
 
 - Anchor run id: `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged`
 - Training config profile: `cls_benchmark_staged`

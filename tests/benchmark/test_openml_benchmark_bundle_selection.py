@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-import tab_foundry.bench.openml_benchmark_bundle as bundle_module
+import tab_foundry.bench.openml_bundle as bundle_module
 
 from tests.benchmark.openml_bundle_fakes import FakeDataset, FakeTask, prepared_task
 

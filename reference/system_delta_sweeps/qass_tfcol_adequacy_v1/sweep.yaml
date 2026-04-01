@@ -4,7 +4,7 @@ parent_sweep_id: row_embedding_attribution_v3
 status: draft
 complexity_level: binary_md
 anchor_run_id: sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1
-benchmark_manifest_path: src/tab_foundry/bench/openml_binary_medium_v1.json
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged
 training_config_profile: cls_benchmark_staged
@@ -39,7 +39,7 @@ anchor_surface:
     to the anchor.
   - >-
     After choosing the medium-bundle adequacy winner, validate only that winner
-    against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+    against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
     Treat `openml_binary_large_v1.json` as a later missing-data generalization
     check, not the first validation bundle.
   - >-

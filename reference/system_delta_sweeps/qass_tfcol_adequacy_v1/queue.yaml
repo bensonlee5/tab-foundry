@@ -62,7 +62,7 @@ rows:
   notes:
   - Treat this as a pure inducing-capacity adequacy row; do not reopen the broader
     TFCol-versus-no-TFCol attribution question on this bundle.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature
     as the v3 anchor so only TFCol inducing capacity changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1`.
@@ -158,7 +158,7 @@ rows:
   notes:
   - Treat this as a pure depth adequacy row; do not reinterpret plain context or QASS
     itself from this result.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature
     as the v3 anchor so only TFCol depth changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1`.
@@ -253,7 +253,7 @@ rows:
   notes:
   - Treat this as a pure attention-budget adequacy row; do not reopen the TFCol-presence
     decision on this bundle from this result alone.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature
     as the v3 anchor so only TFCol head count changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1`.

@@ -127,7 +127,7 @@ def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
         anchor_run_id=ANCHOR_RUN_ID,
         parent_sweep_id='input_norm_followup',
         complexity_level='binary_md',
-        benchmark_manifest_path='src/tab_foundry/bench/openml_binary_medium_v1.json',
+        benchmark_manifest_path='data/manifests/bench/openml_classification_medium_v1/manifest.parquet',
         control_baseline_id='cls_benchmark_linear_v2',
         delta_refs=['delta_anchor_activation_trace_baseline', 'delta_shared_feature_norm'],
         index_path=sweeps_root / 'index.yaml',
@@ -1786,7 +1786,7 @@ def test_completed_train_artifacts_exist_rejects_missing_backend_marker(tmp_path
     ) is False
 
 
-def test_completed_train_artifacts_exist_accepts_prior_dump_alias_for_legacy_prior(tmp_path: Path) -> None:
+def test_completed_train_artifacts_exist_rejects_prior_dump_alias_for_legacy_prior(tmp_path: Path) -> None:
     run_dir = tmp_path / 'completed_train_run_prior_dump_alias'
     (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
@@ -1798,7 +1798,7 @@ def test_completed_train_artifacts_exist_accepts_prior_dump_alias_for_legacy_pri
     assert training_state_module.completed_train_artifacts_exist(
         run_dir,
         expected_backend='legacy_prior',
-    ) is True
+    ) is False
 
 
 def test_completed_train_artifacts_exist_rejects_backend_mismatch(tmp_path: Path) -> None:
@@ -1930,7 +1930,7 @@ def test_completed_train_artifacts_exist_accepts_exact_normalized_surface_match(
             },
             'preprocessing': {'surface_label': 'runtime_default'},
             'training': {
-                'backend': 'prior_dump',
+                'backend': 'legacy_prior',
                 'surface_label': 'prior_cosine_warmup',
                 'schedule_stages': [{'name': 'prior_dump', 'steps': 3}],
             },
@@ -2468,7 +2468,7 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         'order': 1,
         'delta_ref': 'delta_prior_backend_probe',
         'model': {},
-        'data': {'source': 'prior_dump', 'surface_label': 'prior_dump'},
+        'data': {'source': 'legacy_prior', 'surface_label': 'legacy_prior'},
         'training': {},
         'execution_policy': 'screen_only',
         'notes': [],
@@ -2558,7 +2558,7 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         paths=paths,
     )
 
-    assert captured['prior_cfg'].data.source == 'prior_dump'
+    assert captured['prior_cfg'].data.source == 'legacy_prior'
     assert captured['prior_dump_path'] == Path('/tmp/prior.h5')
     assert queue_row['status'] == 'screened'
 
@@ -2571,7 +2571,7 @@ def test_run_row_requires_prior_dump_for_legacy_prior_rows(
         'order': 1,
         'delta_ref': 'delta_prior_backend_probe',
         'model': {},
-        'data': {'source': 'prior_dump', 'surface_label': 'prior_dump'},
+        'data': {'source': 'legacy_prior', 'surface_label': 'legacy_prior'},
         'training': {},
         'execution_policy': 'screen_only',
         'notes': [],
@@ -4387,11 +4387,18 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    bundle_path = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'openml_binary_medium_v1.json'
+    bundle_path = REPO_ROOT / 'data' / 'manifests' / 'bench' / 'openml_classification_medium_v1' / 'manifest.parquet'
     foreign_checkout_root = tmp_path / 'foreign_checkout'
-    foreign_bundle_path = foreign_checkout_root / 'src' / 'tab_foundry' / 'bench' / bundle_path.name
+    foreign_bundle_path = (
+        foreign_checkout_root
+        / 'data'
+        / 'manifests'
+        / 'bench'
+        / 'openml_classification_medium_v1'
+        / bundle_path.name
+    )
     foreign_bundle_path.parent.mkdir(parents=True, exist_ok=True)
-    foreign_bundle_path.write_text(bundle_path.read_text(encoding='utf-8'), encoding='utf-8')
+    foreign_bundle_path.write_bytes(bundle_path.read_bytes())
 
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
@@ -4462,7 +4469,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_manifest_path': 'src/tab_foundry/bench/openml_binary_medium_v1.json',
+            'benchmark_manifest_path': 'data/manifests/bench/openml_classification_medium_v1/manifest.parquet',
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -4833,7 +4840,7 @@ def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Pat
         queue_row={"model": {}, "data": {}, "preprocessing": {}, "training": {}},
         sweep_meta={
             "control_baseline_id": "cls_benchmark_linear_v2",
-            "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
+            "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         },
         sweep_id="legacy_sweep",
         anchor_run_id="anchor_v1",

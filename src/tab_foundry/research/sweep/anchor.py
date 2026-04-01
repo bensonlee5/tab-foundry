@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
-from tab_foundry.bench.openml_benchmark import load_benchmark_bundle, load_benchmark_manifest_datasets
+from tab_foundry.bench.openml_benchmark import load_benchmark_manifest_datasets
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec
 
@@ -315,36 +315,27 @@ def build_anchor_surface(
     anchor_context: Mapping[str, Any],
 ) -> dict[str, Any]:
     manifest_path = resolve_registry_path_value(benchmark_manifest_path)
-    legacy_bundle_path = manifest_path.suffix.lower() == ".json"
-    if legacy_bundle_path:
-        bundle = load_benchmark_bundle(manifest_path, allow_missing_values=True)
-        bundle_name = _require_non_empty_string(bundle.get("name"), context="benchmark bundle name")
-        task_ids = cast(list[Any], bundle.get("task_ids", []))
-        task_count = int(len(task_ids))
-        selection = bundle.get("selection")
-        max_missing_pct = 0.0
-        if isinstance(selection, Mapping):
-            max_missing_raw = selection.get("max_missing_pct")
-            if isinstance(max_missing_raw, int | float):
-                max_missing_pct = float(max_missing_raw)
-        bundle_surface_suffix = " (missing values permitted)" if max_missing_pct > 0.0 else ""
-    else:
-        _datasets, task_records, benchmark_surface = load_benchmark_manifest_datasets(
-            benchmark_manifest_path=manifest_path,
+    if manifest_path.suffix.lower() == ".json":
+        raise RuntimeError(
+            "system-delta sweeps now require benchmark_manifest_path to reference a manifest parquet, "
+            f"not a legacy JSON benchmark bundle: {manifest_path}"
         )
-        task_count = int(len(task_records))
-        manifest_summary = cast(dict[str, Any], benchmark_surface)
-        bundle_summary = manifest_summary.get("benchmark_bundle")
-        bundle_name = (
-            _require_non_empty_string(bundle_summary.get("name"), context="benchmark bundle name")
-            if isinstance(bundle_summary, Mapping)
-            else manifest_path.stem
-        )
-        bundle_surface_suffix = (
-            " (missing values permitted)"
-            if bool(manifest_summary.get("allow_missing_values", False))
-            else ""
-        )
+    _datasets, task_records, benchmark_surface = load_benchmark_manifest_datasets(
+        benchmark_manifest_path=manifest_path,
+    )
+    task_count = int(len(task_records))
+    manifest_summary = cast(dict[str, Any], benchmark_surface)
+    bundle_summary = manifest_summary.get("benchmark_bundle")
+    bundle_name = (
+        _require_non_empty_string(bundle_summary.get("name"), context="benchmark bundle name")
+        if isinstance(bundle_summary, Mapping)
+        else manifest_path.stem
+    )
+    bundle_surface_suffix = (
+        " (missing values permitted)"
+        if bool(manifest_summary.get("allow_missing_values", False))
+        else ""
+    )
     module_selection = anchor_module_selection(anchor_context)
     model_label = surface_label_from_anchor_context(
         anchor_context,
@@ -375,23 +366,12 @@ def build_anchor_surface(
     return {
         "notes": [
             (
-                f"The locked anchor is benchmark registry run `{anchor_run_id}` on bundle "
-                f"`{bundle_name}` ({task_count} tasks)."
-                if legacy_bundle_path
-                else (
-                    f"The locked anchor is benchmark registry run `{anchor_run_id}` on manifest "
-                    f"`{manifest_path}` sourced from `{bundle_name}` ({task_count} tasks)."
-                )
+                f"The locked anchor is benchmark registry run `{anchor_run_id}` on manifest "
+                f"`{manifest_path}` sourced from `{bundle_name}` ({task_count} tasks)."
             ),
             f"The anchor model surface is taken from the registry-resolved staged selection labeled `{model_label}`.",
             "Data and preprocessing remain part of the comparison surface and must stay fixed unless the queue row declares that exact dimension.",
-            *(
-                [
-                    f"Legacy benchmark bundle path `{manifest_path}` is preserved for inspection only; materialize it before execution."
-                ]
-                if legacy_bundle_path
-                else []
-            ),
+            f"The manifest surface keeps the same bundle provenance{bundle_surface_suffix}.",
         ],
         "dimension_table": [
             {
@@ -446,16 +426,9 @@ def build_anchor_surface(
                 "dimension": "training data surface",
                 "upstream": "OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.",
                 "anchor": (
-                    (
-                        f"Benchmark bundle `{bundle_name}` ({task_count} tasks{bundle_surface_suffix}) "
-                        f"with data surface label `{data_label}`."
-                        if legacy_bundle_path
-                        else (
-                            f"Benchmark manifest `{manifest_path}` sourced from `{bundle_name}` "
-                            f"({task_count} tasks{bundle_surface_suffix}) with data surface label "
-                            f"`{data_label}`."
-                        )
-                    )
+                    f"Benchmark manifest `{manifest_path}` sourced from `{bundle_name}` "
+                    f"({task_count} tasks{bundle_surface_suffix}) with data surface label "
+                    f"`{data_label}`."
                 ),
                 "interpretation": "Manifest and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose.",
             },

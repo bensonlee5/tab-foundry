@@ -6,12 +6,7 @@ import argparse
 from pathlib import Path
 import sys
 
-import tab_foundry.bench.openml_benchmark_bundle as bundle_module
-from tab_realdata_hub.openml import (
-    DEFAULT_OPENML_TASK_SOURCE,
-    parse_max_classes_arg,
-    task_source_names,
-)
+import tab_foundry.bench.openml_bundle as bundle_module
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -20,8 +15,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--version", type=int, required=True, help="Bundle version persisted in the JSON payload")
     parser.add_argument(
         "--task-source",
-        default=DEFAULT_OPENML_TASK_SOURCE,
-        choices=task_source_names(),
+        default=bundle_module.DEFAULT_OPENML_TASK_SOURCE,
+        choices=bundle_module.task_source_names(),
         help="Named pinned OpenML task-id source pool used before applying bundle filters",
     )
     parser.add_argument(
@@ -87,7 +82,7 @@ def run_from_args(args: argparse.Namespace) -> int:
         task_type=str(args.task_type),
         new_instances=int(args.new_instances),
         max_features=int(args.max_features),
-        max_classes=parse_max_classes_arg(str(args.max_classes)),
+        max_classes=bundle_module.parse_max_classes_arg(str(args.max_classes)),
         max_missing_pct=float(args.max_missing_pct),
         min_minority_class_pct=float(args.min_minority_class_pct),
         discover_from_openml=bool(args.discover_from_openml),

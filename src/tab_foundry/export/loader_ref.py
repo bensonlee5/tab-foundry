@@ -17,7 +17,7 @@ from tab_foundry.model.outputs import ClassificationOutput, validate_classificat
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
-from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, ValidatedBundle
+from .contracts import ExportPreprocessorState, ValidatedBundle
 from .exporter import validate_export_bundle
 
 
@@ -44,14 +44,9 @@ def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
 
     model_spec = manifest.model.to_build_spec(task=manifest.task)
     model = build_model_from_spec(model_spec)
-    if manifest.schema_version == SCHEMA_VERSION_V3:
-        if manifest.weights is None:
-            raise RuntimeError("v3 bundle is missing embedded weights metadata")
-        weights_name = manifest.weights.file
-    else:
-        if manifest.files is None:
-            raise RuntimeError("v2 bundle is missing file metadata")
-        weights_name = manifest.files.weights
+    if manifest.weights is None:
+        raise RuntimeError("v3 bundle is missing embedded weights metadata")
+    weights_name = manifest.weights.file
     weights_path = bundle_dir.expanduser().resolve() / weights_name
     state_dict = load_file(str(weights_path))
     incompatible = model.load_state_dict(state_dict, strict=True)
@@ -66,13 +61,6 @@ def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
 
 def _require_preprocessor_policy(bundle: LoadedExportBundle) -> ExportPreprocessorState:
     validated_state = bundle.validated.preprocessor_state
-    if bundle.validated.manifest.schema_version != SCHEMA_VERSION_V3:
-        raise ValueError(
-            "reference consumer only executes tab-foundry-export-v3 bundles; "
-            f"got {bundle.validated.manifest.schema_version!r}"
-        )
-    if not isinstance(validated_state, ExportPreprocessorState):
-        raise TypeError("reference consumer requires an embedded preprocessing policy")
     return validated_state
 
 

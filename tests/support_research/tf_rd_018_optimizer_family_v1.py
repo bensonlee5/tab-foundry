@@ -59,7 +59,7 @@ def test_tf_rd_018_optimizer_family_v1_is_registered_and_completed() -> None:
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_manifest_path": "src/tab_foundry/bench/openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_v2",
         "external_benchmarks": ["nanotabpfn"],
     }

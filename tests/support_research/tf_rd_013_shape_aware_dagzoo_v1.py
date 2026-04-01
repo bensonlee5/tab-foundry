@@ -117,7 +117,7 @@ def test_tf_rd_013_shape_aware_sweep_is_registered_but_not_active() -> None:
     assert entry["anchor_run_id"] == ANCHOR_RUN_ID
     assert entry["complexity_level"] == "binary_md"
     assert entry["benchmark_manifest_path"] == (
-        "src/tab_foundry/bench/openml_binary_large_v1.json"
+        "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     )
     assert entry["control_baseline_id"] == "cls_benchmark_linear_v2"
     assert entry["external_benchmarks"] is None

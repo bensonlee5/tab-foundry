@@ -17,7 +17,7 @@ from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.blocks import TFColEncoder, TFRowEncoder
 from tab_foundry.model.components.qass import QASSTransformerEncoder
 from tab_foundry.model.components.tabular_primitives import (
-    DirectClassifierHead,
+    DirectMulticlassHead,
     LabelTokenTargetConditioner,
     ScalarPerFeatureMissingnessTokenizer,
     ScalarPerFeatureTokenizer,
@@ -365,7 +365,7 @@ class NanoBinaryHead(nn.Module):
 
 
 __all__ = [
-    "DirectClassifierHead",
+    "DirectMulticlassHead",
     "IdentityColumnEncoder",
     "LabelTokenTargetConditioner",
     "MeanPaddedLinearTargetConditioner",
@@ -373,6 +373,7 @@ __all__ = [
     "NanoFeatureEncoder",
     "NanoPostNormBlock",
     "PostEncoderNorm",
+    "PreNormCellBlock",
     "RowCLSPool",
     "ScalarPerFeatureMissingnessTokenizer",
     "ScalarPerFeatureTokenizer",

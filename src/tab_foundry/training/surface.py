@@ -26,7 +26,6 @@ TRAINING_BACKEND_LEGACY_PRIOR = "legacy_prior"
 _TRAINING_BACKEND_ALIASES = {
     TRAINING_BACKEND_MANIFEST: TRAINING_BACKEND_MANIFEST,
     TRAINING_BACKEND_LEGACY_PRIOR: TRAINING_BACKEND_LEGACY_PRIOR,
-    "prior_dump": TRAINING_BACKEND_LEGACY_PRIOR,
 }
 _VALID_TRAINING_BACKENDS = {
     TRAINING_BACKEND_MANIFEST,
@@ -49,7 +48,7 @@ def normalize_training_backend(value: Any) -> str | None:
     if normalized is None:
         raise ValueError(
             "training backend must be one of "
-            f"{sorted(_VALID_TRAINING_BACKENDS | {'prior_dump'})}, got {value!r}"
+            f"{sorted(_VALID_TRAINING_BACKENDS)}, got {value!r}"
         )
     return normalized
 
@@ -111,8 +110,8 @@ def build_training_surface_record(
     model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
     if not isinstance(raw_data_cfg, Mapping):
         data_cfg = {
-            "source": "prior_dump",
-            "surface_label": "prior_dump",
+            "source": TRAINING_BACKEND_LEGACY_PRIOR,
+            "surface_label": TRAINING_BACKEND_LEGACY_PRIOR,
             "surface_overrides": {},
         }
     else:

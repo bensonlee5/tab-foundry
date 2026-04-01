@@ -157,12 +157,12 @@ rows:
   confounders: []
   next_action: Carry `sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1`
     forward as the validated calibration-first candidate and run the missing-data
-    generalization check on `src/tab_foundry/bench/openml_binary_large_v1.json`.
+    generalization check on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   notes:
   - Do not reopen `inducing64` or `layers1` unless this row is materially ambiguous
     on the large-bundle validator.
   - If this row passes, the next follow-up is a single missing-data generalization
-    check on `src/tab_foundry/bench/openml_binary_large_v1.json`.
+    check on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same control baseline, replay payload, and reuse signature
     as row 1 so the large-bundle heads4 comparison stays isolated.
   - Canonical rerun registered as `sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1`.

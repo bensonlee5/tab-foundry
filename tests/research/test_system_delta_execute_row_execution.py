@@ -5,7 +5,7 @@ from __future__ import annotations
 from tests.support_research.system_delta_execute import (
     test_archive_incomplete_train_dir_moves_partial_history_aside,
     test_completed_train_artifacts_exist_accepts_exact_normalized_surface_match,
-    test_completed_train_artifacts_exist_accepts_prior_dump_alias_for_legacy_prior,
+    test_completed_train_artifacts_exist_rejects_prior_dump_alias_for_legacy_prior,
     test_completed_train_artifacts_exist_accepts_stage_scoped_latest_checkpoint,
     test_completed_train_artifacts_exist_rejects_backend_mismatch,
     test_completed_train_artifacts_exist_rejects_manifest_identity_mismatch,

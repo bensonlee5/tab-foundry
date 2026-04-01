@@ -4,7 +4,7 @@ parent_sweep_id: qass_tfcol_adequacy_v1
 status: completed
 complexity_level: binary_md
 anchor_run_id: sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1
-benchmark_manifest_path: src/tab_foundry/bench/openml_binary_large_no_missing_v1.json
+benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged
 training_config_profile: cls_benchmark_staged
@@ -41,7 +41,7 @@ anchor_surface:
     and `row_cls + qass + tfcol_heads4` for calibration-oriented work.
   - >-
     If and only if row 2 passes this validation, the next follow-up should be a single
-    missing-data generalization check on `src/tab_foundry/bench/openml_binary_large_v1.json`.
+    missing-data generalization check on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - >-
     This validation passed narrowly: row 2 improved final log loss by `-0.0013818`
     and final Brier by `-0.0004977` versus row 1, while the final ROC AUC delta

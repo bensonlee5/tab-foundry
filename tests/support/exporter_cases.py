@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,7 +16,6 @@ import tab_foundry.export.loader_ref as loader_ref_module
 import tab_foundry.training.evaluate as evaluate_module
 from tab_foundry.export.contracts import (
     ExportPreprocessorState,
-    SCHEMA_VERSION_V2,
     SCHEMA_VERSION_V3,
     compute_v3_manifest_sha256,
 )
@@ -28,6 +26,8 @@ from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch
 from tests.support.paths import REPO_ROOT
+
+LEGACY_SCHEMA_VERSION = "tab-foundry-export-v2"
 
 
 def _build_model(task: str, model_cfg: dict[str, object]) -> torch.nn.Module:
@@ -150,14 +150,10 @@ def _rewrite_json(path: Path, payload: dict[str, object]) -> None:
         handle.write("\n")
 
 
-def _update_v2_checksum(out_dir: Path, *, key: str, file_name: str) -> None:
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert isinstance(manifest, dict)
-    checksums = manifest["checksums"]
-    assert isinstance(checksums, dict)
-    checksums[key] = hashlib.sha256((out_dir / file_name).read_bytes()).hexdigest()
-    _rewrite_json(manifest_path, manifest)
+def _write_legacy_v2_bundle(out_dir: Path) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    _rewrite_json(out_dir / "manifest.json", _load_fixture("manifest_v2.json"))
+    return out_dir
 
 
 def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path) -> None:
@@ -211,22 +207,14 @@ def test_export_bundle_accepts_smooth_tail_input_normalization(tmp_path: Path) -
     assert validated.manifest.model.input_normalization == "train_zscore_tanh"
 
 
-def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
+def test_export_bundle_rejects_non_v3_artifact_version(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
-    out_dir = tmp_path / "export_cls_v2"
-
-    result = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
-    assert result.schema_version == SCHEMA_VERSION_V2
-
-    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
-        manifest = json.load(handle)
-    with (out_dir / "preprocessor_state.json").open("r", encoding="utf-8") as handle:
-        preprocessor_state = json.load(handle)
-
-    assert manifest["schema_version"] == SCHEMA_VERSION_V2
-    assert "feature_ids" not in preprocessor_state
-    assert preprocessor_state["classification_label_policy"]["mapping"] == "train_only_remap"
+    with pytest.raises(
+        ValueError,
+        match="Unsupported artifact_version",
+    ):
+        _ = export_checkpoint(checkpoint, tmp_path / "export_cls_v2", artifact_version=LEGACY_SCHEMA_VERSION)
 
 
 def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_match(
@@ -577,65 +565,9 @@ def test_validate_export_rejects_old_inference_model_arch(tmp_path: Path) -> Non
         _ = validate_export_bundle(out_dir)
 
 
-def test_validate_export_v2_rejects_inference_model_arch_mismatch(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_v2_simple.pt"
-    _ = _write_checkpoint(
-        checkpoint,
-        task="classification",
-        input_normalization="train_zscore_clip",
-        model_overrides={
-            "arch": "tabfoundry_simple",
-            "d_icl": 96,
-            "many_class_base": 2,
-            "tficl_n_heads": 4,
-            "tficl_n_layers": 3,
-            "head_hidden_dim": 192,
-        },
-    )
-    out_dir = tmp_path / "export_v2_simple"
-    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
-
-    inference_path = out_dir / "inference_config.json"
-    inference = json.loads(inference_path.read_text(encoding="utf-8"))
-    assert isinstance(inference, dict)
-    inference["model_arch"] = "tabfoundry_staged"
-    _rewrite_json(inference_path, inference)
-    _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
-
-    with pytest.raises(ValueError, match="manifest.model.arch and inference_config.model_arch mismatch"):
-        _ = validate_export_bundle(out_dir)
-
-
-def test_validate_export_v2_rejects_inference_model_stage_mismatch(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_v2_staged.pt"
-    _ = _write_checkpoint(
-        checkpoint,
-        task="classification",
-        input_normalization="train_zscore_clip",
-        model_overrides={
-            "arch": "tabfoundry_staged",
-            "stage": "nano_exact",
-            "d_icl": 96,
-            "many_class_base": 2,
-            "tficl_n_heads": 4,
-            "tficl_n_layers": 3,
-            "head_hidden_dim": 192,
-        },
-    )
-    out_dir = tmp_path / "export_v2_staged"
-    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
-
-    inference_path = out_dir / "inference_config.json"
-    inference = json.loads(inference_path.read_text(encoding="utf-8"))
-    assert isinstance(inference, dict)
-    inference["model_stage"] = "many_class"
-    _rewrite_json(inference_path, inference)
-    _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
-
-    with pytest.raises(
-        ValueError,
-        match="manifest.model.stage and inference_config.model_stage mismatch",
-    ):
+def test_validate_export_rejects_v2_bundle(tmp_path: Path) -> None:
+    out_dir = _write_legacy_v2_bundle(tmp_path / "export_v2")
+    with pytest.raises(ValueError, match="Unsupported schema version"):
         _ = validate_export_bundle(out_dir)
 
 
@@ -1037,13 +969,10 @@ def test_reference_consumer_classification_matches_golden_fixture(tmp_path: Path
 
 
 def test_reference_consumer_rejects_v2_bundle(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_v2.pt"
-    _ = _write_checkpoint(checkpoint, task="classification")
-    out_dir = tmp_path / "export_v2"
-    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
+    out_dir = _write_legacy_v2_bundle(tmp_path / "export_v2")
     x_train, y_train, x_test = _classification_reference_arrays()
 
-    with pytest.raises(ValueError, match="only executes tab-foundry-export-v3 bundles"):
+    with pytest.raises(ValueError, match="Unsupported schema version"):
         _ = run_reference_consumer(out_dir, x_train=x_train, y_train=y_train, x_test=x_test)
 
 

@@ -44,13 +44,10 @@ from tab_foundry.bench.openml_benchmark import (
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
-    benchmark_bundle_summary,
-    benchmark_bundle_task_type,
     benchmark_host_fingerprint,
     build_comparison_summary,
     default_benchmark_manifest_path,
     evaluate_tab_foundry_run,
-    load_benchmark_bundle_for_execution,
     load_benchmark_manifest_datasets,
     plot_comparison_curve,
     resolve_device,
@@ -76,7 +73,6 @@ __all__ = [
 ]
 
 _RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 3
-_LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 2
 
 
 def _helper_script_path() -> Path:
@@ -123,35 +119,16 @@ def _load_runtime_benchmark_surface(
             "load_benchmark_manifest_datasets must return a tuple of "
             "(datasets, benchmark_tasks, benchmark_surface)"
         )
-    if len(loaded) == _RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE:
-        datasets, benchmark_tasks, benchmark_surface = loaded
-        return (
-            cast(dict[str, Any], datasets),
-            cast(list[dict[str, Any]], benchmark_tasks),
-            cast(dict[str, Any], benchmark_surface),
-        )
-    if len(loaded) != _LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE:
+    if len(loaded) != _RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE:
         raise RuntimeError(
             "load_benchmark_manifest_datasets returned an unexpected tuple shape: "
             f"{len(loaded)!r}"
         )
-    datasets, benchmark_tasks = loaded
-    bundle, allow_missing_values = load_benchmark_bundle_for_execution(benchmark_manifest_path)
+    datasets, benchmark_tasks, benchmark_surface = loaded
     return (
         cast(dict[str, Any], datasets),
         cast(list[dict[str, Any]], benchmark_tasks),
-        {
-            "manifest_path": str(benchmark_manifest_path.expanduser().resolve()),
-            "contract_version": None,
-            "manifest_sha256": None,
-            "task_type": benchmark_bundle_task_type(bundle),
-            "allow_missing_values": bool(allow_missing_values),
-            "benchmark_bundle": benchmark_bundle_summary(
-                bundle,
-                source_path=benchmark_manifest_path,
-            ),
-            "persisted_summary": None,
-        },
+        cast(dict[str, Any], benchmark_surface),
     )
 
 

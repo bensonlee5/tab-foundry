@@ -42,7 +42,7 @@
   },
   "config_refs": {
     "benchmark_bundle": [
-      "src/tab_foundry/bench/openml_binary_large_v1.json"
+      "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
     ],
     "dagzoo": [
       "configs/benchmark_cpu.yaml",
@@ -150,7 +150,7 @@
             "new_instances": 200,
             "task_type": "supervised_classification"
           },
-          "source_path": "src/tab_foundry/bench/openml_binary_large_v1.json",
+          "source_path": "data/manifests/bench/openml_classification_large_v1/manifest.parquet",
           "task_count": 12,
           "task_ids": [
             363613,

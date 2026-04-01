@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Final, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationInfo, field_validator
 
 from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_NANOTABPFN,
@@ -165,9 +165,7 @@ class SweepIndexEntryPayload(_SweepPayloadModel):
     status: StrictStr
     anchor_run_id: StrictStr | None = None
     complexity_level: StrictStr
-    benchmark_manifest_path: StrictStr = Field(
-        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
-    )
+    benchmark_manifest_path: StrictStr
     control_baseline_id: StrictStr
     external_benchmarks: list[str] | None = None
 
@@ -201,9 +199,7 @@ class SweepPayload(_SweepPayloadModel):
     status: StrictStr
     complexity_level: StrictStr
     anchor_run_id: StrictStr | None = None
-    benchmark_manifest_path: StrictStr = Field(
-        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
-    )
+    benchmark_manifest_path: StrictStr
     control_baseline_id: StrictStr
     external_benchmarks: list[str] | None = None
     training_experiment: StrictStr
@@ -390,9 +386,7 @@ class MaterializedQueuePayload(_SweepPayloadModel):
     sweep_status: StrictStr | None = None
     complexity_level: StrictStr | None = None
     anchor_run_id: StrictStr | None = None
-    benchmark_manifest_path: StrictStr = Field(
-        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
-    )
+    benchmark_manifest_path: StrictStr
     control_baseline_id: StrictStr
     external_benchmarks: list[str] = Field(default_factory=list)
     training_experiment: StrictStr

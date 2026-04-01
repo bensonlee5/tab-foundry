@@ -45,7 +45,7 @@ def test_row_first_training_adequacy_v1_is_registered_on_the_tf_rd_013_medium_an
     assert entry["anchor_run_id"] == ANCHOR_RUN_ID
     assert entry["complexity_level"] == "binary_md"
     assert entry["benchmark_manifest_path"] == (
-        "src/tab_foundry/bench/openml_binary_medium_v1.json"
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     )
     assert entry["control_baseline_id"] == "cls_benchmark_linear_v2"
     assert entry["external_benchmarks"] is None
@@ -62,7 +62,7 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
-    assert sweep["benchmark_manifest_path"] == "src/tab_foundry/bench/openml_binary_medium_v1.json"
+    assert sweep["benchmark_manifest_path"] == "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "model": "delta_qass_no_column_v3",
@@ -220,7 +220,7 @@ def test_row_first_training_adequacy_v1_matrix_records_the_task_batch_rebase() -
     assert "#137" in matrix
     assert "1109.3s" in matrix
     assert "tf_rd_013_dagzoo_shape_aware_size_medium_v1" in matrix
-    assert "openml_binary_medium_v1.json" in matrix
+    assert "data/manifests/bench/openml_classification_medium_v1/manifest.parquet" in matrix
     assert "delta_training_linear_decay" not in matrix
     assert "delta_training_adamw" not in matrix
     assert "delta_training_muon" not in matrix

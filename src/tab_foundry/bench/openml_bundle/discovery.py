@@ -69,10 +69,10 @@ def task_listing_rows_for_config(
     )
     listing_filters: dict[str, Any] = {}
     if int(config.min_instances) > 1:
-        listing_filters["number_instances"] = f"{int(config.min_instances)}.."
-    listing_filters["number_features"] = f"..{int(config.max_features)}"
+        listing_filters["number_instances"] = f"{int(config.min_instances)}..1000000000"
+    listing_filters["number_features"] = f"0..{int(config.max_features)}"
     if config.task_type == "supervised_classification" and config.max_classes is not None:
-        listing_filters["number_classes"] = int(config.max_classes)
+        listing_filters["number_classes"] = f"{int(config.max_classes)}..{int(config.max_classes)}"
     if float(config.max_missing_pct) <= 0.0:
         listing_filters["number_missing_values"] = 0
     try:

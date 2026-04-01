@@ -14,7 +14,7 @@ import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_libr
 import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_library_module
 import tab_foundry.bench.envs as env_library_module
 import tab_foundry.bench.iris_smoke as iris_smoke_library_module
-import tab_foundry.bench.openml_benchmark_bundle as bundle_library_module
+import tab_foundry.bench.openml_bundle as bundle_library_module
 import tab_foundry.bench.run_registration as run_registration_library_module
 import tab_foundry.bench.tune as tune_library_module
 import tab_foundry.cli as cli_module

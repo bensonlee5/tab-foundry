@@ -252,16 +252,17 @@ tab-foundry bench compare \
   --tabicl-root ~/dev/tabicl
 ```
 
-The canonical medium-bundle surface is
-`src/tab_foundry/bench/openml_binary_medium_v1.json`. The canonical
-frozen control baseline id is `cls_benchmark_linear_v2`.
+The canonical medium benchmark surface is
+`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. The
+canonical frozen control baseline id is `cls_benchmark_linear_v2`.
 
-Materialize a repo-tracked bundle into a local benchmark manifest with:
+Benchmark comparison and sweep execution consume manifest paths only. Use the
+repo-tracked bundle JSON only as a materialization input:
 
 ```bash
 tab-foundry bench materialize-openml-bundle \
   --bundle-path src/tab_foundry/bench/openml_binary_medium_v1.json \
-  --out-root data/manifests/bench/openml_binary_medium_v1
+  --out-root data/manifests/bench/openml_classification_medium_v1
 ```
 
 The checked-in `cls_benchmark_linear_v2` entry freezes the prior-trained staged
@@ -301,10 +302,11 @@ for the repo's historical system of record.
 ### Benchmark Cost Policy
 
 - Tier 0: tests plus one short local training run on a fixed manifest.
-- Tier 1: run the pinned benchmark bundle for shortlisted candidates and judge
-  against the parent run plus the frozen control.
+- Tier 1: run the pinned benchmark manifest for shortlisted candidates and
+  judge against the parent run plus the frozen control.
 - Tier 2: pay the full nanoTabPFN helper cost only for milestone results or
-  when the bundle, helper settings, prior dump, or device class changes.
+  when the manifest provenance, helper settings, prior dump, or device class
+  changes.
 
 ## System-Delta Sweep Runbook
 
@@ -384,7 +386,7 @@ Train-only `screen_only` rows still need:
 `screen_only` rows intentionally skip benchmark registration and
 `result_card.md`. `screen_only` rows are diagnostic only.
 
-Benchmark-facing writeups should cite the locked bundle path,
+Benchmark-facing writeups should cite the locked manifest path,
 `cls_benchmark_linear_v2`, `training_surface_record.json`,
 `research_card.md`, `campaign.yaml`, and `result_card.md`.
 
@@ -392,5 +394,5 @@ Benchmark-facing writeups should cite the locked bundle path,
 
 - Use smoke for plumbing checks, not the canonical leaderboard.
 - Use internal tuning to prune candidates before confirmatory benchmark runs.
-- Keep export and inference compatibility intact until an explicit migration is
-  planned.
+- Regenerate obsolete export bundles, benchmark manifests, and prior dumps
+  instead of adding compatibility backfills for removed contracts.

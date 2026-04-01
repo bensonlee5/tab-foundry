@@ -6,8 +6,8 @@ defaults:
 
 task: classification
 data:
-  source: prior_dump
-  surface_label: prior_dump
+  source: legacy_prior
+  surface_label: legacy_prior
   manifest_path: null
 model:
   d_icl: 96

@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tokenization_migration
 ## Locked Surface
 
 - Anchor run id: `sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged`
 - Training config profile: `cls_benchmark_staged`

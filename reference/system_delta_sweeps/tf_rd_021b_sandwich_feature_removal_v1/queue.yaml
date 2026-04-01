@@ -26,8 +26,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -119,8 +119,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -212,8 +212,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:
@@ -306,8 +306,8 @@ rows:
     sandwich_pre_row_attention_layers: 1
     sandwich_pre_column_attention_layers: 1
   data:
-    source: prior_dump
-    surface_label: prior_dump
+    source: legacy_prior
+    surface_label: legacy_prior
   preprocessing:
     surface_label: runtime_default
   training:

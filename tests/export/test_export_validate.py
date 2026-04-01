@@ -18,8 +18,7 @@ from tests.support.exporter_cases import (
     test_validate_export_rejects_tabfoundry_simple_manifest_that_breaks_constructor_invariants,
     test_validate_export_rejects_tabfoundry_staged_manifest_model_inference_feature_group_size_mismatch,
     test_validate_export_rejects_unsupported_schema,
+    test_validate_export_rejects_v2_bundle,
     test_validate_export_rejects_v3_preprocessor_feature_types,
     test_validate_export_requires_manifest_sha256_for_v3,
-    test_validate_export_v2_rejects_inference_model_arch_mismatch,
-    test_validate_export_v2_rejects_inference_model_stage_mismatch,
 )

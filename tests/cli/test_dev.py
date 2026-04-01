@@ -9,10 +9,12 @@ import torch
 import tab_foundry.cli.dev as dev_module
 import tab_foundry.device as device_module
 from tab_foundry.cli.dev import diff_config_payloads, forward_check, resolve_config_payload
-from tab_foundry.export.contracts import SCHEMA_VERSION_V2, SCHEMA_VERSION_V3
+from tab_foundry.export.contracts import SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check
 
 from tests.support import exporter_cases
+
+LEGACY_SCHEMA_VERSION = "tab-foundry-export-v2"
 
 
 _SMALL_STAGED_OVERRIDES = [
@@ -298,9 +300,9 @@ def test_export_check_rejects_non_v3_artifact_version(tmp_path: Path) -> None:
         _ = export_check(
             checkpoint,
             out_dir=tmp_path / "bundle_v2",
-            artifact_version=SCHEMA_VERSION_V2,
+            artifact_version=LEGACY_SCHEMA_VERSION,
         )
     except RuntimeError as exc:
-        assert "requires artifact_version=tab-foundry-export-v3" in str(exc)
+        assert "unsupported artifact version" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected export_check() to reject v2 artifact versions")

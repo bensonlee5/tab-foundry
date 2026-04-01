@@ -9,17 +9,13 @@ from .common import _validate_payload_model
 from .inference import _inference_config_from_payload
 from .models import (
     SCHEMA_VERSION_V3,
-    SUPPORTED_SCHEMA_VERSIONS,
-    ExportFiles,
     ExportManifest,
     ExportModelSpec,
     ExportWeights,
     ProducerInfo,
     _ExportPreprocessorStatePayload,
     _InferenceConfigPayload,
-    _ManifestModelPayloadV2,
     _ManifestModelPayloadV3,
-    _ManifestPayloadV2,
     _ManifestPayloadV3,
 )
 from .preprocessor import (
@@ -65,7 +61,7 @@ def _validate_manifest_sha256(value: object) -> str:
     return value
 
 
-def _producer_info_from_payload(payload: _ManifestPayloadV2 | _ManifestPayloadV3) -> ProducerInfo:
+def _producer_info_from_payload(payload: _ManifestPayloadV3) -> ProducerInfo:
     producer = payload.producer
     return ProducerInfo(
         name=str(producer.name),
@@ -75,7 +71,7 @@ def _producer_info_from_payload(payload: _ManifestPayloadV2 | _ManifestPayloadV3
 
 
 def _validate_model_spec(
-    payload: _ManifestModelPayloadV2 | _ManifestModelPayloadV3,
+    payload: _ManifestModelPayloadV3,
     *,
     task: str,
 ) -> ExportModelSpec:
@@ -92,83 +88,57 @@ def _validate_model_spec(
 
 def validate_manifest_dict(payload: dict[str, object]) -> ExportManifest:
     schema_version_raw = payload.get("schema_version")
-    if schema_version_raw not in SUPPORTED_SCHEMA_VERSIONS:
+    if schema_version_raw != SCHEMA_VERSION_V3:
         raise ValueError(f"Unsupported schema version: {schema_version_raw!r}")
 
-    if schema_version_raw == SCHEMA_VERSION_V3:
-        if "manifest_sha256" not in payload:
-            raise ValueError(
-                "manifest.manifest_sha256 is required for tab-foundry-export-v3 bundles; "
-                "older v3 bundles must be regenerated"
-            )
-        _validate_exact_keys(payload, payload_model=_ManifestPayloadV3, context="manifest")
-        _ = _validate_manifest_sha256(payload.get("manifest_sha256"))
-        model_raw = payload.get("model")
-        _validate_exact_keys(model_raw, payload_model=_ManifestModelPayloadV3, context="manifest.model")
-        _validate_exact_keys(
-            payload.get("inference"),
-            payload_model=_InferenceConfigPayload,
-            context="manifest.inference",
+    if "manifest_sha256" not in payload:
+        raise ValueError(
+            "manifest.manifest_sha256 is required for tab-foundry-export-v3 bundles; "
+            "older v3 bundles must be regenerated"
         )
-        _validate_exact_keys(
-            payload.get("preprocessor"),
-            payload_model=_ExportPreprocessorStatePayload,
-            context="manifest.preprocessor",
-        )
-        validated_v3 = _validate_payload_model(
-            _ManifestPayloadV3,
-            payload,
-            context="manifest",
-        )
-        task = str(validated_v3.task)
-        model = _validate_model_spec(validated_v3.model, task=task)
-        inference = _inference_config_from_payload(validated_v3.inference)
-        if inference.task != task:
-            raise ValueError("manifest.task and manifest.inference.task mismatch")
-        if inference.model_arch != model.arch:
-            raise ValueError("manifest.model.arch and manifest.inference.model_arch mismatch")
-        if inference.model_stage != model.stage:
-            raise ValueError("manifest.model.stage and manifest.inference.model_stage mismatch")
-        if inference.feature_group_size != model.feature_group_size:
-            raise ValueError("feature_group_size mismatch between manifest.model and manifest.inference")
-        preprocessor = _export_preprocessor_state_from_payload(validated_v3.preprocessor)
-        weights = ExportWeights(
-            file=str(validated_v3.weights.file),
-            sha256=str(validated_v3.weights.sha256),
-        )
-        return ExportManifest(
-            schema_version=str(validated_v3.schema_version),
-            producer=_producer_info_from_payload(validated_v3),
-            task=task,
-            model=model,
-            created_at_utc=str(validated_v3.created_at_utc),
-            manifest_sha256=str(validated_v3.manifest_sha256),
-            inference=inference,
-            preprocessor=preprocessor,
-            weights=weights,
-        )
-
-    _validate_exact_keys(payload, payload_model=_ManifestPayloadV2, context="manifest")
-    _validate_exact_keys(payload.get("model"), payload_model=_ManifestModelPayloadV2, context="manifest.model")
-    validated_v2 = _validate_payload_model(
-        _ManifestPayloadV2,
+    _validate_exact_keys(payload, payload_model=_ManifestPayloadV3, context="manifest")
+    _ = _validate_manifest_sha256(payload.get("manifest_sha256"))
+    model_raw = payload.get("model")
+    _validate_exact_keys(model_raw, payload_model=_ManifestModelPayloadV3, context="manifest.model")
+    _validate_exact_keys(
+        payload.get("inference"),
+        payload_model=_InferenceConfigPayload,
+        context="manifest.inference",
+    )
+    _validate_exact_keys(
+        payload.get("preprocessor"),
+        payload_model=_ExportPreprocessorStatePayload,
+        context="manifest.preprocessor",
+    )
+    validated_v3 = _validate_payload_model(
+        _ManifestPayloadV3,
         payload,
         context="manifest",
     )
-    task = str(validated_v2.task)
-    model = _validate_model_spec(validated_v2.model, task=task)
-    files = ExportFiles(
-        weights=str(validated_v2.files.weights),
-        inference_config=str(validated_v2.files.inference_config),
-        preprocessor_state=str(validated_v2.files.preprocessor_state),
+    task = str(validated_v3.task)
+    model = _validate_model_spec(validated_v3.model, task=task)
+    inference = _inference_config_from_payload(validated_v3.inference)
+    if inference.task != task:
+        raise ValueError("manifest.task and manifest.inference.task mismatch")
+    if inference.model_arch != model.arch:
+        raise ValueError("manifest.model.arch and manifest.inference.model_arch mismatch")
+    if inference.model_stage != model.stage:
+        raise ValueError("manifest.model.stage and manifest.inference.model_stage mismatch")
+    if inference.feature_group_size != model.feature_group_size:
+        raise ValueError("feature_group_size mismatch between manifest.model and manifest.inference")
+    preprocessor = _export_preprocessor_state_from_payload(validated_v3.preprocessor)
+    weights = ExportWeights(
+        file=str(validated_v3.weights.file),
+        sha256=str(validated_v3.weights.sha256),
     )
-    checksums = validated_v2.checksums.model_dump()
     return ExportManifest(
-        schema_version=str(validated_v2.schema_version),
-        producer=_producer_info_from_payload(validated_v2),
+        schema_version=str(validated_v3.schema_version),
+        producer=_producer_info_from_payload(validated_v3),
         task=task,
         model=model,
-        created_at_utc=str(validated_v2.created_at_utc),
-        files=files,
-        checksums={str(key): str(value) for key, value in checksums.items()},
+        created_at_utc=str(validated_v3.created_at_utc),
+        manifest_sha256=str(validated_v3.manifest_sha256),
+        inference=inference,
+        preprocessor=preprocessor,
+        weights=weights,
     )

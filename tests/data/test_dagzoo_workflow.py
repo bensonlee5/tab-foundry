@@ -503,7 +503,7 @@ def test_build_dagzoo_generate_argv_appends_generic_set_overrides(tmp_path: Path
     assert argv[-2:] == ["--set", "runtime.fixed_layout_batch_size_cap=128"]
 
 
-def test_build_dagzoo_filter_argv_injects_filter_n_jobs_override(tmp_path: Path) -> None:
+def test_build_dagzoo_filter_argv_omits_removed_filter_n_jobs_override(tmp_path: Path) -> None:
     dagzoo_root = tmp_path / "dagzoo"
     dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
     input_dir = dagzoo_root / "handoffs" / "generated"
@@ -531,8 +531,6 @@ def test_build_dagzoo_filter_argv_injects_filter_n_jobs_override(tmp_path: Path)
         str(filter_root.resolve()),
         "--curated-out",
         str(curated_root.resolve()),
-        "--set",
-        "filter.n_jobs=2",
     ]
 
 
@@ -599,8 +597,6 @@ def test_run_dagzoo_filter_sets_thread_budget_env_vars(
         str(input_dir.resolve()),
         "--out",
         str(filter_root.resolve()),
-        "--set",
-        "filter.n_jobs=2",
     ]
     assert captured["cwd"] == dagzoo_root
     assert captured["check"] is True

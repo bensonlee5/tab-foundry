@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/qass_tfcol_adequacy_v1
 ## Locked Surface
 
 - Anchor run id: `sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1`
-- Benchmark bundle: `src/tab_foundry/bench/openml_binary_medium_v1.json`
+- Benchmark bundle: `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Training experiment: `cls_benchmark_staged`
 - Training config profile: `cls_benchmark_staged`
@@ -75,7 +75,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `defer`
 - Notes:
   - Treat this as a pure inducing-capacity adequacy row; do not reopen the broader TFCol-versus-no-TFCol attribution question on this bundle.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol inducing capacity changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
@@ -110,7 +110,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `defer`
 - Notes:
   - Treat this as a pure depth adequacy row; do not reinterpret plain context or QASS itself from this result.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol depth changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
@@ -145,7 +145,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `defer`
 - Notes:
   - Treat this as a pure attention-budget adequacy row; do not reopen the TFCol-presence decision on this bundle from this result alone.
-  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/openml_binary_large_no_missing_v1.json`.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol head count changes.
   - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.

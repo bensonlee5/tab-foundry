@@ -49,8 +49,8 @@ graph LR
    real-data manifests
 1. **Train** the active sandwich lane while preserving frozen and historical
    comparison surfaces
-1. **Benchmark** against pinned OpenML evaluation bundles with tracked
-   baselines
+1. **Benchmark** against pinned OpenML evaluation manifests with tracked
+   source-bundle provenance and baselines
 1. **Export** inference bundles for downstream deployment
 1. **(Planned)** Close the loop: the model tells dagzoo what harder data it
    needs next
@@ -136,8 +136,8 @@ for package ownership and entry points.
   surface
 - **Dagzoo integration** for synthetic corpus generation, manifests, and
   materialization
-- **OpenML benchmarking** against pinned binary and multiclass evaluation
-  bundles with a tracked benchmark registry
+- **OpenML benchmarking** against manifest-backed binary and multiclass
+  evaluation surfaces with a tracked benchmark registry
 - **Research sweep framework** for systematic architecture and data-surface
   experiments with full attribution
 - **Export pipeline** for packaging inference bundles
