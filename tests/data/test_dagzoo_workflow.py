@@ -16,7 +16,10 @@ from tab_realdata_hub.dagzoo_handoff import (
 )
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
+    DagzooFilterConfig,
     build_dagzoo_generate_argv,
+    build_dagzoo_filter_argv,
+    run_dagzoo_filter,
     run_dagzoo_generate_manifest,
 )
 from tab_realdata_hub.manifest import build_manifest
@@ -30,6 +33,14 @@ _TEST_GENERATED_CORPUS_ID = stable_dagzoo_generated_corpus_id(
     generate_run_id=_TEST_GENERATE_RUN_ID,
     dataset_ids=[_TEST_DATASET_ID],
 )
+
+
+def _write_fake_dagzoo_python(dagzoo_root: Path) -> Path:
+    interpreter = dagzoo_root / ".venv" / "bin" / "python"
+    interpreter.parent.mkdir(parents=True, exist_ok=True)
+    interpreter.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    interpreter.chmod(0o755)
+    return interpreter
 
 
 def _write_handoff_manifest(
@@ -216,6 +227,7 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
 ) -> None:
     dagzoo_root = tmp_path / "dagzoo"
     dagzoo_root.mkdir(parents=True, exist_ok=True)
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
 
@@ -232,10 +244,17 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
 
     captured: dict[str, Any] = {}
 
-    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+    def _fake_run(
+        cmd: list[str],
+        *,
+        cwd: Path,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         captured["cmd"] = cmd
         captured["cwd"] = cwd
         captured["check"] = check
+        captured["env"] = env
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr("tab_foundry.data.dagzoo_workflow.subprocess.run", _fake_run)
@@ -258,9 +277,10 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
 
     assert captured["cwd"] == dagzoo_root
     assert captured["check"] is True
+    assert captured["env"] is None
     assert captured["cmd"] == [
-        "uv",
-        "run",
+        str(dagzoo_python.resolve()),
+        "-m",
         "dagzoo",
         "generate",
         "--config",
@@ -299,6 +319,7 @@ def test_run_dagzoo_generate_manifest_runs_filter_for_accepted_only(
 ) -> None:
     dagzoo_root = tmp_path / "dagzoo"
     dagzoo_root.mkdir(parents=True, exist_ok=True)
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
 
@@ -308,9 +329,16 @@ def test_run_dagzoo_generate_manifest_runs_filter_for_accepted_only(
     _ = _write_handoff_manifest(handoff_root, generated_dir_rel="generated")
     captured_commands: list[list[str]] = []
 
-    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+    def _fake_run(
+        cmd: list[str],
+        *,
+        cwd: Path,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         assert cwd == dagzoo_root
         assert check is True
+        assert env is None
         captured_commands.append(cmd)
         if cmd[3] == "filter":
             _write_filter_outputs(
@@ -331,6 +359,10 @@ def test_run_dagzoo_generate_manifest_runs_filter_for_accepted_only(
         )
     )
 
+    assert [command[:3] for command in captured_commands] == [
+        [str(dagzoo_python.resolve()), "-m", "dagzoo"],
+        [str(dagzoo_python.resolve()), "-m", "dagzoo"],
+    ]
     assert [command[3] for command in captured_commands] == ["generate", "filter"]
     assert result.filter_result is not None
     assert result.filter_result.curated_out_dir == (handoff_root / "curated").resolve()
@@ -343,6 +375,7 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
 ) -> None:
     dagzoo_root = tmp_path / "dagzoo"
     dagzoo_root.mkdir(parents=True, exist_ok=True)
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
 
@@ -356,10 +389,17 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
 
     captured: dict[str, Any] = {}
 
-    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+    def _fake_run(
+        cmd: list[str],
+        *,
+        cwd: Path,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         captured["cmd"] = cmd
         captured["cwd"] = cwd
         captured["check"] = check
+        captured["env"] = env
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr("tab_foundry.data.dagzoo_workflow.subprocess.run", _fake_run)
@@ -378,9 +418,10 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
 
     assert captured["cwd"] == dagzoo_root
     assert captured["check"] is True
+    assert captured["env"] is None
     assert captured["cmd"] == [
-        "uv",
-        "run",
+        str(dagzoo_python.resolve()),
+        "-m",
         "dagzoo",
         "generate",
         "--config",
@@ -401,6 +442,7 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
 
 def test_build_dagzoo_generate_argv_maps_missingness_overrides_to_set_flags(tmp_path: Path) -> None:
     dagzoo_root = tmp_path / "dagzoo"
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
     config_path = dagzoo_root / "configs" / "default.yaml"
     handoff_root = dagzoo_root / "handoffs" / "tab_foundry"
 
@@ -418,8 +460,8 @@ def test_build_dagzoo_generate_argv_maps_missingness_overrides_to_set_flags(tmp_
     )
 
     assert argv == [
-        "uv",
-        "run",
+        str(dagzoo_python.resolve()),
+        "-m",
         "dagzoo",
         "generate",
         "--config",
@@ -445,6 +487,7 @@ def test_build_dagzoo_generate_argv_maps_missingness_overrides_to_set_flags(tmp_
 
 def test_build_dagzoo_generate_argv_appends_generic_set_overrides(tmp_path: Path) -> None:
     dagzoo_root = tmp_path / "dagzoo"
+    _ = _write_fake_dagzoo_python(dagzoo_root)
     config_path = dagzoo_root / "configs" / "default.yaml"
     handoff_root = dagzoo_root / "handoffs" / "tab_foundry"
 
@@ -460,16 +503,134 @@ def test_build_dagzoo_generate_argv_appends_generic_set_overrides(tmp_path: Path
     assert argv[-2:] == ["--set", "runtime.fixed_layout_batch_size_cap=128"]
 
 
+def test_build_dagzoo_filter_argv_injects_filter_n_jobs_override(tmp_path: Path) -> None:
+    dagzoo_root = tmp_path / "dagzoo"
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
+    input_dir = dagzoo_root / "handoffs" / "generated"
+    filter_root = dagzoo_root / "handoffs" / "filter"
+    curated_root = dagzoo_root / "handoffs" / "curated"
+
+    argv = build_dagzoo_filter_argv(
+        DagzooFilterConfig(
+            dagzoo_root=dagzoo_root,
+            input_dir=input_dir,
+            filter_out_dir=filter_root,
+            curated_out_dir=curated_root,
+            worker_threads=2,
+        )
+    )
+
+    assert argv == [
+        str(dagzoo_python.resolve()),
+        "-m",
+        "dagzoo",
+        "filter",
+        "--in",
+        str(input_dir.resolve()),
+        "--out",
+        str(filter_root.resolve()),
+        "--curated-out",
+        str(curated_root.resolve()),
+        "--set",
+        "filter.n_jobs=2",
+    ]
+
+
+def test_run_dagzoo_filter_sets_thread_budget_env_vars(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dagzoo_root = tmp_path / "dagzoo"
+    dagzoo_root.mkdir(parents=True, exist_ok=True)
+    dagzoo_python = _write_fake_dagzoo_python(dagzoo_root)
+    input_dir = dagzoo_root / "generated"
+    input_dir.mkdir(parents=True, exist_ok=True)
+    filter_root = dagzoo_root / "filter"
+    filter_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = filter_root / "filter_manifest.ndjson"
+    summary_path = filter_root / "filter_summary.json"
+    manifest_path.write_text("{}\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(
+            {
+                "total_datasets": 2,
+                "accepted_datasets": 1,
+                "rejected_datasets": 1,
+                "curated_accepted_datasets": 1,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    captured: dict[str, Any] = {}
+
+    def _fake_run(
+        cmd: list[str],
+        *,
+        cwd: Path,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        captured["cmd"] = cmd
+        captured["cwd"] = cwd
+        captured["check"] = check
+        captured["env"] = env
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr("tab_foundry.data.dagzoo_workflow.subprocess.run", _fake_run)
+
+    result = run_dagzoo_filter(
+        DagzooFilterConfig(
+            dagzoo_root=dagzoo_root,
+            input_dir=input_dir,
+            filter_out_dir=filter_root,
+            worker_threads=2,
+        )
+    )
+
+    assert captured["cmd"] == [
+        str(dagzoo_python.resolve()),
+        "-m",
+        "dagzoo",
+        "filter",
+        "--in",
+        str(input_dir.resolve()),
+        "--out",
+        str(filter_root.resolve()),
+        "--set",
+        "filter.n_jobs=2",
+    ]
+    assert captured["cwd"] == dagzoo_root
+    assert captured["check"] is True
+    assert captured["env"] is not None
+    assert captured["env"]["OMP_NUM_THREADS"] == "2"
+    assert captured["env"]["OPENBLAS_NUM_THREADS"] == "2"
+    assert captured["env"]["MKL_NUM_THREADS"] == "2"
+    assert captured["env"]["VECLIB_MAXIMUM_THREADS"] == "2"
+    assert captured["env"]["NUMEXPR_NUM_THREADS"] == "2"
+    assert result.total_datasets == 2
+
+
 def test_run_dagzoo_generate_manifest_rejects_missing_handoff_manifest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     dagzoo_root = tmp_path / "dagzoo"
     dagzoo_root.mkdir(parents=True, exist_ok=True)
+    _ = _write_fake_dagzoo_python(dagzoo_root)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
 
-    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+    def _fake_run(
+        cmd: list[str],
+        *,
+        cwd: Path,
+        check: bool,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        del cwd, check, env
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr("tab_foundry.data.dagzoo_workflow.subprocess.run", _fake_run)
@@ -496,6 +657,21 @@ def test_run_dagzoo_generate_manifest_rejects_non_directory_dagzoo_root(tmp_path
                 dagzoo_config=Path("configs/default.yaml"),
                 handoff_root=tmp_path / "handoff",
                 out_manifest=tmp_path / "manifest.parquet",
+            )
+        )
+
+
+def test_build_dagzoo_generate_argv_rejects_missing_dagzoo_venv_python(tmp_path: Path) -> None:
+    dagzoo_root = tmp_path / "dagzoo"
+    config_path = dagzoo_root / "configs" / "default.yaml"
+    handoff_root = dagzoo_root / "handoffs" / "tab_foundry"
+
+    with pytest.raises(RuntimeError, match="dagzoo venv interpreter does not exist"):
+        _ = build_dagzoo_generate_argv(
+            DagzooGenerateManifestConfig(
+                dagzoo_root=dagzoo_root,
+                dagzoo_config=config_path,
+                handoff_root=handoff_root,
             )
         )
 

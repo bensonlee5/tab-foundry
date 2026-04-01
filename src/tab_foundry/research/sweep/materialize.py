@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 from typing import Any, Literal, Mapping, cast
@@ -10,7 +9,7 @@ from typing import Any, Literal, Mapping, cast
 from omegaconf import OmegaConf
 from pydantic import ValidationError
 
-from tab_foundry.data.corpus_materialization import materialize_corpus_ref
+from tab_foundry.data.corpus_materialization import materialize_corpus_refs_batch
 from tab_foundry.external_benchmarks import normalize_external_benchmarks
 from tab_foundry.hashing import sha256_text
 from tab_foundry.research.lane_contract import resolve_sweep_semantics
@@ -51,9 +50,6 @@ from .paths_io import (
     write_yaml,
 )
 from .training_state import normalize_training_surface_record, training_surface_record_fingerprint
-
-_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS = 4
-
 
 def _resolved_external_benchmarks(sweep: SweepPayload) -> list[str]:
     values = sweep.external_benchmarks
@@ -857,6 +853,8 @@ def materialize_sweep_corpora(
     dagzoo_root: Path,
     sweep_id: str | None = None,
     force: bool = False,
+    materialize_processes: int | None = None,
+    materialize_worker_threads: int | None = None,
     index_path: Path | None = None,
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
@@ -900,37 +898,16 @@ def materialize_sweep_corpora(
             continue
         seen_corpus_refs.add(normalized_corpus_ref)
         requested_corpus_refs.append(normalized_corpus_ref)
-    worker_count = min(_MAX_SWEEP_CORPUS_MATERIALIZATION_WORKERS, len(requested_corpus_refs))
-    if worker_count <= 1:
-        records = [
-            materialize_corpus_ref(
-                corpus_ref=corpus_ref,
-                dagzoo_root=dagzoo_root,
-                force=force,
-                repo_root=resolved_repo_root,
-                sweep_id=resolved_sweep_id,
-                sweeps_root=sweeps_root,
-            )
-            for corpus_ref in requested_corpus_refs
-        ]
-    else:
-        with ThreadPoolExecutor(
-            max_workers=worker_count,
-            thread_name_prefix="sweep-corpus-materialize",
-        ) as executor:
-            futures = [
-                executor.submit(
-                    materialize_corpus_ref,
-                    corpus_ref=corpus_ref,
-                    dagzoo_root=dagzoo_root,
-                    force=force,
-                    repo_root=resolved_repo_root,
-                    sweep_id=resolved_sweep_id,
-                    sweeps_root=sweeps_root,
-                )
-                for corpus_ref in requested_corpus_refs
-            ]
-            records = [future.result() for future in futures]
+    records = materialize_corpus_refs_batch(
+        corpus_refs=requested_corpus_refs,
+        dagzoo_root=dagzoo_root,
+        force=force,
+        materialize_processes=materialize_processes,
+        materialize_worker_threads=materialize_worker_threads,
+        repo_root=resolved_repo_root,
+        sweep_id=resolved_sweep_id,
+        sweeps_root=sweeps_root,
+    )
     return {
         "sweep_id": resolved_sweep_id,
         "recipe_count": len(records),

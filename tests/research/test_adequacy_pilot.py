@@ -8,6 +8,7 @@ import pytest
 import torch
 
 import tab_foundry.research.adequacy.pilot as pilot_module
+from tab_foundry.research.synthetic_adequacy import load_synthetic_adequacy_spec
 from tab_foundry.types import TaskBatch
 
 
@@ -24,6 +25,30 @@ def _latent_target_metadata(*, n_features: int = 1) -> dict[str, object]:
                 "target_relevant_feature_count": n_features,
                 "target_relevant_feature_fraction": 1.0,
             }
+        },
+    }
+
+
+def _latent_target_catalog_record(
+    *,
+    n_features: int,
+    target_derivation: str = "tabiclv2_latent_node",
+    relevant_feature_count: int | None = None,
+    relevant_feature_fraction: float | None = None,
+) -> dict[str, object]:
+    resolved_relevant_feature_count = (
+        n_features if relevant_feature_count is None else int(relevant_feature_count)
+    )
+    resolved_relevant_feature_fraction = (
+        float(resolved_relevant_feature_count) / float(n_features)
+        if relevant_feature_fraction is None
+        else float(relevant_feature_fraction)
+    )
+    return {
+        "target_derivation": target_derivation,
+        "target_relevance": {
+            "feature_count": resolved_relevant_feature_count,
+            "feature_fraction": resolved_relevant_feature_fraction,
         },
     }
 
@@ -99,7 +124,7 @@ def _healthy_canary_summary() -> dict[str, object]:
 
 def test_validate_latent_target_metadata_accepts_fixture_payload() -> None:
     payload = pilot_module.validate_latent_target_metadata(
-        _latent_target_metadata(n_features=2),
+        _latent_target_catalog_record(n_features=2),
         n_features=2,
     )
 
@@ -113,14 +138,117 @@ def test_validate_latent_target_metadata_accepts_fixture_payload() -> None:
 
 def test_validate_latent_target_metadata_reports_missing_payload() -> None:
     payload = pilot_module.validate_latent_target_metadata(
-        {"prior": {"target_derivation": "wrong"}},
+        _latent_target_catalog_record(
+            n_features=2,
+            target_derivation="wrong",
+            relevant_feature_fraction=0.25,
+        ),
         n_features=2,
     )
 
     assert payload["present"] is False
     assert any(
-        "metadata.lineage.assignments is missing" in reason for reason in payload["missing_reasons"]
+        "catalog.target_relevance.feature_fraction does not match feature_count / n_features"
+        in reason
+        for reason in payload["missing_reasons"]
     )
+    assert any("catalog.target_derivation must equal" in reason for reason in payload["missing_reasons"])
+
+
+def test_inspect_corpus_latent_target_contract_accepts_public_catalog_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    spec = load_synthetic_adequacy_spec("tf_rd_010_synthetic_adequacy_v3")
+    block = next(
+        candidate
+        for candidate in spec.blocks
+        if candidate.block_id == "latent_target_canary_curated_v3"
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    manifest_path.write_bytes(b"manifest")
+    filter_manifest_path = tmp_path / "filter_manifest.ndjson"
+    filter_manifest_path.write_text("{}\n", encoding="utf-8")
+    filter_summary_path = tmp_path / "filter_summary.json"
+    filter_summary_path.write_text("{}\n", encoding="utf-8")
+    curated_dir = tmp_path / "curated"
+    curated_dir.mkdir(parents=True, exist_ok=True)
+    sample_records = [
+        {
+            "dataset_id": f"dataset-{row_total}",
+            "dataset_index": 0,
+            "split": "train",
+            "n_train": row_total - (row_total // 4),
+            "n_test": row_total // 4,
+            "n_features": 6,
+            "n_classes": 2,
+            "task": "classification",
+            "catalog_path": str(manifest_path),
+            "catalog_offset_bytes": 0,
+            "catalog_size_bytes": 1,
+            "catalog_sha256": "0" * 64,
+        }
+        for row_total in block.n_ladder
+    ]
+    corpus_record = {
+        "manifest": {"manifest_path": str(manifest_path.resolve())},
+        "dagzoo_provenance_summary": {
+            "target_derivation": "tabiclv2_latent_node",
+            "filter_policy": "accepted_only",
+            "accepted_datasets": 128,
+            "curated_accepted_datasets": 128,
+            "rejected_datasets": 53,
+            "acceptance_rate": 128.0 / 181.0,
+            "target_relevant_feature_count_range": {"min": 2, "max": 6},
+            "target_relevant_feature_fraction_range": {
+                "min": 2.0 / 6.0,
+                "max": 1.0,
+            },
+        },
+        "dagzoo_provenance": {
+            "invocations": [
+                {
+                    "invocation_id": f"r{row_total:04d}_canary",
+                    "num_datasets": 32,
+                    "filter": {
+                        "filter_policy": "accepted_only",
+                        "accepted_datasets": 40,
+                        "curated_accepted_datasets": 32,
+                        "filter_manifest_path": str(filter_manifest_path.resolve()),
+                        "filter_summary_path": str(filter_summary_path.resolve()),
+                        "curated_dir": str(curated_dir.resolve()),
+                    },
+                }
+                for row_total in block.n_ladder
+            ]
+        },
+    }
+
+    monkeypatch.setattr(
+        pilot_module,
+        "_classification_manifest_records",
+        lambda path: sample_records,
+    )
+    monkeypatch.setattr(
+        pilot_module,
+        "load_manifest_record_catalog",
+        lambda path, *, record: _latent_target_catalog_record(
+            n_features=int(record["n_features"]),
+            relevant_feature_count=int(record["n_features"]),
+        ),
+    )
+
+    payload = pilot_module.inspect_corpus_latent_target_contract(
+        block=block,
+        corpus_record=corpus_record,
+    )
+
+    assert payload["present"] is True
+    assert payload["missing_reasons"] == []
+    assert payload["sample_records"][0]["target_derivation"] == "tabiclv2_latent_node"
+    assert payload["sample_records"][0]["target_relevant_feature_count"] == 6
+    assert payload["sample_records"][0]["target_relevant_feature_fraction"] == pytest.approx(1.0)
+    assert "target_to_node" not in payload["sample_records"][0]
 
 
 def test_score_task_local_predictors_beats_chance_on_easy_canary() -> None:
@@ -171,17 +299,37 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    def _fake_materialize_corpus_ref(
+    captured_batch: dict[str, object] = {}
+
+    def _fake_materialize_corpus_refs_batch(
         *,
-        corpus_ref: str,
+        corpus_refs: list[str],
         dagzoo_root: Path,
         force: bool = False,
+        materialize_processes: int | None = None,
+        materialize_worker_threads: int | None = None,
+        prioritized_recipe_ids: list[str] | tuple[str, ...] = (),
+        on_corpus_materialized=None,
         repo_root: Path | None = None,
         sweep_id: str | None = None,
         sweeps_root: Path | None = None,
-    ) -> dict[str, object]:
+    ) -> list[dict[str, object]]:
         del dagzoo_root, force, repo_root, sweep_id, sweeps_root
-        return _fake_corpus_record(tmp_path, corpus_ref=corpus_ref)
+        captured_batch.update(
+            {
+                "corpus_refs": list(corpus_refs),
+                "materialize_processes": materialize_processes,
+                "materialize_worker_threads": materialize_worker_threads,
+                "prioritized_recipe_ids": list(prioritized_recipe_ids),
+            }
+        )
+        records = [
+            _fake_corpus_record(tmp_path, corpus_ref=corpus_ref) for corpus_ref in corpus_refs
+        ]
+        for record in records:
+            assert on_corpus_materialized is not None
+            on_corpus_materialized(record)
+        return records
 
     def _fake_contract_inspection(
         *,
@@ -223,7 +371,11 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
             },
         }
 
-    monkeypatch.setattr(pilot_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    monkeypatch.setattr(
+        pilot_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
     monkeypatch.setattr(
         pilot_module,
         "inspect_corpus_latent_target_contract",
@@ -245,10 +397,21 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
         adequacy_id="tf_rd_010_synthetic_adequacy_v3",
         dagzoo_root=tmp_path / "dagzoo",
         out_root=out_root,
+        materialize_processes=3,
+        materialize_worker_threads=2,
     )
 
     summary_json_path = out_root / "summary.json"
     summary_md_path = out_root / "summary.md"
+    assert captured_batch == {
+        "corpus_refs": [
+            "tf_rd_010_latent_target_canary_curated_v3",
+            "tf_rd_010_dagzoo_medium_control_curated_v5",
+        ],
+        "materialize_processes": 3,
+        "materialize_worker_threads": 2,
+        "prioritized_recipe_ids": ["tf_rd_010_latent_target_canary_curated_v3"],
+    }
     assert summary["provisional_interpretation"]["bucket"] == "inconclusive"
     assert summary_json_path.exists()
     assert summary_md_path.exists()
@@ -261,19 +424,42 @@ def test_run_adequacy_pilot_fails_fast_and_writes_blocking_summary_when_contract
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    def _fake_materialize_corpus_ref(
+    def _fake_materialize_corpus_refs_batch(
         *,
-        corpus_ref: str,
+        corpus_refs: list[str],
         dagzoo_root: Path,
         force: bool = False,
+        materialize_processes: int | None = None,
+        materialize_worker_threads: int | None = None,
+        prioritized_recipe_ids: list[str] | tuple[str, ...] = (),
+        on_corpus_materialized=None,
         repo_root: Path | None = None,
         sweep_id: str | None = None,
         sweeps_root: Path | None = None,
-    ) -> dict[str, object]:
-        del dagzoo_root, force, repo_root, sweep_id, sweeps_root
-        return _fake_corpus_record(tmp_path, corpus_ref=corpus_ref)
+    ) -> list[dict[str, object]]:
+        del (
+            dagzoo_root,
+            force,
+            materialize_processes,
+            materialize_worker_threads,
+            prioritized_recipe_ids,
+            repo_root,
+            sweep_id,
+            sweeps_root,
+        )
+        records = [
+            _fake_corpus_record(tmp_path, corpus_ref=corpus_ref) for corpus_ref in corpus_refs
+        ]
+        for record in records:
+            assert on_corpus_materialized is not None
+            on_corpus_materialized(record)
+        return records
 
-    monkeypatch.setattr(pilot_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
+    monkeypatch.setattr(
+        pilot_module,
+        "materialize_corpus_refs_batch",
+        _fake_materialize_corpus_refs_batch,
+    )
     monkeypatch.setattr(
         pilot_module,
         "inspect_corpus_latent_target_contract",

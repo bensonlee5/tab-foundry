@@ -6,6 +6,7 @@ import shutil
 from typing import Any
 
 import pytest
+import pyarrow.parquet as pq
 import yaml
 
 import tab_foundry.benchmark_registry as registry_module
@@ -25,6 +26,8 @@ from tab_foundry.data.corpus_loading import (
 from tab_foundry.data.dagzoo_workflow import DagzooFilterResult
 from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.data.corpus_materialization import (
+    default_materialize_processes,
+    default_materialize_worker_threads,
     materialize_corpus_ref,
     materialize_corpus_recipe,
 )
@@ -601,6 +604,14 @@ def _fake_run_dagzoo_generate(config) -> object:
     return load_dagzoo_handoff_info(handoff_manifest_path)
 
 
+def _write_fake_dagzoo_python(dagzoo_root: Path) -> Path:
+    interpreter = dagzoo_root / ".venv" / "bin" / "python"
+    interpreter.parent.mkdir(parents=True, exist_ok=True)
+    interpreter.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    interpreter.chmod(0o755)
+    return interpreter
+
+
 def _write_curated_datasets(curated_dir: Path, *, dataset_count: int, seed_base: int = 100) -> None:
     for dataset_offset in range(int(dataset_count)):
         _write_generated_dataset(
@@ -722,6 +733,7 @@ def _counting_fake_run_dagzoo_generate(call_counter: list[int]):
 def _initialize_repo_workspace(repo_root: Path) -> None:
     _write_recipe_registry(repo_root)
     dagzoo_root = repo_root / ".." / "dagzoo"
+    _write_fake_dagzoo_python(dagzoo_root)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
     (dagzoo_root / "configs" / "benchmark_cpu.yaml").write_text("seed: 1\n", encoding="utf-8")
@@ -937,6 +949,13 @@ def repo_tmp_path(tmp_path: Path) -> Path:
     return repo_root
 
 
+def test_default_materialization_budget_balances_processes_and_worker_threads() -> None:
+    assert default_materialize_processes(cpu_count=10) == 4
+    assert default_materialize_worker_threads(cpu_count=10, materialize_processes=4) == 2
+    assert default_materialize_processes(cpu_count=4) == 1
+    assert default_materialize_worker_threads(cpu_count=4, materialize_processes=1) == 3
+
+
 def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
@@ -965,6 +984,94 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+
+
+def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    captured: dict[str, Any] = {}
+
+    def _fake_subprocess_fanout(
+        *,
+        recipe_id: str,
+        invocations,
+        dagzoo_root: Path,
+        corpus_root: Path,
+        repo_root: Path,
+        sweep_id: str | None,
+        sweeps_root: Path | None,
+        materialize_processes: int | None,
+        materialize_worker_threads: int | None,
+    ) -> None:
+        captured.update(
+            {
+                "recipe_id": recipe_id,
+                "invocation_ids": [str(spec.invocation_id) for spec in invocations],
+                "materialize_processes": materialize_processes,
+                "materialize_worker_threads": materialize_worker_threads,
+            }
+        )
+        for spec in invocations:
+            corpus_materialization_module.materialize_recipe_invocation(
+                recipe_id=recipe_id,
+                invocation_id=str(spec.invocation_id),
+                dagzoo_root=dagzoo_root,
+                corpus_root=corpus_root,
+                repo_root=repo_root,
+                sweep_id=sweep_id,
+                sweeps_root=sweeps_root,
+            )
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_invocations_with_subprocess_fanout",
+        _fake_subprocess_fanout,
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="size_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        materialize_processes=3,
+        materialize_worker_threads=2,
+        repo_root=repo_tmp_path,
+    )
+
+    assert captured == {
+        "recipe_id": "size_recipe",
+        "invocation_ids": ["benchmark_cpu", "large_shape"],
+        "materialize_processes": 3,
+        "materialize_worker_threads": 2,
+    }
+    assert Path(str(record["manifest"]["manifest_path"])).exists()
+
+
+def test_materialize_corpus_recipe_aborts_without_manifest_when_subprocess_fanout_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    def _failing_subprocess_fanout(**_kwargs: Any) -> None:
+        raise RuntimeError("fanout failed")
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_invocations_with_subprocess_fanout",
+        _failing_subprocess_fanout,
+    )
+
+    with pytest.raises(RuntimeError, match="fanout failed"):
+        _ = materialize_corpus_recipe(
+            recipe_id="size_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            materialize_processes=3,
+            repo_root=repo_tmp_path,
+        )
+
+    recipe_root = repo_tmp_path / "outputs" / "corpora" / "size_recipe"
+    assert not any(recipe_root.glob("*/manifest.parquet"))
 
 
 def test_materialize_corpus_recipe_backfills_adequacy_metadata_from_recipe_when_handoff_omits_provenance(
@@ -1004,6 +1111,7 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
         recipe_id="accepted_only_recipe",
         dagzoo_root=repo_tmp_path.parent / "dagzoo",
         force=True,
+        materialize_worker_threads=2,
         repo_root=repo_tmp_path,
     )
 
@@ -1018,6 +1126,8 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert summary["filter_policy"] == "accepted_only"
     assert summary["accepted_datasets"] == 1
     assert summary["curated_accepted_datasets"] == 1
+    invocation = dagzoo_provenance["invocations"][0]
+    assert invocation["rounds"][0]["filter_command"].endswith("filter.n_jobs=2")
     assert Path(str(record["manifest"]["manifest_path"])).exists()
 
 
@@ -1054,6 +1164,219 @@ def test_materialize_corpus_recipe_tops_up_accepted_only_until_target(
     assert len(invocation["rounds"]) == 2
     assert dagzoo_provenance["accepted_datasets"] == 3
     assert dagzoo_provenance["rejected_datasets"] == 1
+
+
+def test_materialize_corpus_recipe_scales_accepted_only_topup_by_observed_acceptance_rate(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_adaptive_topup_recipe",
+        filename="accepted_only_adaptive_topup_recipe.yaml",
+        num_datasets=20,
+    )
+    requested_num_datasets: list[int] = []
+    curated_counts_by_round = [12, 7, 1]
+
+    def _fake_generate(config) -> object:
+        requested_num_datasets.append(int(config.num_datasets))
+        return _fake_run_dagzoo_generate(config)
+
+    def _long_topup_filter(config) -> DagzooFilterResult:
+        round_index = len(requested_num_datasets) - 1
+        curated_count = curated_counts_by_round[round_index]
+        total_datasets = requested_num_datasets[round_index]
+        filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+        curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+        filter_root.mkdir(parents=True, exist_ok=True)
+        curated_dir.mkdir(parents=True, exist_ok=True)
+        _write_curated_datasets(
+            curated_dir,
+            dataset_count=curated_count,
+            seed_base=500 + round_index * 10,
+        )
+        manifest_path = filter_root / "filter_manifest.ndjson"
+        summary_path = filter_root / "filter_summary.json"
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(
+                {
+                    "total_datasets": total_datasets,
+                    "accepted_datasets": curated_count,
+                    "rejected_datasets": max(0, total_datasets - curated_count),
+                    "curated_out_dir": str(curated_dir.resolve()),
+                    "curated_accepted_datasets": curated_count,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return DagzooFilterResult(
+            manifest_path=manifest_path.resolve(),
+            summary_path=summary_path.resolve(),
+            total_datasets=total_datasets,
+            accepted_datasets=curated_count,
+            rejected_datasets=max(0, total_datasets - curated_count),
+            elapsed_seconds=0.1,
+            datasets_per_minute=600.0,
+            curated_out_dir=curated_dir.resolve(),
+            curated_accepted_datasets=curated_count,
+        )
+
+    _patch_dagzoo_generate(monkeypatch, _fake_generate)
+    _patch_dagzoo_filter(monkeypatch, _long_topup_filter)
+
+    record = materialize_corpus_recipe(
+        recipe_id="accepted_only_adaptive_topup_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    invocation = record["dagzoo_provenance"]["invocations"][0]
+    assert requested_num_datasets == [29, 20, 3]
+    assert invocation["filter"]["round_count"] == 3
+    assert invocation["filter"]["curated_accepted_datasets"] == 20
+    assert record["dagzoo_provenance"]["accepted_datasets"] == 20
+
+
+def test_materialize_corpus_recipe_trims_overaccepted_curated_output_to_exact_target(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_overaccept_recipe",
+        filename="accepted_only_overaccept_recipe.yaml",
+        num_datasets=32,
+    )
+    requested_num_datasets: list[int] = []
+    curated_counts_by_round = [23, 11]
+
+    def _fake_generate(config) -> object:
+        requested_num_datasets.append(int(config.num_datasets))
+        return _fake_run_dagzoo_generate(config)
+
+    def _overaccept_filter(config) -> DagzooFilterResult:
+        round_index = len(requested_num_datasets) - 1
+        curated_count = curated_counts_by_round[round_index]
+        total_datasets = requested_num_datasets[round_index]
+        filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+        curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+        filter_root.mkdir(parents=True, exist_ok=True)
+        curated_dir.mkdir(parents=True, exist_ok=True)
+        _write_curated_datasets(
+            curated_dir,
+            dataset_count=curated_count,
+            seed_base=700 + round_index * 100,
+        )
+        manifest_path = filter_root / "filter_manifest.ndjson"
+        summary_path = filter_root / "filter_summary.json"
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(
+                {
+                    "total_datasets": total_datasets,
+                    "accepted_datasets": curated_count,
+                    "rejected_datasets": max(0, total_datasets - curated_count),
+                    "curated_out_dir": str(curated_dir.resolve()),
+                    "curated_accepted_datasets": curated_count,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return DagzooFilterResult(
+            manifest_path=manifest_path.resolve(),
+            summary_path=summary_path.resolve(),
+            total_datasets=total_datasets,
+            accepted_datasets=curated_count,
+            rejected_datasets=max(0, total_datasets - curated_count),
+            elapsed_seconds=0.1,
+            datasets_per_minute=600.0,
+            curated_out_dir=curated_dir.resolve(),
+            curated_accepted_datasets=curated_count,
+        )
+
+    _patch_dagzoo_generate(monkeypatch, _fake_generate)
+    _patch_dagzoo_filter(monkeypatch, _overaccept_filter)
+
+    record = materialize_corpus_recipe(
+        recipe_id="accepted_only_overaccept_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    invocation = record["dagzoo_provenance"]["invocations"][0]
+    assert requested_num_datasets == [46, 18]
+    assert invocation["filter"]["curated_accepted_datasets"] == 32
+    assert invocation["filter"]["accepted_datasets"] == 34
+
+    manifest_table = pq.read_table(Path(str(record["manifest"]["manifest_path"])))
+    assert manifest_table.num_rows == 32
+
+
+def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
+    tmp_path: Path,
+) -> None:
+    round_curated_dir = tmp_path / "round_curated"
+    final_curated_dir = tmp_path / "final_curated"
+    shard_dir = round_curated_dir / "shard_00000"
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    datasets: list[dict[str, Any]] = []
+    for dataset_index, seed in enumerate((901, 902), start=0):
+        x_train, y_train, x_test, y_test = cases._classification_arrays(seed=seed)
+        metadata = cases._classification_metadata(
+            n_features=x_train.shape[1],
+            seed=seed,
+            filter_status="accepted",
+            filter_accepted=True,
+        )
+        metadata["dataset_id"] = f"{seed:032x}"
+        datasets.append(
+            {
+                "dataset_index": dataset_index,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "feature_types": ["floating"] * x_train.shape[1],
+                "metadata": metadata,
+            }
+        )
+    cases._write_packed_shard(shard_dir, datasets=datasets)
+
+    next_shard_index, copied_datasets = corpus_materialization_module._copy_curated_round_shards(
+        round_curated_dir=round_curated_dir,
+        final_curated_dir=final_curated_dir,
+        next_shard_index=0,
+        max_datasets=1,
+    )
+
+    trimmed_shard = final_curated_dir / "shard_00000"
+    catalog_path = next(
+        candidate
+        for candidate in (
+            trimmed_shard / "dataset_catalog.ndjson",
+            trimmed_shard / "metadata.ndjson",
+        )
+        if candidate.exists()
+    )
+    catalog_lines = catalog_path.read_text(encoding="utf-8").splitlines()
+    train_dataset_indices = pq.read_table(trimmed_shard / "train.parquet")["dataset_index"].to_pylist()
+    test_dataset_indices = pq.read_table(trimmed_shard / "test.parquet")["dataset_index"].to_pylist()
+
+    assert next_shard_index == 1
+    assert copied_datasets == 1
+    assert len(catalog_lines) == 1
+    assert set(train_dataset_indices) == {0}
+    assert set(test_dataset_indices) == {0}
 
 
 def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(
@@ -1120,7 +1443,10 @@ def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budge
     _patch_dagzoo_generate(monkeypatch, _fake_generate)
     _patch_dagzoo_filter(monkeypatch, _budgeted_filter)
 
-    with pytest.raises(RuntimeError, match="did not reach the requested accepted dataset target"):
+    with pytest.raises(
+        RuntimeError,
+        match="exhausted the generated dataset budget before reaching the requested accepted dataset target",
+    ):
         _ = materialize_corpus_recipe(
             recipe_id="accepted_only_budget_recipe",
             dagzoo_root=repo_tmp_path.parent / "dagzoo",
@@ -1128,7 +1454,7 @@ def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budge
             repo_root=repo_tmp_path,
         )
 
-    assert requested_num_datasets == [3, 3, 3, 3, 2]
+    assert requested_num_datasets == [5, 3, 3, 3, 2]
 
 
 def test_materialize_corpus_recipe_fails_when_accepted_only_target_cannot_be_met(
@@ -1147,7 +1473,10 @@ def test_materialize_corpus_recipe_fails_when_accepted_only_target_cannot_be_met
         _round_sequence_fake_run_dagzoo_filter([0, 0, 0, 0], total_datasets_per_round=2),
     )
 
-    with pytest.raises(RuntimeError, match="did not reach the requested accepted dataset target"):
+    with pytest.raises(
+        RuntimeError,
+        match="exhausted the generated dataset budget before reaching the requested accepted dataset target",
+    ):
         _ = materialize_corpus_recipe(
             recipe_id="accepted_only_failure_recipe",
             dagzoo_root=repo_tmp_path.parent / "dagzoo",
@@ -1771,6 +2100,7 @@ def test_materialize_corpus_recipe_rejects_multi_invocation_handoff_mismatch(
             recipe_id="size_recipe",
             dagzoo_root=repo_tmp_path.parent / "dagzoo",
             force=True,
+            materialize_processes=1,
             repo_root=repo_tmp_path,
         )
 
@@ -1790,6 +2120,7 @@ def test_corpus_compare_payload_reports_differences(
         recipe_id="size_recipe",
         dagzoo_root=repo_tmp_path.parent / "dagzoo",
         force=True,
+        materialize_processes=1,
         repo_root=repo_tmp_path,
     )
 

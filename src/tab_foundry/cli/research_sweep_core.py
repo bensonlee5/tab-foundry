@@ -8,10 +8,24 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
+from tab_foundry.data.corpus_materialization import default_materialize_processes
 from tab_foundry.research.sweep import manage as sweep_manage
 from tab_foundry.research.sweep import materialize as sweep_materialize
 from tab_foundry.research.sweep import matrix as sweep_matrix
 from tab_foundry.research.sweep import paths_io as sweep_paths
+
+
+def _positive_int(raw: str) -> int:
+    value = int(raw)
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f"Expected a positive integer, got {raw}.")
+    return value
+
+
+def _positive_int_or_auto(raw: str) -> int | None:
+    if str(raw).strip().lower() == "auto":
+        return None
+    return _positive_int(raw)
 
 
 def _catalog_path(args: argparse.Namespace) -> Path:
@@ -142,6 +156,12 @@ def _run_sweep_materialize_corpora(args: argparse.Namespace) -> int:
         dagzoo_root=Path(str(args.dagzoo_root)),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
         force=bool(args.force),
+        materialize_processes=int(args.materialize_processes),
+        materialize_worker_threads=(
+            None
+            if args.materialize_worker_threads is None
+            else int(args.materialize_worker_threads)
+        ),
         index_path=_index_path(args),
         catalog_path=_catalog_path(args),
     )
@@ -225,6 +245,18 @@ def register_core_subparsers(
         "--json",
         action="store_true",
         help="Emit machine-readable JSON",
+    )
+    materialize_corpora_parser.add_argument(
+        "--materialize-processes",
+        type=_positive_int,
+        default=default_materialize_processes(),
+        help="Maximum concurrent invocation subprocesses to use while materializing each corpus",
+    )
+    materialize_corpora_parser.add_argument(
+        "--materialize-worker-threads",
+        type=_positive_int_or_auto,
+        default=None,
+        help="Per-dagzoo subprocess CPU thread budget. Use 'auto' for the balanced default.",
     )
     materialize_corpora_parser.set_defaults(func=_run_sweep_materialize_corpora)
 
