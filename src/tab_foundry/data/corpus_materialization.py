@@ -119,7 +119,7 @@ def _materialization_usable_cpu_budget(*, cpu_count: int | None = None) -> int:
 
 def default_materialize_processes(*, cpu_count: int | None = None) -> int:
     usable_budget = _materialization_usable_cpu_budget(cpu_count=cpu_count)
-    return min(_DEFAULT_MATERIALIZE_PROCESS_CAP, max(1, usable_budget // 2))
+    return min(_DEFAULT_MATERIALIZE_PROCESS_CAP, usable_budget)
 
 
 def default_materialize_worker_threads(

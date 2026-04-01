@@ -950,10 +950,10 @@ def repo_tmp_path(tmp_path: Path) -> Path:
 
 
 def test_default_materialization_budget_balances_processes_and_worker_threads() -> None:
-    assert default_materialize_processes(cpu_count=10) == 4
-    assert default_materialize_worker_threads(cpu_count=10, materialize_processes=4) == 2
-    assert default_materialize_processes(cpu_count=4) == 1
-    assert default_materialize_worker_threads(cpu_count=4, materialize_processes=1) == 3
+    assert default_materialize_processes(cpu_count=10) == 8
+    assert default_materialize_worker_threads(cpu_count=10, materialize_processes=8) == 1
+    assert default_materialize_processes(cpu_count=4) == 3
+    assert default_materialize_worker_threads(cpu_count=4, materialize_processes=3) == 1
 
 
 def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
