@@ -520,7 +520,13 @@ def _materialize_accepted_only_invocation(
         if total_generated_datasets >= generated_budget_cap:
             break
 
-        requested_generated_datasets = accepted_target - curated_accepted_datasets
+        remaining_generated_budget = generated_budget_cap - total_generated_datasets
+        requested_generated_datasets = min(
+            accepted_target - curated_accepted_datasets,
+            remaining_generated_budget,
+        )
+        if requested_generated_datasets <= 0:
+            break
         round_root = _invocation_round_root(
             corpus_root=corpus_root,
             invocation_id=spec.invocation_id,

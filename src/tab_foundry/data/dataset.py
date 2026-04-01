@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
+import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
@@ -11,16 +13,139 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
-from tab_realdata_hub.manifest import (
-    load_manifest_record_catalog,
-    load_manifest_record_teacher_conditionals,
-)
+from tab_realdata_hub import manifest as manifest_module
 from tab_realdata_hub.validation import assert_no_non_finite_values
 from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 TaskSignature = tuple[int, int, int, int | None]
+
+_LOAD_MANIFEST_RECORD_CATALOG = getattr(manifest_module, "load_manifest_record_catalog", None)
+_LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS = getattr(
+    manifest_module,
+    "load_manifest_record_teacher_conditionals",
+    None,
+)
+
+
+def _read_ndjson_record_by_offset(
+    ndjson_path: Path,
+    *,
+    offset_bytes: int,
+    size_bytes: int,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    with ndjson_path.open("rb") as handle:
+        handle.seek(offset_bytes)
+        raw_payload = handle.read(size_bytes)
+    observed_sha256 = sha256(raw_payload).hexdigest()
+    if observed_sha256 != expected_sha256:
+        raise RuntimeError(
+            "NDJSON record digest mismatch: "
+            f"path={ndjson_path}, offset={offset_bytes}, expected={expected_sha256}, observed={observed_sha256}"
+        )
+    try:
+        payload = json.loads(raw_payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "failed to parse NDJSON record: "
+            f"path={ndjson_path}, offset={offset_bytes}, size={size_bytes}"
+        ) from exc
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(
+            f"NDJSON payload must be an object: path={ndjson_path}, offset={offset_bytes}"
+        )
+    return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+
+
+def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, int, str]:
+    if "catalog_path" in record:
+        return (
+            str(record["catalog_path"]),
+            int(record["catalog_offset_bytes"]),
+            int(record["catalog_size_bytes"]),
+            str(record["catalog_sha256"]),
+        )
+    return (
+        str(record["metadata_path"]),
+        int(record["metadata_offset_bytes"]),
+        int(record["metadata_size_bytes"]),
+        str(record["metadata_sha256"]),
+    )
+
+
+def _fallback_load_manifest_record_catalog(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw_path, offset_bytes, size_bytes, expected_sha256 = _manifest_row_catalog_locator(record)
+    catalog_path = _resolve_record_path(manifest_path, raw_path)
+    return _read_ndjson_record_by_offset(
+        catalog_path,
+        offset_bytes=offset_bytes,
+        size_bytes=size_bytes,
+        expected_sha256=expected_sha256,
+    )
+
+
+def _teacher_probs_to_matrix(values: list[list[float]]) -> np.ndarray:
+    if not values:
+        return np.empty((0, 0), dtype=np.float32)
+    return np.asarray(values, dtype=np.float32)
+
+
+def _fallback_load_manifest_record_teacher_conditionals(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> np.ndarray | None:
+    raw_path = record.get("teacher_conditionals_path")
+    if raw_path is None:
+        return None
+    teacher_path = _resolve_record_path(manifest_path, str(raw_path))
+    dataset_index = int(record["dataset_index"])
+    try:
+        table = pq.read_table(
+            teacher_path,
+            filters=[("dataset_index", "=", dataset_index)],
+            columns=["row_index", "class_probs"],
+        )
+    except Exception as exc:  # pragma: no cover - pyarrow error typing is backend-specific
+        raise RuntimeError(
+            "failed to read teacher_conditionals parquet: "
+            f"path={teacher_path}, dataset_index={dataset_index}"
+        ) from exc
+    if table.num_rows <= 0:
+        return np.empty((0, 0), dtype=np.float32)
+    row_index = table["row_index"].to_numpy(zero_copy_only=False).astype(np.int64, copy=False)
+    order = np.argsort(row_index, kind="stable")
+    probs = _teacher_probs_to_matrix(table["class_probs"].to_pylist())
+    if not np.array_equal(order, np.arange(order.shape[0])):
+        probs = probs[order]
+    return probs
+
+
+def _load_manifest_record_catalog(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    if callable(_LOAD_MANIFEST_RECORD_CATALOG):
+        payload = _LOAD_MANIFEST_RECORD_CATALOG(manifest_path, record=record)
+        return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+    return _fallback_load_manifest_record_catalog(manifest_path, record=record)
+
+
+def _load_manifest_record_teacher_conditionals(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> np.ndarray | None:
+    if callable(_LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS):
+        return _LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS(manifest_path, record=record)
+    return _fallback_load_manifest_record_teacher_conditionals(manifest_path, record=record)
 
 
 def _packed_x_to_matrix(x_column: Any) -> np.ndarray:
@@ -200,7 +325,7 @@ def load_manifest_record_metadata(
         )
 
     dataset_index = int(record["dataset_index"])
-    catalog_record = load_manifest_record_catalog(
+    catalog_record = _load_manifest_record_catalog(
         manifest_path,
         record=record,
     )
@@ -210,7 +335,7 @@ def load_manifest_record_metadata(
             "metadata dataset_index mismatch for manifest record: "
             f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={manifest_path}"
         )
-    teacher_probabilities = load_manifest_record_teacher_conditionals(
+    teacher_probabilities = _load_manifest_record_teacher_conditionals(
         manifest_path,
         record=record,
     )

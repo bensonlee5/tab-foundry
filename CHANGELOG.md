@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.8] - 2026-04-01
+
+### Changed
+
+- User-facing note: accepted-only corpus materialization now runs bounded
+  top-up rounds against the remaining generation budget, persists filter and
+  curated-output provenance, and surfaces accepted/curated counts plus
+  acceptance rate in adequacy-facing corpus records.
+- User-facing note: the active TF-RD-010 synthetic adequacy pilot now targets
+  the curated latent-target canary/control recipes and reports the curated
+  acceptance contract required for the v3 gate.
+
 ## [0.15.7] - 2026-03-31
 
 ### Changed

@@ -1056,6 +1056,81 @@ def test_materialize_corpus_recipe_tops_up_accepted_only_until_target(
     assert dagzoo_provenance["rejected_datasets"] == 1
 
 
+def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_budget_recipe",
+        filename="accepted_only_budget_recipe.yaml",
+        num_datasets=3,
+    )
+    requested_num_datasets: list[int] = []
+
+    def _fake_generate(config) -> object:
+        requested_num_datasets.append(int(config.num_datasets))
+        return _fake_run_dagzoo_generate(config)
+
+    def _budgeted_filter(config) -> DagzooFilterResult:
+        round_root = Path(str(config.filter_out_dir)).expanduser().resolve().parent
+        round_name = round_root.name
+        round_summaries = {
+            "round_01": (3, 0),
+            "round_02": (3, 0),
+            "round_03": (3, 0),
+            "round_04": (1, 0),
+            "round_05": (2, 0),
+        }
+        total_datasets, curated_count = round_summaries.get(round_name, (0, 0))
+        filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+        curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+        filter_root.mkdir(parents=True, exist_ok=True)
+        curated_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = filter_root / "filter_manifest.ndjson"
+        summary_path = filter_root / "filter_summary.json"
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(
+                {
+                    "total_datasets": total_datasets,
+                    "accepted_datasets": curated_count,
+                    "rejected_datasets": max(0, total_datasets - curated_count),
+                    "curated_out_dir": str(curated_dir.resolve()),
+                    "curated_accepted_datasets": curated_count,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return DagzooFilterResult(
+            manifest_path=manifest_path.resolve(),
+            summary_path=summary_path.resolve(),
+            total_datasets=total_datasets,
+            accepted_datasets=curated_count,
+            rejected_datasets=max(0, total_datasets - curated_count),
+            elapsed_seconds=0.1,
+            datasets_per_minute=600.0,
+            curated_out_dir=curated_dir.resolve(),
+            curated_accepted_datasets=curated_count,
+        )
+
+    _patch_dagzoo_generate(monkeypatch, _fake_generate)
+    _patch_dagzoo_filter(monkeypatch, _budgeted_filter)
+
+    with pytest.raises(RuntimeError, match="did not reach the requested accepted dataset target"):
+        _ = materialize_corpus_recipe(
+            recipe_id="accepted_only_budget_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
+
+    assert requested_num_datasets == [3, 3, 3, 3, 2]
+
+
 def test_materialize_corpus_recipe_fails_when_accepted_only_target_cannot_be_met(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
