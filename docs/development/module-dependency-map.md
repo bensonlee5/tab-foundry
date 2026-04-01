@@ -55,7 +55,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.external_benchmarks`,
   `tab_foundry.hashing`, `tab_foundry.model`,
-  `tab_foundry.repo_paths`, and `tab_foundry.training`.
+  `tab_foundry.repo_paths`, `tab_foundry.training`, and
+  `tab_foundry.types`.
 - `tab_foundry.task_batching` depends on `tab_foundry.types`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.feature_types`,
@@ -109,8 +110,8 @@ Observed cycle status:
   `bench`, `config`, `data`, `model`, dependency-light helper contracts such as
   `tab_foundry.control_baseline_registry`, `tab_foundry.device`,
   `tab_foundry.external_benchmarks`, `tab_foundry.hashing`,
-  `tab_foundry.repo_paths`, and read-only `training` inspection helpers, but
-  lower layers should not depend on it.
+  `tab_foundry.repo_paths`, `tab_foundry.types`, and read-only `training`
+  inspection helpers, but lower layers should not depend on it.
 - Execute/promote and sweep-management ownership inside `tab_foundry.research`
   should live under `research/sweep/`; higher layers should import the
   canonical owner modules directly (`research.sweep.catalog`,

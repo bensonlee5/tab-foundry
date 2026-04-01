@@ -17,7 +17,8 @@
       if (node.dataset.katexRendered === "true") {
         return;
       }
-      window.katex.render(node.textContent || "", node, {
+      var source = node.dataset.katexSource || node.textContent || "";
+      window.katex.render(source, node, {
         displayMode: false,
         throwOnError: false
       });
@@ -27,7 +28,8 @@
       if (node.dataset.katexRendered === "true") {
         return;
       }
-      window.katex.render(node.textContent || "", node, {
+      var source = node.dataset.katexSource || node.textContent || "";
+      window.katex.render(source, node, {
         displayMode: true,
         throwOnError: false
       });

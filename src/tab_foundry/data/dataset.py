@@ -6,19 +6,146 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import numpy as np
 import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
+from tab_realdata_hub import manifest as manifest_module
 from tab_realdata_hub.validation import assert_no_non_finite_values
 from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 TaskSignature = tuple[int, int, int, int | None]
+
+_LOAD_MANIFEST_RECORD_CATALOG = getattr(manifest_module, "load_manifest_record_catalog", None)
+_LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS = getattr(
+    manifest_module,
+    "load_manifest_record_teacher_conditionals",
+    None,
+)
+
+
+def _read_ndjson_record_by_offset(
+    ndjson_path: Path,
+    *,
+    offset_bytes: int,
+    size_bytes: int,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    with ndjson_path.open("rb") as handle:
+        handle.seek(offset_bytes)
+        raw_payload = handle.read(size_bytes)
+    observed_sha256 = sha256(raw_payload).hexdigest()
+    if observed_sha256 != expected_sha256:
+        raise RuntimeError(
+            "NDJSON record digest mismatch: "
+            f"path={ndjson_path}, offset={offset_bytes}, expected={expected_sha256}, observed={observed_sha256}"
+        )
+    try:
+        payload = json.loads(raw_payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "failed to parse NDJSON record: "
+            f"path={ndjson_path}, offset={offset_bytes}, size={size_bytes}"
+        ) from exc
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(
+            f"NDJSON payload must be an object: path={ndjson_path}, offset={offset_bytes}"
+        )
+    return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+
+
+def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, int, str]:
+    if "catalog_path" in record:
+        return (
+            str(record["catalog_path"]),
+            int(record["catalog_offset_bytes"]),
+            int(record["catalog_size_bytes"]),
+            str(record["catalog_sha256"]),
+        )
+    return (
+        str(record["metadata_path"]),
+        int(record["metadata_offset_bytes"]),
+        int(record["metadata_size_bytes"]),
+        str(record["metadata_sha256"]),
+    )
+
+
+def _fallback_load_manifest_record_catalog(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw_path, offset_bytes, size_bytes, expected_sha256 = _manifest_row_catalog_locator(record)
+    catalog_path = _resolve_record_path(manifest_path, raw_path)
+    return _read_ndjson_record_by_offset(
+        catalog_path,
+        offset_bytes=offset_bytes,
+        size_bytes=size_bytes,
+        expected_sha256=expected_sha256,
+    )
+
+
+def _teacher_probs_to_matrix(values: list[list[float]]) -> np.ndarray:
+    if not values:
+        return np.empty((0, 0), dtype=np.float32)
+    return np.asarray(values, dtype=np.float32)
+
+
+def _fallback_load_manifest_record_teacher_conditionals(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> np.ndarray | None:
+    raw_path = record.get("teacher_conditionals_path")
+    if raw_path is None:
+        return None
+    teacher_path = _resolve_record_path(manifest_path, str(raw_path))
+    dataset_index = int(record["dataset_index"])
+    try:
+        table = pq.read_table(
+            teacher_path,
+            filters=[("dataset_index", "=", dataset_index)],
+            columns=["row_index", "class_probs"],
+        )
+    except Exception as exc:  # pragma: no cover - pyarrow error typing is backend-specific
+        raise RuntimeError(
+            "failed to read teacher_conditionals parquet: "
+            f"path={teacher_path}, dataset_index={dataset_index}"
+        ) from exc
+    if table.num_rows <= 0:
+        return np.empty((0, 0), dtype=np.float32)
+    row_index = table["row_index"].to_numpy(zero_copy_only=False).astype(np.int64, copy=False)
+    order = np.argsort(row_index, kind="stable")
+    probs = _teacher_probs_to_matrix(table["class_probs"].to_pylist())
+    if not np.array_equal(order, np.arange(order.shape[0])):
+        probs = probs[order]
+    return probs
+
+
+def _load_manifest_record_catalog(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> dict[str, Any]:
+    if callable(_LOAD_MANIFEST_RECORD_CATALOG):
+        payload = _LOAD_MANIFEST_RECORD_CATALOG(manifest_path, record=record)
+        return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+    return _fallback_load_manifest_record_catalog(manifest_path, record=record)
+
+
+def _load_manifest_record_teacher_conditionals(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+) -> np.ndarray | None:
+    if callable(_LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS):
+        return _LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS(manifest_path, record=record)
+    return _fallback_load_manifest_record_teacher_conditionals(manifest_path, record=record)
 
 
 def _packed_x_to_matrix(x_column: Any) -> np.ndarray:
@@ -91,52 +218,81 @@ def _record_identity_text(record: dict[str, Any]) -> str:
     return ", ".join(parts)
 
 
-def _read_ndjson_record_by_offset(
-    metadata_path: Path,
+def _copy_jsonable(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _copy_jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_copy_jsonable(item) for item in value]
+    if isinstance(value, tuple):
+        return [_copy_jsonable(item) for item in value]
+    return value
+
+
+def _compatibility_metadata_from_catalog(
     *,
-    offset_bytes: int,
-    size_bytes: int,
-    expected_sha256: str,
+    catalog_record: Mapping[str, Any],
+    record: Mapping[str, Any],
+    teacher_probabilities: np.ndarray | None,
 ) -> dict[str, Any]:
-    if offset_bytes < 0 or size_bytes <= 0:
-        raise RuntimeError(
-            "metadata byte offset/size must be non-negative and non-zero: "
-            f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}"
-        )
-    if len(expected_sha256) != 64:
-        raise RuntimeError(
-            "metadata SHA-256 must be a 64-char hex digest: "
-            f"path={metadata_path}, offset={offset_bytes}, digest={expected_sha256!r}"
-        )
+    raw_metadata = catalog_record.get("metadata")
+    if isinstance(raw_metadata, Mapping):
+        materialized_metadata = cast(dict[str, Any], _copy_jsonable(raw_metadata))
+        if teacher_probabilities is not None:
+            materialized_teacher_conditionals = materialized_metadata.get("teacher_conditionals")
+            if isinstance(materialized_teacher_conditionals, Mapping):
+                teacher_payload = cast(
+                    dict[str, Any], _copy_jsonable(materialized_teacher_conditionals)
+                )
+                teacher_payload["test_probs"] = teacher_probabilities.tolist()
+                materialized_metadata["teacher_conditionals"] = teacher_payload
+        return materialized_metadata
 
-    with metadata_path.open("rb") as handle:
-        handle.seek(offset_bytes)
-        raw = handle.read(size_bytes)
-    if len(raw) != size_bytes:
-        raise RuntimeError(
-            "failed to read full metadata slice from NDJSON: "
-            f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}, got={len(raw)}"
-        )
-    actual_sha256 = sha256(raw).hexdigest()
-    if actual_sha256 != expected_sha256:
-        raise RuntimeError(
-            "metadata NDJSON checksum mismatch: "
-            f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}, "
-            f"expected={expected_sha256}, actual={actual_sha256}"
-        )
+    metadata: dict[str, Any] = {}
+    dataset_id = catalog_record.get("dataset_id")
+    if isinstance(dataset_id, str) and dataset_id.strip():
+        metadata["dataset_id"] = dataset_id
 
-    try:
-        payload = json.loads(raw.decode("utf-8"))
-    except Exception as exc:  # pragma: no cover - defensive parse context
-        raise RuntimeError(
-            "failed to parse metadata NDJSON record: "
-            f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}"
-        ) from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError(
-            f"metadata NDJSON payload must be an object: path={metadata_path}, offset={offset_bytes}"
-        )
-    return payload
+    group_ids = catalog_record.get("group_ids")
+    if isinstance(group_ids, Mapping):
+        metadata["split_groups"] = {
+            str(key): _copy_jsonable(value)
+            for key, value in group_ids.items()
+        }
+
+    feature_types = catalog_record.get("feature_types")
+    if feature_types is not None:
+        metadata["feature_types"] = _copy_jsonable(feature_types)
+
+    n_classes = catalog_record.get("n_classes")
+    if n_classes is not None:
+        metadata["n_classes"] = int(n_classes)
+
+    teacher_summary = (
+        cast(Mapping[str, Any], catalog_record["teacher_conditionals"])
+        if isinstance(catalog_record.get("teacher_conditionals"), Mapping)
+        else None
+    )
+    teacher_enabled = bool(
+        teacher_summary is not None or record.get("teacher_conditionals_path") is not None
+    )
+    teacher_available = bool(
+        teacher_summary is not None and teacher_summary.get("available") is True
+    )
+    metadata["posterior_predictive"] = {
+        "teacher_conditional_export_enabled": teacher_enabled,
+        "teacher_conditionals_available": teacher_available,
+    }
+    if teacher_summary is not None:
+        teacher_conditionals_payload: dict[str, Any] = {
+            "class_labels": _copy_jsonable(teacher_summary.get("class_labels")),
+            "optimal_log_loss_per_test_cell": teacher_summary.get(
+                "optimal_log_loss_per_test_cell"
+            ),
+        }
+        if teacher_probabilities is not None:
+            teacher_conditionals_payload["test_probs"] = teacher_probabilities.tolist()
+        metadata["teacher_conditionals"] = teacher_conditionals_payload
+    return metadata
 
 
 def load_manifest_record_metadata(
@@ -148,48 +304,55 @@ def load_manifest_record_metadata(
 ) -> tuple[dict[str, Any], list[str] | None]:
     """Load one packed-manifest metadata payload plus validated feature types."""
 
-    required_keys = {
-        "dataset_index",
+    required_keys = {"dataset_index"}
+    locator_keys = {
+        "catalog_path",
+        "catalog_offset_bytes",
+        "catalog_size_bytes",
+        "catalog_sha256",
+    }
+    legacy_locator_keys = {
         "metadata_path",
         "metadata_offset_bytes",
         "metadata_size_bytes",
         "metadata_sha256",
     }
     missing = sorted(required_keys - set(record))
-    if missing:
+    if missing or (not locator_keys.issubset(record) and not legacy_locator_keys.issubset(record)):
         raise RuntimeError(
             "manifest record is missing required packed-contract fields: "
             f"missing={missing}"
         )
 
     dataset_index = int(record["dataset_index"])
-    metadata_path = _resolve_record_path(manifest_path, str(record["metadata_path"]))
-    metadata_offset_bytes = int(record["metadata_offset_bytes"])
-    metadata_size_bytes = int(record["metadata_size_bytes"])
-    metadata_sha256 = str(record["metadata_sha256"])
-    metadata_record = _read_ndjson_record_by_offset(
-        metadata_path,
-        offset_bytes=metadata_offset_bytes,
-        size_bytes=metadata_size_bytes,
-        expected_sha256=metadata_sha256,
+    catalog_record = _load_manifest_record_catalog(
+        manifest_path,
+        record=record,
     )
-    metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
+    metadata_dataset_index = int(catalog_record.get("dataset_index", -1))
     if metadata_dataset_index != dataset_index:
         raise RuntimeError(
             "metadata dataset_index mismatch for manifest record: "
-            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={metadata_path}"
+            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={manifest_path}"
         )
-    metadata = metadata_record.get("metadata")
-    if not isinstance(metadata, dict):
-        raise RuntimeError(
-            f"metadata record missing object payload at key 'metadata': path={metadata_path}"
-        )
-    raw_feature_types = metadata_record.get("feature_types", metadata.get("feature_types"))
+    teacher_probabilities = _load_manifest_record_teacher_conditionals(
+        manifest_path,
+        record=record,
+    )
+    metadata = _compatibility_metadata_from_catalog(
+        catalog_record=catalog_record,
+        record=record,
+        teacher_probabilities=teacher_probabilities,
+    )
+    raw_feature_types = catalog_record.get("feature_types", metadata.get("feature_types"))
+    raw_metadata = catalog_record.get("metadata")
+    if raw_feature_types is None and isinstance(raw_metadata, Mapping):
+        raw_feature_types = raw_metadata.get("feature_types")
     if raw_feature_types is None:
         if require_feature_types:
             raise RuntimeError(
                 "manifest-backed task dataset requires explicit feature_types metadata: "
-                f"dataset_index={dataset_index}, path={metadata_path}"
+                f"dataset_index={dataset_index}, path={manifest_path}"
             )
         return metadata, None
     try:
@@ -201,7 +364,7 @@ def load_manifest_record_metadata(
     except ValueError as exc:
         raise RuntimeError(
             "invalid manifest-backed feature_types metadata: "
-            f"dataset_index={dataset_index}, path={metadata_path}: {exc}"
+            f"dataset_index={dataset_index}, path={manifest_path}: {exc}"
         ) from exc
     return metadata, feature_types
 
@@ -267,15 +430,7 @@ def _load_manifest_task_record(
     task: str,
     record: dict[str, Any],
 ) -> _LoadedManifestTaskRecord:
-    required_keys = {
-        "dataset_index",
-        "train_path",
-        "test_path",
-        "metadata_path",
-        "metadata_offset_bytes",
-        "metadata_size_bytes",
-        "metadata_sha256",
-    }
+    required_keys = {"dataset_index", "train_path", "test_path"}
     missing = sorted(required_keys - set(record))
     if missing:
         raise RuntimeError(
@@ -328,6 +483,57 @@ def _load_manifest_task_record(
         x_test=x_test,
         y_test=y_test,
     )
+
+
+def _normalize_teacher_conditionals_for_runtime(
+    metadata: dict[str, Any],
+    *,
+    raw_train_labels: np.ndarray,
+    valid_test_mask: np.ndarray | None,
+) -> None:
+    teacher_conditionals = metadata.get("teacher_conditionals")
+    if not isinstance(teacher_conditionals, Mapping):
+        return
+    class_labels_raw = teacher_conditionals.get("class_labels")
+    test_probs_raw = teacher_conditionals.get("test_probs")
+    if not isinstance(class_labels_raw, list) or test_probs_raw is None:
+        return
+
+    try:
+        class_labels = [int(value) for value in class_labels_raw]
+        probabilities = np.asarray(test_probs_raw, dtype=np.float64)
+    except Exception:
+        return
+    if probabilities.ndim != 2:
+        return
+
+    if valid_test_mask is not None:
+        mask = np.asarray(valid_test_mask, dtype=bool)
+        if probabilities.shape[0] == mask.shape[0]:
+            probabilities = probabilities[mask]
+
+    observed_train_labels = np.unique(np.asarray(raw_train_labels, dtype=np.int64))
+    if observed_train_labels.size <= 0:
+        return
+    observed_label_list = [int(label) for label in observed_train_labels.tolist()]
+    if not all(label in class_labels for label in observed_label_list):
+        return
+
+    column_order = [class_labels.index(label) for label in observed_label_list]
+    probabilities = probabilities[:, column_order]
+    row_mass = probabilities.sum(axis=1, keepdims=True)
+    if np.any(row_mass <= 0.0):
+        return
+    probabilities = probabilities / row_mass
+
+    teacher_payload = {
+        str(key): _copy_jsonable(value)
+        for key, value in teacher_conditionals.items()
+        if key not in {"class_labels", "test_probs"}
+    }
+    teacher_payload["class_labels"] = list(range(len(observed_label_list)))
+    teacher_payload["test_probs"] = probabilities.tolist()
+    metadata["teacher_conditionals"] = teacher_payload
 
 
 class PackedParquetTaskDataset(Dataset[TaskBatch]):
@@ -432,6 +638,13 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
 
         metadata_out = dict(metadata)
         metadata_out["feature_types"] = list(feature_types)
+        if self.task == "classification":
+            metadata_out["n_classes"] = None if num_classes is None else int(num_classes)
+            _normalize_teacher_conditionals_for_runtime(
+                metadata_out,
+                raw_train_labels=np.asarray(loaded.y_train, dtype=np.int64),
+                valid_test_mask=processed.valid_test_mask,
+            )
 
         if self.task == "classification":
             if y_test is None:

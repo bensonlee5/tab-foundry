@@ -22,6 +22,7 @@ from tab_foundry.data.corpus_loading import (
     list_corpus_recipes,
     load_corpus_recipe,
 )
+from tab_foundry.data.dagzoo_workflow import DagzooFilterResult
 from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.data.corpus_materialization import (
     materialize_corpus_ref,
@@ -59,85 +60,49 @@ def test_corpus_default_paths_follow_shared_repo_root() -> None:
     assert corpus_outputs_root() == REPO_ROOT / "outputs" / "corpora"
 
 
-def test_build_dagzoo_provenance_summary_preserves_teacher_conditional_metadata() -> None:
-    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v3", repo_root=REPO_ROOT)
+def test_build_dagzoo_provenance_summary_preserves_latent_target_provenance() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v4", repo_root=REPO_ROOT)
     summary = build_dagzoo_provenance_summary(
         recipe=recipe,
-        corpus_ref="tf_rd_010_dagzoo_medium_control_v3/abc123",
+        corpus_ref="tf_rd_010_dagzoo_medium_control_v4/abc123",
         corpus_id="abc123",
         provenance={
-            "posterior_predictive_factorization": (
-                "independent_p_x_complete_and_p_y_given_x_complete"
-            ),
-            "teacher_conditional_export": True,
-            "teacher_conditional_metric_definition": "label-target log loss per test cell",
-            "target_parent_prior": "near_max_mixture",
-            "target_parent_mode": "max",
-            "target_parent_count_range": {"min": 5, "max": 7},
-            "target_parent_fraction_range": {"min": 0.5, "max": 0.75},
-            "target_parent_regimes_present": ["near_max"],
-            "target_parent_near_max_band_min_fraction": 0.75,
-            "target_parent_below_sqrt_prob": 0.05,
-            "target_parent_midrange_prob": 0.20,
+            "target_derivation": "tabiclv2_latent_node",
+            "target_relevant_feature_count_range": {"min": 5, "max": 7},
+            "target_relevant_feature_fraction_range": {"min": 0.5, "max": 0.75},
             "invocations": [
                 {
                     "handoff_provenance": {
-                        "posterior_predictive_factorization": (
-                            "independent_p_x_complete_and_p_y_given_x_complete"
-                        ),
-                        "teacher_conditional_export": True,
-                        "target_parent_count_range": {"min": 6, "max": 8},
-                        "target_parent_fraction_range": {"min": 0.6, "max": 0.8},
-                        "target_parent_regimes_present": ["midrange", "near_max"],
+                        "target_derivation": "tabiclv2_latent_node",
+                        "target_relevant_feature_count_range": {"min": 6, "max": 8},
+                        "target_relevant_feature_fraction_range": {"min": 0.6, "max": 0.8},
                     }
                 }
             ],
         },
     )
 
-    assert summary["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v3"
+    assert summary["recipe_id"] == "tf_rd_010_dagzoo_medium_control_v4"
     assert summary["corpus_variant"] == "tf_rd_010_dagzoo_medium_control"
-    assert summary["posterior_predictive_factorization"] == (
-        "independent_p_x_complete_and_p_y_given_x_complete"
-    )
-    assert summary["teacher_conditional_export"] is True
-    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
-    assert summary["target_parent_prior"] == "near_max_mixture"
-    assert summary["target_parent_mode"] == "max"
-    assert summary["target_parent_count_range"] == {"min": 5, "max": 7}
-    assert summary["target_parent_fraction_range"] == {"min": 0.5, "max": 0.8}
-    assert summary["target_parent_regimes_present"] == ["midrange", "near_max"]
-    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
-    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
-    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
-    assert summary["review_summary"]["posterior_predictive_factorization"] == (
-        "independent_p_x_complete_and_p_y_given_x_complete"
-    )
+    assert summary["target_derivation"] == "tabiclv2_latent_node"
+    assert summary["target_relevant_feature_count_range"] == {"min": 5, "max": 7}
+    assert summary["target_relevant_feature_fraction_range"] == {"min": 0.5, "max": 0.75}
+    assert summary["review_summary"]["target_derivation"] == "tabiclv2_latent_node"
 
 
 def test_build_dagzoo_provenance_summary_falls_back_to_recipe_metadata_without_handoff_provenance() -> None:
-    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v3", repo_root=REPO_ROOT)
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v4", repo_root=REPO_ROOT)
 
     summary = build_dagzoo_provenance_summary(
         recipe=recipe,
-        corpus_ref="tf_rd_010_dagzoo_medium_control_v3/abc123",
+        corpus_ref="tf_rd_010_dagzoo_medium_control_v4/abc123",
         corpus_id="abc123",
         provenance={},
     )
 
-    assert summary["posterior_predictive_factorization"] == (
-        "independent_p_x_complete_and_p_y_given_x_complete"
-    )
-    assert summary["teacher_conditional_export"] is True
-    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
-    assert summary["target_parent_prior"] == "near_max_mixture"
-    assert summary["target_parent_mode"] == "max"
-    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
-    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
-    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
-    assert summary["target_parent_count_range"] == {"min": 1, "max": None}
-    assert summary.get("target_parent_fraction_range") is None
-    assert summary.get("target_parent_regimes_present") is None
+    assert summary["target_derivation"] == "tabiclv2_latent_node"
+    assert summary.get("target_relevant_feature_count_range") is None
+    assert summary.get("target_relevant_feature_fraction_range") is None
 
 
 def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) -> None:
@@ -147,6 +112,10 @@ def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) ->
 
 def _patch_dagzoo_generate(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
     monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_generate", replacement)
+
+
+def _patch_dagzoo_filter(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
+    monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_filter", replacement)
 
 
 def _write_recipe_registry(repo_root: Path) -> None:
@@ -267,40 +236,65 @@ def _write_adequacy_recipe_fixture(repo_root: Path) -> None:
                 "provenance_labels:",
                 "  corpus_variant: adequacy_surface",
                 "  comparator_role: control",
-                "  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete",
-                "  teacher_conditional_export: true",
-                "  metric_definition: label-target log loss per test cell",
-                "  target_parent_prior: near_max_mixture",
-                "  target_parent_mode: max",
-                "  target_parent_near_max_band_min_fraction: 0.75",
-                "  target_parent_below_sqrt_prob: 0.05",
-                "  target_parent_midrange_prob: 0.20",
+                "  target_derivation: tabiclv2_latent_node",
                 "review_summary:",
                 "  config_refs:",
                 "  - configs/default.yaml",
                 "  invocation_count: 1",
                 "  manifest_record_count: 1",
-                "  posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete",
-                "  teacher_conditional_export: true",
-                "  metric_definition: label-target log loss per test cell",
-                "  target_parent_prior: near_max_mixture",
-                "  target_parent_mode: max",
-                "  target_parent_near_max_band_min_fraction: 0.75",
-                "  target_parent_below_sqrt_prob: 0.05",
-                "  target_parent_midrange_prob: 0.20",
+                "  target_derivation: tabiclv2_latent_node",
                 "dagzoo:",
                 "  base_config_ref: configs/default.yaml",
                 "  config_overrides:",
-                "    dataset:",
-                "      target_parent_prior: near_max_mixture",
-                "      target_parent_count_min: 1",
-                "      target_parent_count_max: null",
-                "      target_parent_near_max_band_min_fraction: 0.75",
-                "      target_parent_below_sqrt_prob: 0.05",
-                "      target_parent_midrange_prob: 0.20",
-                "    diagnostics:",
-                "      teacher_conditional_export: true",
+                "    dataset: {}",
                 "  num_datasets: 8",
+                "  seed: 1",
+                "  device: cpu",
+                "  hardware_policy: none",
+            ]
+        )
+        + "\n",
+    )
+
+
+def _write_accepted_only_recipe_fixture(
+    repo_root: Path,
+    *,
+    recipe_id: str = "accepted_only_recipe",
+    filename: str = "accepted_only_recipe.yaml",
+    num_datasets: int = 2,
+) -> None:
+    _register_recipe_fixture(
+        repo_root,
+        recipe_id=recipe_id,
+        filename=filename,
+        contents="\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-v1",
+                f"recipe_id: {recipe_id}",
+                "kind: dagzoo_single_invocation",
+                "description: Accepted-only corpus fixture.",
+                "surface_label: accepted_only_surface",
+                "manifest:",
+                "  train_ratio: 0.9",
+                "  val_ratio: 0.05",
+                "  filter_policy: accepted_only",
+                "  missing_value_policy: allow_any",
+                "provenance_labels:",
+                "  corpus_variant: accepted_only_surface",
+                "  comparator_role: control",
+                "  target_derivation: tabiclv2_latent_node",
+                "review_summary:",
+                "  config_refs:",
+                "  - configs/default.yaml",
+                "  invocation_count: 1",
+                f"  manifest_record_count: {num_datasets}",
+                "  target_derivation: tabiclv2_latent_node",
+                "dagzoo:",
+                "  base_config_ref: configs/default.yaml",
+                "  config_overrides:",
+                "    dataset: {}",
+                f"  num_datasets: {num_datasets}",
                 "  seed: 1",
                 "  device: cpu",
                 "  hardware_policy: none",
@@ -543,6 +537,7 @@ def _write_handoff_manifest(
     handoff_root: Path,
     *,
     generated_dir_rel: str = "generated",
+    curated_dir_rel: str | None = None,
     generate_run_id: str = _TEST_GENERATE_RUN_ID,
     generated_corpus_id: str = _TEST_GENERATED_CORPUS_ID,
 ) -> Path:
@@ -556,15 +551,11 @@ def _write_handoff_manifest(
             "generated_corpus_id": generated_corpus_id,
         },
         "artifacts_relative": {
-            "run_root": ".",
             "generated_dir": generated_dir_rel,
         },
-        "defaults": {
-            "recommended_training_corpus": "generated",
-            "recommended_training_artifact_key": "generated_dir",
-            "curation_policy": "none",
-        },
     }
+    if curated_dir_rel is not None:
+        payload["artifacts_relative"]["curated_dir"] = curated_dir_rel
     handoff_manifest_path = handoff_root / "handoff_manifest.json"
     handoff_manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return handoff_manifest_path
@@ -608,6 +599,105 @@ def _fake_run_dagzoo_generate(config) -> object:
     _write_generated_dataset(generated_dir, seed=max(int(config.num_datasets), 1))
     handoff_manifest_path = _write_handoff_manifest(handoff_root)
     return load_dagzoo_handoff_info(handoff_manifest_path)
+
+
+def _write_curated_datasets(curated_dir: Path, *, dataset_count: int, seed_base: int = 100) -> None:
+    for dataset_offset in range(int(dataset_count)):
+        _write_generated_dataset(
+            curated_dir / f"shard_{dataset_offset:05d}",
+            seed=seed_base + dataset_offset,
+            dataset_id=f"{seed_base + dataset_offset:032x}",
+        )
+
+
+def _fake_run_dagzoo_filter(config) -> DagzooFilterResult:
+    filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+    curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+    filter_root.mkdir(parents=True, exist_ok=True)
+    curated_dir.mkdir(parents=True, exist_ok=True)
+    _write_curated_datasets(curated_dir, dataset_count=1)
+    manifest_path = filter_root / "filter_manifest.ndjson"
+    summary_path = filter_root / "filter_summary.json"
+    manifest_path.write_text("{}\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(
+            {
+                "total_datasets": 1,
+                "accepted_datasets": 1,
+                "rejected_datasets": 0,
+                "curated_out_dir": str(curated_dir.resolve()),
+                "curated_accepted_datasets": 1,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return DagzooFilterResult(
+        manifest_path=manifest_path.resolve(),
+        summary_path=summary_path.resolve(),
+        total_datasets=1,
+        accepted_datasets=1,
+        rejected_datasets=0,
+        elapsed_seconds=0.1,
+        datasets_per_minute=600.0,
+        curated_out_dir=curated_dir.resolve(),
+        curated_accepted_datasets=1,
+    )
+
+
+def _round_sequence_fake_run_dagzoo_filter(
+    curated_counts: list[int],
+    *,
+    total_datasets_per_round: int = 2,
+):
+    call_counter = {"count": 0}
+
+    def _run(config) -> DagzooFilterResult:
+        call_counter["count"] += 1
+        call_index = call_counter["count"] - 1
+        curated_count = curated_counts[call_index] if call_index < len(curated_counts) else 0
+        filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+        curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+        filter_root.mkdir(parents=True, exist_ok=True)
+        curated_dir.mkdir(parents=True, exist_ok=True)
+        _write_curated_datasets(
+            curated_dir,
+            dataset_count=curated_count,
+            seed_base=200 + call_index * 10,
+        )
+        manifest_path = filter_root / "filter_manifest.ndjson"
+        summary_path = filter_root / "filter_summary.json"
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(
+                {
+                    "total_datasets": total_datasets_per_round,
+                    "accepted_datasets": curated_count,
+                    "rejected_datasets": max(0, total_datasets_per_round - curated_count),
+                    "curated_out_dir": str(curated_dir.resolve()),
+                    "curated_accepted_datasets": curated_count,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return DagzooFilterResult(
+            manifest_path=manifest_path.resolve(),
+            summary_path=summary_path.resolve(),
+            total_datasets=total_datasets_per_round,
+            accepted_datasets=curated_count,
+            rejected_datasets=max(0, total_datasets_per_round - curated_count),
+            elapsed_seconds=0.1,
+            datasets_per_minute=600.0,
+            curated_out_dir=curated_dir.resolve(),
+            curated_accepted_datasets=curated_count,
+        )
+
+    return _run
 
 
 def _fake_run_dagzoo_generate_mismatched_handoff(config) -> object:
@@ -892,39 +982,178 @@ def test_materialize_corpus_recipe_backfills_adequacy_metadata_from_recipe_when_
     )
 
     summary = record["dagzoo_provenance_summary"]
-    assert summary["posterior_predictive_factorization"] == (
-        "independent_p_x_complete_and_p_y_given_x_complete"
-    )
-    assert summary["teacher_conditional_export"] is True
-    assert summary["teacher_conditional_metric_definition"] == "label-target log loss per test cell"
-    assert summary["target_parent_prior"] == "near_max_mixture"
-    assert summary["target_parent_mode"] == "max"
-    assert summary["target_parent_count_range"] == {"min": 1, "max": None}
-    assert summary["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
-    assert summary["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
-    assert summary["target_parent_midrange_prob"] == pytest.approx(0.20)
-    assert summary.get("target_parent_fraction_range") is None
-    assert summary.get("target_parent_regimes_present") is None
+    assert summary["target_derivation"] == "tabiclv2_latent_node"
+    assert summary.get("target_relevant_feature_count_range") is None
+    assert summary.get("target_relevant_feature_fraction_range") is None
 
     dagzoo_provenance = record["dagzoo_provenance"]
-    assert dagzoo_provenance["posterior_predictive_factorization"] == (
-        "independent_p_x_complete_and_p_y_given_x_complete"
+    assert dagzoo_provenance["target_derivation"] == "tabiclv2_latent_node"
+    assert "target_relevant_feature_count_range" not in dagzoo_provenance
+    assert "target_relevant_feature_fraction_range" not in dagzoo_provenance
+
+
+def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=1)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
+
+    record = materialize_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
     )
-    assert dagzoo_provenance["posterior_predictive_factorizations"] == [
-        "independent_p_x_complete_and_p_y_given_x_complete"
-    ]
-    assert dagzoo_provenance["teacher_conditional_export"] is True
-    assert dagzoo_provenance["teacher_conditional_metric_definition"] == (
-        "label-target log loss per test cell"
+
+    dagzoo_provenance = record["dagzoo_provenance"]
+    summary = record["dagzoo_provenance_summary"]
+    assert dagzoo_provenance["filter_policy"] == "accepted_only"
+    assert dagzoo_provenance["accepted_datasets"] == 1
+    assert dagzoo_provenance["curated_accepted_datasets"] == 1
+    assert len(dagzoo_provenance["filter_manifest_paths"]) == 1
+    assert len(dagzoo_provenance["filter_summary_paths"]) == 1
+    assert len(dagzoo_provenance["curated_root_lineage"]) == 1
+    assert summary["filter_policy"] == "accepted_only"
+    assert summary["accepted_datasets"] == 1
+    assert summary["curated_accepted_datasets"] == 1
+    assert Path(str(record["manifest"]["manifest_path"])).exists()
+
+
+def test_materialize_corpus_recipe_tops_up_accepted_only_until_target(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_topup_recipe",
+        filename="accepted_only_topup_recipe.yaml",
+        num_datasets=3,
     )
-    assert dagzoo_provenance["target_parent_prior"] == "near_max_mixture"
-    assert dagzoo_provenance["target_parent_mode"] == "max"
-    assert dagzoo_provenance["target_parent_count_range"] == {"min": 1, "max": None}
-    assert dagzoo_provenance["target_parent_near_max_band_min_fraction"] == pytest.approx(0.75)
-    assert dagzoo_provenance["target_parent_below_sqrt_prob"] == pytest.approx(0.05)
-    assert dagzoo_provenance["target_parent_midrange_prob"] == pytest.approx(0.20)
-    assert "target_parent_fraction_range" not in dagzoo_provenance
-    assert "target_parent_regimes_present" not in dagzoo_provenance
+    generate_calls = [0]
+    _patch_dagzoo_generate(monkeypatch, _counting_fake_run_dagzoo_generate(generate_calls))
+    _patch_dagzoo_filter(
+        monkeypatch,
+        _round_sequence_fake_run_dagzoo_filter([1, 2], total_datasets_per_round=2),
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="accepted_only_topup_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    assert generate_calls[0] == 2
+    dagzoo_provenance = record["dagzoo_provenance"]
+    invocation = dagzoo_provenance["invocations"][0]
+    assert invocation["filter"]["target_accepted_datasets"] == 3
+    assert invocation["filter"]["curated_accepted_datasets"] == 3
+    assert invocation["filter"]["round_count"] == 2
+    assert len(invocation["rounds"]) == 2
+    assert dagzoo_provenance["accepted_datasets"] == 3
+    assert dagzoo_provenance["rejected_datasets"] == 1
+
+
+def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_budget_recipe",
+        filename="accepted_only_budget_recipe.yaml",
+        num_datasets=3,
+    )
+    requested_num_datasets: list[int] = []
+
+    def _fake_generate(config) -> object:
+        requested_num_datasets.append(int(config.num_datasets))
+        return _fake_run_dagzoo_generate(config)
+
+    def _budgeted_filter(config) -> DagzooFilterResult:
+        round_root = Path(str(config.filter_out_dir)).expanduser().resolve().parent
+        round_name = round_root.name
+        round_summaries = {
+            "round_01": (3, 0),
+            "round_02": (3, 0),
+            "round_03": (3, 0),
+            "round_04": (1, 0),
+            "round_05": (2, 0),
+        }
+        total_datasets, curated_count = round_summaries.get(round_name, (0, 0))
+        filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+        curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+        filter_root.mkdir(parents=True, exist_ok=True)
+        curated_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = filter_root / "filter_manifest.ndjson"
+        summary_path = filter_root / "filter_summary.json"
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(
+                {
+                    "total_datasets": total_datasets,
+                    "accepted_datasets": curated_count,
+                    "rejected_datasets": max(0, total_datasets - curated_count),
+                    "curated_out_dir": str(curated_dir.resolve()),
+                    "curated_accepted_datasets": curated_count,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return DagzooFilterResult(
+            manifest_path=manifest_path.resolve(),
+            summary_path=summary_path.resolve(),
+            total_datasets=total_datasets,
+            accepted_datasets=curated_count,
+            rejected_datasets=max(0, total_datasets - curated_count),
+            elapsed_seconds=0.1,
+            datasets_per_minute=600.0,
+            curated_out_dir=curated_dir.resolve(),
+            curated_accepted_datasets=curated_count,
+        )
+
+    _patch_dagzoo_generate(monkeypatch, _fake_generate)
+    _patch_dagzoo_filter(monkeypatch, _budgeted_filter)
+
+    with pytest.raises(RuntimeError, match="did not reach the requested accepted dataset target"):
+        _ = materialize_corpus_recipe(
+            recipe_id="accepted_only_budget_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
+
+    assert requested_num_datasets == [3, 3, 3, 3, 2]
+
+
+def test_materialize_corpus_recipe_fails_when_accepted_only_target_cannot_be_met(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(
+        repo_tmp_path,
+        recipe_id="accepted_only_failure_recipe",
+        filename="accepted_only_failure_recipe.yaml",
+        num_datasets=2,
+    )
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _patch_dagzoo_filter(
+        monkeypatch,
+        _round_sequence_fake_run_dagzoo_filter([0, 0, 0, 0], total_datasets_per_round=2),
+    )
+
+    with pytest.raises(RuntimeError, match="did not reach the requested accepted dataset target"):
+        _ = materialize_corpus_recipe(
+            recipe_id="accepted_only_failure_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
 
 
 def test_load_corpus_record_backfills_legacy_dagzoo_provenance_summary(
@@ -941,24 +1170,25 @@ def test_load_corpus_record_backfills_legacy_dagzoo_provenance_summary(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
 
     assert loaded["corpus_ref"] == legacy_record["corpus_ref"]
-    assert loaded["dagzoo_provenance_summary"] == {
-        "corpus_ref": legacy_record["corpus_ref"],
-        "recipe_id": "current_recipe",
-        "corpus_id": legacy_record["corpus_id"],
-        "recipe_kind": "dagzoo_single_invocation",
-        "surface_label": "anchor_manifest_default",
+    summary = loaded["dagzoo_provenance_summary"]
+    assert summary["corpus_ref"] == legacy_record["corpus_ref"]
+    assert summary["recipe_id"] == "current_recipe"
+    assert summary["corpus_id"] == legacy_record["corpus_id"]
+    assert summary["recipe_kind"] == "dagzoo_single_invocation"
+    assert summary["surface_label"] == "anchor_manifest_default"
+    assert summary["corpus_variant"] == "current_corpus_default"
+    assert summary["comparator_role"] == "control"
+    assert summary["config_refs"] == ["configs/default.yaml"]
+    assert summary["provenance_labels"] == {
         "corpus_variant": "current_corpus_default",
         "comparator_role": "control",
-        "config_refs": ["configs/default.yaml"],
-        "provenance_labels": {
-            "corpus_variant": "current_corpus_default",
-            "comparator_role": "control",
-        },
-        "invocation_count": 1,
     }
+    assert summary["invocation_count"] == 1
+    if "filter_policy" in summary:
+        assert summary["filter_policy"] == "include_all"
 
 
-def test_materialize_corpus_recipe_caps_cpu_fixed_layout_batch_size(
+def test_materialize_corpus_recipe_does_not_force_fixed_layout_batch_size_cap(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
 ) -> None:
@@ -979,7 +1209,7 @@ def test_materialize_corpus_recipe_caps_cpu_fixed_layout_batch_size(
 
     assert len(captured) == 1
     config = captured[0]
-    assert getattr(config, "set_overrides") == ("runtime.fixed_layout_batch_size_cap=128",)
+    assert getattr(config, "set_overrides") == ()
 
 
 def test_materialize_corpus_recipe_defers_manifest_characteristics_until_hydration(

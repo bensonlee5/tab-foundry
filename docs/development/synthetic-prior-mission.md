@@ -10,11 +10,16 @@ from the induced task distribution and optimizing the resulting objectives.
 
 Use these alongside this page:
 
-- architecture reference: `docs/development/model-architecture.md`
-- canonical roadmap: `docs/development/roadmap.md`
-- workflow runbooks: `docs/workflows.md`
-- sweep contract: `program.md`
-- reference index: `reference/README.md`
+- architecture reference:
+  [Model Architecture](model-architecture.md)
+- canonical roadmap:
+  [Roadmap](roadmap.md)
+- workflow runbooks:
+  [Workflows](../workflows.md)
+- sweep contract:
+  [Sweep Contract](../../program.md)
+- reference index:
+  [References](../../reference/README.md)
 
 ## Problem Setup
 
@@ -213,7 +218,7 @@ which pieces would still have to be built.
   repeatable enough for noisy comparisons, and add search orchestration rather
   than relying on fixed manual sweep rows.
 
-## Interpreting $\\phi$ Through Sandwich Demands
+## Interpreting φ Through Sandwich Demands
 
 The factorization of $\\phi$ matters because different parts of the prior alter
 different parts of the sandwich computation.

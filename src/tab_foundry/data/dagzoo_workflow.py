@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import subprocess
-from typing import cast
+from typing import Any, Mapping, cast
 
 from tab_realdata_hub.manifest import ManifestSummary, build_manifest
 
@@ -51,11 +52,45 @@ class DagzooGenerateManifestResult:
 
     handoff: DagzooHandoffInfo
     summary: ManifestSummary
+    filter_result: DagzooFilterResult | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class DagzooFilterConfig:
+    """Typed input for one dagzoo filter CLI invocation."""
+
+    dagzoo_root: Path
+    input_dir: Path
+    filter_out_dir: Path
+    curated_out_dir: Path | None = None
+    set_overrides: tuple[str, ...] = ()
+
+
+@dataclass(slots=True, frozen=True)
+class DagzooFilterResult:
+    """Result of one dagzoo filter CLI invocation."""
+
+    manifest_path: Path
+    summary_path: Path
+    total_datasets: int
+    accepted_datasets: int
+    rejected_datasets: int
+    elapsed_seconds: float | None
+    datasets_per_minute: float | None
+    curated_out_dir: Path | None = None
+    curated_accepted_datasets: int = 0
 
 
 def _resolve_from_root(root: Path, raw_path: Path) -> Path:
     expanded = raw_path.expanduser()
     return expanded.resolve() if expanded.is_absolute() else (root / expanded).resolve()
+
+
+def _read_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(f"{context} must decode to a JSON object: {path}")
+    return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
 
 
 def _append_dagzoo_set_override(argv: list[str], *, key: str, value: object) -> None:
@@ -134,6 +169,34 @@ def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
     return argv
 
 
+def build_dagzoo_filter_argv(config: DagzooFilterConfig) -> list[str]:
+    """Build the dagzoo CLI argv for one filter run."""
+
+    dagzoo_root = config.dagzoo_root.expanduser().resolve()
+    input_dir = _resolve_from_root(dagzoo_root, config.input_dir)
+    filter_out_dir = _resolve_from_root(dagzoo_root, config.filter_out_dir)
+    argv = [
+        "uv",
+        "run",
+        "dagzoo",
+        "filter",
+        "--in",
+        str(input_dir),
+        "--out",
+        str(filter_out_dir),
+    ]
+    if config.curated_out_dir is not None:
+        argv.extend(
+            [
+                "--curated-out",
+                str(_resolve_from_root(dagzoo_root, config.curated_out_dir)),
+            ]
+        )
+    for override in config.set_overrides:
+        argv.extend(["--set", str(cast(str, override))])
+    return argv
+
+
 def run_dagzoo_generate(config: DagzooGenerateConfig) -> DagzooHandoffInfo:
     """Run dagzoo generate through the CLI and return validated handoff metadata."""
 
@@ -158,18 +221,104 @@ def run_dagzoo_generate(config: DagzooGenerateConfig) -> DagzooHandoffInfo:
     return handoff
 
 
+def run_dagzoo_filter(config: DagzooFilterConfig) -> DagzooFilterResult:
+    """Run dagzoo filter through the CLI and return parsed filter metadata."""
+
+    dagzoo_root = config.dagzoo_root.expanduser().resolve()
+    if not dagzoo_root.exists():
+        raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
+    if not dagzoo_root.is_dir():
+        raise RuntimeError(f"dagzoo root must be a directory: {dagzoo_root}")
+    input_dir = _resolve_from_root(dagzoo_root, config.input_dir)
+    if not input_dir.exists():
+        raise RuntimeError(f"dagzoo filter input does not exist: {input_dir}")
+    argv = build_dagzoo_filter_argv(config)
+    subprocess.run(argv, cwd=dagzoo_root, check=True)
+
+    filter_out_dir = _resolve_from_root(dagzoo_root, config.filter_out_dir)
+    manifest_path = filter_out_dir / "filter_manifest.ndjson"
+    summary_path = filter_out_dir / "filter_summary.json"
+    if not manifest_path.exists():
+        raise RuntimeError(f"dagzoo filter manifest not found: {manifest_path}")
+    if not summary_path.exists():
+        raise RuntimeError(f"dagzoo filter summary not found: {summary_path}")
+    summary = _read_json_mapping(summary_path, context="dagzoo filter summary")
+    curated_out_dir = None
+    raw_curated_out_dir = summary.get("curated_out_dir")
+    if isinstance(raw_curated_out_dir, str) and raw_curated_out_dir.strip():
+        curated_out_dir = Path(raw_curated_out_dir).expanduser().resolve()
+    elif config.curated_out_dir is not None:
+        curated_out_dir = _resolve_from_root(dagzoo_root, config.curated_out_dir)
+    return DagzooFilterResult(
+        manifest_path=manifest_path.resolve(),
+        summary_path=summary_path.resolve(),
+        total_datasets=int(summary.get("total_datasets", 0)),
+        accepted_datasets=int(summary.get("accepted_datasets", 0)),
+        rejected_datasets=int(summary.get("rejected_datasets", 0)),
+        elapsed_seconds=(
+            None if summary.get("elapsed_seconds") is None else float(summary["elapsed_seconds"])
+        ),
+        datasets_per_minute=(
+            None
+            if summary.get("datasets_per_minute") is None
+            else float(summary["datasets_per_minute"])
+        ),
+        curated_out_dir=curated_out_dir,
+        curated_accepted_datasets=int(summary.get("curated_accepted_datasets", 0)),
+    )
+
+
+def _manifest_data_root(*, handoff: DagzooHandoffInfo, filter_policy: str) -> Path:
+    normalized_filter_policy = str(filter_policy).strip()
+    if normalized_filter_policy == "accepted_only":
+        if handoff.curated_dir is None:
+            raise RuntimeError(
+                "filter_policy='accepted_only' requires a curated dagzoo corpus. "
+                "Run `dagzoo filter --in "
+                f"{handoff.generated_dir} --out <filter_dir> --curated-out <curated_dir>` first."
+            )
+        return handoff.curated_dir
+    return handoff.generated_dir
+
+
 def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> DagzooGenerateManifestResult:
     """Run dagzoo generate through the CLI and materialize one tab-foundry manifest."""
 
     handoff = run_dagzoo_generate(config)
+    filter_result = None
+    if str(config.filter_policy).strip() == "accepted_only":
+        filter_result = run_dagzoo_filter(
+            DagzooFilterConfig(
+                dagzoo_root=config.dagzoo_root,
+                input_dir=handoff.generated_dir,
+                filter_out_dir=handoff.handoff_manifest_path.parent / "filter",
+                curated_out_dir=handoff.curated_dir or (handoff.handoff_manifest_path.parent / "curated"),
+            )
+        )
+        if filter_result.curated_out_dir is None:
+            raise RuntimeError("dagzoo filter did not report a curated output directory")
+        data_root = filter_result.curated_out_dir
+    else:
+        data_root = _manifest_data_root(
+            handoff=handoff,
+            filter_policy=str(config.filter_policy),
+        )
 
     summary = build_manifest(
-        data_roots=[handoff.generated_dir],
+        data_roots=[data_root],
         out_path=config.out_manifest.expanduser().resolve(),
         train_ratio=float(config.train_ratio),
         val_ratio=float(config.val_ratio),
         filter_policy=str(config.filter_policy),
         missing_value_policy=str(config.missing_value_policy),
-        dagzoo_handoff_manifest_path=handoff.handoff_manifest_path,
+        dagzoo_handoff_manifest_path=(
+            None
+            if str(config.filter_policy).strip() == "accepted_only"
+            else handoff.handoff_manifest_path
+        ),
     )
-    return DagzooGenerateManifestResult(handoff=handoff, summary=summary)
+    return DagzooGenerateManifestResult(
+        handoff=handoff,
+        summary=summary,
+        filter_result=filter_result,
+    )

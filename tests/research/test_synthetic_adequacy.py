@@ -11,7 +11,6 @@ from tab_foundry.research.synthetic_adequacy import (
     prediction_variance_per_test_cell,
     summarize_replicate_predictions,
     synthetic_adequacy_spec_path,
-    teacher_excess_log_loss_per_test_cell,
 )
 
 
@@ -19,11 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_tf_rd_010_synthetic_adequacy_spec_is_registered() -> None:
-    path = synthetic_adequacy_spec_path("tf_rd_010_synthetic_adequacy_v1", repo_root=REPO_ROOT)
-    spec = load_synthetic_adequacy_spec("tf_rd_010_synthetic_adequacy_v1", repo_root=REPO_ROOT)
+    path = synthetic_adequacy_spec_path("tf_rd_010_synthetic_adequacy_v3", repo_root=REPO_ROOT)
+    spec = load_synthetic_adequacy_spec("tf_rd_010_synthetic_adequacy_v3", repo_root=REPO_ROOT)
 
     assert path.exists()
-    assert spec.adequacy_id == "tf_rd_010_synthetic_adequacy_v1"
+    assert spec.adequacy_id == "tf_rd_010_synthetic_adequacy_v3"
     assert spec.status == "ready"
     assert spec.metric_definition == LABEL_TARGET_LOG_LOSS_PER_TEST_CELL
     assert spec.blocked_sweeps == (
@@ -31,34 +30,27 @@ def test_tf_rd_010_synthetic_adequacy_spec_is_registered() -> None:
         "tf_rd_010_classification_evolution_large_v2",
     )
     assert [block.block_id for block in spec.blocks] == [
-        "factorized_canary_easy_v1",
-        "production_control_v3",
+        "latent_target_canary_curated_v3",
+        "production_control_curated_v5",
     ]
-    assert spec.blocks[0].corpus_ref == "tf_rd_010_factorized_canary_v1"
-    assert spec.blocks[1].corpus_ref == "tf_rd_010_dagzoo_medium_control_v3"
-    assert spec.blocks[0].predictors == ("chance", "logistic_regression", "sandwich")
+    assert spec.blocks[0].corpus_ref == "tf_rd_010_latent_target_canary_curated_v3"
+    assert spec.blocks[1].corpus_ref == "tf_rd_010_dagzoo_medium_control_curated_v5"
+    assert spec.blocks[0].predictors == ("chance", "logistic_regression")
     assert spec.blocks[1].predictors == ("chance", "sandwich")
-    assert spec.blocks[0].teacher_conditionals == "required"
-    assert spec.blocks[1].teacher_conditionals == "required"
     assert "generator_problem" in spec.decision_buckets
     assert "training_regime_problem" in spec.decision_buckets
-    assert "architecture_capacity_problem" in spec.decision_buckets
+    assert "inconclusive" in spec.decision_buckets
 
 
-def test_synthetic_adequacy_metrics_measure_log_loss_variance_and_teacher_bias() -> None:
+def test_synthetic_adequacy_metrics_measure_log_loss_and_variance() -> None:
     replicate_probabilities = [
         [[0.90, 0.10], [0.20, 0.80]],
         [[0.80, 0.20], [0.25, 0.75]],
         [[0.85, 0.15], [0.15, 0.85]],
     ]
     targets = [0, 1]
-    teacher_probabilities = [[0.95, 0.05], [0.10, 0.90]]
 
-    summary = summarize_replicate_predictions(
-        replicate_probabilities,
-        targets,
-        teacher_probabilities=teacher_probabilities,
-    )
+    summary = summarize_replicate_predictions(replicate_probabilities, targets)
 
     expected_mean_log_loss = sum(
         (
@@ -72,22 +64,5 @@ def test_synthetic_adequacy_metrics_measure_log_loss_variance_and_teacher_bias()
     assert summary["prediction_variance_per_test_cell"] == pytest.approx(
         prediction_variance_per_test_cell(replicate_probabilities)
     )
-    assert summary["mean_teacher_excess_log_loss_per_test_cell"] == pytest.approx(
-        sum(
-            teacher_excess_log_loss_per_test_cell(replicate, teacher_probabilities)
-            for replicate in replicate_probabilities
-        )
-        / 3.0
-    )
-    expected_teacher_entropy = (
-        -(
-            0.95 * math.log(0.95)
-            + 0.05 * math.log(0.05)
-            + 0.10 * math.log(0.10)
-            + 0.90 * math.log(0.90)
-        )
-        / 2.0
-    )
-    assert summary["teacher_optimal_log_loss_per_test_cell"] == pytest.approx(
-        expected_teacher_entropy
-    )
+    assert "mean_teacher_excess_log_loss_per_test_cell" not in summary
+    assert "teacher_optimal_log_loss_per_test_cell" not in summary

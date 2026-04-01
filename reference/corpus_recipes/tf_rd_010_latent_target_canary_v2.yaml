@@ -1,0 +1,49 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_010_latent_target_canary_v2
+kind: dagzoo_python_generated
+description: Easy TF-RD-010 latent-target canary family for the synthetic adequacy
+  gate. This recipe keeps the row ladder while fixing a small two-class numeric-only
+  surface so simple supervised baselines can verify the new TabICLv2-style target
+  derivation before any medium rerun.
+surface_label: tf_rd_010_latent_target_canary
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: include_all
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_010_latent_target_canary
+  comparator_role: adequacy_canary
+  benchmark_family: tf_rd_010
+  downstream_issue: 205
+  task_grid: latent_target_canary_rows_only_v2
+  corpus_recipe_version: v2
+  manifest_record_count: 128
+  per_invocation_num_datasets: 32
+  target_derivation: tabiclv2_latent_node
+generator:
+  module: tab_foundry.data.corpus_generators.tf_rd_010_latent_target
+  callable: build_latent_target_canary_recipe
+  inputs:
+    base_config_ref: configs/default.yaml
+    num_datasets: 32
+    filter_max_attempts: 64
+  fingerprint: 103f547c8cfe
+review_summary:
+  grid_family: latent_target_canary_rows_only_v2
+  config_refs:
+  - configs/default.yaml
+  invocation_count: 4
+  manifest_record_count: 128
+  row_totals:
+  - 128
+  - 256
+  - 512
+  - 1024
+  feature_counts:
+  - 6
+  class_counts:
+  - 2
+  num_datasets_per_invocation: 32
+  missingness: null
+  target_derivation: tabiclv2_latent_node

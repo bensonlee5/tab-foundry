@@ -263,6 +263,28 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert sample.metadata["feature_types"] == ["floating"] * int(sample.x_train.shape[1])
 
 
+def test_manifest_and_dataset_loading_without_realdata_catalog_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tab_foundry.data.dataset as dataset_module
+
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = _write_dataset(shard_dir)
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
+
+    monkeypatch.setattr(dataset_module, "_LOAD_MANIFEST_RECORD_CATALOG", None)
+    monkeypatch.setattr(dataset_module, "_LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS", None)
+
+    ds = dataset_module.PackedParquetTaskDataset(manifest_path, split=split, task="classification")
+    sample = ds[0]
+    assert sample.metadata["config"]["dataset"]["task"] == "classification"
+    assert sample.metadata["feature_types"] == ["floating"] * int(sample.x_train.shape[1])
+
+
 def test_dataset_rejects_missing_feature_types_metadata(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     x_train, y_train, x_test, y_test = _classification_arrays(n_features=3, seed=17)
@@ -947,10 +969,11 @@ def test_manifest_paths_are_relative_to_manifest_dir(tmp_path: Path) -> None:
 
     assert not Path(str(row["train_path"])).is_absolute()
     assert not Path(str(row["test_path"])).is_absolute()
-    assert not Path(str(row["metadata_path"])).is_absolute()
-    assert int(row["metadata_offset_bytes"]) >= 0
-    assert int(row["metadata_size_bytes"]) > 0
-    assert len(str(row["metadata_sha256"])) == 64
+    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+    assert not Path(str(row[f"{locator_prefix}_path"])).is_absolute()
+    assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
+    assert int(row[f"{locator_prefix}_size_bytes"]) > 0
+    assert len(str(row[f"{locator_prefix}_sha256"])) == 64
 
 
 def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
@@ -1041,10 +1064,11 @@ def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    metadata_path = shard_dir / "metadata.ndjson"
+    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+    catalog_path = (manifest_path.parent / str(row[f"{locator_prefix}_path"])).resolve()
 
-    offset = int(row["metadata_offset_bytes"])
-    with metadata_path.open("r+b") as handle:
+    offset = int(row[f"{locator_prefix}_offset_bytes"])
+    with catalog_path.open("r+b") as handle:
         handle.seek(offset + 1)
         original = handle.read(1)
         handle.seek(offset + 1)

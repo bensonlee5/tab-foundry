@@ -17,24 +17,24 @@ description: "Front door for the tab-foundry docs site, with the shortest paths 
 
 ## Start Here
 
-Go straight to the owner doc that matches the question:
+Pick the audience path that matches the work:
 
-- [Repo Overview]({{< relref "/docs/repo-overview.md" >}}): what the repo does,
-  how the pipeline fits together, and the quickstart.
+- [Getting Started]({{< relref "/docs/getting-started/_index.md" >}}): repo
+  overview, glossary, problem framing, and the fastest path for new readers.
+- [ML Engineering]({{< relref "/docs/ml-engineering/_index.md" >}}): workflows,
+  artifacts, export handoff, and validation paths.
+- [Research]({{< relref "/docs/research-contributors/_index.md" >}}): sweeps,
+  architecture, synthetic data, and active research context.
+- [Development]({{< relref "/docs/development/_index.md" >}}): planning,
+  package ownership, model config, and deeper architecture references.
+
+## Core References
+
+- [Repo Overview]({{< relref "/docs/getting-started/repo-overview.md" >}}):
+  top-level repo overview and quickstart.
 - [Workflows]({{< relref "/docs/ml-engineering/workflows.md" >}}): command
   examples and artifact expectations.
 - [Sweep Contract]({{< relref "/docs/research-contributors/sweep-contract.md" >}}):
   the active system-delta execution policy.
-- [Model Architecture]({{< relref "/docs/development/model-architecture.md" >}}):
-  the current sandwich/simple/staged split and forward path.
-- [Roadmap]({{< relref "/docs/development/roadmap.md" >}}): current TF-RD
-  sequencing and priorities.
-
-## Core References
-
-- [Codebase Navigation]({{< relref "/docs/development/codebase-navigation.md" >}}):
-  package ownership and entry points.
-- [Inference Contract]({{< relref "/docs/ml-engineering/inference.md" >}}):
-  export/runtime handoff details.
 - [References]({{< relref "/docs/reference" >}}): papers, evidence,
   and supporting research notes.

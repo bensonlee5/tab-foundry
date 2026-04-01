@@ -833,18 +833,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mdformat"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markdown-it-py" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/05/32b5e14b192b0a8a309f32232c580aefedd9d06017cb8fe8fce34bec654c/mdformat-1.0.0.tar.gz", hash = "sha256:4954045fcae797c29f86d4ad879e43bb151fa55dbaf74ac6eaeacf1d45bb3928", size = 56953 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/9a/8fe71b95985ca7a4001effbcc58e5a07a1f2a2884203f74dcf48a3b08315/mdformat-1.0.0-py3-none-any.whl", hash = "sha256:bca015d65a1d063a02e885a91daee303057bc7829c2cd37b2075a50dbb65944b", size = 53288 },
-]
-
-[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1745,7 +1733,7 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.15.6"
+version = "0.15.8"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
@@ -1783,7 +1771,6 @@ dev = [
     { name = "h5py" },
     { name = "hypothesis" },
     { name = "matplotlib" },
-    { name = "mdformat" },
     { name = "muon-optimizer" },
     { name = "mypy" },
     { name = "openml" },
@@ -1817,7 +1804,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
-    { name = "tab-realdata-hub", specifier = "==0.1.1" },
+    { name = "tab-realdata-hub", specifier = "==0.1.3" },
     { name = "torch", specifier = ">=2.8" },
     { name = "torchview", specifier = ">=0.2.7" },
     { name = "wandb", specifier = ">=0.20" },
@@ -1831,7 +1818,6 @@ dev = [
     { name = "h5py", specifier = ">=3.12" },
     { name = "hypothesis", specifier = ">=6.130" },
     { name = "matplotlib", specifier = ">=3.10" },
-    { name = "mdformat", specifier = ">=0.7" },
     { name = "muon-optimizer", specifier = ">=0.1.0" },
     { name = "mypy", specifier = ">=1.11" },
     { name = "openml", specifier = ">=0.15" },
@@ -1849,7 +1835,7 @@ dev = [
 
 [[package]]
 name = "tab-realdata-hub"
-version = "0.1.1"
+version = "0.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -1858,9 +1844,9 @@ dependencies = [
     { name = "pyarrow" },
     { name = "scikit-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/bd/0acf1d07d849b8c5373ae1e5cdce154dac150fbfb8368bfd77128058c8dc/tab_realdata_hub-0.1.1.tar.gz", hash = "sha256:fa8e4a3a081e1e73f348f3d5b7f6cdc07204c258a48e3e213713cd9264e38f63", size = 82930 }
+sdist = { url = "https://files.pythonhosted.org/packages/83/4f/a2574f1319df2fb5ff5d39ff9ee2e023b6bbca65a3e6422cc5dbbb833a40/tab_realdata_hub-0.1.3.tar.gz", hash = "sha256:6e70c5e602a08df90f0bcd7823dd2ca4691da9831c8a4249e972f3969dc233dd", size = 86761 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/8d/66738ff6893617a12cbfe19c4b5c4a6028296cafc3a05505a9ae634e4435/tab_realdata_hub-0.1.1-py3-none-any.whl", hash = "sha256:7153081bc975fc83e5fbb76d1eea0af408e18f5ac0058022c741d42ec4087655", size = 49343 },
+    { url = "https://files.pythonhosted.org/packages/fe/71/dc8fd54dd6538100d03915bea421f408522a6f76bcdd559cd6157ce1e057/tab_realdata_hub-0.1.3-py3-none-any.whl", hash = "sha256:0d4ff6ce7142a21bbf185dc354478b3d1c2af7529a2abac90ea4541d7c8b0665", size = 51100 },
 ]
 
 [[package]]

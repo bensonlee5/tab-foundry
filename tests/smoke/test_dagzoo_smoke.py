@@ -87,9 +87,6 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
                 generate_run_id="1" * 32,
                 generated_corpus_id="2" * 32,
                 generated_dir=generated_dir,
-                recommended_training_corpus="generated",
-                recommended_training_artifact_key="generated_dir",
-                curation_policy="none",
             ),
             summary=ManifestSummary(
                 out_path=out_root / "manifest.parquet",

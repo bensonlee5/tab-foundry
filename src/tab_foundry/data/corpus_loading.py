@@ -253,6 +253,33 @@ def _aggregate_range_bounds(bounds: list[dict[str, Any]]) -> dict[str, Any] | No
     return result or None
 
 
+def _normalized_float_range_from_mapping(value: Any) -> dict[str, float] | None:
+    mapping = _optional_mapping(value)
+    if mapping is None:
+        return None
+    result: dict[str, float] = {}
+    minimum = _optional_float(mapping.get("min"))
+    maximum = _optional_float(mapping.get("max"))
+    if minimum is not None:
+        result["min"] = float(minimum)
+    if maximum is not None:
+        result["max"] = float(maximum)
+    return result or None
+
+
+def _aggregate_float_range_bounds(bounds: list[dict[str, float]]) -> dict[str, float] | None:
+    minima = [float(bound["min"]) for bound in bounds if "min" in bound]
+    maxima = [float(bound["max"]) for bound in bounds if "max" in bound]
+    if not minima and not maxima:
+        return None
+    result: dict[str, float] = {}
+    if minima:
+        result["min"] = float(min(minima))
+    if maxima:
+        result["max"] = float(max(maxima))
+    return result or None
+
+
 def _invocation_config_overrides(invocation: Any) -> dict[str, Any]:
     if isinstance(invocation, Mapping):
         return _optional_mapping(invocation.get("config_overrides")) or {}
@@ -351,6 +378,77 @@ def build_dagzoo_provenance_summary(
         )
         if handoff_provenance is not None
     ]
+    invocation_filter_payloads = [
+        filter_payload
+        for invocation in cast(list[Any], raw_provenance.get("invocations", []))
+        for filter_payload in (
+            _optional_mapping(
+                invocation.get("filter")
+                if isinstance(invocation, Mapping)
+                else None
+            ),
+        )
+        if filter_payload is not None
+    ]
+    recipe_manifest = _optional_mapping(_recipe_like_value(recipe, "manifest")) or {}
+    explicit_filter_policies = _string_candidates(raw_provenance.get("filter_policy"))
+    invocation_filter_policies = _string_candidates(
+        *[item.get("filter_policy") for item in invocation_filter_payloads]
+    )
+    recipe_filter_policies = _string_candidates(recipe_manifest.get("filter_policy"))
+    filter_policies = _first_non_empty_group(
+        [
+            explicit_filter_policies,
+            invocation_filter_policies,
+            recipe_filter_policies,
+        ]
+    ) or []
+    resolved_filter_policy = (
+        filter_policies[0]
+        if len(filter_policies) == 1
+        else None
+    )
+    if (
+        resolved_filter_policy == "include_all"
+        and not invocation_filter_payloads
+        and not explicit_filter_policies
+    ):
+        resolved_filter_policy = None
+    invocation_accepted_dataset_counts = [
+        int(value)
+        for value in (_optional_int(item.get("accepted_datasets")) for item in invocation_filter_payloads)
+        if value is not None
+    ]
+    invocation_rejected_dataset_counts = [
+        int(value)
+        for value in (_optional_int(item.get("rejected_datasets")) for item in invocation_filter_payloads)
+        if value is not None
+    ]
+    invocation_curated_accepted_dataset_counts = [
+        int(value)
+        for value in (
+            _optional_int(item.get("curated_accepted_datasets"))
+            for item in invocation_filter_payloads
+        )
+        if value is not None
+    ]
+    accepted_datasets = _optional_int(raw_provenance.get("accepted_datasets"))
+    if accepted_datasets is None and invocation_filter_payloads:
+        accepted_datasets = sum(invocation_accepted_dataset_counts)
+    rejected_datasets = _optional_int(raw_provenance.get("rejected_datasets"))
+    if rejected_datasets is None and invocation_filter_payloads:
+        rejected_datasets = sum(invocation_rejected_dataset_counts)
+    curated_accepted_datasets = _optional_int(raw_provenance.get("curated_accepted_datasets"))
+    if curated_accepted_datasets is None and invocation_filter_payloads:
+        curated_accepted_datasets = sum(invocation_curated_accepted_dataset_counts)
+    acceptance_rate = _optional_float(raw_provenance.get("acceptance_rate"))
+    if (
+        acceptance_rate is None
+        and accepted_datasets is not None
+        and rejected_datasets is not None
+        and (accepted_datasets + rejected_datasets) > 0
+    ):
+        acceptance_rate = float(accepted_datasets) / float(accepted_datasets + rejected_datasets)
     posterior_predictive_factorizations = _first_non_empty_group(
         [
             _string_candidates(
@@ -598,6 +696,55 @@ def build_dagzoo_provenance_summary(
         for fraction in (_optional_float(bound.get("max")),)
         if fraction is not None
     ]
+    target_derivations = _first_non_empty_group(
+        [
+            _string_candidates(raw_provenance.get("target_derivation")),
+            _string_candidates(
+                *[
+                    item.get("target_derivation")
+                    for item in invocation_handoff_provenances
+                ]
+            ),
+            _string_candidates(provenance_labels.get("target_derivation")),
+            _string_candidates(review_summary.get("target_derivation")),
+        ]
+    )
+    if target_derivations is None:
+        target_derivations = []
+    target_relevant_feature_count_range = _first_non_empty_group(
+        [
+            _normalized_range_from_mapping(raw_provenance.get("target_relevant_feature_count_range")),
+            _aggregate_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        _normalized_range_from_mapping(item.get("target_relevant_feature_count_range"))
+                        for item in invocation_handoff_provenances
+                    )
+                    if bound is not None
+                ]
+            ),
+            _normalized_range_from_mapping(provenance_labels.get("target_relevant_feature_count_range")),
+            _normalized_range_from_mapping(review_summary.get("target_relevant_feature_count_range")),
+        ]
+    )
+    target_relevant_feature_fraction_range = _first_non_empty_group(
+        [
+            _normalized_float_range_from_mapping(raw_provenance.get("target_relevant_feature_fraction_range")),
+            _aggregate_float_range_bounds(
+                [
+                    bound
+                    for bound in (
+                        _normalized_float_range_from_mapping(item.get("target_relevant_feature_fraction_range"))
+                        for item in invocation_handoff_provenances
+                    )
+                    if bound is not None
+                ]
+            ),
+            _normalized_float_range_from_mapping(provenance_labels.get("target_relevant_feature_fraction_range")),
+            _normalized_float_range_from_mapping(review_summary.get("target_relevant_feature_fraction_range")),
+        ]
+    )
     return _drop_none_values(
         {
             "corpus_ref": _ensure_non_empty_string(corpus_ref, context="corpus_ref"),
@@ -622,6 +769,11 @@ def build_dagzoo_provenance_summary(
             "generator_fingerprint": _optional_string(generator.get("fingerprint")),
             "invocation_count": invocation_count,
             "manifest_record_count": manifest_record_count,
+            "filter_policy": resolved_filter_policy,
+            "accepted_datasets": accepted_datasets,
+            "rejected_datasets": rejected_datasets,
+            "curated_accepted_datasets": curated_accepted_datasets,
+            "acceptance_rate": acceptance_rate,
             "posterior_predictive_factorization": (
                 posterior_predictive_factorizations[0]
                 if len(posterior_predictive_factorizations) == 1
@@ -675,6 +827,11 @@ def build_dagzoo_provenance_summary(
                 if len(target_parent_midrange_probs) == 1
                 else None
             ),
+            "target_derivation": (
+                target_derivations[0] if len(target_derivations) == 1 else None
+            ),
+            "target_relevant_feature_count_range": target_relevant_feature_count_range,
+            "target_relevant_feature_fraction_range": target_relevant_feature_fraction_range,
             "review_summary": _copy_jsonable(review_summary) if review_summary else None,
         }
     )

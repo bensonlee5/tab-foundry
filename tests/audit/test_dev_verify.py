@@ -33,16 +33,16 @@ def test_load_dev_index_defaults_to_origin_main() -> None:
     index = dev_verify.load_dev_index()
 
     assert index.default_base_ref == "origin/main"
-    assert index.full_verify_checks == ("mdformat", "audit", "ruff", "mypy", "pytest_all")
+    assert index.full_verify_checks == ("audit", "ruff", "mypy", "pytest_all")
 
 
-def test_docs_only_diff_selects_mdformat_and_audit() -> None:
+def test_docs_only_diff_selects_audit() -> None:
     index = dev_verify.load_dev_index()
 
     plan = dev_verify.build_verification_plan(["README.md"], index)
 
     assert plan.escalated_to_full is False
-    assert plan.check_ids == ("mdformat", "audit")
+    assert plan.check_ids == ("audit",)
     assert plan.scope.subsystem_paths == {"docs": ("README.md",)}
 
 
@@ -52,7 +52,7 @@ def test_system_delta_catalog_diff_includes_research_checks() -> None:
     plan = dev_verify.build_verification_plan(["reference/system_delta_catalog.yaml"], index)
 
     assert plan.escalated_to_full is False
-    assert {"mdformat", "audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
+    assert {"audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
         plan.check_ids
     )
     assert plan.scope.subsystem_paths["research"] == ("reference/system_delta_catalog.yaml",)
@@ -67,7 +67,7 @@ def test_system_delta_sweep_queue_diff_includes_research_checks() -> None:
     )
 
     assert plan.escalated_to_full is False
-    assert {"mdformat", "audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
+    assert {"audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
         plan.check_ids
     )
     assert plan.scope.subsystem_paths["research"] == (
@@ -312,7 +312,7 @@ def test_build_precommit_check_ids_sorts_and_deduplicates_explicit_test_paths() 
         "tests/cli/test_app.py",
         "tests/training/test_wandb.py",
     )
-    assert plan.check_ids == ("mdformat", "audit", "ruff", "mypy")
+    assert plan.check_ids == ("audit", "ruff", "mypy")
 
 
 def test_execute_precommit_paths_adds_n0_to_bucket_pytest(

@@ -1,0 +1,59 @@
+schema: tab-foundry-synthetic-adequacy-v2
+adequacy_id: tf_rd_010_synthetic_adequacy_v3
+status: ready
+metric_definition: label-target log loss per test cell
+blocked_sweeps:
+- tf_rd_010_classification_evolution_medium_v4
+- tf_rd_010_classification_evolution_large_v2
+blocks:
+- block_id: latent_target_canary_curated_v3
+  description: Easy latent-target canary family on curated accepted-only output where
+    simple supervised baselines should learn cleanly if the current dagzoo default
+    layout regime, filtering flow, and lineage export are healthy.
+  corpus_ref: tf_rd_010_latent_target_canary_curated_v3
+  n_ladder:
+  - 128
+  - 256
+  - 512
+  - 1024
+  predictors:
+  - chance
+  - logistic_regression
+  repeats_per_n: 8
+  notes:
+  - Use this block to separate generator and filtering failures from model failures
+    before reading TF-RD-010 medium dynamics.
+- block_id: production_control_curated_v5
+  description: Production-shaped TF-RD-010 control family on curated accepted-only
+    output under the current dagzoo default layout regime. This block answers whether
+    the current sandwich model learns at all on the intended medium control front
+    before any rerun.
+  corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  n_ladder:
+  - 128
+  - 256
+  - 512
+  - 1024
+  predictors:
+  - chance
+  - sandwich
+  repeats_per_n: 8
+  notes:
+  - Hold the test set fixed while resampling training datasets so prediction variance
+    and instability can be estimated across n without teacher-relative metrics.
+decision_buckets:
+  generator_problem: Latent-target lineage validation fails, curated/filter provenance
+    is missing or short of the authored accepted targets, or the simple canary baselines
+    fail on data that should be learnable.
+  training_regime_problem: Latent-target lineage and curated/filter provenance validate,
+    the canary baselines learn, and the sandwich production-control pilot is still
+    unstable or non-learning.
+  inconclusive: Latent-target lineage and curated/filter provenance validate, the
+    canary baselines learn, and the single CPU production-control pilot is not decisively
+    broken.
+notes:
+- Treat tf_rd_010_synthetic_adequacy_v2 and its raw include_all corpora as historical
+  operational context only; tf_rd_010_synthetic_adequacy_v3 is the fresh adequacy
+  gate for the curated latent-target contract.
+- The canonical metric remains the existing persisted classification quantity `final_log_loss_at_matched_regime_budget`,
+  interpreted here explicitly as label-target log loss per test cell.

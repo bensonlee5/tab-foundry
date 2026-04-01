@@ -33,6 +33,7 @@ import tab_foundry.cli.groups.bench as bench_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.cli.groups.research as research_group
 import tab_foundry.cli.groups.train as train_group
+import tab_foundry.cli.research_adequacy as research_adequacy_cli_module
 import tab_foundry.cli.research_diff as research_diff_cli_module
 import tab_foundry.cli.research_execute as research_execute_cli_module
 import tab_foundry.cli.research_graph as research_graph_cli_module
@@ -41,6 +42,7 @@ import tab_foundry.cli.research_promote as research_promote_cli_module
 import tab_foundry.cli.research_summarize as research_summarize_cli_module
 import tab_foundry.cli.research_sweep_core as research_sweep_core_cli_module
 import tab_foundry.cli.train_prior as train_prior_cli_module
+import tab_foundry.research.adequacy.pilot as adequacy_pilot_module
 import tab_foundry.research.sweep.catalog as sweep_catalog_module
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.execute as sweep_execute_library_module
@@ -550,6 +552,41 @@ DISPATCH_CASES = (
     ),
     pytest.param(
         DispatchCase(
+            argv=(
+                "research",
+                "adequacy",
+                "pilot",
+                "--adequacy-id",
+                "tf_rd_010_synthetic_adequacy_v3",
+                "--dagzoo-root",
+                "/tmp/dagzoo",
+                "--device",
+                "cpu",
+                "--force",
+                "--out-root",
+                "/tmp/adequacy",
+            ),
+            module=research_adequacy_cli_module,
+            attribute="run_from_args",
+            fields={
+                "adequacy_id": _str_attr("adequacy_id"),
+                "dagzoo_root": _path_attr("dagzoo_root"),
+                "device": _str_attr("device"),
+                "force": _bool_attr("force"),
+                "out_root": _path_attr("out_root"),
+            },
+            expected={
+                "adequacy_id": "tf_rd_010_synthetic_adequacy_v3",
+                "dagzoo_root": "/tmp/dagzoo",
+                "device": "cpu",
+                "force": True,
+                "out_root": "/tmp/adequacy",
+            },
+        ),
+        id="research-adequacy-pilot",
+    ),
+    pytest.param(
+        DispatchCase(
             argv=("dev", "resolve-config", "--json", "experiment=cls_smoke"),
             module=dev_module,
             attribute="_run_resolve_config",
@@ -813,6 +850,7 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
     )
     assert train_group.train_prior_cli.__name__ == "tab_foundry.cli.train_prior"
     assert research_group.research_sweep_core_cli.__name__ == "tab_foundry.cli.research_sweep_core"
+    assert research_group.research_adequacy_cli.__name__ == "tab_foundry.cli.research_adequacy"
     assert research_group.research_graph_cli.__name__ == "tab_foundry.cli.research_graph"
     assert research_group.research_execute_cli.__name__ == "tab_foundry.cli.research_execute"
     assert research_group.research_inspect_cli.__name__ == "tab_foundry.cli.research_inspect"
@@ -831,6 +869,7 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
         control_baseline_freeze_library_module,
         prior_train_library_module,
         sweep_catalog_module,
+        adequacy_pilot_module,
         sweep_manage_module,
         sweep_materialize_module,
         sweep_matrix_module,

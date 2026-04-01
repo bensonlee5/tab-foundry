@@ -1,0 +1,61 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_010_dagzoo_medium_control_v4
+kind: dagzoo_python_generated
+description: TF-RD-010 balanced control front refreshed for the TabICLv2-style
+  latent-target derivation while preserving the explicit 159984-task one-epoch
+  2500-step contract for the synthetic adequacy gate.
+surface_label: tf_rd_010_dagzoo_medium_control
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: include_all
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_010_dagzoo_medium_control
+  comparator_role: control
+  benchmark_family: tf_rd_010
+  downstream_issue: 205
+  task_grid: balanced_rows_features_classes_v1
+  corpus_recipe_version: v4
+  synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+  balanced_front_shape: inherited_from_v1
+  manifest_record_count: 159984
+  per_invocation_num_datasets: 1111
+  target_derivation: tabiclv2_latent_node
+generator:
+  module: tab_foundry.data.corpus_generators.tf_rd_010_latent_target
+  callable: build_balanced_medium_recipe
+  inputs:
+    base_config_ref: configs/default.yaml
+    num_datasets: 1111
+    filter_max_attempts: 256
+  fingerprint: f781789b135e
+review_summary:
+  grid_family: balanced_rows_features_classes_v1
+  config_refs:
+  - configs/default.yaml
+  invocation_count: 144
+  manifest_record_count: 159984
+  row_totals:
+  - 128
+  - 256
+  - 512
+  - 1024
+  feature_counts:
+  - 6
+  - 10
+  - 14
+  - 20
+  class_counts:
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  num_datasets_per_invocation: 1111
+  missingness: null
+  target_derivation: tabiclv2_latent_node

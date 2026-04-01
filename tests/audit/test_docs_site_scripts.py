@@ -34,7 +34,9 @@ check_built_output_links = _load_script_module(
 
 def test_sync_hugo_content_front_door_specs_use_readme_repo_overview() -> None:
     assert any(
-        spec.source_rel == "README.md" and spec.route == "repo-overview"
+        spec.source_rel == "README.md"
+        and spec.route == "getting-started/repo-overview"
+        and "/docs/repo-overview/" in spec.aliases
         for spec in sync_hugo_content.PAGE_SPECS
     )
     assert all(
@@ -51,9 +53,75 @@ def test_sync_hugo_content_front_door_specs_use_readme_repo_overview() -> None:
     )
 
 
+def test_sync_hugo_content_tracks_audience_and_topic_router_pages() -> None:
+    required_paths = {
+        REPO_ROOT / "site" / "content" / "docs" / "getting-started" / "_index.md",
+        REPO_ROOT / "site" / "content" / "docs" / "ml-engineering" / "_index.md",
+        REPO_ROOT / "site" / "content" / "docs" / "research-contributors" / "_index.md",
+        REPO_ROOT / "site" / "content" / "docs" / "development" / "_index.md",
+        REPO_ROOT
+        / "site"
+        / "content"
+        / "docs"
+        / "ml-engineering"
+        / "artifacts-and-inference.md",
+        REPO_ROOT
+        / "site"
+        / "content"
+        / "docs"
+        / "research-contributors"
+        / "sweeps.md",
+    }
+
+    assert all(path.exists() for path in required_paths)
+
+
 def test_site_shortcodes_for_secondary_topic_tree_were_deleted() -> None:
     assert not (REPO_ROOT / "site" / "layouts" / "shortcodes" / "audience-paths.html").exists()
     assert not (REPO_ROOT / "site" / "layouts" / "shortcodes" / "topic-cards.html").exists()
+
+
+def test_sync_hugo_content_moves_readme_under_getting_started_with_legacy_alias(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    (tmp_path / "site").mkdir()
+    (tmp_path / "site" / "hugo.yaml").write_text(
+        "baseURL: https://example.com/tab-foundry/\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "README.md").write_text("# tab-foundry\n\nOverview.\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        sync_hugo_content,
+        "PAGE_SPECS",
+        (
+            sync_hugo_content.PageSpec(
+                "README.md",
+                "getting-started/repo-overview",
+                10,
+                aliases=("/docs/repo-overview/",),
+                link_title="Repo Overview",
+            ),
+        ),
+    )
+
+    changed = sync_hugo_content.sync_hugo_content(tmp_path)
+
+    rendered = (
+        tmp_path
+        / "site"
+        / ".generated"
+        / "content"
+        / "docs"
+        / "getting-started"
+        / "repo-overview.md"
+    )
+    assert rendered in changed
+    text = rendered.read_text(encoding="utf-8")
+    assert 'aliases:\n  - "/docs/repo-overview/"' in text
+    assert 'linkTitle: "Repo Overview"' in text
+    assert "# tab-foundry" not in text.split("---\n\n", 1)[-1]
 
 
 def test_sync_hugo_content_writes_front_matter_and_rewrites_links(
@@ -100,6 +168,22 @@ def test_sync_hugo_content_writes_front_matter_and_rewrites_links(
     assert "[unsynced](https://github.com/bensonlee5/tab-foundry/blob/main/docs/other.md)" in text
     assert "# Source" not in text.split("---\n\n", 1)[-1]
     assert 'aliases:\n  - "/docs/source.html"' in text
+
+
+def test_rewrite_katex_math_normalizes_markdown_escaped_tex() -> None:
+    content = (
+        "Inline $X\\_{\\\\mathrm{tr}}$.\n\n"
+        "$$ J(\\phi) = \\mathbb{E}_{F \\sim \\\\mathcal{F}_{\\\\mathrm{val}}} "
+        "\\left\\[ \\operatorname{Perf}(F; \\theta^{\\*}(\\phi)) \\right\\] $$\n"
+    )
+
+    rendered = sync_hugo_content._rewrite_katex_math(content)
+
+    assert 'data-katex-source="X_{\\mathrm{tr}}"' in rendered
+    assert 'data-katex-source="J(\\phi) = \\mathbb{E}_{F \\sim \\mathcal{F}_{\\mathrm{val}}} \\left[ \\operatorname{Perf}(F; \\theta^{*}(\\phi)) \\right]"' in rendered
+    assert "\\left\\[" not in rendered
+    assert "\\theta^{\\*}" not in rendered
+    assert "\\\\mathcal" not in rendered
 
 
 def test_sync_hugo_content_check_mode_reports_stale_output(

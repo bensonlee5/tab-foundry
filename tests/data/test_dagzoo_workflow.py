@@ -41,6 +41,7 @@ def _write_handoff_manifest(
     include_generated_dir: bool = True,
     include_generated_corpus_id: bool = True,
     run_root: str = ".",
+    curated_dir_rel: str | None = None,
     generate_run_id: str = _TEST_GENERATE_RUN_ID,
     generated_corpus_id: str = _TEST_GENERATED_CORPUS_ID,
 ) -> Path:
@@ -51,22 +52,25 @@ def _write_handoff_manifest(
     }
     if include_generated_corpus_id:
         identity["generated_corpus_id"] = generated_corpus_id
-    artifacts_relative: dict[str, Any] = {
-        "run_root": run_root,
-    }
+    artifacts_relative: dict[str, Any] = {}
+    if int(schema_version) == 1:
+        artifacts_relative["run_root"] = run_root
     if include_generated_dir:
         artifacts_relative["generated_dir"] = generated_dir_rel
+    if curated_dir_rel is not None:
+        artifacts_relative["curated_dir"] = curated_dir_rel
     payload = {
         "schema_name": schema_name,
         "schema_version": schema_version,
         "identity": identity,
         "artifacts_relative": artifacts_relative,
-        "defaults": {
+    }
+    if int(schema_version) == 1:
+        payload["defaults"] = {
             "recommended_training_corpus": "generated",
             "recommended_training_artifact_key": "generated_dir",
             "curation_policy": "none",
-        },
-    }
+        }
     handoff_manifest_path = handoff_root / "handoff_manifest.json"
     handoff_manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return handoff_manifest_path
@@ -103,6 +107,34 @@ def _write_generated_dataset(
     return cases._write_packed_shard(shard_dir, datasets=[dataset])
 
 
+def _write_filter_outputs(
+    *,
+    filter_root: Path,
+    curated_dir: Path,
+) -> None:
+    filter_root.mkdir(parents=True, exist_ok=True)
+    curated_dir.mkdir(parents=True, exist_ok=True)
+    _ = _write_generated_dataset(curated_dir / "shard_00000", dataset_id="4" * 32, seed=11)
+    (filter_root / "filter_manifest.ndjson").write_text("{}\n", encoding="utf-8")
+    (filter_root / "filter_summary.json").write_text(
+        json.dumps(
+            {
+                "total_datasets": 1,
+                "accepted_datasets": 1,
+                "rejected_datasets": 0,
+                "elapsed_seconds": 0.1,
+                "datasets_per_minute": 600.0,
+                "curated_out_dir": str(curated_dir.resolve()),
+                "curated_accepted_datasets": 1,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path) -> None:
     handoff_manifest_path = _write_handoff_manifest(
         tmp_path / "handoff",
@@ -115,7 +147,9 @@ def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path
     assert info.generate_run_id == _TEST_GENERATE_RUN_ID
     assert info.generated_corpus_id == _TEST_GENERATED_CORPUS_ID
     assert info.generated_dir == (handoff_manifest_path.parent / "nested" / "generated").resolve()
-    assert info.to_summary_dict()["recommended_training_artifact_key"] == "generated_dir"
+    assert info.to_summary_dict()["generated_dir"] == str(
+        (handoff_manifest_path.parent / "nested" / "generated").resolve()
+    )
 
 
 @pytest.mark.parametrize(
@@ -152,20 +186,22 @@ def test_load_dagzoo_handoff_info_rejects_missing_identity_field(tmp_path: Path)
 
 
 @pytest.mark.parametrize(
-    ("include_generated_dir", "run_root", "match"),
+    ("schema_version", "include_generated_dir", "run_root", "match"),
     [
-        (False, ".", "generated_dir"),
-        (True, "not-dot", "run_root"),
+        (DAGZOO_HANDOFF_SCHEMA_VERSION, False, ".", "generated_dir"),
+        (1, True, "not-dot", "run_root"),
     ],
 )
 def test_load_dagzoo_handoff_info_rejects_invalid_generated_dir_metadata(
     tmp_path: Path,
+    schema_version: int,
     include_generated_dir: bool,
     run_root: str,
     match: str,
 ) -> None:
     handoff_manifest_path = _write_handoff_manifest(
         tmp_path / "handoff",
+        schema_version=schema_version,
         include_generated_dir=include_generated_dir,
         run_root=run_root,
     )
@@ -216,7 +252,7 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
             device="cpu",
             diagnostics=True,
             diagnostics_out_dir=tmp_path / "diag",
-            filter_policy="accepted_only",
+            filter_policy="include_all",
         )
     )
 
@@ -255,6 +291,50 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
     assert persisted_summary["dagzoo_handoff"]["handoff_manifest_path"] == str(
         handoff_manifest_path.resolve()
     )
+
+
+def test_run_dagzoo_generate_manifest_runs_filter_for_accepted_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dagzoo_root = tmp_path / "dagzoo"
+    dagzoo_root.mkdir(parents=True, exist_ok=True)
+    (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
+    (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
+
+    handoff_root = tmp_path / "handoff"
+    generated_dir = handoff_root / "generated"
+    _ = _write_generated_dataset(generated_dir / "shard_00000")
+    _ = _write_handoff_manifest(handoff_root, generated_dir_rel="generated")
+    captured_commands: list[list[str]] = []
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        assert cwd == dagzoo_root
+        assert check is True
+        captured_commands.append(cmd)
+        if cmd[3] == "filter":
+            _write_filter_outputs(
+                filter_root=handoff_root / "filter",
+                curated_dir=handoff_root / "curated",
+            )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr("tab_foundry.data.dagzoo_workflow.subprocess.run", _fake_run)
+
+    result = run_dagzoo_generate_manifest(
+        DagzooGenerateManifestConfig(
+            dagzoo_root=dagzoo_root,
+            dagzoo_config=Path("configs/default.yaml"),
+            handoff_root=handoff_root,
+            out_manifest=tmp_path / "manifest.parquet",
+            filter_policy="accepted_only",
+        )
+    )
+
+    assert [command[3] for command in captured_commands] == ["generate", "filter"]
+    assert result.filter_result is not None
+    assert result.filter_result.curated_out_dir == (handoff_root / "curated").resolve()
+    assert result.summary.total_records == 1
 
 
 def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_root(

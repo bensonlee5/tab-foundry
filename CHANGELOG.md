@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.8] - 2026-04-01
+
+### Changed
+
+- User-facing note: accepted-only corpus materialization now runs bounded
+  top-up rounds against the remaining generation budget, persists filter and
+  curated-output provenance, and surfaces accepted/curated counts plus
+  acceptance rate in adequacy-facing corpus records.
+- User-facing note: the active TF-RD-010 synthetic adequacy pilot now targets
+  the curated latent-target canary/control recipes and reports the curated
+  acceptance contract required for the v3 gate.
+
 ## [0.15.7] - 2026-03-31
 
 ### Changed
@@ -1578,8 +1590,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added repo-managed `pre-commit` hooks for `ruff`, `mypy`, and `mdformat`,
-  plus local and CI documentation for the shared quality workflow.
+- Added repo-managed `pre-commit` hooks for `ruff`, `mypy`, and Markdown docs
+  checks, plus local and CI documentation for the shared quality workflow.
 - Added an Iris-backed smoke harness that generates manifest-compatible packed
   tasks, trains a real checkpoint through the existing pipeline, evaluates that
   checkpoint, and writes `telemetry.json` plus `summary.md` artifacts.

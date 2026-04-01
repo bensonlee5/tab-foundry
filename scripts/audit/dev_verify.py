@@ -40,7 +40,6 @@ DEV_INDEX_PATH = Path(__file__).with_name("dev_index.yaml")
 TOOL_ROOT = tool_roots.resolve_tool_roots(cwd=REPO_ROOT).tool_root
 VENV_PYTHON = TOOL_ROOT / ".venv" / "bin" / "python"
 VENV_RUFF = TOOL_ROOT / ".venv" / "bin" / "ruff"
-VENV_MDFORMAT = TOOL_ROOT / ".venv" / "bin" / "mdformat"
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,26 +100,6 @@ class VerificationPlan:
 
 
 CHECK_SPECS: dict[str, CheckSpec] = {
-    "mdformat": CheckSpec(
-        name="mdformat",
-        description="Check markdown formatting",
-        argv_groups=(
-            (
-                str(VENV_MDFORMAT),
-                "--check",
-                "--exclude",
-                "docs/development/model-architecture.md",
-                "--exclude",
-                "docs/development/synthetic-prior-mission.md",
-                "AGENTS.md",
-                "README.md",
-                "CHANGELOG.md",
-                "program.md",
-                "docs",
-                "reference",
-            ),
-        ),
-    ),
     "audit": CheckSpec(
         name="audit",
         description="Run repo audit scripts",

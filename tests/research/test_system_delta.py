@@ -184,32 +184,38 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert captured == [
-        {
-            "corpus_ref": "local_recipe",
-            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
-            "force": True,
-            "repo_root": str(tmp_path.resolve()),
-            "sweep_id": "tf_rd_local",
-            "sweeps_root": None,
-        },
-        {
-            "corpus_ref": "global_recipe",
-            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
-            "force": True,
-            "repo_root": str(tmp_path.resolve()),
-            "sweep_id": "tf_rd_local",
-            "sweeps_root": None,
-        },
-        {
-            "corpus_ref": "local_recipe/local_recipe__cached",
-            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
-            "force": True,
-            "repo_root": str(tmp_path.resolve()),
-            "sweep_id": "tf_rd_local",
-            "sweeps_root": None,
-        },
-    ]
+    assert sorted(
+        captured,
+        key=lambda payload: str(payload["corpus_ref"]),
+    ) == sorted(
+        [
+            {
+                "corpus_ref": "local_recipe",
+                "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+                "force": True,
+                "repo_root": str(tmp_path.resolve()),
+                "sweep_id": "tf_rd_local",
+                "sweeps_root": None,
+            },
+            {
+                "corpus_ref": "global_recipe",
+                "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+                "force": True,
+                "repo_root": str(tmp_path.resolve()),
+                "sweep_id": "tf_rd_local",
+                "sweeps_root": None,
+            },
+            {
+                "corpus_ref": "local_recipe/local_recipe__cached",
+                "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+                "force": True,
+                "repo_root": str(tmp_path.resolve()),
+                "sweep_id": "tf_rd_local",
+                "sweeps_root": None,
+            },
+        ],
+        key=lambda payload: str(payload["corpus_ref"]),
+    )
     assert payload["sweep_id"] == "tf_rd_local"
     assert payload["requested_corpus_refs"] == [
         "local_recipe",
