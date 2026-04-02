@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-04-02
+
+### Changed
+
+- User-facing note: batched corpus materialization now hands off recipe-worker
+  results through temp files instead of stdout pipes, preventing verbose
+  `dagzoo` runs from stalling shared fanout and preserving per-recipe default
+  worker-thread sizing when `materialize_worker_threads` is left unset.
+
 ## [0.16.1] - 2026-04-01
 
 ### Added
