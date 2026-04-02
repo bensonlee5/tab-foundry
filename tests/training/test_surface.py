@@ -287,6 +287,64 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
     assert record["training"]["loss_surface"] == "cell_bpc"
 
 
+def test_build_training_surface_record_omits_cross_arch_sandwich_build_spec_fields(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_sandwich_build_spec.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 60,
+                "head_hidden_dim": 96,
+                "sandwich_latents": 24,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+                "sandwich_summary_tokens_per_axis": 3,
+                "sandwich_self_attention_per_cross": 4,
+                "sandwich_pre_row_attention_layers": 1,
+                "sandwich_pre_column_attention_layers": 1,
+                "sandwich_pre_column_inducing_tokens": 16,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_sandwich_build_spec",
+    )
+
+    build_spec = record["model"]["build_spec"]
+
+    assert build_spec["arch"] == "tabfoundry_sandwich"
+    assert build_spec["sandwich_summary_tokens_per_axis"] == 3
+    assert build_spec["sandwich_pre_column_inducing_tokens"] == 16
+    assert build_spec["feature_type_conditioning"] == "film"
+    for unsupported_key in (
+        "stage",
+        "stage_label",
+        "module_overrides",
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tfrow_norm",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "tficl_ff_expansion",
+        "use_digit_position_embed",
+        "staged_dropout",
+    ):
+        assert unsupported_key not in build_spec
+
+
 def test_build_training_surface_record_keeps_manifest_path_when_file_is_missing(
     tmp_path: Path,
 ) -> None:
@@ -615,8 +673,34 @@ def test_build_training_surface_record_allows_unresolved_corpus_refs_for_manifes
     assert record["training"]["backend"] == "manifest"
     assert record["data"]["source"] == "manifest"
     assert record["data"]["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["requested_corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["materialization_state"] is None
     assert record["data"]["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
     assert record["data"]["corpus_id"] is None
+
+
+def test_build_training_surface_record_records_requested_corpus_ref_and_materialization_state(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_direct.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_sandwich"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "requested_corpus_ref": "tf_rd_010_dagzoo_medium_control_curated_v5",
+                "materialization_state": "staged",
+            },
+        },
+        run_dir=tmp_path / "run_direct_manifest",
+    )
+
+    assert record["data"]["requested_corpus_ref"] == "tf_rd_010_dagzoo_medium_control_curated_v5"
+    assert record["data"]["materialization_state"] == "staged"
+    assert record["data"]["corpus_ref"] is None
 
 
 def test_build_training_surface_record_infers_legacy_prior_backend_without_data_cfg(

@@ -475,6 +475,14 @@ def _flat_dict_from_payload(payload: _ModelBuildSpecPayload) -> dict[str, Any]:
     return flat
 
 
+def _serialized_dict_from_payload(payload: _ModelBuildSpecPayload) -> dict[str, Any]:
+    serialized = payload._common_flat_dict()
+    serialized.update(payload.params.model_dump(exclude_none=False))
+    serialized["arch"] = payload.arch
+    serialized["task"] = payload.task
+    return serialized
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -514,7 +522,7 @@ class ModelBuildSpec:
         return isinstance(other, ModelBuildSpec) and self._flat == other._flat
 
     def to_dict(self) -> dict[str, Any]:
-        return dict(self._flat)
+        return _serialized_dict_from_payload(self.payload)
 
 
 def model_build_spec_from_mappings(

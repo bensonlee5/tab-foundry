@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-04-01
+
+### Added
+
+- User-facing addition: `tab-foundry research adequacy finalize` now rebuilds the
+  adequacy pilot summary from existing canary corpora and an existing
+  production-control train dir, without rematerializing corpora or retraining.
+
 ## [0.16.0] - 2026-04-01
 
 ### Changed

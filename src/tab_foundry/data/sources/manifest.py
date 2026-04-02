@@ -33,6 +33,8 @@ def build_manifest_task_dataset(
         manifest_path=Path(str(data_surface.manifest_path)),
         split=split,
         task=task,
+        shuffle_records=(str(split).strip().lower() == "train"),
+        shuffle_seed=int(seed),
         impute_missing=bool(preprocessing_surface.impute_missing),
         all_nan_fill=float(preprocessing_surface.all_nan_fill),
         label_mapping=str(preprocessing_surface.label_mapping),

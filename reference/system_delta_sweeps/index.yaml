@@ -293,15 +293,15 @@ sweeps:
     external_benchmarks: []
   tf_rd_010_classification_evolution_medium_v4:
     parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
-    status: blocked_on_synthetic_adequacy
+    status: ready
     anchor_run_id: null
     complexity_level: classification_md
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
   tf_rd_010_classification_evolution_large_v2:
-    parent_sweep_id: tf_rd_010_classification_evolution_medium_v2
-    status: blocked_on_synthetic_adequacy
+    parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+    status: blocked_on_anchor_selection
     anchor_run_id: null
     complexity_level: classification_lg
     benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet

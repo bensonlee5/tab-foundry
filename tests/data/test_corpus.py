@@ -28,6 +28,7 @@ from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.data.corpus_materialization import (
     default_materialize_processes,
     default_materialize_worker_threads,
+    finalize_staged_corpus_recipe,
     materialize_corpus_ref,
     materialize_corpus_recipe,
 )
@@ -1129,6 +1130,65 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     invocation = dagzoo_provenance["invocations"][0]
     assert "filter.n_jobs" not in invocation["rounds"][0]["filter_command"]
     assert Path(str(record["manifest"]["manifest_path"])).exists()
+
+
+def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verification(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=1)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
+
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
+    stage_root.mkdir(parents=True, exist_ok=True)
+    corpus_materialization_module.materialize_recipe_invocation(
+        recipe_id="accepted_only_recipe",
+        invocation_id="default",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        corpus_root=stage_root,
+        repo_root=repo_tmp_path,
+    )
+
+    result = finalize_staged_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        verify="fast",
+        repo_root=repo_tmp_path,
+    )
+
+    record = result["record"]
+    verification = result["verification"]
+    assert verification["mode"] == "fast"
+    assert verification["verified_invocations"] == 1
+    assert verification["accepted_only"]["target_accepted_datasets"] == 1
+    assert verification["accepted_only"]["curated_accepted_datasets"] == 1
+    manifest_path = Path(str(record["manifest"]["manifest_path"]))
+    assert manifest_path.exists()
+    assert stage_root.exists()
+    final_root = Path(str(record["artifacts"]["corpus_root"]))
+    latest_pointer_path = Path(str(record["artifacts"]["latest_pointer_path"]))
+    assert final_root.exists()
+    assert latest_pointer_path.exists()
+    assert ".staging" not in str(final_root)
+
+    manifest_row = pq.read_table(manifest_path).to_pylist()[0]
+    for path_key in ("metadata_path", "catalog_path", "train_path", "test_path"):
+        raw_path = manifest_row.get(path_key)
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            continue
+        resolved_path = Path(raw_path)
+        if not resolved_path.is_absolute():
+            resolved_path = (manifest_path.parent / resolved_path).resolve()
+        else:
+            resolved_path = resolved_path.resolve()
+        assert str(resolved_path).startswith(str(final_root.resolve()))
+        assert ".staging" not in str(resolved_path)
+
+    loaded = load_corpus_record("accepted_only_recipe", repo_root=repo_tmp_path)
+    assert loaded["corpus_ref"] == record["corpus_ref"]
 
 
 def test_materialize_corpus_recipe_tops_up_accepted_only_until_target(

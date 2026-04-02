@@ -7,15 +7,26 @@ import json
 import math
 from pathlib import Path
 import shutil
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Sequence, cast
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from omegaconf import OmegaConf
 from sklearn.linear_model import LogisticRegression
 
 from tab_foundry.config import compose_config
-from tab_foundry.data.corpus_materialization import materialize_corpus_refs_batch
+import tab_foundry.data.corpus_materialization as corpus_materialization_module
+from tab_foundry.data.corpus_loading import build_dagzoo_provenance_summary
+from tab_foundry.data.corpus_lookup import (
+    hydrate_corpus_record_manifest_characteristics,
+    load_corpus_record,
+)
+from tab_foundry.data.corpus_materialization import (
+    build_staged_corpus_manifest,
+    materialize_corpus_refs_batch,
+)
 from tab_foundry.data.dataset import (
     PackedParquetTaskDataset,
     load_manifest_record_catalog,
@@ -42,6 +53,7 @@ _SUMMARY_JSON_NAME = "summary.json"
 _SUMMARY_MARKDOWN_NAME = "summary.md"
 _MAX_REPORTED_TASK_ERRORS = 12
 _ABSOLUTE_CANARY_IMPROVEMENT_THRESHOLD = 0.05
+_CONTRACT_CHECK_MODES = frozenset({"fast", "full"})
 
 _MEDIUM_V4_TRAINING_SURFACE = {
     "experiment": _TRAINING_EXPERIMENT,
@@ -124,12 +136,66 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
+def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        str(key): value
+        for key, value in payload.items()
+        if value is not None
+    }
+
+
+def _recipe_id_from_corpus_ref(corpus_ref: str) -> str:
+    recipe_id, _separator, _corpus_id = str(corpus_ref).partition("/")
+    resolved_recipe_id = recipe_id.strip()
+    if not resolved_recipe_id:
+        raise RuntimeError(f"corpus_ref must include a recipe id, got {corpus_ref!r}")
+    return resolved_recipe_id
+
+
+def _normalize_contract_check_mode(mode: str) -> str:
+    normalized = str(mode).strip().lower()
+    if normalized not in _CONTRACT_CHECK_MODES:
+        expected = ", ".join(sorted(_CONTRACT_CHECK_MODES))
+        raise ValueError(f"contract_check must be one of {expected}, got {mode!r}")
+    return normalized
+
+
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(_json_safe(payload), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _read_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
+    resolved_path = path.expanduser().resolve()
+    if not resolved_path.exists():
+        raise RuntimeError(f"{context} is missing: {resolved_path}")
+    try:
+        payload = json.loads(resolved_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{context} is not valid JSON: {resolved_path}: {exc}") from exc
+    return _ensure_mapping(payload, context=context)
+
+
+def _read_last_jsonl_mapping(path: Path, *, context: str) -> dict[str, Any]:
+    resolved_path = path.expanduser().resolve()
+    if not resolved_path.exists():
+        raise RuntimeError(f"{context} is missing: {resolved_path}")
+    last_line: str | None = None
+    with resolved_path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            stripped = raw_line.strip()
+            if stripped:
+                last_line = stripped
+    if last_line is None:
+        raise RuntimeError(f"{context} has no JSON records: {resolved_path}")
+    try:
+        payload = json.loads(last_line)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{context} contains invalid JSON: {resolved_path}: {exc}") from exc
+    return _ensure_mapping(payload, context=context)
 
 
 def default_pilot_output_root(
@@ -180,6 +246,153 @@ def _classification_manifest_records(manifest_path: Path) -> list[dict[str, Any]
             continue
         records.append(record)
     return records
+
+
+def _normalized_value_count_payload(values: pa.Array | pa.ChunkedArray) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for entry in pc.value_counts(values).to_pylist():
+        normalized = "missing"
+        value = entry.get("values")
+        if value is not None:
+            normalized_value = str(value).strip()
+            normalized = normalized_value or "missing"
+        counts[normalized] += int(entry.get("counts", 0))
+    return {key: int(counts[key]) for key in sorted(counts)}
+
+
+def _positive_int_value_count_payload(values: pa.Array | pa.ChunkedArray) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entry in pc.value_counts(values).to_pylist():
+        raw_value = entry.get("values")
+        raw_count = entry.get("counts", 0)
+        if raw_value is None or raw_count is None:
+            continue
+        try:
+            normalized_value = int(raw_value)
+            normalized_count = int(raw_count)
+        except (TypeError, ValueError):
+            continue
+        if normalized_value <= 0 or normalized_count <= 0:
+            continue
+        counts[str(normalized_value)] = normalized_count
+    return {key: counts[key] for key in sorted(counts, key=int)}
+
+
+def _manifest_contract_stats_from_records(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    row_total_counts = Counter(_row_total_from_record(record) for record in records)
+    split_counts = Counter(str(record.get("split", "")).strip() or "missing" for record in records)
+    return {
+        "source": "full_manifest_records",
+        "classification_task_count": len(records),
+        "row_total_counts": {
+            str(row_total): int(count)
+            for row_total, count in sorted(row_total_counts.items())
+            if int(row_total) > 0 and int(count) > 0
+        },
+        "split_counts": {
+            split: int(count)
+            for split, count in sorted(split_counts.items())
+            if int(count) > 0
+        },
+    }
+
+
+def _manifest_contract_stats_from_characteristics(
+    corpus_record: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    manifest = _optional_mapping(corpus_record.get("manifest"))
+    if manifest is None:
+        return None
+    characteristics = _optional_mapping(manifest.get("characteristics"))
+    if characteristics is None:
+        return None
+    classification_task_count = _int_or_none(characteristics.get("classification_task_count"))
+    raw_row_total_counts = _optional_mapping(characteristics.get("row_total_counts"))
+    raw_split_counts = _optional_mapping(characteristics.get("classification_split_counts"))
+    if (
+        classification_task_count is None
+        or raw_row_total_counts is None
+        or raw_split_counts is None
+    ):
+        return None
+    row_total_counts: dict[str, int] = {}
+    for row_total, count in raw_row_total_counts.items():
+        parsed_count = _int_or_none(count)
+        if parsed_count is None or parsed_count <= 0:
+            continue
+        row_total_counts[str(row_total)] = parsed_count
+    split_counts: dict[str, int] = {}
+    for split, count in raw_split_counts.items():
+        parsed_count = _int_or_none(count)
+        if parsed_count is None or parsed_count <= 0:
+            continue
+        normalized_split = str(split).strip() or "missing"
+        split_counts[normalized_split] = split_counts.get(normalized_split, 0) + parsed_count
+    return {
+        "source": "manifest_characteristics",
+        "classification_task_count": int(classification_task_count),
+        "row_total_counts": {
+            key: row_total_counts[key]
+            for key in sorted(row_total_counts, key=int)
+        },
+        "split_counts": {
+            key: split_counts[key]
+            for key in sorted(split_counts)
+        },
+    }
+
+
+def _scan_manifest_contract_stats_fast(manifest_path: Path) -> dict[str, Any]:
+    projected = pq.read_table(
+        manifest_path,
+        columns=["task", "split", "n_train", "n_test"],
+    )
+    if "task" not in projected.column_names:
+        return {
+            "source": "arrow_projected_scan",
+            "classification_task_count": 0,
+            "row_total_counts": {},
+            "split_counts": {},
+        }
+    classification_mask = pc.fill_null(
+        pc.equal(projected["task"], pa.scalar("classification")),
+        False,
+    )
+    filtered = projected.filter(classification_mask)
+    classification_task_count = int(filtered.num_rows)
+    split_counts = (
+        {}
+        if "split" not in filtered.column_names
+        else _normalized_value_count_payload(filtered["split"])
+    )
+    row_total_counts: dict[str, int] = {}
+    if {"n_train", "n_test"}.issubset(set(filtered.column_names)):
+        n_train = pc.cast(filtered["n_train"], pa.int64(), safe=False)
+        n_test = pc.cast(filtered["n_test"], pa.int64(), safe=False)
+        valid_mask = pc.fill_null(pc.and_(pc.is_valid(n_train), pc.is_valid(n_test)), False)
+        total_rows = pc.add(pc.filter(n_train, valid_mask), pc.filter(n_test, valid_mask))
+        positive_rows = pc.filter(
+            total_rows,
+            pc.fill_null(pc.greater(total_rows, pa.scalar(0, type=pa.int64())), False),
+        )
+        row_total_counts = _positive_int_value_count_payload(positive_rows)
+    return {
+        "source": "arrow_projected_scan",
+        "classification_task_count": classification_task_count,
+        "row_total_counts": row_total_counts,
+        "split_counts": split_counts,
+    }
+
+
+def _load_manifest_contract_stats(
+    *,
+    manifest_path: Path,
+    corpus_record: Mapping[str, Any],
+) -> dict[str, Any]:
+    characteristics_stats = _manifest_contract_stats_from_characteristics(corpus_record)
+    if characteristics_stats is not None:
+        return characteristics_stats
+    return _scan_manifest_contract_stats_fast(manifest_path)
 
 
 def validate_latent_target_metadata(
@@ -340,50 +553,91 @@ def inspect_corpus_latent_target_contract(
     *,
     block: SyntheticAdequacyBlock,
     corpus_record: Mapping[str, Any],
+    mode: str = "full",
 ) -> dict[str, Any]:
-    manifest_path = _manifest_path_from_corpus_record(corpus_record)
-    records = _classification_manifest_records(manifest_path)
-    row_total_counts = Counter(_row_total_from_record(record) for record in records)
-    split_counts = Counter(str(record.get("split", "")).strip() for record in records)
+    resolved_mode = _normalize_contract_check_mode(mode)
+    hydrated_corpus_record = _ensure_mapping(corpus_record, context="corpus_record")
+    if resolved_mode == "fast" and block.block_id != _CANARY_BLOCK_ID:
+        try:
+            hydrated_corpus_record = hydrate_corpus_record_manifest_characteristics(
+                hydrated_corpus_record
+            )
+        except Exception:
+            hydrated_corpus_record = _ensure_mapping(corpus_record, context="corpus_record")
+    manifest_path = _manifest_path_from_corpus_record(hydrated_corpus_record)
+    records: list[dict[str, Any]] | None = None
+    if resolved_mode == "full" or block.block_id == _CANARY_BLOCK_ID:
+        records = _classification_manifest_records(manifest_path)
+        contract_stats = _manifest_contract_stats_from_records(records)
+    else:
+        contract_stats = _load_manifest_contract_stats(
+            manifest_path=manifest_path,
+            corpus_record=hydrated_corpus_record,
+        )
+    row_total_counts = {
+        str(key): int(value)
+        for key, value in cast(Mapping[str, Any], contract_stats["row_total_counts"]).items()
+    }
+    split_counts = {
+        str(key): int(value)
+        for key, value in cast(Mapping[str, Any], contract_stats["split_counts"]).items()
+    }
+    catalog_validation_mode = (
+        "sampled_records"
+        if resolved_mode == "full" or block.block_id == _CANARY_BLOCK_ID
+        else "skipped"
+    )
 
     sample_records: list[dict[str, Any]] = []
     missing_reasons: list[str] = []
-    for row_total in block.n_ladder:
-        sample_record = next(
-            (record for record in records if _row_total_from_record(record) == int(row_total)),
-            None,
-        )
-        if sample_record is None:
+    if catalog_validation_mode == "sampled_records":
+        if records is None:
+            records = _classification_manifest_records(manifest_path)
+        for row_total in block.n_ladder:
+            sample_record = next(
+                (record for record in records if _row_total_from_record(record) == int(row_total)),
+                None,
+            )
+            if sample_record is None:
+                missing_reasons.append(
+                    f"manifest is missing a classification record for row_total={int(row_total)}"
+                )
+                continue
+            catalog_record = load_manifest_record_catalog(
+                manifest_path,
+                record=sample_record,
+            )
+            validation = validate_latent_target_metadata(
+                catalog_record,
+                n_features=int(sample_record["n_features"]),
+            )
+            sample_entry = {
+                "row_total": int(row_total),
+                "dataset_id": str(sample_record.get("dataset_id", "unknown")),
+                "split": str(sample_record.get("split", "unknown")),
+                "dataset_index": int(sample_record["dataset_index"]),
+                "n_train": int(sample_record["n_train"]),
+                "n_test": int(sample_record["n_test"]),
+                "n_features": int(sample_record["n_features"]),
+                "n_classes": int(sample_record["n_classes"]),
+                **validation,
+            }
+            sample_records.append(sample_entry)
+            if not bool(validation["present"]):
+                for reason in cast(list[str], validation["missing_reasons"]):
+                    missing_reasons.append(f"row_total={int(row_total)}: {reason}")
+    else:
+        for row_total in block.n_ladder:
+            if int(row_total_counts.get(str(int(row_total)), 0)) > 0:
+                continue
             missing_reasons.append(
                 f"manifest is missing a classification record for row_total={int(row_total)}"
             )
-            continue
-        catalog_record = load_manifest_record_catalog(
-            manifest_path,
-            record=sample_record,
-        )
-        validation = validate_latent_target_metadata(
-            catalog_record,
-            n_features=int(sample_record["n_features"]),
-        )
-        sample_entry = {
-            "row_total": int(row_total),
-            "dataset_id": str(sample_record.get("dataset_id", "unknown")),
-            "split": str(sample_record.get("split", "unknown")),
-            "dataset_index": int(sample_record["dataset_index"]),
-            "n_train": int(sample_record["n_train"]),
-            "n_test": int(sample_record["n_test"]),
-            "n_features": int(sample_record["n_features"]),
-            "n_classes": int(sample_record["n_classes"]),
-            **validation,
-        }
-        sample_records.append(sample_entry)
-        if not bool(validation["present"]):
-            for reason in cast(list[str], validation["missing_reasons"]):
-                missing_reasons.append(f"row_total={int(row_total)}: {reason}")
 
-    provenance_summary = _optional_mapping(corpus_record.get("dagzoo_provenance_summary")) or {}
-    dagzoo_provenance = _optional_mapping(corpus_record.get("dagzoo_provenance")) or {}
+    provenance_summary = (
+        _optional_mapping(hydrated_corpus_record.get("dagzoo_provenance_summary")) or {}
+    )
+    dagzoo_provenance = _optional_mapping(hydrated_corpus_record.get("dagzoo_provenance")) or {}
     if provenance_summary.get("target_derivation") != _LATENT_TARGET_DERIVATION:
         missing_reasons.append(
             f"corpus_record.dagzoo_provenance_summary.target_derivation must equal {_LATENT_TARGET_DERIVATION!r}"
@@ -460,6 +714,9 @@ def inspect_corpus_latent_target_contract(
     return {
         "required": True,
         "present": not missing_reasons,
+        "contract_check_mode": resolved_mode,
+        "stats_source": str(contract_stats["source"]),
+        "catalog_validation_mode": catalog_validation_mode,
         "provenance": {
             "target_derivation": provenance_summary.get("target_derivation"),
             "target_relevant_feature_count_range": provenance_summary.get(
@@ -478,15 +735,9 @@ def inspect_corpus_latent_target_contract(
             "acceptance_rate": _finite_float_or_none(provenance_summary.get("acceptance_rate")),
         },
         "manifest_path": str(manifest_path),
-        "classification_task_count": len(records),
-        "row_total_counts": {
-            str(row_total): int(count)
-            for row_total, count in sorted(row_total_counts.items())
-        },
-        "split_counts": {
-            split: int(count)
-            for split, count in sorted(split_counts.items())
-        },
+        "classification_task_count": int(contract_stats["classification_task_count"]),
+        "row_total_counts": row_total_counts,
+        "split_counts": split_counts,
         "sample_records": sample_records,
         "missing_reasons": missing_reasons,
     }
@@ -519,6 +770,7 @@ def score_canary_block(
             manifest_path,
             split=split,
             task="classification",
+            load_metadata=False,
         )
         for index in range(len(dataset)):
             batch = dataset[index]
@@ -579,14 +831,210 @@ def score_canary_block(
     }
 
 
+def _staged_invocation_summary_payload(
+    *,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    spec: Any,
+) -> dict[str, Any]:
+    materialization_summary_path = corpus_materialization_module._invocation_materialization_summary_path(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    if not materialization_summary_path.exists():
+        return corpus_materialization_module._invocation_record_payload(
+            dagzoo_root=dagzoo_root,
+            corpus_root=corpus_root,
+            spec=spec,
+        )
+    summary_payload = _read_json_mapping(
+        materialization_summary_path,
+        context=f"materialization summary for invocation {spec.invocation_id!r}",
+    )
+    filter_root = corpus_materialization_module._invocation_filter_root(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    curated_root = corpus_materialization_module._invocation_curated_root(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    payload: dict[str, Any] = {
+        "invocation_id": str(spec.invocation_id),
+        "num_datasets": int(spec.num_datasets),
+        "filter": _drop_none_values(
+            {
+                "filter_policy": str(summary_payload.get("filter_policy", "accepted_only")).strip(),
+                "target_accepted_datasets": int(
+                    summary_payload.get("target_accepted_datasets", spec.num_datasets)
+                ),
+                "accepted_datasets": int(summary_payload.get("accepted_datasets", 0)),
+                "rejected_datasets": int(summary_payload.get("rejected_datasets", 0)),
+                "curated_accepted_datasets": int(
+                    summary_payload.get("curated_accepted_datasets", 0)
+                ),
+                "acceptance_rate": summary_payload.get("acceptance_rate"),
+                "filter_manifest_path": str((filter_root / "filter_manifest.ndjson").resolve()),
+                "filter_summary_path": str((filter_root / "filter_summary.json").resolve()),
+                "curated_dir": str(curated_root.resolve()),
+            }
+        ),
+    }
+    handoff_provenance = summary_payload.get("handoff_provenance")
+    if isinstance(handoff_provenance, Mapping):
+        payload["handoff_provenance"] = _drop_none_values(
+            {str(key): value for key, value in handoff_provenance.items()}
+        )
+    return payload
+
+
+def _staged_direct_manifest_record(
+    *,
+    requested_corpus_ref: str,
+    pilot_root: Path,
+    dagzoo_root: Path,
+    force: bool,
+    repo_root: Path | None,
+) -> dict[str, Any]:
+    recipe_id = _recipe_id_from_corpus_ref(requested_corpus_ref)
+    candidate_manifest_paths = [
+        (pilot_root.parent / "direct_training" / "manifest.parquet").resolve(),
+        (pilot_root / "direct_training" / "manifest.parquet").resolve(),
+    ]
+    direct_manifest_path = next(
+        (path for path in candidate_manifest_paths if path.exists()),
+        candidate_manifest_paths[0],
+    )
+    if force or not direct_manifest_path.exists():
+        _ = build_staged_corpus_manifest(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            out_manifest_path=direct_manifest_path,
+            repo_root=repo_root,
+        )
+
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    pending = corpus_materialization_module._pending_recipe_materialization_from_existing_stage(
+        recipe_id=recipe_id,
+        dagzoo_root=dagzoo_root,
+        repo_root=resolved_repo_root,
+        stage_root=None,
+        sweep_id=None,
+        sweeps_root=None,
+    )
+    invocation_payloads = [
+        _staged_invocation_summary_payload(
+            dagzoo_root=dagzoo_root,
+            corpus_root=pending.stage_root,
+            spec=spec,
+        )
+        for spec in pending.recipe.invocations
+    ]
+    dagzoo_provenance_summary = build_dagzoo_provenance_summary(
+        recipe=pending.recipe,
+        corpus_ref=requested_corpus_ref,
+        corpus_id="staged",
+        provenance={"invocations": invocation_payloads},
+        surface_label=pending.recipe.surface_label,
+    )
+    return {
+        "schema": "tab-foundry-staged-corpus-preview-v1",
+        "recipe_id": pending.recipe.recipe_id,
+        "corpus_id": None,
+        "corpus_ref": None,
+        "surface_label": pending.recipe.surface_label,
+        "corpus_record_path": None,
+        "manifest": {
+            "manifest_path": str(direct_manifest_path),
+        },
+        "dagzoo_provenance": {
+            "invocations": invocation_payloads,
+        },
+        "dagzoo_provenance_summary": dagzoo_provenance_summary,
+    }
+
+
+def _resolve_production_control_corpus(
+    *,
+    requested_corpus_ref: str,
+    pilot_root: Path,
+    dagzoo_root: Path,
+    force: bool,
+    repo_root: Path | None,
+) -> dict[str, Any]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    try:
+        corpus_record = load_corpus_record(
+            requested_corpus_ref,
+            repo_root=resolved_repo_root,
+        )
+    except RuntimeError:
+        corpus_record = None
+    else:
+        return {
+            "corpus_record": corpus_record,
+            "materialization_state": "finalized",
+        }
+
+    try:
+        staged_record = _staged_direct_manifest_record(
+            requested_corpus_ref=requested_corpus_ref,
+            pilot_root=pilot_root,
+            dagzoo_root=dagzoo_root,
+            force=force,
+            repo_root=resolved_repo_root,
+        )
+    except Exception as staged_exc:
+        raise RuntimeError(
+            "failed to resolve the production-control corpus from a finalized record "
+            "or staged direct-manifest fallback: "
+            f"{type(staged_exc).__name__}: {staged_exc}"
+        ) from staged_exc
+    return {
+        "corpus_record": staged_record,
+        "materialization_state": "staged",
+    }
+
+
 def build_production_control_config(
     *,
-    corpus_ref: str,
+    requested_corpus_ref: str,
+    corpus_ref: str | None,
+    manifest_path: Path | None,
+    materialization_state: str,
     run_dir: Path,
     device: str,
 ) -> Any:
     cfg = compose_config([f"experiment={_TRAINING_EXPERIMENT}"])
-    OmegaConf.update(cfg, "data.corpus_ref", str(corpus_ref), merge=False, force_add=True)
+    OmegaConf.update(cfg, "data.source", "manifest", merge=False, force_add=True)
+    OmegaConf.update(
+        cfg,
+        "data.requested_corpus_ref",
+        str(requested_corpus_ref),
+        merge=False,
+        force_add=True,
+    )
+    OmegaConf.update(
+        cfg,
+        "data.materialization_state",
+        str(materialization_state),
+        merge=False,
+        force_add=True,
+    )
+    if corpus_ref is None:
+        OmegaConf.update(cfg, "data.corpus_ref", None, merge=False, force_add=True)
+    else:
+        OmegaConf.update(cfg, "data.corpus_ref", str(corpus_ref), merge=False, force_add=True)
+    if manifest_path is None:
+        OmegaConf.update(cfg, "data.manifest_path", None, merge=False, force_add=True)
+    else:
+        OmegaConf.update(
+            cfg,
+            "data.manifest_path",
+            str(manifest_path.expanduser().resolve()),
+            merge=False,
+            force_add=True,
+        )
     cfg.runtime.device = str(device)
     cfg.runtime.mixed_precision = "no"
     cfg.runtime.num_workers = 0
@@ -643,9 +1091,121 @@ def _run_inspect_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _summarize_existing_production_control_pilot(
+    *,
+    requested_corpus_ref: str,
+    pilot_root: Path,
+) -> dict[str, Any]:
+    run_root = pilot_root / _PRODUCTION_BLOCK_ID
+    run_dir = (run_root / "train").expanduser().resolve()
+    telemetry_payload = _read_json_mapping(
+        run_dir / "telemetry.json",
+        context="production control telemetry",
+    )
+    training_surface_payload = _read_json_mapping(
+        run_dir / "training_surface_record.json",
+        context="production control training surface record",
+    )
+    last_history = _read_last_jsonl_mapping(
+        run_dir / "train_history.jsonl",
+        context="production control train history",
+    )
+    inspect_payload = run_inspect(run_dir)
+
+    training_surface_data = _ensure_mapping(
+        training_surface_payload.get("data"),
+        context="production control training surface record data",
+    )
+    training_surface_runtime = _ensure_mapping(
+        training_surface_payload.get("runtime"),
+        context="production control training surface record runtime",
+    )
+    training_surface_training = _ensure_mapping(
+        training_surface_payload.get("training"),
+        context="production control training surface record training",
+    )
+    telemetry_artifacts = _optional_mapping(telemetry_payload.get("artifacts")) or {}
+    telemetry_wandb = _optional_mapping(telemetry_payload.get("wandb")) or {}
+    manifest_payload = _optional_mapping(training_surface_data.get("manifest")) or {}
+    raw_manifest_path = manifest_payload.get("manifest_path")
+    manifest_path = (
+        None
+        if not isinstance(raw_manifest_path, str) or not raw_manifest_path.strip()
+        else Path(raw_manifest_path).expanduser().resolve()
+    )
+    raw_corpus_ref = training_surface_data.get("corpus_ref")
+    corpus_ref = (
+        None
+        if not isinstance(raw_corpus_ref, str) or not raw_corpus_ref.strip()
+        else str(raw_corpus_ref)
+    )
+    materialization_state = "staged" if corpus_ref is None else "finalized"
+    schedule_stages = cast(
+        list[dict[str, Any]],
+        _json_safe(cast(list[Any], training_surface_training.get("schedule_stages", []))),
+    )
+
+    return {
+        "block_id": _PRODUCTION_BLOCK_ID,
+        "status": "completed",
+        "run_dir": str(run_dir),
+        "config_excerpt": {
+            "experiment": _TRAINING_EXPERIMENT,
+            "requested_corpus_ref": requested_corpus_ref,
+            "corpus_ref": corpus_ref,
+            "manifest_path": (None if manifest_path is None else str(manifest_path)),
+            "materialization_state": materialization_state,
+            "task_batch_size": int(training_surface_training["task_batch_size"]),
+            "runtime": {
+                "device": _SUPPORTED_DEVICE,
+                "mixed_precision": str(training_surface_runtime["mixed_precision"]),
+                "num_workers": int(training_surface_runtime["num_workers"]),
+                "grad_accum_steps": int(training_surface_runtime["grad_accum_steps"]),
+                "grad_clip": float(training_surface_runtime["grad_clip"]),
+                "max_steps": int(training_surface_runtime["max_steps"]),
+                "eval_every": int(training_surface_runtime["eval_every"]),
+                "checkpoint_every": int(training_surface_runtime["checkpoint_every"]),
+                "val_batches": int(training_surface_runtime["val_batches"]),
+                "seed": int(training_surface_runtime["seed"]),
+            },
+            "optimizer": {
+                "name": str(training_surface_training["optimizer_name"]),
+                "min_lr": float(training_surface_training["optimizer_min_lr"]),
+            },
+            "schedule_stages": schedule_stages,
+            "logging": {
+                "run_name": str(
+                    telemetry_wandb.get(
+                        "run_name",
+                        f"{_SUPPORTED_ADEQUACY_ID}-production-control-v4",
+                    )
+                ),
+                "use_wandb": bool(telemetry_wandb),
+                "history_jsonl_path": str((run_dir / "train_history.jsonl").resolve()),
+            },
+            "output_dir": str(run_dir),
+        },
+        "metrics": {
+            "best_val_loss": None,
+            "best_val_step": None,
+            "final_val_loss": None,
+            "train_elapsed_seconds": _finite_float_or_none(last_history.get("train_elapsed_seconds")),
+            "wall_elapsed_seconds": _finite_float_or_none(last_history.get("elapsed_seconds")),
+        },
+        "checkpoints": {
+            "best_checkpoint": telemetry_artifacts.get("best_checkpoint"),
+            "latest_checkpoint": telemetry_artifacts.get("latest_checkpoint"),
+        },
+        "run_inspect": _run_inspect_excerpt(inspect_payload),
+    }
+
+
 def run_production_control_pilot(
     *,
-    corpus_ref: str,
+    requested_corpus_ref: str,
+    corpus_ref: str | None,
+    manifest_path: Path | None,
+    materialization_state: str,
     pilot_root: Path,
     device: str,
     force: bool,
@@ -657,13 +1217,19 @@ def run_production_control_pilot(
     run_root.mkdir(parents=True, exist_ok=True)
 
     cfg = build_production_control_config(
+        requested_corpus_ref=requested_corpus_ref,
         corpus_ref=corpus_ref,
+        manifest_path=manifest_path,
+        materialization_state=materialization_state,
         run_dir=run_dir,
         device=device,
     )
     config_excerpt = {
         "experiment": _TRAINING_EXPERIMENT,
+        "requested_corpus_ref": requested_corpus_ref,
         "corpus_ref": corpus_ref,
+        "manifest_path": (None if manifest_path is None else str(manifest_path.resolve())),
+        "materialization_state": materialization_state,
         "task_batch_size": int(cfg.training.task_batch_size),
         "runtime": {
             "device": str(cfg.runtime.device),
@@ -864,18 +1430,20 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
         summary.get("provisional_interpretation"),
         context="summary.provisional_interpretation",
     )
+    contract_check = _optional_mapping(summary.get("contract_check")) or {}
 
     lines = [
         f"# {summary['adequacy_id']} adequacy pilot",
         "",
         f"- Status: `{summary['status']}`",
+        f"- Contract check: `{contract_check.get('mode', 'fast')}`",
         f"- Provisional interpretation: `{interpretation['bucket']}`",
         f"- Blocked sweeps remain: {', '.join(cast(list[str], summary['blocked_sweeps']))}",
         "",
         "## Corpora",
         "",
-        "| Block | Requested | Materialized | Latent target contract | Curated accepted | Acceptance rate |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Block | Requested | Resolved | State | Latent target contract | Curated accepted | Acceptance rate |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for block_id, payload in materialized_corpora.items():
         corpus_payload = _ensure_mapping(payload, context=f"materialized_corpora.{block_id}")
@@ -890,13 +1458,19 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
                 if curated_accepted is not None
                 else f"`?`/`{target_accepted}`"
             )
+        resolved_corpus = (
+            corpus_payload.get("materialized_corpus_ref")
+            or corpus_payload.get("manifest_path")
+            or "n/a"
+        )
         lines.append(
             "| "
             + " | ".join(
                 [
                     block_id,
                     f"`{corpus_payload['requested_corpus_ref']}`",
-                    f"`{corpus_payload['materialized_corpus_ref']}`",
+                    f"`{resolved_corpus}`",
+                    f"`{corpus_payload.get('materialization_state', 'unknown')}`",
                     "`present`" if contract_payload.get("present") else "`missing`",
                     curated_display,
                     _markdown_float(filter_payload.get("acceptance_rate")),
@@ -975,6 +1549,7 @@ def render_adequacy_pilot_markdown(summary: Mapping[str, Any]) -> str:
 def _write_blocking_summary(
     *,
     adequacy_id: str,
+    contract_check_mode: str,
     blocked_sweeps: tuple[str, ...] | list[str],
     pilot_root: Path,
     materialized_corpora: Mapping[str, Any],
@@ -985,6 +1560,7 @@ def _write_blocking_summary(
 ) -> None:
     summary = {
         "adequacy_id": adequacy_id,
+        "contract_check": {"mode": contract_check_mode},
         "status": "blocked",
         "blocked_sweeps": list(blocked_sweeps),
         "materialized_corpora": _json_safe(materialized_corpora),
@@ -1012,15 +1588,28 @@ def _materialized_corpus_payload(
     *,
     block: SyntheticAdequacyBlock,
     corpus_record: Mapping[str, Any],
+    materialization_state: str,
 ) -> dict[str, Any]:
+    raw_materialized_corpus_ref = corpus_record.get("corpus_ref")
+    raw_corpus_record_path = corpus_record.get("corpus_record_path")
+    raw_corpus_id = corpus_record.get("corpus_id")
     return {
         "requested_corpus_ref": block.corpus_ref,
-        "materialized_corpus_ref": str(corpus_record["corpus_ref"]),
+        "materialized_corpus_ref": (
+            None
+            if not isinstance(raw_materialized_corpus_ref, str) or not raw_materialized_corpus_ref.strip()
+            else str(raw_materialized_corpus_ref)
+        ),
+        "materialization_state": str(materialization_state),
         "recipe_id": str(corpus_record["recipe_id"]),
-        "corpus_id": str(corpus_record["corpus_id"]),
+        "corpus_id": None if raw_corpus_id is None else str(raw_corpus_id),
         "surface_label": str(corpus_record["surface_label"]),
         "manifest_path": str(_manifest_path_from_corpus_record(corpus_record)),
-        "corpus_record_path": str(corpus_record["corpus_record_path"]),
+        "corpus_record_path": (
+            None
+            if not isinstance(raw_corpus_record_path, str) or not raw_corpus_record_path.strip()
+            else str(raw_corpus_record_path)
+        ),
     }
 
 
@@ -1032,10 +1621,12 @@ def run_adequacy_pilot(
     force: bool = False,
     materialize_processes: int | None = None,
     materialize_worker_threads: int | None = None,
+    contract_check: str = "fast",
     out_root: Path | None = None,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
     _ensure_supported_configuration(adequacy_id=adequacy_id, device=device)
+    resolved_contract_check = _normalize_contract_check_mode(contract_check)
     spec = load_synthetic_adequacy_spec(adequacy_id, repo_root=repo_root)
     pilot_root = (
         out_root.expanduser().resolve()
@@ -1049,16 +1640,24 @@ def run_adequacy_pilot(
     canary_summary: dict[str, Any] | None = None
     blocking_summary_written = False
 
+    production_block = next(
+        (block for block in spec.blocks if block.block_id == _PRODUCTION_BLOCK_ID),
+        None,
+    )
+    batched_blocks = [
+        block
+        for block in spec.blocks
+        if production_block is None or block.block_id != _PRODUCTION_BLOCK_ID
+    ]
     blocks_by_recipe_id: dict[str, list[SyntheticAdequacyBlock]] = {}
-    for block in spec.blocks:
-        recipe_id, _separator, _corpus_id = str(block.corpus_ref).partition("/")
-        blocks_by_recipe_id.setdefault(recipe_id, []).append(block)
+    for block in batched_blocks:
+        blocks_by_recipe_id.setdefault(_recipe_id_from_corpus_ref(str(block.corpus_ref)), []).append(block)
 
     summary_md_path = pilot_root / _SUMMARY_MARKDOWN_NAME
     canary_recipe_id = next(
         (
-            str(block.corpus_ref).partition("/")[0]
-            for block in spec.blocks
+            _recipe_id_from_corpus_ref(str(block.corpus_ref))
+            for block in batched_blocks
             if block.block_id == _CANARY_BLOCK_ID
         ),
         None,
@@ -1071,10 +1670,12 @@ def run_adequacy_pilot(
             materialized_corpora[block.block_id] = _materialized_corpus_payload(
                 block=block,
                 corpus_record=corpus_record,
+                materialization_state="finalized",
             )
             latent_target_contract[block.block_id] = inspect_corpus_latent_target_contract(
                 block=block,
                 corpus_record=corpus_record,
+                mode=resolved_contract_check,
             )
             filter_provenance = _optional_mapping(
                 latent_target_contract[block.block_id].get("filter_provenance")
@@ -1091,6 +1692,7 @@ def run_adequacy_pilot(
             if bool(contract_payload.get("required")) and not bool(contract_payload.get("present")):
                 _write_blocking_summary(
                     adequacy_id=adequacy_id,
+                    contract_check_mode=resolved_contract_check,
                     blocked_sweeps=spec.blocked_sweeps,
                     pilot_root=pilot_root,
                     materialized_corpora=materialized_corpora,
@@ -1111,6 +1713,7 @@ def run_adequacy_pilot(
             if canary_failure_reasons:
                 _write_blocking_summary(
                     adequacy_id=adequacy_id,
+                    contract_check_mode=resolved_contract_check,
                     blocked_sweeps=spec.blocked_sweeps,
                     pilot_root=pilot_root,
                     materialized_corpora=materialized_corpora,
@@ -1125,47 +1728,50 @@ def run_adequacy_pilot(
                     f"wrote blocking summary to {summary_md_path.resolve()}"
                 )
 
-    try:
-        _ = materialize_corpus_refs_batch(
-            corpus_refs=[block.corpus_ref for block in spec.blocks],
-            dagzoo_root=dagzoo_root,
-            force=force,
-            materialize_processes=materialize_processes,
-            materialize_worker_threads=materialize_worker_threads,
-            prioritized_recipe_ids=(
-                [] if canary_recipe_id is None else [canary_recipe_id]
-            ),
-            on_corpus_materialized=_on_corpus_materialized,
-            repo_root=repo_root,
-        )
-    except Exception as exc:
-        if blocking_summary_written:
-            raise
-        _write_blocking_summary(
-            adequacy_id=adequacy_id,
-            blocked_sweeps=spec.blocked_sweeps,
-            pilot_root=pilot_root,
-            materialized_corpora=materialized_corpora,
-            latent_target_contract=latent_target_contract,
-            canary_summary=canary_summary,
-            definition=spec.decision_buckets.get("generator_problem"),
-            reasoning=[
-                "corpus materialization or validation failed: "
-                f"{type(exc).__name__}: {exc}"
-            ],
-        )
-        blocking_summary_written = True
-        raise RuntimeError(
-            "adequacy pilot blocked during corpus materialization or validation; "
-            f"wrote blocking summary to {summary_md_path.resolve()}"
-        ) from exc
+    if batched_blocks:
+        try:
+            _ = materialize_corpus_refs_batch(
+                corpus_refs=[block.corpus_ref for block in batched_blocks],
+                dagzoo_root=dagzoo_root,
+                force=force,
+                materialize_processes=materialize_processes,
+                materialize_worker_threads=materialize_worker_threads,
+                prioritized_recipe_ids=(
+                    [] if canary_recipe_id is None else [canary_recipe_id]
+                ),
+                on_corpus_materialized=_on_corpus_materialized,
+                repo_root=repo_root,
+            )
+        except Exception as exc:
+            if blocking_summary_written:
+                raise
+            _write_blocking_summary(
+                adequacy_id=adequacy_id,
+                contract_check_mode=resolved_contract_check,
+                blocked_sweeps=spec.blocked_sweeps,
+                pilot_root=pilot_root,
+                materialized_corpora=materialized_corpora,
+                latent_target_contract=latent_target_contract,
+                canary_summary=canary_summary,
+                definition=spec.decision_buckets.get("generator_problem"),
+                reasoning=[
+                    "corpus materialization or validation failed: "
+                    f"{type(exc).__name__}: {exc}"
+                ],
+            )
+            blocking_summary_written = True
+            raise RuntimeError(
+                "adequacy pilot blocked during corpus materialization or validation; "
+                f"wrote blocking summary to {summary_md_path.resolve()}"
+            ) from exc
 
     missing_block_ids = [
-        block.block_id for block in spec.blocks if block.block_id not in materialized_corpora
+        block.block_id for block in batched_blocks if block.block_id not in materialized_corpora
     ]
     if missing_block_ids:
         _write_blocking_summary(
             adequacy_id=adequacy_id,
+            contract_check_mode=resolved_contract_check,
             blocked_sweeps=spec.blocked_sweeps,
             pilot_root=pilot_root,
             materialized_corpora=materialized_corpora,
@@ -1190,6 +1796,7 @@ def run_adequacy_pilot(
     if missing_contract_blocks:
         _write_blocking_summary(
             adequacy_id=adequacy_id,
+            contract_check_mode=resolved_contract_check,
             blocked_sweeps=spec.blocked_sweeps,
             pilot_root=pilot_root,
             materialized_corpora=materialized_corpora,
@@ -1210,6 +1817,7 @@ def run_adequacy_pilot(
     if canary_failure_reasons:
         _write_blocking_summary(
             adequacy_id=adequacy_id,
+            contract_check_mode=resolved_contract_check,
             blocked_sweeps=spec.blocked_sweeps,
             pilot_root=pilot_root,
             materialized_corpora=materialized_corpora,
@@ -1223,9 +1831,83 @@ def run_adequacy_pilot(
             f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
         )
 
-    production_control_corpus_ref = materialized_corpora[_PRODUCTION_BLOCK_ID]["materialized_corpus_ref"]
+    if production_block is None:
+        raise RuntimeError(
+            f"adequacy spec {adequacy_id!r} is missing the {_PRODUCTION_BLOCK_ID!r} block"
+        )
+    production_resolution = _resolve_production_control_corpus(
+        requested_corpus_ref=str(production_block.corpus_ref),
+        pilot_root=pilot_root,
+        dagzoo_root=dagzoo_root,
+        force=force,
+        repo_root=repo_root,
+    )
+    production_corpus_record = cast(
+        Mapping[str, Any],
+        production_resolution["corpus_record"],
+    )
+    materialized_corpora[production_block.block_id] = _materialized_corpus_payload(
+        block=production_block,
+        corpus_record=production_corpus_record,
+        materialization_state=str(production_resolution["materialization_state"]),
+    )
+    latent_target_contract[production_block.block_id] = inspect_corpus_latent_target_contract(
+        block=production_block,
+        corpus_record=production_corpus_record,
+        mode=resolved_contract_check,
+    )
+    production_filter_provenance = _optional_mapping(
+        latent_target_contract[production_block.block_id].get("filter_provenance")
+    )
+    if production_filter_provenance is not None:
+        materialized_corpora[production_block.block_id]["filter_provenance"] = production_filter_provenance
+
+    missing_contract_blocks = [
+        block_id
+        for block_id, payload in latent_target_contract.items()
+        if bool(payload.get("required")) and not bool(payload.get("present"))
+    ]
+    if missing_contract_blocks:
+        _write_blocking_summary(
+            adequacy_id=adequacy_id,
+            contract_check_mode=resolved_contract_check,
+            blocked_sweeps=spec.blocked_sweeps,
+            pilot_root=pilot_root,
+            materialized_corpora=materialized_corpora,
+            latent_target_contract=latent_target_contract,
+            canary_summary=canary_summary,
+            definition=spec.decision_buckets.get("generator_problem"),
+            reasoning=[
+                "latent-target contract validation failed for "
+                + ", ".join(sorted(missing_contract_blocks))
+            ],
+        )
+        raise RuntimeError(
+            "latent-target contract validation failed for one or more adequacy blocks; "
+            f"wrote blocking summary to {(pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()}"
+        )
+
+    production_control_corpus_payload = materialized_corpora[_PRODUCTION_BLOCK_ID]
+    production_control_manifest_path = production_control_corpus_payload.get("manifest_path")
     production_control_summary = run_production_control_pilot(
-        corpus_ref=cast(str, production_control_corpus_ref),
+        requested_corpus_ref=cast(
+            str,
+            production_control_corpus_payload["requested_corpus_ref"],
+        ),
+        corpus_ref=cast(
+            str | None,
+            production_control_corpus_payload.get("materialized_corpus_ref"),
+        ),
+        manifest_path=(
+            None
+            if not isinstance(production_control_manifest_path, str)
+            or not production_control_manifest_path.strip()
+            else Path(production_control_manifest_path).expanduser().resolve()
+        ),
+        materialization_state=cast(
+            str,
+            production_control_corpus_payload["materialization_state"],
+        ),
         pilot_root=pilot_root,
         device=device,
         force=force,
@@ -1239,6 +1921,129 @@ def run_adequacy_pilot(
     )
     summary = {
         "adequacy_id": adequacy_id,
+        "contract_check": {"mode": resolved_contract_check},
+        "status": "completed",
+        "blocked_sweeps": list(spec.blocked_sweeps),
+        "materialized_corpora": materialized_corpora,
+        "latent_target_contract": latent_target_contract,
+        "canary_baselines": canary_summary,
+        "production_control_pilot": production_control_summary,
+        "provisional_interpretation": interpretation,
+        "summary_paths": {
+            "summary_json": str((pilot_root / _SUMMARY_JSON_NAME).resolve()),
+            "summary_md": str((pilot_root / _SUMMARY_MARKDOWN_NAME).resolve()),
+        },
+    }
+    _write_json(pilot_root / _SUMMARY_JSON_NAME, summary)
+    (pilot_root / _SUMMARY_MARKDOWN_NAME).write_text(
+        render_adequacy_pilot_markdown(summary),
+        encoding="utf-8",
+    )
+    return summary
+
+
+def finalize_adequacy_pilot(
+    *,
+    adequacy_id: str,
+    dagzoo_root: Path,
+    contract_check: str = "fast",
+    out_root: Path | None = None,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    _ensure_supported_configuration(adequacy_id=adequacy_id, device=_SUPPORTED_DEVICE)
+    resolved_contract_check = _normalize_contract_check_mode(contract_check)
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    spec = load_synthetic_adequacy_spec(adequacy_id, repo_root=resolved_repo_root)
+    pilot_root = (
+        out_root.expanduser().resolve()
+        if out_root is not None
+        else default_pilot_output_root(adequacy_id, repo_root=resolved_repo_root)
+    )
+    pilot_root.mkdir(parents=True, exist_ok=True)
+
+    materialized_corpora: dict[str, dict[str, Any]] = {}
+    latent_target_contract: dict[str, dict[str, Any]] = {}
+    canary_summary: dict[str, Any] | None = None
+
+    production_block = next(
+        (block for block in spec.blocks if block.block_id == _PRODUCTION_BLOCK_ID),
+        None,
+    )
+    if production_block is None:
+        raise RuntimeError(
+            f"adequacy spec {adequacy_id!r} is missing the {_PRODUCTION_BLOCK_ID!r} block"
+        )
+
+    for block in spec.blocks:
+        if block.block_id == _PRODUCTION_BLOCK_ID:
+            continue
+        corpus_record = load_corpus_record(
+            str(block.corpus_ref),
+            repo_root=resolved_repo_root,
+        )
+        materialized_corpora[block.block_id] = _materialized_corpus_payload(
+            block=block,
+            corpus_record=corpus_record,
+            materialization_state="finalized",
+        )
+        latent_target_contract[block.block_id] = inspect_corpus_latent_target_contract(
+            block=block,
+            corpus_record=corpus_record,
+            mode=resolved_contract_check,
+        )
+        filter_provenance = _optional_mapping(
+            latent_target_contract[block.block_id].get("filter_provenance")
+        )
+        if filter_provenance is not None:
+            materialized_corpora[block.block_id]["filter_provenance"] = filter_provenance
+        if block.block_id == _CANARY_BLOCK_ID:
+            canary_summary = score_canary_block(
+                block,
+                corpus_record=corpus_record,
+            )
+
+    production_resolution = _resolve_production_control_corpus(
+        requested_corpus_ref=str(production_block.corpus_ref),
+        pilot_root=pilot_root,
+        dagzoo_root=dagzoo_root,
+        force=False,
+        repo_root=resolved_repo_root,
+    )
+    production_corpus_record = cast(
+        Mapping[str, Any],
+        production_resolution["corpus_record"],
+    )
+    materialized_corpora[production_block.block_id] = _materialized_corpus_payload(
+        block=production_block,
+        corpus_record=production_corpus_record,
+        materialization_state=str(production_resolution["materialization_state"]),
+    )
+    latent_target_contract[production_block.block_id] = inspect_corpus_latent_target_contract(
+        block=production_block,
+        corpus_record=production_corpus_record,
+        mode=resolved_contract_check,
+    )
+    production_filter_provenance = _optional_mapping(
+        latent_target_contract[production_block.block_id].get("filter_provenance")
+    )
+    if production_filter_provenance is not None:
+        materialized_corpora[production_block.block_id]["filter_provenance"] = (
+            production_filter_provenance
+        )
+
+    production_control_summary = _summarize_existing_production_control_pilot(
+        requested_corpus_ref=str(production_block.corpus_ref),
+        pilot_root=pilot_root,
+    )
+    interpretation = select_provisional_interpretation(
+        decision_buckets=spec.decision_buckets,
+        latent_target_contract=latent_target_contract,
+        canary_summary=canary_summary,
+        production_control_summary=production_control_summary,
+    )
+    summary = {
+        "adequacy_id": adequacy_id,
+        "contract_check": {"mode": resolved_contract_check},
         "status": "completed",
         "blocked_sweeps": list(spec.blocked_sweeps),
         "materialized_corpora": materialized_corpora,
@@ -1262,6 +2067,7 @@ def run_adequacy_pilot(
 __all__ = [
     "build_production_control_config",
     "default_pilot_output_root",
+    "finalize_adequacy_pilot",
     "inspect_corpus_latent_target_contract",
     "render_adequacy_pilot_markdown",
     "run_adequacy_pilot",

@@ -107,6 +107,49 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.integer_likelihood == "hybrid_mixture"
 
 
+def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "tabfoundry_sandwich",
+            "sandwich_latents": 16,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+        },
+        fallback={
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "tfrow_norm": "rmsnorm",
+            "use_digit_position_embed": False,
+        },
+    )
+
+    payload = spec.to_dict()
+
+    assert payload["arch"] == "tabfoundry_sandwich"
+    assert payload["sandwich_latents"] == 16
+    assert payload["sandwich_layers"] == 2
+    assert payload["sandwich_heads"] == 4
+    for unsupported_key in (
+        "stage",
+        "stage_label",
+        "module_overrides",
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tfrow_norm",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "tficl_ff_expansion",
+        "use_digit_position_embed",
+        "staged_dropout",
+    ):
+        assert unsupported_key not in payload
+
+
 def test_sandwich_checkpoint_spec_infers_legacy_additive_feature_type_conditioning() -> None:
     spec = checkpoint_model_build_spec_from_mappings(
         task="classification",

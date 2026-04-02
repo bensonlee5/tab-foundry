@@ -70,6 +70,7 @@ _DEFAULT_MATERIALIZE_LARGE_MACHINE_CPU_THRESHOLD = 8
 _DEFAULT_MATERIALIZE_RESERVED_CORES_LARGE_MACHINE = 2
 _DEFAULT_MATERIALIZE_RESERVED_CORES_SMALL_MACHINE = 1
 _INVOCATION_SUBPROCESS_POLL_INTERVAL_SECONDS = 0.1
+_STAGED_VERIFY_MODES = frozenset({"fast", "full"})
 
 
 @dataclass(slots=True)
@@ -1490,19 +1491,60 @@ def _prepare_recipe_materialization(
     )
 
 
-def _finalize_materialized_recipe(
-    pending: _PendingCorpusMaterialization,
+def _pending_recipe_materialization_from_existing_stage(
     *,
-    force: bool,
-) -> dict[str, Any]:
+    recipe_id: str,
+    dagzoo_root: Path,
+    repo_root: Path,
+    stage_root: Path | None,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> _PendingCorpusMaterialization:
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    storage = _recipe_storage_context(recipe, repo_root=repo_root)
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe.recipe_id
+    resolved_stage_root = (
+        (recipe_root / ".staging")
+        if stage_root is None
+        else stage_root.expanduser().resolve()
+    )
+    if not resolved_stage_root.exists():
+        raise RuntimeError(
+            "staged corpus root does not exist: "
+            f"recipe_id={recipe.recipe_id!r} stage_root={resolved_stage_root}"
+        )
+    return _PendingCorpusMaterialization(
+        recipe=recipe,
+        storage=storage,
+        dagzoo_root=dagzoo_root,
+        repo_root=repo_root,
+        recipe_root=recipe_root,
+        stage_root=resolved_stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+        invocation_queue=deque(),
+        remaining_invocations=0,
+    )
+
+
+def _normalize_staged_verify_mode(verify: str) -> str:
+    normalized = str(verify).strip().lower()
+    if normalized not in _STAGED_VERIFY_MODES:
+        expected = ", ".join(sorted(_STAGED_VERIFY_MODES))
+        raise ValueError(f"verify must be one of {expected}, got {verify!r}")
+    return normalized
+
+
+def _manifest_inputs_for_pending(
+    pending: _PendingCorpusMaterialization,
+) -> tuple[list[Path], Path | None]:
     recipe = pending.recipe
-    storage = pending.storage
-    resolved_repo_root = pending.repo_root
-    resolved_dagzoo_root = pending.dagzoo_root
-    recipe_root = pending.recipe_root
     stage_root = pending.stage_root
-    sweep_id = pending.sweep_id
-    sweeps_root = pending.sweeps_root
 
     filter_policy = str(recipe.manifest_policy.filter_policy)
     if filter_policy == "accepted_only":
@@ -1544,6 +1586,15 @@ def _finalize_materialized_recipe(
             for handoff in verified_handoffs
         ]
         dagzoo_handoff_manifest_path = None
+    return generated_roots, dagzoo_handoff_manifest_path
+
+
+def _build_staged_manifest(
+    pending: _PendingCorpusMaterialization,
+) -> Path:
+    recipe = pending.recipe
+    stage_root = pending.stage_root
+    generated_roots, dagzoo_handoff_manifest_path = _manifest_inputs_for_pending(pending)
 
     manifest_path = stage_root / "manifest.parquet"
     _ = build_manifest(
@@ -1555,6 +1606,85 @@ def _finalize_materialized_recipe(
         missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
         dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
     )
+    return manifest_path
+
+
+def build_staged_corpus_manifest(
+    *,
+    recipe_id: str,
+    dagzoo_root: Path,
+    out_manifest_path: Path,
+    stage_root: Path | None = None,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> Path:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    pending = _pending_recipe_materialization_from_existing_stage(
+        recipe_id=recipe_id,
+        dagzoo_root=resolved_dagzoo_root,
+        repo_root=resolved_repo_root,
+        stage_root=stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    generated_roots, dagzoo_handoff_manifest_path = _manifest_inputs_for_pending(pending)
+    resolved_out_manifest_path = out_manifest_path.expanduser().resolve()
+    resolved_out_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    _ = build_manifest(
+        data_roots=generated_roots,
+        out_path=resolved_out_manifest_path,
+        train_ratio=float(pending.recipe.manifest_policy.train_ratio),
+        val_ratio=float(pending.recipe.manifest_policy.val_ratio),
+        filter_policy=str(pending.recipe.manifest_policy.filter_policy),
+        missing_value_policy=str(pending.recipe.manifest_policy.missing_value_policy),
+        dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+    )
+    return resolved_out_manifest_path
+
+
+def _snapshot_file(source_path: Path, destination_path: Path) -> None:
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    if source_path.is_symlink():
+        destination_path.symlink_to(os.readlink(source_path))
+        return
+    try:
+        os.link(source_path, destination_path)
+    except OSError:
+        shutil.copy2(source_path, destination_path)
+
+
+def _snapshot_tree(source_root: Path, destination_root: Path) -> None:
+    destination_root.mkdir(parents=True, exist_ok=True)
+    for source_path in sorted(source_root.iterdir(), key=lambda path: path.name):
+        destination_path = destination_root / source_path.name
+        if source_path.is_dir() and not source_path.is_symlink():
+            _snapshot_tree(source_path, destination_path)
+            continue
+        _snapshot_file(source_path, destination_path)
+
+
+def _promote_materialized_recipe(
+    pending: _PendingCorpusMaterialization,
+    *,
+    force: bool,
+) -> dict[str, Any]:
+    recipe = pending.recipe
+    storage = pending.storage
+    resolved_repo_root = pending.repo_root
+    resolved_dagzoo_root = pending.dagzoo_root
+    recipe_root = pending.recipe_root
+    stage_root = pending.stage_root
+    sweep_id = pending.sweep_id
+    sweeps_root = pending.sweeps_root
+
+    manifest_path = stage_root / "manifest.parquet"
+    if not manifest_path.exists():
+        raise RuntimeError(
+            "cannot promote staged corpus without a manifest.parquet: "
+            f"recipe_id={recipe.recipe_id!r} stage_root={stage_root}"
+        )
     manifest_sha256 = sha256_path(manifest_path)
     corpus_id = corpus_id_for_manifest(
         recipe_id=recipe.recipe_id,
@@ -1578,10 +1708,14 @@ def _finalize_materialized_recipe(
                 recipe,
                 storage=storage,
             ):
-                shutil.rmtree(stage_root)
                 return existing_record
             shutil.rmtree(final_root)
-    shutil.move(str(stage_root), str(final_root))
+    try:
+        _snapshot_tree(stage_root, final_root)
+    except Exception:
+        if final_root.exists():
+            shutil.rmtree(final_root)
+        raise
     resolved_manifest_path = final_root / "manifest.parquet"
     invocation_payloads = [
         _invocation_record_payload(
@@ -1713,6 +1847,200 @@ def _finalize_materialized_recipe(
     record["artifacts"]["latest_pointer_path"] = str(latest_path.resolve())
     record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return record
+
+
+def _finalize_materialized_recipe(
+    pending: _PendingCorpusMaterialization,
+    *,
+    force: bool,
+) -> dict[str, Any]:
+    _ = _build_staged_manifest(pending)
+    return _promote_materialized_recipe(pending, force=force)
+
+
+def _verify_staged_materialization(
+    pending: _PendingCorpusMaterialization,
+    *,
+    verify: str,
+) -> dict[str, Any]:
+    resolved_verify = _normalize_staged_verify_mode(verify)
+    recipe = pending.recipe
+    stage_root = pending.stage_root
+    filter_policy = str(recipe.manifest_policy.filter_policy).strip()
+    errors: list[str] = []
+    verified_invocations = 0
+    target_accepted_datasets = 0
+    accepted_datasets = 0
+    curated_accepted_datasets = 0
+
+    for spec in recipe.invocations:
+        invocation_id = str(spec.invocation_id)
+        invocation_root, handoff_manifest_path = _invocation_paths(
+            corpus_root=stage_root,
+            invocation_id=invocation_id,
+        )
+        invocation_error_count = len(errors)
+        if not invocation_root.exists():
+            errors.append(f"invocation {invocation_id!r} is missing {invocation_root}")
+            continue
+        if filter_policy == "accepted_only":
+            summary_path = _invocation_materialization_summary_path(
+                corpus_root=stage_root,
+                invocation_id=invocation_id,
+            )
+            if not summary_path.exists():
+                errors.append(
+                    f"invocation {invocation_id!r} is missing materialization_summary.json"
+                )
+                continue
+            try:
+                summary_payload = _read_json_mapping(
+                    summary_path,
+                    context=f"staged materialization summary for invocation {invocation_id!r}",
+                )
+            except Exception as exc:
+                errors.append(
+                    f"invocation {invocation_id!r} materialization_summary.json is unreadable: {exc}"
+                )
+                continue
+
+            filter_manifest_path = (
+                _invocation_filter_root(
+                    corpus_root=stage_root,
+                    invocation_id=invocation_id,
+                )
+                / "filter_manifest.ndjson"
+            )
+            filter_summary_path = (
+                _invocation_filter_root(
+                    corpus_root=stage_root,
+                    invocation_id=invocation_id,
+                )
+                / "filter_summary.json"
+            )
+            curated_root = _invocation_curated_root(
+                corpus_root=stage_root,
+                invocation_id=invocation_id,
+            )
+            for label, required_path in (
+                ("filter_manifest.ndjson", filter_manifest_path),
+                ("filter_summary.json", filter_summary_path),
+                ("curated root", curated_root),
+            ):
+                if not required_path.exists():
+                    errors.append(
+                        f"invocation {invocation_id!r} is missing {label}: {required_path}"
+                    )
+
+            requested_datasets = int(spec.num_datasets)
+            target_accepted_datasets += requested_datasets
+            resolved_accepted_datasets = _int_or_none(summary_payload.get("accepted_datasets"))
+            resolved_curated_datasets = _int_or_none(
+                summary_payload.get("curated_accepted_datasets")
+            )
+            if (
+                resolved_accepted_datasets is None
+                or resolved_accepted_datasets < requested_datasets
+            ):
+                errors.append(
+                    f"invocation {invocation_id!r} accepted_datasets must be at least "
+                    f"{requested_datasets}, got {resolved_accepted_datasets!r}"
+                )
+            if resolved_curated_datasets != requested_datasets:
+                errors.append(
+                    f"invocation {invocation_id!r} curated_accepted_datasets must equal "
+                    f"{requested_datasets}, got {resolved_curated_datasets!r}"
+                )
+            if resolved_verify == "full":
+                try:
+                    _ = _invocation_record_payload(
+                        dagzoo_root=pending.dagzoo_root,
+                        corpus_root=stage_root,
+                        spec=spec,
+                    )
+                except Exception as exc:
+                    errors.append(
+                        f"invocation {invocation_id!r} failed full staged provenance verification: {exc}"
+                    )
+            accepted_datasets += 0 if resolved_accepted_datasets is None else int(
+                resolved_accepted_datasets
+            )
+            curated_accepted_datasets += 0 if resolved_curated_datasets is None else int(
+                resolved_curated_datasets
+            )
+        else:
+            if not handoff_manifest_path.exists():
+                errors.append(
+                    f"invocation {invocation_id!r} is missing handoff manifest: {handoff_manifest_path}"
+                )
+                continue
+            try:
+                if resolved_verify == "full":
+                    _ = _verified_invocation_handoff(
+                        corpus_root=stage_root,
+                        spec=spec,
+                    )
+                else:
+                    _ = load_dagzoo_handoff_info(handoff_manifest_path)
+            except Exception as exc:
+                errors.append(
+                    f"invocation {invocation_id!r} failed staged handoff verification: {exc}"
+                )
+        if len(errors) == invocation_error_count:
+            verified_invocations += 1
+
+    if errors:
+        raise RuntimeError(
+            "staged corpus verification failed:\n- " + "\n- ".join(errors)
+        )
+
+    verification = {
+        "mode": resolved_verify,
+        "stage_root": str(stage_root.resolve()),
+        "filter_policy": filter_policy,
+        "expected_invocations": len(recipe.invocations),
+        "verified_invocations": verified_invocations,
+    }
+    if filter_policy == "accepted_only":
+        verification["accepted_only"] = {
+            "target_accepted_datasets": target_accepted_datasets,
+            "accepted_datasets": accepted_datasets,
+            "curated_accepted_datasets": curated_accepted_datasets,
+        }
+    return verification
+
+
+def finalize_staged_corpus_recipe(
+    *,
+    recipe_id: str,
+    dagzoo_root: Path,
+    verify: str = "fast",
+    stage_root: Path | None = None,
+    force: bool = False,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    pending = _pending_recipe_materialization_from_existing_stage(
+        recipe_id=recipe_id,
+        dagzoo_root=resolved_dagzoo_root,
+        repo_root=resolved_repo_root,
+        stage_root=stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    verification = _verify_staged_materialization(
+        pending,
+        verify=verify,
+    )
+    _ = _build_staged_manifest(pending)
+    record = _promote_materialized_recipe(pending, force=force)
+    return {
+        "record": record,
+        "verification": verification,
+    }
 
 
 def _pop_next_pending_invocation(

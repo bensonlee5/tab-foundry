@@ -3,10 +3,10 @@ sweep_id: tf_rd_010_classification_evolution_large_v2
 rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Establish the TF-RD-010 classification control front before reading any missingness harder-front effect on the larger benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010 control corpus (`n_classes_min=2`) against the larger hub validation manifest.
-  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v3` while validating on the hub-owned large classification manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and benchmark the completed control pilot trained on `tf_rd_010_dagzoo_medium_control_curated_v5` against the hub-owned large classification manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -25,12 +25,12 @@ rows:
   data:
     surface_label: tf_rd_010_dagzoo_medium_control
     source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_v3
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -41,30 +41,35 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+      runtime:
+        grad_accum_steps: 4
+      optimizer:
+        min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the large classification manifest from `openml_classification_large_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_large_v1` control baseline before treating any row outcome as a promotion or defer decision.
   - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect calibration, runtime, and stability as guardrails.
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  next_action: Wait for the medium control anchor to be benchmarked, registered, and promoted, then benchmark the same completed pilot control run on the intended hub-backed large classification manifest as `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_curated_v5`; do not retrain row 1.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
   - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.'
   - This row remains the intended TF-RD-010 large reference for missingness transfer and class-imbalance reporting on the large validation pool.
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
+  - '`tf_rd_010_classification_evolution_large_v2` now shares the pilot-aligned training surface with the refreshed medium package: `task_batch_size=16`, `grad_accum_steps=4`, `runtime.grad_clip=0.0`, `max_steps=2500`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
+  - Reuse the completed pilot control training artifact at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`; do not retrain the control row for `large_v2`.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed large classification manifest.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
 - order: 2
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Test whether moderate MCAR exposure improves robustness on the larger benchmark rung before structured missingness is considered.
   hypothesis: MCAR may improve label-target log loss per test cell on the evolved sandwich family under the larger hub validation pool without adding the stronger structure of MAR or MNAR.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
@@ -91,7 +96,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -102,30 +107,36 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+      runtime:
+        grad_accum_steps: 4
+      optimizer:
+        min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  next_action: Keep this row blocked until the medium control anchor is benchmarked and promoted and curated missingness fronts exist; do not benchmark or retrain this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
   - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.'
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed large classification manifest.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5` while this missingness row remains `include_all` `v3`
 - order: 3
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the larger benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large validation pool.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
@@ -152,7 +163,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -163,30 +174,36 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+      runtime:
+        grad_accum_steps: 4
+      optimizer:
+        min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  next_action: Keep this row blocked until the medium control anchor is benchmarked and promoted and curated missingness fronts exist; do not benchmark or retrain this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
   - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.'
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed large classification manifest.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5` while this missingness row remains `include_all` `v3`
 - order: 4
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: blocked_on_synthetic_adequacy
+  status: blocked_on_anchor_selection
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same larger benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
@@ -213,7 +230,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
-    task_batch_size: 1
+    task_batch_size: 16
     prior_dump_batch_size: 64
     synthetic_epoch_budget:
       epochs: 1
@@ -224,24 +241,30 @@ rows:
       schedule:
         stages:
         - name: prior_dump
-          lr_max: 0.004
-          lr_schedule: cosine
-          warmup_ratio: 0.05
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+      runtime:
+        grad_accum_steps: 4
+      optimizer:
+        min_lr: 1.0e-05
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
   - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Block this row pending `tf_rd_010_synthetic_adequacy_v1` and a trusted medium successor under issues `#205` and `#203`; do not execute `large_v2` yet.
+  next_action: Keep this row blocked until the medium control anchor is benchmarked and promoted and curated missingness fronts exist; do not benchmark or retrain this row yet.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.'
   - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.'
   - 'Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.'
   - 'The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.'
-  - Historical 400-step TF-RD-010 executions are invalidated and retained only as non-canonical artifacts.
-  - Trusted rerun work now flows through issues `#202`, `#203`, and `#204`.
-  - The preserved `tf_rd_010_classification_evolution_large_v1` reset-contract reference remains historical context only; `tf_rd_010_classification_evolution_large_v2` is a blocked historical draft until synthetic adequacy is interpreted.
+  - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
+  - This row remains blocked until a trusted medium control anchor exists and curated missingness fronts are available.
+  - The repo-local `openml_classification_large_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed large classification manifest.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
-  confounders: []
+  confounders:
+  - medium control anchor has not yet been benchmarked and promoted
+  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5` while this missingness row remains `include_all` `v3`
