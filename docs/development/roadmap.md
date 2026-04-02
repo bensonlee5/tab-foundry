@@ -248,7 +248,7 @@ Parallel/later lanes are intentionally off that main path:
 | Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed the new sandwich benchmark program | Freeze the benchmark-defined dagzoo training fronts, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe kernel/runtime policy on the carried sandwich dagzoo slice | `TF-RD-022` |
-| Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, and `medium_v5` now stages the matched sorted-control follow-up | `partial` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` is registered as the single-row sorted-control successor, and successor issues [#202](https://github.com/bensonlee5/tab-foundry/issues/202), [#205](https://github.com/bensonlee5/tab-foundry/issues/205), [#203](https://github.com/bensonlee5/tab-foundry/issues/203), and [#204](https://github.com/bensonlee5/tab-foundry/issues/204) track the remaining follow-on path | The medium missingness read is still directional until `medium_v5` row 1 executes and is compared against `medium_v4` rows 2 through 4, so TF-RD-010 still lacks promoted sorted-control evidence before any missingness recommendation or reopening `large_v2`. The canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
+| Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, `medium_v5` stages the matched sorted-control follow-up, and `large_v2` now records the local large-rung replay | `partial` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` is registered as the single-row sorted-control successor, and `large_v2` now records the completed local all-rows benchmark-only large replay under [#203](https://github.com/bensonlee5/tab-foundry/issues/203) with control `0.8974410961`, `mcar=0.9155278224`, `mar=0.9418792099`, and `mnar=0.9411754209` | The medium missingness read is still directional until `medium_v5` row 1 executes and is compared against `medium_v4` rows 2 through 4, so TF-RD-010 still lacks promoted sorted-control evidence before any missingness recommendation. `large_v2` is now available as large-rung evidence, but its interpretation also remains deferred until that sorted-control comparison lands. The canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains later missingness follow-up, while TF-RD-017 still needs an explicit side-lane imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
 | Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata, and TF-RD-010 has fixed the first benchmark-defined classification contract | TF-RD-009 now waits on the TF-RD-010 trusted rerun, the TF-RD-021 steering decision, and the TF-RD-022 runtime gate on that contract | `TF-RD-009`, `TF-RD-010`, `TF-RD-021`, `TF-RD-022` |
@@ -311,9 +311,10 @@ Legacy wording note:
     [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
     [#200](https://github.com/bensonlee5/tab-foundry/issues/200) define the
     TF-RD-010 corpora and freeze the missing baselines; successor issues
-    [#205](https://github.com/bensonlee5/tab-foundry/issues/205) and
-    [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now own the
-    blocked medium and large rerun packages pending synthetic adequacy
+    [#205](https://github.com/bensonlee5/tab-foundry/issues/205) completed the
+    trusted medium rerun package, while
+    [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now records
+    the completed local large-rung benchmark-only replay
   - issue [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the
     required sandwich refactor follow-up and lands before any trusted TF-RD-010
     rerun is recorded as canonical evidence
@@ -346,6 +347,11 @@ Legacy wording note:
   - `tf_rd_010_classification_evolution_medium_v5` is now registered as the
     single-row ready successor that retrains the same control corpus under the
     sorted-order code path without reopening the medium missingness rows
+  - `tf_rd_010_classification_evolution_large_v2` now records the completed
+    local all-rows benchmark-only replay: the large control row finished at
+    `final_log_loss=0.8974410961`, while the exploratory missingness rows
+    finished at `mcar=0.9155278224`, `mar=0.9418792099`, and
+    `mnar=0.9411754209`
 - What remains fixed:
   - `dagzoo` now owns the explicit TF-RD-010 control, MCAR, MAR, and MNAR
     corpora through `tf_rd_010_dagzoo_medium_control_v1`,
@@ -381,8 +387,10 @@ Legacy wording note:
     package on the refreshed contract
   - `medium_v5` is now the active ready successor for the matched
     sorted-control follow-up on the medium rung
-  - `large_v2` remains blocked until `medium_v5` row 1 is benchmarked,
-    compared against `medium_v4` rows 2 through 4, and promoted
+  - `large_v2` is no longer blocked on execution: the local benchmark-only
+    replay is completed, but interpretation remains deferred until
+    `medium_v5` row 1 is benchmarked, compared against `medium_v4` rows 2
+    through 4, and promoted
 - Exit criteria:
   - satisfied: the repo has one explicit medium-plus-large classification benchmark
     contract on the evolved sandwich family
@@ -395,8 +403,9 @@ Legacy wording note:
   - open: TF-RD-010 still needs to compare that sorted-order control against
     `medium_v4` rows 2 through 4 before it promotes any missingness
     recommendation beyond the medium exploratory read
-  - open: `large_v2` still needs a trusted replay decision on the same corrected
-    contract
+  - open: TF-RD-010 still needs to interpret the completed `large_v2` replay
+    against the sorted-order `medium_v5` control before it promotes any
+    large-rung recommendation
   - open: later lanes can inherit TF-RD-010 again only after those trusted
     reruns land
 
@@ -732,8 +741,9 @@ Legacy wording note:
     uses a direct multiclass head rather than reopening the staged line
   - TF-RD-010 then fixed the first benchmark program contract, with `dagzoo`
     synthetic training fronts feeding `tab-realdata-hub` validation manifests;
-    the corrected medium rerun is now complete and the large-rung replay
-    remains open
+    the corrected medium rerun is now complete and the large-rung replay is
+    now recorded as a completed local benchmark-only pass, with interpretation
+    still deferred pending the sorted-order medium control comparison
 - Exit criteria:
   - satisfied: the repo has an explicit keep/defer decision that the sandwich
     architecture surface is adequate enough to move into benchmark-defined
