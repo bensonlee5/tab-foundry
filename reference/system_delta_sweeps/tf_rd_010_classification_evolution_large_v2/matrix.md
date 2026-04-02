@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_lg`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `ecdc382b42a245bcc75f71f2f1727fabc8d40d8dc4e2f8bbc81c689021260c9a`
+- Resolved queue inputs fingerprint: `1f81a6cfb6adfca94e0dca2f0d81a952dd94af8bd929285f1b2e535ca0f1728d`
 
 ## Locked Surface
 
@@ -38,10 +38,10 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Run this row first in the local all-rows benchmark-only pass, promote it as the large-rung anchor via `--promote-first-executed-row-to-anchor`, then benchmark rows 2 through 4 against it without retraining any row. |
-| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | completed | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row only in the same `--promote-first-executed-row-to-anchor` pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark only, do not retrain. |
-| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | completed | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row only in the same `--promote-first-executed-row-to-anchor` pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark only, do not retrain. |
-| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | completed | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Execute this row only in the same `--promote-first-executed-row-to-anchor` pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark only, do not retrain. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Keep the original `medium_v4` control as the TF-RD-010 carried comparator, and preserve this completed large control row as the harder-rung reference; do not reopen `large_v2` within TF-RD-010. |
+| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | completed | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Keep this row deferred: it did not beat the carried large control row, so TF-RD-010 does not promote missingness exposure from this benchmark-only transfer. |
+| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | completed | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Keep this row deferred: it did not beat the carried large control row, so TF-RD-010 does not promote structured missingness from this benchmark-only transfer. |
+| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | completed | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Keep this row deferred: it did not beat the carried large control row, so TF-RD-010 does not promote strongest-missingness exposure from this benchmark-only transfer. |
 
 ## Detailed Rows
 
@@ -84,7 +84,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Reuse the completed pilot control training artifact at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`; do not retrain the control row for `large_v2`.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1` contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific interpretation remains deferred pending review.
+  - With the original `medium_v4` control kept over the worse `medium_v5` replay, this completed large control row remains the best large-rung result and the carried harder-rung reference.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v2/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/result_card.md`
 - Registered run: `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1` with final log loss `0.8974`, delta final log loss `+0.0000`, final Brier score `0.5465`, delta final brier score `+0.0000`, final ROC AUC `0.6324`, delta final roc auc `+0.0000`, final BPC (legacy feature-cell diagnostic) `2.0860`, delta final bpc (legacy feature-cell diagnostic) `+0.0000`, final BPF (legacy feature-cell diagnostic) `2.0860`, delta final bpf (legacy feature-cell diagnostic) `+0.0000`, best ROC AUC `0.6324`, delta final training time `+0.0s`
@@ -125,10 +125,10 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Trusted executions use a single synthetic epoch only: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - Reuse the completed `medium_v4` MCAR training artifact; do not retrain this row for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and this missingness row remains worse than the completed large control row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1` contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote missingness exposure from the first TF-RD-010 medium/large package.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v2/delta_data_manifest_root_tf_rd_010_missingness_mcar/result_card.md`
 - Registered run: `sd_tf_rd_010_classification_evolution_large_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1` with final log loss `0.9155`, delta final log loss `+0.0181`, final Brier score `0.5563`, delta final brier score `+0.0098`, final ROC AUC `0.6076`, delta final roc auc `-0.0248`, final BPC (legacy feature-cell diagnostic) `2.0972`, delta final bpc (legacy feature-cell diagnostic) `+0.0111`, final BPF (legacy feature-cell diagnostic) `2.0972`, delta final bpf (legacy feature-cell diagnostic) `+0.0111`, best ROC AUC `0.6076`, delta final training time `+3566.0s`
@@ -169,10 +169,10 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Trusted executions use a single synthetic epoch only: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - Reuse the completed `medium_v4` MAR training artifact; do not retrain this row for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and this structured-missingness row remains worse than the completed large control row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1` contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote structured missingness from the first TF-RD-010 medium/large package.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v2/delta_data_manifest_root_tf_rd_010_missingness_mar/result_card.md`
 - Registered run: `sd_tf_rd_010_classification_evolution_large_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1` with final log loss `0.9419`, delta final log loss `+0.0444`, final Brier score `0.5724`, delta final brier score `+0.0258`, final ROC AUC `0.5890`, delta final roc auc `-0.0433`, final BPC (legacy feature-cell diagnostic) `2.1179`, delta final bpc (legacy feature-cell diagnostic) `+0.0318`, final BPF (legacy feature-cell diagnostic) `2.1179`, delta final bpf (legacy feature-cell diagnostic) `+0.0318`, best ROC AUC `0.5890`, delta final training time `+3496.8s`
@@ -213,10 +213,10 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Trusted executions use a single synthetic epoch only: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - Reuse the completed `medium_v4` MNAR training artifact; do not retrain this row for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and this strongest-missingness row remains worse than the completed large control row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1` contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote strongest missingness from the first TF-RD-010 medium/large package.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v2/delta_data_manifest_root_tf_rd_010_missingness_mnar/result_card.md`
 - Registered run: `sd_tf_rd_010_classification_evolution_large_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1` with final log loss `0.9412`, delta final log loss `+0.0437`, final Brier score `0.5726`, delta final brier score `+0.0260`, final ROC AUC `0.6008`, delta final roc auc `-0.0316`, final BPC (legacy feature-cell diagnostic) `2.1310`, delta final bpc (legacy feature-cell diagnostic) `+0.0450`, final BPF (legacy feature-cell diagnostic) `2.1310`, delta final bpf (legacy feature-cell diagnostic) `+0.0450`, best ROC AUC `0.6008`, delta final training time `+3316.4s`

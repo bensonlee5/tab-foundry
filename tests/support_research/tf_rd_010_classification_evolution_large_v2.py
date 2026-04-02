@@ -120,6 +120,7 @@ def test_tf_rd_010_classification_evolution_large_v2_records_the_active_2500_ste
     assert any("sandwich_summary_tokens_per_axis=3" in note for note in notes)
     assert any("[363685, 363699, 363707]" in note for note in notes)
     assert any("Rows 2 through 4 are benchmark-only transfer reads" in note for note in notes)
+    assert any("keeps the original `medium_v4` control as the carried comparator" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -136,8 +137,9 @@ def test_tf_rd_010_classification_evolution_large_v2_records_the_active_2500_ste
     assert "task_batch_size=16" in " ".join(rows[0]["notes"])
     assert "do not retrain the control row for `large_v2`" in " ".join(rows[0]["notes"])
     assert "curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`" in " ".join(rows[1]["notes"])
-    assert "promote it as the large-rung anchor" in rows[0]["next_action"]
-    assert all("same `--promote-first-executed-row-to-anchor` pass" in row["next_action"] for row in rows[1:])
+    assert "harder-rung reference" in rows[0]["next_action"]
+    assert all("Keep this row deferred:" in row["next_action"] for row in rows[1:])
+    assert all("carried comparator" in " ".join(row["notes"]) for row in rows[1:])
     assert all(row["benchmark_checkpoint_selection"] == "all" for row in rows)
     assert all(row["benchmark_metrics"]["objective_metric"] == "final_log_loss_at_matched_regime_budget" for row in rows)
     assert [row["benchmark_metrics"]["final_log_loss"] for row in rows] == EXPECTED_FINAL_LOG_LOSSES
@@ -221,13 +223,14 @@ def test_tf_rd_010_classification_evolution_large_v2_matrix_records_the_complete
     assert SWEEP_ID in matrix
     assert "Sweep status: `completed`" in matrix
     assert f"Anchor run id: `{ANCHOR_RUN_ID}`" in matrix
-    assert "local all-rows benchmark-only pass" in matrix
-    assert "--promote-first-executed-row-to-anchor" in matrix
+    assert "carried comparator" in matrix
     assert "159984" in matrix
     assert "`2500` optimizer steps" in matrix
     assert "tf_rd_010_classification_evolution_medium_v4" in matrix
     assert "tf_rd_010_dagzoo_medium_control_curated_v5" in matrix
     assert "production_control_curated_v5/train" in matrix
+    assert "harder-rung reference" in matrix
+    assert "does not promote missingness exposure" in matrix
     assert "final_log_loss_at_matched_regime_budget" in matrix
     assert "label-target log loss per test cell" in matrix
     assert MCAR_RUN_ID in matrix

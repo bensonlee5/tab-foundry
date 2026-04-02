@@ -51,9 +51,11 @@ anchor_surface:
     do not retrain the control row for `large_v2`.
   - Rows 2 through 4 are benchmark-only transfer reads from the completed `tf_rd_010_classification_evolution_medium_v4`
     missingness train artifacts; do not retrain any missingness row in this sweep.
-  - This run collects large-rung evidence only. Decisions remain `defer` until the
-    completed local benchmark-only pass is reviewed against the curated-control versus
-    `include_all` missingness confound.
+  - 'The completed `medium_v5` sorted-order replay did not beat the original
+    `medium_v4` control on the medium rung, so TF-RD-010 keeps the original
+    `medium_v4` control as the carried comparator. Under that decision, the
+    completed local large-rung pass preserves the same ordering: control remains
+    best and MCAR, MAR, and MNAR stay deferred.'
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.

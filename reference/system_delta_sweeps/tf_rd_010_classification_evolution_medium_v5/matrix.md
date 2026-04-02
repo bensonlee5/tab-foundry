@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `9a867454cebd1602395f58f5b81043282e239b8561a098109cbe6eea70f569df`
+- Resolved queue inputs fingerprint: `9f3ff7d433e8154ce9f58fb760aa52e39f96de9e31d66b358765d24c184bd6e6`
 
 ## Locked Surface
 
@@ -38,7 +38,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Compare this completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before any missingness promotion, and decide whether downstream medium and large interpretation should carry forward the original `medium_v4` control or this sorted-order replay. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Preserve this sorted-order replay as negative evidence only: keep the original `medium_v4` control as the TF-RD-010 carried comparator for both medium and large interpretation, and do not reopen the missingness rows inside TF-RD-010. |
 
 ## Detailed Rows
 
@@ -62,7 +62,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest from `openml_classification_medium_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline before treating any row outcome as a promotion or defer decision.
   - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics as guardrails.
-  - Compare directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before promoting any missingness recommendation or reopening `large_v2`.
+  - Use this completed comparison to resolve the control-order confound explicitly: keep the original `medium_v4` control if this replay does not beat `0.6811727401`.
 - Adequacy knobs to dimension explicitly:
   - explicit dagzoo provenance for the classification control corpus
   - medium and large real-data validation separation via `tab-realdata-hub` manifests
@@ -81,8 +81,8 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - This row benchmarks only `best.pt` and `latest.pt` after the fresh sorted-order retrain so the follow-up stays scoped to the control confound.
   - This row must be trained fresh under the current sorted-order code path; do not reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train` or any earlier unsorted control artifact.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
-  - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before promoting any missingness recommendation.
-  - `large_v2` is no longer blocked on execution, but its interpretation still depends on whether downstream comparison should inherit the original `medium_v4` control or this completed sorted-order replay.
+  - `final_log_loss=0.6849303354` is worse than the kept `medium_v4` control at `0.6811727401`, so TF-RD-010 keeps the original `medium_v4` control as the carried comparator.
+  - That carry-forward decision leaves `large_v2` interpreted against the original `medium_v4` control, with no missingness promotion from this control-order follow-up.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`

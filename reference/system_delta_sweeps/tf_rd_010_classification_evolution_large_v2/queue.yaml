@@ -64,9 +64,9 @@ rows:
   - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target
     log loss per test cell, then inspect calibration, runtime, and stability as guardrails.
   benchmark_checkpoint_selection: all
-  next_action: Run this row first in the local all-rows benchmark-only pass, promote
-    it as the large-rung anchor via `--promote-first-executed-row-to-anchor`, then
-    benchmark rows 2 through 4 against it without retraining any row.
+  next_action: Keep the original `medium_v4` control as the TF-RD-010 carried comparator,
+    and preserve this completed large control row as the harder-rung reference; do
+    not reopen `large_v2` within TF-RD-010.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -87,8 +87,9 @@ rows:
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - With the original `medium_v4` control kept over the worse `medium_v5` replay,
+    this completed large control row remains the best large-rung result and the
+    carried harder-rung reference.
   run_id: sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
   followup_run_ids: []
   decision: defer
@@ -176,9 +177,9 @@ rows:
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
     skew ladder to TF-RD-017.
   benchmark_checkpoint_selection: all
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote missingness exposure from this benchmark-only
+    transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -192,13 +193,13 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator,
+    and this missingness row remains worse than the completed large control row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote missingness
+    exposure from the first TF-RD-010 medium/large package.
   run_id: sd_tf_rd_010_classification_evolution_large_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
   followup_run_ids: []
   decision: defer
@@ -291,9 +292,9 @@ rows:
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
     skew ladder to TF-RD-017.
   benchmark_checkpoint_selection: all
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote structured missingness from this benchmark-only
+    transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -307,13 +308,14 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator,
+    and this structured-missingness row remains worse than the completed large control
+    row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote structured
+    missingness from the first TF-RD-010 medium/large package.
   run_id: sd_tf_rd_010_classification_evolution_large_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
   followup_run_ids: []
   decision: defer
@@ -407,9 +409,9 @@ rows:
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
     skew ladder to TF-RD-017.
   benchmark_checkpoint_selection: all
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote strongest-missingness exposure from this
+    benchmark-only transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -423,13 +425,14 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator,
+    and this strongest-missingness row remains worse than the completed large control
+    row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote strongest
+    missingness from the first TF-RD-010 medium/large package.
   run_id: sd_tf_rd_010_classification_evolution_large_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1
   followup_run_ids: []
   decision: defer

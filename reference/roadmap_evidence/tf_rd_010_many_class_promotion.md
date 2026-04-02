@@ -3,8 +3,8 @@
 This is the canonical long-form evidence note for
 [TF-RD-010](../../docs/development/roadmap.md#tf-rd-010-benchmark-defined-multiclass-evolution-on-the-classification-first-sandwich-target).
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `completed`
+- Milestone: `Completed`
 - Dependency position: follows
   [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md), feeds
   [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
@@ -28,7 +28,7 @@ This is the canonical long-form evidence note for
   historical umbrella for this lane, issue
   [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the historical
   first execution issue, and issue
-  [#202](https://github.com/bensonlee5/tab-foundry/issues/202) is the active
+  [#202](https://github.com/bensonlee5/tab-foundry/issues/202) is the completed
   trusted-rerun umbrella
 - historical child issues
   [#197](https://github.com/bensonlee5/tab-foundry/issues/197),
@@ -36,11 +36,12 @@ This is the canonical long-form evidence note for
   [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
   [#200](https://github.com/bensonlee5/tab-foundry/issues/200) define the
   TF-RD-010 corpora and freeze the missing baselines
-- successor issues [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
-  and [#203](https://github.com/bensonlee5/tab-foundry/issues/203) now own the
-  blocked medium and large successor sweeps pending synthetic adequacy, and issue
-  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the required
-  sandwich refactor follow-up that lands before those reruns
+- successor issue [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
+  records the completed trusted medium rerun package, issue
+  [#203](https://github.com/bensonlee5/tab-foundry/issues/203) records the
+  completed trusted large-rung replay, and issue
+  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) is the completed
+  sandwich refactor follow-up that landed before those reruns
 - the factorization-first adequacy gate is tracked in
   `reference/roadmap_evidence/tf_rd_010_synthetic_adequacy_gate.md`
 - `tab-realdata-hub` issue
@@ -105,13 +106,20 @@ This is the canonical long-form evidence note for
 - active classification-evolution work now optimizes natural-log CE on label
   targets and ranks by matched-budget final log loss per test cell; the older
   `cell_bpc` / BPC lane remains historical context only
-- The benchmark contract remains valid, but the previously recorded medium and
-  large executions are no longer trusted as canonical evidence after later
-  training and sandwich correctness fixes
-- Those old 400-step outcomes remain historical context only:
+- The trusted rerun contract is now closed on the corrected sandwich/training
+  surface:
+  - `medium_v4` row 1 remains the carried medium control at
+    `final_log_loss=0.6811727401`
+  - the completed `medium_v5` sorted-order replay is negative control-order
+    evidence at `0.6849303354`, so TF-RD-010 keeps the original `medium_v4`
+    control rather than switching carry-forward anchors
+  - the completed `large_v2` replay preserves the same ordering on the harder
+    rung, with control `0.8974410961` ahead of MCAR `0.9155278224`, MAR
+    `0.9418792099`, and MNAR `0.9411754209`
+- Those older 400-step outcomes remain historical context only:
   all medium and large rows deferred, every row failed the short-run stability
-  guardrail, and none of that evidence should be read strongly now that the
-  `dagzoo` factorization is changing
+  guardrail, and none of that evidence should be read strongly against the now-closed
+  rerun package
 - Missingness should be addressed in both places:
   - synthetic training fronts via control, MCAR, MAR, and MNAR corpora
   - validation via the medium and large hub bundles, both of which now permit
@@ -127,14 +135,14 @@ This is the canonical long-form evidence note for
 - the legacy medium and large TF-RD-010 control baselines are frozen in the
   canonical registry
 - the first medium and large benchmark packages were executed historically, but
-  that evidence has now been invalidated and reset out of the canonical sweep state
+  that evidence was invalidated and reset out of the canonical sweep state before
+  the trusted rerun package landed
 - the March 30, 2026 medium rerun is now preserved as historical evidence in
   `tf_rd_010_classification_evolution_medium_v1`, while the large reset
   contract is preserved only as a superseded reference in
   `tf_rd_010_classification_evolution_large_v1`
-- the preserved `medium_v4` and `large_v2` packages are now blocked historical
-  drafts while the refreshed factorization-correct `*_v3` corpus family and
-  `tf_rd_010_synthetic_adequacy_v1` are interpreted
+- `medium_v4`, `medium_v5`, and `large_v2` now provide the canonical rerun
+  evidence for the first benchmark-defined many-class plus missingness gate
 - the first `medium_v4` CE control-row CPU pilot
   (`sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v3`)
   was intentionally stopped at step `1324` after checkpoint benchmarking
@@ -149,18 +157,17 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the next TF-RD-010 work under
-  [#205](https://github.com/bensonlee5/tab-foundry/issues/205) is the
-  factorization-first adequacy gate `tf_rd_010_synthetic_adequacy_v1`, not a
-  fresh rerun
-- `medium_v4` and `large_v2` are blocked until that adequacy gate is
-  interpreted on the refreshed factorization-correct `*_v3` corpora
-- only after the adequacy readout says the refreshed synthetic data is
-  learnable should TF-RD-010 decide whether the next package is generator work,
-  training/regime retuning, or architecture change
-- the sandwich refactor follow-up under
-  [#204](https://github.com/bensonlee5/tab-foundry/issues/204) lands before any
-  new TF-RD-010 rerun is recorded as canonical evidence
+- no TF-RD-010 rerun gap remains inside this lane
+- follow-on missingness work moves to
+  [TF-RD-014](tf_rd_014_missingness_robustness.md) only if later robustness
+  work wants to go beyond the explicit no-missingness-promotion result from the
+  first medium/large package
+- follow-on imbalance work remains
+  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md)
+- carry-forward surface expansion, runtime policy, and scaling all move to
+  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
+  [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md), and
+  [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
 
 ## Exit Signals
 
@@ -172,5 +179,6 @@ This is the canonical long-form evidence note for
 - later steering, imbalance, runtime, and scaling lanes inherit a fixed
   `dagzoo -> tab-realdata-hub -> tab-foundry` contract rather than reopening
   regime selection
-- trusted medium and large reruns replace the invalidated historical executions
-  before later lanes treat TF-RD-010 execution as canonical again
+- trusted medium and large reruns now replace the invalidated historical
+  executions, and later lanes inherit the original `medium_v4` control as the
+  carried benchmark slice with no missingness promotion from TF-RD-010

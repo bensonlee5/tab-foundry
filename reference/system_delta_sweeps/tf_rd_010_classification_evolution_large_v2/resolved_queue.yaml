@@ -56,9 +56,11 @@ anchor_surface:
     do not retrain the control row for `large_v2`.
   - Rows 2 through 4 are benchmark-only transfer reads from the completed `tf_rd_010_classification_evolution_medium_v4`
     missingness train artifacts; do not retrain any missingness row in this sweep.
-  - This run collects large-rung evidence only. Decisions remain `defer` until the
-    completed local benchmark-only pass is reviewed against the curated-control versus
-    `include_all` missingness confound.
+  - 'The completed `medium_v5` sorted-order replay did not beat the original `medium_v4`
+    control on the medium rung, so TF-RD-010 keeps the original `medium_v4` control
+    as the carried comparator. Under that decision, the completed local large-rung
+    pass preserves the same ordering: control remains best and MCAR, MAR, and MNAR
+    stay deferred.'
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
@@ -174,9 +176,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run this row first in the local all-rows benchmark-only pass, promote
-    it as the large-rung anchor via `--promote-first-executed-row-to-anchor`, then
-    benchmark rows 2 through 4 against it without retraining any row.
+  next_action: Keep the original `medium_v4` control as the TF-RD-010 carried comparator,
+    and preserve this completed large control row as the harder-rung reference; do
+    not reopen `large_v2` within TF-RD-010.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -197,8 +199,9 @@ rows:
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - With the original `medium_v4` control kept over the worse `medium_v5` replay,
+    this completed large control row remains the best large-rung result and the carried
+    harder-rung reference.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train
@@ -518,9 +521,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote missingness exposure from this benchmark-only
+    transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -534,13 +537,13 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and
+    this missingness row remains worse than the completed large control row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote missingness exposure
+    from the first TF-RD-010 medium/large package.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v4_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train
@@ -884,9 +887,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote structured missingness from this benchmark-only
+    transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -900,13 +903,14 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and
+    this structured-missingness row remains worse than the completed large control
+    row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote structured missingness
+    from the first TF-RD-010 medium/large package.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v4_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train
@@ -1251,9 +1255,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Execute this row only in the same `--promote-first-executed-row-to-anchor`
-    pass as row 1 or after row 1 has already promoted the large-rung anchor; benchmark
-    only, do not retrain.
+  next_action: 'Keep this row deferred: it did not beat the carried large control
+    row, so TF-RD-010 does not promote strongest-missingness exposure from this benchmark-only
+    transfer.'
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest lineage.'
@@ -1267,13 +1271,14 @@ rows:
     for `large_v2`.
   - The control comparison for this sweep still uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
-  - This local run collects large-rung evidence only and does not resolve the curated-control
-    versus missingness-front recommendation.
+  - TF-RD-010 keeps the original `medium_v4` control as the carried comparator, and
+    this strongest-missingness row remains worse than the completed large control
+    row.
   - The local large benchmark bundle is preflighted against the frozen `cls_benchmark_linear_multiclass_large_v1`
     contract with task ids `[363685, 363699, 363707]`.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v2_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
-  - Local large-rung benchmark-only transfer from completed medium_v4 artifacts; scientific
-    interpretation remains deferred pending review.
+  - This row stays deferred on the large rung and does not promote strongest missingness
+    from the first TF-RD-010 medium/large package.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v4_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train
@@ -1546,4 +1551,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 5c2fe334e601ae78d310357633456e020bc186c4a8fffcb117ce9b048bd674f9
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v2/resolved_queue.yaml
-inputs_fingerprint: ecdc382b42a245bcc75f71f2f1727fabc8d40d8dc4e2f8bbc81c689021260c9a
+inputs_fingerprint: 1f81a6cfb6adfca94e0dca2f0d81a952dd94af8bd929285f1b2e535ca0f1728d

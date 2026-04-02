@@ -67,7 +67,7 @@ def test_tf_rd_010_classification_evolution_medium_v5_records_the_sorted_control
     assert any("159984" in note for note in notes)
     assert any("2500" in note for note in notes)
     assert any("final_log_loss_at_matched_regime_budget" in note for note in notes)
-    assert any("later medium and large interpretation" in note for note in notes)
+    assert any("carry forward the original `medium_v4` control" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -88,11 +88,12 @@ def test_tf_rd_010_classification_evolution_medium_v5_records_the_sorted_control
     assert row["training"]["overrides"]["schedule"]["stages"][0]["lr_schedule"] == "linear"
     assert row["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.10
     assert row["benchmark_checkpoint_selection"] == "best_and_final"
-    assert "Compare this completed sorted-order control directly" in row["next_action"]
-    assert "medium_v4` rows 2 through 4" in row["next_action"]
+    assert "negative evidence only" in row["next_action"]
+    assert "TF-RD-010 carried comparator" in row["next_action"]
     assert any("trained fresh" in note or "trained fresh" in row["next_action"] for note in row["notes"])
     assert any("do not" in note and "reuse" in note for note in row["notes"])
-    assert any("large_v2` is no longer blocked on execution" in note for note in row["notes"])
+    assert any("keeps the original `medium_v4` control as the carried comparator" in note for note in row["notes"])
+    assert any("no missingness promotion" in note for note in row["notes"])
     assert row["benchmark_metrics"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert row["benchmark_metrics"]["final_log_loss"] == EXPECTED_FINAL_LOG_LOSS
 
@@ -148,6 +149,8 @@ def test_tf_rd_010_classification_evolution_medium_v5_resolved_queue_and_matrix_
     assert "sorted-order code path" in matrix
     assert "trained fresh under the current sorted-order code path" in matrix
     assert "medium_v4" in matrix
+    assert "keeps the original `medium_v4` control as the carried comparator" in matrix
+    assert "no missingness promotion" in matrix
     assert EXPECTED_CORPUS_REF in matrix
     assert "final_log_loss_at_matched_regime_budget" in matrix
     assert RUN_ID in matrix
