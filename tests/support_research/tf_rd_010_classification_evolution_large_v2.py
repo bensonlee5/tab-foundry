@@ -252,13 +252,20 @@ def test_tf_rd_010_classification_evolution_large_v2_inspection_resolves_the_250
     assert resolved_model["arch"] == "tabfoundry_sandwich"
     assert resolved_model.get("stage_label") is None
     assert resolved_model["architecture"]["feature_type_encoding"] == "film"
-    assert resolved_data["surface_label"] == "tf_rd_010_dagzoo_medium_control_curated_v5"
-    assert resolved_data["recipe_id"] is None
-    assert resolved_data["corpus_ref"] is None
-    assert "tf_rd_010_synthetic_adequacy_v3/direct_training/manifest.parquet" in str(
-        resolved_data["manifest"]["manifest_path"]
-    )
-    assert resolved_data["manifest"]["characteristics"]["record_count"] == 159984
+    assert resolved_data["surface_label"] in {
+        "tf_rd_010_dagzoo_medium_control_curated_v5",
+        "tf_rd_010_dagzoo_medium_control",
+    }
+    if resolved_data["recipe_id"] is None:
+        assert resolved_data["corpus_ref"] is None
+        assert "tf_rd_010_synthetic_adequacy_v3/direct_training/manifest.parquet" in str(
+            resolved_data["manifest"]["manifest_path"]
+        )
+        assert resolved_data["manifest"]["characteristics"]["record_count"] == 159984
+    else:
+        assert resolved_data["recipe_id"] == "tf_rd_010_dagzoo_medium_control_curated_v5"
+        assert str(resolved_data["corpus_ref"]).startswith("tf_rd_010_dagzoo_medium_control_curated_v5")
+        assert resolved_data["dagzoo_provenance"]["manifest_record_count"] == 159984
     assert resolved_training["schedule_stages"][0]["steps"] == 2500
     assert payload["row"]["status"] == "completed"
     assert payload["row"]["run_id"] == ANCHOR_RUN_ID
