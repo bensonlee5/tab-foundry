@@ -50,6 +50,9 @@ This is the canonical long-form evidence note for
   pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
 - the first scaling target is now a fixed dagzoo many-class plus missingness
   slice rather than the earlier binary-only regime
+- TF-RD-021 now supplies that slice through a two-phase lane: freeze the
+  admissible post-RD-002/RD-005 dagzoo candidate surface first, then make one
+  bounded carry-forward decision before runtime or scaling work
 - regression is explicitly deferred from the first scaling program and is not a
   blocker for the first classification law fit
 
@@ -100,8 +103,8 @@ This is the canonical long-form evidence note for
   on the same simplified sandwich trunk
 - the runtime policy is not yet finalized as a hard inherited precondition for
   the scaling ladder
-- the steering-derived corpus-front keep/defer decision is not yet finalized on
-  the carried dagzoo slice
+- the TF-RD-021 carry-forward keep/defer decision is not yet finalized on the carried
+  post-RD-002/RD-005 dagzoo slice
 - sweep/result summaries still need compact presentation of the new
   runtime-summary and regime-budget fields
 
