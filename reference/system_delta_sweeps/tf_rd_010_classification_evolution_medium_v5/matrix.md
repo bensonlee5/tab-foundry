@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `bd44f80de7660897393063ade1d5d0326eb5b5a131b3bdf6c6584643b50490af`
+- Resolved queue inputs fingerprint: `321583ee6c16ada3f6b7441596c853fbf811bf5421757d63ec33655924bf3f80`
 
 ## Locked Surface
 
@@ -38,14 +38,14 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | ready | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Train this row fresh under the sorted-order code path, benchmark and register it on the intended hub-backed medium classification manifest, then compare it directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before any missingness promotion; `large_v2` stays blocked until this row is promoted. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Train this row fresh under the sorted-order code path, benchmark and register it on the intended hub-backed medium classification manifest, then compare it directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before any missingness promotion; `large_v2` stays blocked until this row is promoted. |
 
 ## Detailed Rows
 
 ### 1. `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests.
@@ -69,8 +69,8 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - class-count coverage, feature-count coverage, missingness policy, and minority-class floor on the validation side
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `best_and_final`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
   - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to `159984` corpus manifest records/tasks: `144` invocation cells x `1111` datasets, still capped at `<=1024` total rows per synthetic dataset.
@@ -83,6 +83,8 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
   - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before promoting any missingness recommendation.
   - `large_v2` remains blocked until this row is benchmarked, registered, and promoted.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v5/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2` with final log loss `0.6849`, delta final log loss `+0.0038`, final Brier score `0.4246`, delta final brier score `+0.0017`, final ROC AUC `0.6044`, delta final roc auc `-0.0050`, final BPC (legacy feature-cell diagnostic) `2.1154`, delta final bpc (legacy feature-cell diagnostic) `+0.0017`, final BPF (legacy feature-cell diagnostic) `2.1154`, delta final bpf (legacy feature-cell diagnostic) `+0.0017`, best ROC AUC `0.6044`, delta final training time `+391.0s`
