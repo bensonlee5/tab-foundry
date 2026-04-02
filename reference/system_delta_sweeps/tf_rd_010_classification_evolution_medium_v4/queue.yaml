@@ -133,7 +133,7 @@ rows:
     drift: 0.0
 - order: 2
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: ready
+  status: completed
   rationale: Test whether moderate MCAR exposure improves robustness before structured
     missingness is considered on the medium validation pool.
   hypothesis: MCAR may improve label-target log loss and calibration on the evolved
@@ -214,16 +214,43 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
-  run_id: null
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 3.763588352250009
+    best_bpc: 2.1256579639472752
+    best_bpf: 2.125644113715126
+    best_roc_auc: 0.5942557872997474
+    best_log_loss: 0.6944203482180122
+    best_brier_score: 0.4318627817048804
+    final_bpc: 2.1256579639472752
+    final_bpf: 2.125644113715126
+    final_roc_auc: 0.5942557872997474
+    final_log_loss: 0.6944203482180122
+    final_brier_score: 0.4318627817048804
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.012015821495424905
+    delta_final_bpf: 0.012025077328116751
+    delta_final_log_loss: 0.01324760814038628
+    delta_final_brier_score: 0.008957711427776904
+    delta_final_roc_auc: -0.015149092257911057
 - order: 3
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: ready
+  status: completed
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random
     masking from observed-feature-linked masking under the evolved benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
@@ -305,16 +332,43 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
-  run_id: null
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 4.285124124463167
+    best_bpc: 2.15481641892254
+    best_bpf: 2.1547950716210336
+    best_roc_auc: 0.576283482414039
+    best_log_loss: 0.7090284828131391
+    best_brier_score: 0.4423770153986563
+    final_bpc: 2.15481641892254
+    final_bpf: 2.1547950716210336
+    final_roc_auc: 0.576283482414039
+    final_log_loss: 0.7090284828131391
+    final_brier_score: 0.4423770153986563
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.04117427647068972
+    delta_final_bpf: 0.041176035234024244
+    delta_final_log_loss: 0.027855742735513167
+    delta_final_brier_score: 0.019471945121552814
+    delta_final_roc_auc: -0.03312139714361939
 - order: 4
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: ready
+  status: completed
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
     can compare MCAR, MAR, and MNAR under the same medium benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least
@@ -396,10 +450,38 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
-  run_id: null
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 3.78163462868021
+    clipped_step_fraction: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    best_log_loss: 0.7095624598702502
+    final_log_loss: 0.7095624597881683
+    best_brier_score: 0.44267743763684875
+    final_brier_score: 0.4426774375120156
+    best_roc_auc: 0.5767964135871957
+    final_roc_auc: 0.5767962681526622
+    best_bpc: 2.167539615264269
+    final_bpc: 2.1675396161455582
+    best_bpf: 2.1675191247454966
+    final_bpf: 2.167519126827322
+    final_minus_best_bpc: 8.812892637877212e-10
+    final_minus_best_bpf: 2.0818253787524554e-09
+    final_minus_best_log_loss: -8.208189683500677e-11
+    final_minus_best_brier_score: -1.2483314382194521e-10
+    final_minus_best_roc_auc: -1.4543453352722224e-07
+    drift: -8.208189683500677e-11
+    delta_final_log_loss: 0.028389719710542383
+    delta_final_brier_score: 0.019772367234912103
+    delta_final_roc_auc: -0.03260861140499627
+    delta_final_bpc: 0.0538974736937079
+    delta_final_bpf: 0.05390009044031263

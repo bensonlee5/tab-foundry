@@ -12,6 +12,7 @@ from tests.support_research.system_delta_execute import (
     test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanotabpfn_env,
     test_run_row_benchmark_full_supports_local_only_benchmark,
     test_run_row_benchmark_full_uses_sweep_training_contract_for_registration,
+    test_run_row_reuse_train_artifact_rejects_row_contract_drift,
     test_run_row_benchmark_full_without_reuse_fails_lazily_when_prior_dump_is_missing,
     test_run_row_reuse_only_skips_fresh_nanotabpfn_helper_when_no_local_reuse_exists,
     test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_helper,

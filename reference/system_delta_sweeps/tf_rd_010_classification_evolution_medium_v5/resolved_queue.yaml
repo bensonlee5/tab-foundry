@@ -1,0 +1,443 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_010_classification_evolution_medium_v5
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/matrix.md
+sweep_id: tf_rd_010_classification_evolution_medium_v5
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+sweep_status: ready
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_v1
+surface_role: custom
+comparison_policy: anchor_only
+upstream_reference:
+  name: EquiTabPFN
+  model_source: https://arxiv.org/abs/2502.06684
+anchor_surface:
+  notes:
+  - This TF-RD-010 medium successor sweep preserves the completed `tf_rd_010_classification_evolution_medium_v4`
+    package as historical evidence while reopening only the control row as a matched
+    sorted-order follow-up. `medium_v4` row 1 reused the older unsorted control train
+    artifact, so `medium_v5` exists to retrain that same control front under the current
+    sorted-order code path before any missingness promotion.
+  - Treat issues `#52`, `#99`, `#197`, `#199`, `#200`, and the completed `#205` package
+    as historical setup or execution context only; issue `#202` is the active umbrella
+    for this single-row follow-up.
+  - Treat TF-RD-021B as historical context only; this package continues the modest
+    sandwich architecture evolution rather than reopening the frozen four-token carry-forward.
+  - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
+  - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo
+    front shape while expanding to `159984` corpus manifest records/tasks per front:
+    `144` invocation cells x `1111` datasets, capped at `<=1024` total rows per synthetic
+    dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and
+    class counts covering every integer from `2` through `10`.'
+  - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and
+    large classification validation bundles plus their materialized manifest parquet
+    outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
+  - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`,
+    `many_class_base=10`, and a direct multiclass head.
+  - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly
+    as label-target log loss per test cell, then inspect calibration, runtime, stability,
+    and any retained legacy cell-likelihood diagnostics as guardrails only.
+  - The medium validation rung follows the upstream hub bundle policy `min_classes=2`,
+    `max_classes=10`, and `max_missing_pct=20.0`; the repo-local `openml_classification_medium_v1`
+    manifest is still a stale placeholder and must not be treated as canonical benchmark-facing
+    evidence.
+  - 'Trusted executions follow the pilot-aligned synthetic one-epoch policy for corpus-backed
+    rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`,
+    resolving to `2500` optimizer steps with `task_batch_size=16`, `runtime.grad_accum_steps=4`,
+    `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`, `lr_max=1e-3`, and
+    `optimizer.min_lr=1e-5`.'
+  - This sweep intentionally keeps only one row so the follow-up resolves the control-order
+    confound without reopening the exploratory medium missingness rows.
+  - This sweep does not reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`;
+    row 1 must retrain `tf_rd_010_dagzoo_medium_control_curated_v5` fresh under the
+    current sorted-order code path before benchmarking on the hub-backed medium manifest.
+  - Compare the resulting sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4`
+    rows 2 through 4 before promoting any missingness recommendation; `large_v2` remains
+    blocked until this row is benchmarked and promoted.
+  dimension_table:
+  - dimension: benchmark ownership
+    upstream: Not applicable.
+    anchor: '`dagzoo` owns the synthetic training fronts while `tab-realdata-hub`
+      owns the real-data validation manifests.'
+    interpretation: This sweep preserves the repo-to-repo contract from `medium_v4`
+      while isolating the row-order confound on the control row.
+  - dimension: classification head
+    upstream: Label-conditioning choices should stay modular so target handling can
+      evolve after the backbone stabilizes.
+    anchor: Direct multiclass head with `many_class_base=10`.
+    interpretation: Treat this as the same bounded head/output evolution rather than
+      reopening staged or hierarchical many-class variants.
+  - dimension: summary bandwidth
+    upstream: Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`.
+    anchor: The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`.
+    interpretation: '`medium_v5` keeps the same evolved sandwich contract and changes
+      only the control-row training provenance.'
+  - dimension: validation surface
+    upstream: Not applicable.
+    anchor: Hub-backed medium classification manifest under local benchmark-manifest
+      id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`.
+    interpretation: Keep the smaller hub-backed classification validation rung fixed
+      while the control row is retrained under the sorted-order code path.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
+  status: ready
+  rationale: Remove the row-order confound between `tf_rd_010_classification_evolution_medium_v4`
+    row 1 and rows 2 through 4 before promoting any TF-RD-010 missingness recommendation
+    on the medium benchmark rung.
+  hypothesis: A fresh sorted-order retrain on `tf_rd_010_dagzoo_medium_control_curated_v5`
+    should provide the canonical medium control comparator for `medium_v4` rows 2
+    through 4 without changing the benchmark contract.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and retrain `tf_rd_010_dagzoo_medium_control_curated_v5` under the current sorted-order
+    code path before benchmarking on the hub-owned medium classification manifest.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+          steps: 2500
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 2500
+      optimizer:
+        min_lr: 1.0e-05
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+      resolved_task_count: 159984
+      resolved_max_steps: 2500
+      resolution_source: local_corpus_record
+  parameter_adequacy_plan:
+  - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
+    from `openml_classification_medium_v1.json` before execution.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline
+    before treating any row outcome as a promotion or defer decision.
+  - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target
+    log loss per test cell, then inspect calibration, runtime, stability, and any
+    retained legacy cell-likelihood diagnostics as guardrails.
+  - Compare directly against `tf_rd_010_classification_evolution_medium_v4` rows 2
+    through 4 before promoting any missingness recommendation or reopening `large_v2`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Train this row fresh under the sorted-order code path, benchmark and
+    register it on the intended hub-backed medium classification manifest, then compare
+    it directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through
+    4 before any missingness promotion; `large_v2` stays blocked until this row is
+    promoted.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to `159984` corpus manifest records/tasks: `144` invocation cells x `1111` datasets,
+    still capped at `<=1024` total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over `159984`
+    corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to
+    `2500` optimizer steps with an allowed short final batch.'
+  - '`tf_rd_010_classification_evolution_medium_v4` remains completed historical evidence:
+    row 1 reused an older unsorted control train artifact while rows 2 through 4 were
+    trained after dataset sorting was enabled.'
+  - '`tf_rd_010_classification_evolution_medium_v5` is intentionally a single-row
+    follow-up that reopens only the control anchor to remove that order confound.'
+  - '`tf_rd_010_classification_evolution_medium_v5` uses the pilot-aligned control
+    contract: `task_batch_size=16`, `grad_accum_steps=4`, `runtime.grad_clip=0.0`,
+    `max_steps=2500`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and
+    `optimizer.min_lr=1e-5`.'
+  - This row benchmarks only `best.pt` and `latest.pt` after the fresh sorted-order
+    retrain so the follow-up stays scoped to the control confound.
+  - This row must be trained fresh under the current sorted-order code path; do not
+    reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
+    or any earlier unsorted control artifact.
+  - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed medium classification
+    manifest.
+  - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4`
+    rows 2 through 4 before promoting any missingness recommendation.
+  - '`large_v2` remains blocked until this row is benchmarked, registered, and promoted.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: data
+  family: provenance
+  binary_applicable: false
+  description: Point training at the TF-RD-010 dagzoo classification control corpus
+    (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract
+    is defined against hub-owned validation manifests.
+  upstream_delta: Not applicable; this is a repo-local synthetic training-front contract
+    tied to the first benchmark-evolution lane.
+  entangled_legacy_stage: none
+  expected_effect: Establish the TF-RD-010 classification control corpus that both
+    the medium and large validation rungs will compare against.
+  adequacy_knobs:
+  - explicit dagzoo provenance for the classification control corpus
+  - medium and large real-data validation separation via `tab-realdata-hub` manifests
+  - class-count coverage, feature-count coverage, missingness policy, and minority-class
+    floor on the validation side
+  parameter_adequacy_policy:
+    default_plan:
+    - Keep the evolved sandwich architecture fixed at FiLM plus `sandwich_summary_tokens_per_axis=3`
+      with the direct multiclass head.
+    - Treat `dagzoo` as the synthetic training owner and `tab-realdata-hub` as the
+      validation-manifest owner.
+    - Rank rows by `final_log_loss_at_matched_regime_budget`, with calibration, runtime,
+      stability, and any retained legacy cell-likelihood diagnostics reported as guardrails.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+        steps: 2500
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 72b828ff3f0ff3295d3758e4a4d194a152569d0f83f8b1bec2d1da70d39be60e
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/resolved_queue.yaml
+inputs_fingerprint: bd44f80de7660897393063ade1d5d0326eb5b5a131b3bdf6c6584643b50490af

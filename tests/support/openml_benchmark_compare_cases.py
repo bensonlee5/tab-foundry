@@ -9,9 +9,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 import tab_foundry.bench.comparison_runtime as compare_module
 import tab_foundry.bench.openml_benchmark as benchmark_module
+import tab_foundry.bench.openml_benchmark.artifacts as benchmark_artifacts_module
 import tab_foundry.cli.bench_compare as compare_cli_module
 from tests.support import manifest_and_dataset_cases as data_cases
 from tests.support.paths import REPO_ROOT
@@ -2438,6 +2440,43 @@ def test_collect_checkpoint_snapshots_falls_back_to_latest_checkpoint_when_no_st
     )
 
     snapshots = benchmark_module.collect_checkpoint_snapshots(run_dir)
+
+    assert snapshots == [
+        {
+            "step": 3,
+            "path": str((checkpoint_dir / "latest.pt").resolve()),
+            "elapsed_seconds": pytest.approx(2.5),
+        }
+    ]
+
+
+def test_selected_checkpoint_snapshots_best_and_final_falls_back_to_latest_when_best_missing(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    torch.save({"model": {}, "config": {}, "global_step": 3}, checkpoint_dir / "latest.pt")
+    history_path = run_dir / "train_history.jsonl"
+    history_path.write_text(
+        json.dumps(
+            {
+                "step": 3,
+                "stage": "stage1",
+                "train_loss": 0.4,
+                "lr": 1.0e-3,
+                "elapsed_seconds": 7.0,
+                "train_elapsed_seconds": 2.5,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    snapshots = benchmark_artifacts_module.selected_checkpoint_snapshots(
+        run_dir,
+        checkpoint_selection="best_and_final",
+    )
 
     assert snapshots == [
         {

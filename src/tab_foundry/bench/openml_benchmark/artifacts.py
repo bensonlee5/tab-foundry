@@ -152,8 +152,12 @@ def selected_checkpoint_snapshots(
     final_checkpoint_path = resolve_latest_checkpoint_path(run_dir)
     if final_checkpoint_path is None:
         final_checkpoint_path = Path(str(final_snapshot["path"]))
+    try:
+        best_checkpoint_path = resolve_tab_foundry_best_checkpoint(run_dir)
+    except RuntimeError:
+        best_checkpoint_path = final_checkpoint_path
     candidates = [
-        resolve_tab_foundry_best_checkpoint(run_dir),
+        best_checkpoint_path,
         final_checkpoint_path,
     ]
     selected: list[dict[str, Any]] = []
@@ -172,17 +176,19 @@ def selected_checkpoint_snapshots(
             if checkpoint_step is None
             else snapshots_by_step.get(int(checkpoint_step))
         )
+        if base_snapshot is None and checkpoint_step is None:
+            selected_step = fallback_step
+        elif base_snapshot is not None:
+            selected_step = int(base_snapshot["step"])
+        else:
+            if checkpoint_step is None:
+                raise RuntimeError(
+                    "checkpoint selection resolved without a fallback step or checkpoint step"
+                )
+            selected_step = int(checkpoint_step)
         selected.append(
             {
-                "step": (
-                    fallback_step
-                    if base_snapshot is None and checkpoint_step is None
-                    else (
-                        int(base_snapshot["step"])
-                        if base_snapshot is not None
-                        else int(checkpoint_step)
-                    )
-                ),
+                "step": selected_step,
                 "path": resolved_path_str,
                 "elapsed_seconds": (
                     fallback_elapsed_seconds

@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
-sweep_id: tf_rd_010_classification_evolution_medium_v4
-parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
-status: completed
+sweep_id: tf_rd_010_classification_evolution_medium_v5
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+status: ready
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -16,14 +16,16 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 medium successor sweep now reuses the completed `tf_rd_010_synthetic_adequacy_v3`
-    production-control training leg as the control-row training artifact. The stale
-    top-level pilot summary under `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/summary.md`
-    is blocked canary output and is not the current gate artifact for this sweep.
-  - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context
-    only rather than active execution evidence.
-  - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
-    architecture evolution rather than a frozen four-token carry-forward.
+  - This TF-RD-010 medium successor sweep preserves the completed `tf_rd_010_classification_evolution_medium_v4`
+    package as historical evidence while reopening only the control row as a matched
+    sorted-order follow-up. `medium_v4` row 1 reused the older unsorted control
+    train artifact, so `medium_v5` exists to retrain that same control front under
+    the current sorted-order code path before any missingness promotion.
+  - Treat issues `#52`, `#99`, `#197`, `#199`, `#200`, and the completed `#205`
+    package as historical setup or execution context only; issue `#202` is the
+    active umbrella for this single-row follow-up.
+  - Treat TF-RD-021B as historical context only; this package continues the modest
+    sandwich architecture evolution rather than reopening the frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
   - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo
     front shape while expanding to `159984` corpus manifest records/tasks per front:
@@ -47,37 +49,39 @@ anchor_surface:
     resolving to `2500` optimizer steps with `task_batch_size=16`, `runtime.grad_accum_steps=4`,
     `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`, `lr_max=1e-3`, and
     `optimizer.min_lr=1e-5`.'
-  - The completed control-row training artifact lives at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
-    and reached `step 2500`; medium row 1 should benchmark and register that artifact
-    rather than retraining the control front.
-  - Missingness rows remain open in this package, but they are exploratory only until
-    curated missingness fronts exist because the control row now uses curated `accepted_only`
-    `v5` while the missingness rows remain `include_all` `v3`.
+  - This sweep intentionally keeps only one row so the follow-up resolves the control-order
+    confound without reopening the exploratory medium missingness rows.
+  - This sweep does not reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`;
+    row 1 must retrain `tf_rd_010_dagzoo_medium_control_curated_v5` fresh under
+    the current sorted-order code path before benchmarking on the hub-backed medium
+    manifest.
+  - Compare the resulting sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4`
+    rows 2 through 4 before promoting any missingness recommendation; `large_v2`
+    remains blocked until this row is benchmarked and promoted.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
     anchor: '`dagzoo` owns the synthetic training fronts while `tab-realdata-hub`
       owns the real-data validation manifests.'
-    interpretation: This sweep defines the repo-to-repo contract for the first benchmark-evolution
-      lane.
+    interpretation: This sweep preserves the repo-to-repo contract from `medium_v4`
+      while isolating the row-order confound on the control row.
   - dimension: classification head
     upstream: Label-conditioning choices should stay modular so target handling can
       evolve after the backbone stabilizes.
     anchor: Direct multiclass head with `many_class_base=10`.
-    interpretation: Treat this as a bounded head/output evolution, not a staged hierarchical
-      many-class port.
+    interpretation: Treat this as the same bounded head/output evolution rather than
+      reopening staged or hierarchical many-class variants.
   - dimension: summary bandwidth
     upstream: Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`.
     anchor: The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`.
-    interpretation: The new benchmark package should evaluate the evolved contract
-      directly rather than replaying the historical four-token anchor.
+    interpretation: '`medium_v5` keeps the same evolved sandwich contract and changes
+      only the control-row training provenance.'
   - dimension: validation surface
     upstream: Not applicable.
     anchor: Hub-backed medium classification manifest under local benchmark-manifest
       id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`.
     interpretation: Keep the smaller hub-backed classification validation rung fixed
-      while the synthetic training front reruns on the corrected sandwich and training
-      surface.
+      while the control row is retrained under the sorted-order code path.
 anchor_context:
   run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
   experiment: cls_benchmark_sandwich_classification_evolution_v1

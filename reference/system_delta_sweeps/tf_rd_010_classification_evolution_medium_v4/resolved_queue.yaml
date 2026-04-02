@@ -6,7 +6,7 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evo
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/matrix.md
 sweep_id: tf_rd_010_classification_evolution_medium_v4
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
-sweep_status: ready
+sweep_status: completed
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -157,7 +157,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: recipe_definition
+      resolution_source: local_corpus_record
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
     from `openml_classification_medium_v1.json` before execution.
@@ -337,15 +337,82 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
       requested_corpus_ref: null
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -393,10 +460,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: db3d4d5e84ddcd1af92308fc86f283e1509c009ce8b0206a97cd4612ee9084a5
+  resolved_surface_fingerprint: 72b828ff3f0ff3295d3758e4a4d194a152569d0f83f8b1bec2d1da70d39be60e
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: ready
+  status: completed
   rationale: Test whether moderate MCAR exposure improves robustness before structured
     missingness is considered on the medium validation pool.
   hypothesis: MCAR may improve label-target log loss and calibration on the evolved
@@ -460,13 +527,11 @@ rows:
     any kept missingness front.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
   next_action: 'Exploratory row: benchmark only after the row-1 control anchor is
     benchmarked and recorded; results are non-promotable until curated missingness
     fronts exist.'
@@ -493,10 +558,38 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 3.763588352250009
+    best_bpc: 2.1256579639472752
+    best_bpf: 2.125644113715126
+    best_roc_auc: 0.5942557872997474
+    best_log_loss: 0.6944203482180122
+    best_brier_score: 0.4318627817048804
+    final_bpc: 2.1256579639472752
+    final_bpf: 2.125644113715126
+    final_roc_auc: 0.5942557872997474
+    final_log_loss: 0.6944203482180122
+    final_brier_score: 0.4318627817048804
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.012015821495424905
+    delta_final_bpf: 0.012025077328116751
+    delta_final_log_loss: 0.01324760814038628
+    delta_final_brier_score: 0.008957711427776904
+    delta_final_roc_auc: -0.015149092257911057
   parent_delta_ref: null
   dimension_family: data
   family: missingness
@@ -739,7 +832,7 @@ rows:
   resolved_surface_fingerprint: 60f35937e0c9701505f061f4c886e3ee2027c5376fcb492fb32c097b15b73fa7
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: ready
+  status: completed
   rationale: Add a structured missingness row so TF-RD-010 can distinguish random
     masking from observed-feature-linked masking under the evolved benchmark contract.
   hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
@@ -794,7 +887,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: recipe_definition
+      resolution_source: local_corpus_record
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring
     structured missingness.
@@ -804,13 +897,11 @@ rows:
     any kept missingness front.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
   next_action: 'Exploratory row: benchmark only after the row-1 control anchor is
     benchmarked and recorded; results are non-promotable until curated missingness
     fronts exist.'
@@ -837,10 +928,38 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 4.285124124463167
+    best_bpc: 2.15481641892254
+    best_bpf: 2.1547950716210336
+    best_roc_auc: 0.576283482414039
+    best_log_loss: 0.7090284828131391
+    best_brier_score: 0.4423770153986563
+    final_bpc: 2.15481641892254
+    final_bpf: 2.1547950716210336
+    final_roc_auc: 0.576283482414039
+    final_log_loss: 0.7090284828131391
+    final_brier_score: 0.4423770153986563
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.04117427647068972
+    delta_final_bpf: 0.041176035234024244
+    delta_final_log_loss: 0.027855742735513167
+    delta_final_brier_score: 0.019471945121552814
+    delta_final_roc_auc: -0.03312139714361939
   parent_delta_ref: null
   dimension_family: data
   family: missingness
@@ -937,15 +1056,102 @@ rows:
       surface_label: tf_rd_010_missingness_mar
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mar_v3
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4
       requested_corpus_ref: null
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mar_v3
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_missingness_mar_v3__f224eab5f6e4
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/manifest.parquet
+        manifest_sha256: f224eab5f6e47f74a44d22f2661deb68080b4b9b64d1dacc249b703a546d1d15
+      dagzoo_provenance:
+        comparator_role: tf_rd_010_candidate
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_missingness_mar_v3__f224eab5f6e4
+        corpus_ref: tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4
+        corpus_variant: tf_rd_010_missingness_mar
+        generator_fingerprint: 5eb6bf643957
+        invocation_count: 144
+        manifest_record_count: 159984
+        posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: tf_rd_010_candidate
+          corpus_recipe_version: v3
+          corpus_variant: tf_rd_010_missingness_mar
+          downstream_issue: 205
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness_mechanism: mar
+          per_invocation_num_datasets: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          task_grid: balanced_rows_features_classes_v1
+          teacher_conditional_export: true
+        recipe_id: tf_rd_010_missingness_mar_v3
+        recipe_kind: dagzoo_python_generated
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness:
+            mechanism: mar
+            rate: 0.25
+          num_datasets_per_invocation: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          teacher_conditional_export: true
+        surface_label: tf_rd_010_missingness_mar
+        target_derivation: tabiclv2_latent_node
+        target_parent_below_sqrt_prob: 0.05
+        target_parent_midrange_prob: 0.2
+        target_parent_mode: max
+        target_parent_near_max_band_min_fraction: 0.75
+        target_parent_prior: near_max_mixture
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+        teacher_conditional_export: true
+        teacher_conditional_metric_definition: label-target log loss per test cell
       overrides:
         source: manifest
         manifest_path: null
@@ -993,10 +1199,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 11a430b5f5fa7d5bfe9055fa6d99334c5db5428eef20e16f4d2e5f518062dba7
+  resolved_surface_fingerprint: 71fd6c814bcd7c0a1799c31746551df915b0915a752da53124df3be6f1f128ee
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: ready
+  status: completed
   rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
     can compare MCAR, MAR, and MNAR under the same medium benchmark contract.
   hypothesis: MNAR may be the hardest missingness front, but it may also be the least
@@ -1051,7 +1257,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: recipe_definition
+      resolution_source: local_corpus_record
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring
     the strongest self-masking option.
@@ -1061,13 +1267,11 @@ rows:
     any kept missingness front.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - control row uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`
-  - this missingness row remains `include_all` `v3`
+  decision: defer
+  interpretation_status: completed
+  confounders: []
   next_action: 'Exploratory row: benchmark only after the row-1 control anchor is
     benchmarked and recorded; results are non-promotable until curated missingness
     fronts exist.'
@@ -1094,10 +1298,39 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
+  - Exploratory missingness row benchmarked against the refreshed hub-backed medium
+    manifest using best and final checkpoints only; non-promotable until curated missingness
+    fronts exist.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 3.78163462868021
+    clipped_step_fraction: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    best_log_loss: 0.7095624598702502
+    final_log_loss: 0.7095624597881683
+    best_brier_score: 0.44267743763684875
+    final_brier_score: 0.4426774375120156
+    best_roc_auc: 0.5767964135871957
+    final_roc_auc: 0.5767962681526622
+    best_bpc: 2.167539615264269
+    final_bpc: 2.1675396161455582
+    best_bpf: 2.1675191247454966
+    final_bpf: 2.167519126827322
+    final_minus_best_bpc: 8.812892637877212e-10
+    final_minus_best_bpf: 2.0818253787524554e-09
+    final_minus_best_log_loss: -8.208189683500677e-11
+    final_minus_best_brier_score: -1.2483314382194521e-10
+    final_minus_best_roc_auc: -1.4543453352722224e-07
+    drift: -8.208189683500677e-11
+    delta_final_log_loss: 0.028389719710542383
+    delta_final_brier_score: 0.019772367234912103
+    delta_final_roc_auc: -0.03260861140499627
+    delta_final_bpc: 0.0538974736937079
+    delta_final_bpf: 0.05390009044031263
   parent_delta_ref: null
   dimension_family: data
   family: missingness
@@ -1195,15 +1428,102 @@ rows:
       surface_label: tf_rd_010_missingness_mnar
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mnar_v3
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805
       requested_corpus_ref: null
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mnar_v3
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_missingness_mnar_v3__991de3c5c805
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/manifest.parquet
+        manifest_sha256: 991de3c5c805b604c2e4c67af7c55d7f697bb2eea4dc6784745d33d7dd076f4b
+      dagzoo_provenance:
+        comparator_role: tf_rd_010_candidate
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_missingness_mnar_v3__991de3c5c805
+        corpus_ref: tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805
+        corpus_variant: tf_rd_010_missingness_mnar
+        generator_fingerprint: b840b0816c57
+        invocation_count: 144
+        manifest_record_count: 159984
+        posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: tf_rd_010_candidate
+          corpus_recipe_version: v3
+          corpus_variant: tf_rd_010_missingness_mnar
+          downstream_issue: 205
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness_mechanism: mnar
+          per_invocation_num_datasets: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          task_grid: balanced_rows_features_classes_v1
+          teacher_conditional_export: true
+        recipe_id: tf_rd_010_missingness_mnar_v3
+        recipe_kind: dagzoo_python_generated
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness:
+            mechanism: mnar
+            rate: 0.25
+          num_datasets_per_invocation: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          teacher_conditional_export: true
+        surface_label: tf_rd_010_missingness_mnar
+        target_derivation: tabiclv2_latent_node
+        target_parent_below_sqrt_prob: 0.05
+        target_parent_midrange_prob: 0.2
+        target_parent_mode: max
+        target_parent_near_max_band_min_fraction: 0.75
+        target_parent_prior: near_max_mixture
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+        teacher_conditional_export: true
+        teacher_conditional_metric_definition: label-target log loss per test cell
       overrides:
         source: manifest
         manifest_path: null
@@ -1251,6 +1571,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 06e855120e76bfedb0eed931904d480d7996198504cb73097dcf5f3c9bf796a1
+  resolved_surface_fingerprint: 5c2fe334e601ae78d310357633456e020bc186c4a8fffcb117ce9b048bd674f9
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml
-inputs_fingerprint: 027ce054b301bf42cf4b991ed2f68c0570fd393250fa2032349e100fb08ceb28
+inputs_fingerprint: 9dcfb9b79df2c8d9406ec31adc60ca6c676b6685f7bca249ea97638da5501250

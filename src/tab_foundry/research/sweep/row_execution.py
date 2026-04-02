@@ -319,6 +319,16 @@ def run_row(
     effective_train_dir = train_dir
     if reuse_train_artifact is not None:
         configured_reuse_run_dir, effective_train_dir, reuse_surface_fingerprint = reuse_train_artifact
+        current_surface_fingerprint = expected_surface_fingerprint or tracked_surface_fingerprint
+        if (
+            current_surface_fingerprint is not None
+            and reuse_surface_fingerprint != current_surface_fingerprint
+        ):
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] pinned reusable train artifact does not match "
+                "the resolved queue contract: "
+                f"expected={current_surface_fingerprint} pinned={reuse_surface_fingerprint}"
+            )
         if not _training_state.completed_train_artifacts_exist(
             effective_train_dir,
             expected_backend=training_backend,
