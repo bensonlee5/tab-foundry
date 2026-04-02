@@ -16,9 +16,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--recipe-id", required=True)
     parser.add_argument("--dagzoo-root", required=True)
     parser.add_argument("--repo-root", required=True)
+    parser.add_argument("--result-path", required=True)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--materialize-processes", type=int, required=True)
-    parser.add_argument("--materialize-worker-threads", type=int, required=True)
+    parser.add_argument("--materialize-worker-threads", type=int, default=None)
     parser.add_argument("--sweep-id", default=None)
     parser.add_argument("--sweeps-root", default=None)
     return parser
@@ -30,7 +31,11 @@ def run_from_args(args: argparse.Namespace) -> int:
         dagzoo_root=Path(str(args.dagzoo_root)).expanduser().resolve(),
         force=bool(args.force),
         materialize_processes=int(args.materialize_processes),
-        materialize_worker_threads=int(args.materialize_worker_threads),
+        materialize_worker_threads=(
+            None
+            if args.materialize_worker_threads is None
+            else int(args.materialize_worker_threads)
+        ),
         repo_root=Path(str(args.repo_root)).expanduser().resolve(),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
         sweeps_root=(
@@ -39,7 +44,10 @@ def run_from_args(args: argparse.Namespace) -> int:
             else Path(str(args.sweeps_root)).expanduser().resolve()
         ),
     )
-    print(json.dumps(record, sort_keys=True), flush=True)
+    Path(str(args.result_path)).expanduser().resolve().write_text(
+        json.dumps(record, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return 0
 
 

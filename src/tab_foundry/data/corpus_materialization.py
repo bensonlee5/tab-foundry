@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Any, Callable, Mapping, Sequence, cast
 
@@ -116,6 +117,7 @@ class _ActiveRecipeProcess:
     process: subprocess.Popen[str]
     pending: _PendingRecipeWorkerMaterialization
     materialize_processes: int
+    result_path: Path
 
 
 def _resolved_cpu_count(*, cpu_count: int | None = None) -> int:
@@ -2153,8 +2155,9 @@ def _recipe_worker_argv(
     dagzoo_root: Path,
     force: bool,
     repo_root: Path,
+    result_path: Path,
     materialize_processes: int,
-    materialize_worker_threads: int,
+    materialize_worker_threads: int | None,
     sweep_id: str | None,
     sweeps_root: Path | None,
 ) -> list[str]:
@@ -2168,11 +2171,18 @@ def _recipe_worker_argv(
         str(dagzoo_root.expanduser().resolve()),
         "--repo-root",
         str(repo_root.expanduser().resolve()),
+        "--result-path",
+        str(result_path.expanduser().resolve()),
         "--materialize-processes",
         str(int(materialize_processes)),
-        "--materialize-worker-threads",
-        str(int(materialize_worker_threads)),
     ]
+    if materialize_worker_threads is not None:
+        argv.extend(
+            [
+                "--materialize-worker-threads",
+                str(int(materialize_worker_threads)),
+            ]
+        )
     if force:
         argv.append("--force")
     if sweep_id is not None:
@@ -2224,47 +2234,45 @@ def _materialize_process_slot_allocations(
 def _load_completed_recipe_worker_record(
     active_process: _ActiveRecipeProcess,
 ) -> dict[str, Any]:
-    process = active_process.process
-    stdout, stderr = process.communicate()
-    returncode = process.returncode
-    if returncode is None:
-        returncode = process.poll()
-    if returncode is None:
-        raise RuntimeError(
-            "recipe materialization subprocess ended without a return code: "
-            f"recipe_id={active_process.pending.recipe_id!r}"
-        )
-    if int(returncode) != 0:
-        detail = stderr.strip() if isinstance(stderr, str) else ""
-        detail_suffix = f" stderr={detail!r}" if detail else ""
-        raise RuntimeError(
-            "recipe materialization subprocess failed: "
-            f"recipe_id={active_process.pending.recipe_id!r} "
-            f"returncode={int(returncode)} "
-            f"argv={process.args!r}{detail_suffix}"
-        )
-    normalized_stdout = stdout.strip() if isinstance(stdout, str) else ""
-    if not normalized_stdout:
-        raise RuntimeError(
-            "recipe materialization subprocess produced no JSON record: "
-            f"recipe_id={active_process.pending.recipe_id!r} "
-            f"argv={process.args!r}"
-        )
     try:
-        payload = json.loads(normalized_stdout)
+        process = active_process.process
+        returncode = process.returncode
+        if returncode is None:
+            returncode = process.poll()
+        if returncode is None:
+            raise RuntimeError(
+                "recipe materialization subprocess ended without a return code: "
+                f"recipe_id={active_process.pending.recipe_id!r}"
+            )
+        if int(returncode) != 0:
+            raise RuntimeError(
+                "recipe materialization subprocess failed: "
+                f"recipe_id={active_process.pending.recipe_id!r} "
+                f"returncode={int(returncode)} "
+                f"argv={process.args!r}"
+            )
+        if not active_process.result_path.exists():
+            raise RuntimeError(
+                "recipe materialization subprocess produced no JSON record: "
+                f"recipe_id={active_process.pending.recipe_id!r} "
+                f"argv={process.args!r}"
+            )
+        payload = json.loads(active_process.result_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, Mapping):
+            raise RuntimeError(
+                "recipe materialization subprocess JSON payload must decode to an object: "
+                f"recipe_id={active_process.pending.recipe_id!r} "
+                f"argv={process.args!r}"
+            )
+        return {str(key): value for key, value in payload.items()}
     except json.JSONDecodeError as exc:
         raise RuntimeError(
             "recipe materialization subprocess emitted invalid JSON: "
             f"recipe_id={active_process.pending.recipe_id!r} "
             f"argv={process.args!r}"
         ) from exc
-    if not isinstance(payload, Mapping):
-        raise RuntimeError(
-            "recipe materialization subprocess JSON payload must decode to an object: "
-            f"recipe_id={active_process.pending.recipe_id!r} "
-            f"argv={process.args!r}"
-        )
-    return {str(key): value for key, value in payload.items()}
+    finally:
+        active_process.result_path.unlink(missing_ok=True)
 
 
 def _materialize_pending_recipes_with_subprocess_fanout(
@@ -2279,10 +2287,6 @@ def _materialize_pending_recipes_with_subprocess_fanout(
         return []
 
     total_process_budget = _resolve_materialize_processes(materialize_processes)
-    resolved_worker_threads = _resolve_materialize_worker_threads(
-        materialize_worker_threads,
-        materialize_processes=total_process_budget,
-    )
     max_workers = min(total_process_budget, len(pending_requests))
     available_process_slots = deque(
         _materialize_process_slot_allocations(
@@ -2311,26 +2315,36 @@ def _materialize_pending_recipes_with_subprocess_fanout(
             while launch_queue and available_process_slots:
                 pending = launch_queue.popleft()
                 allocated_processes = available_process_slots.popleft()
-                process = subprocess.Popen(
-                    _recipe_worker_argv(
-                        recipe_id=pending.recipe_id,
-                        dagzoo_root=pending.dagzoo_root,
-                        force=pending.force,
-                        repo_root=pending.repo_root,
-                        materialize_processes=allocated_processes,
-                        materialize_worker_threads=resolved_worker_threads,
-                        sweep_id=pending.sweep_id,
-                        sweeps_root=pending.sweeps_root,
-                    ),
-                    cwd=pending.repo_root,
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                result_fd, result_path_raw = tempfile.mkstemp(
+                    prefix="tab-foundry-corpus-materialization-",
+                    suffix=".json",
                 )
+                os.close(result_fd)
+                result_path = Path(result_path_raw)
+                try:
+                    process = subprocess.Popen(
+                        _recipe_worker_argv(
+                            recipe_id=pending.recipe_id,
+                            dagzoo_root=pending.dagzoo_root,
+                            force=pending.force,
+                            repo_root=pending.repo_root,
+                            result_path=result_path,
+                            materialize_processes=allocated_processes,
+                            materialize_worker_threads=materialize_worker_threads,
+                            sweep_id=pending.sweep_id,
+                            sweeps_root=pending.sweeps_root,
+                        ),
+                        cwd=pending.repo_root,
+                        text=True,
+                    )
+                except Exception:
+                    result_path.unlink(missing_ok=True)
+                    raise
                 active_processes[int(process.pid)] = _ActiveRecipeProcess(
                     process=process,
                     pending=pending,
                     materialize_processes=allocated_processes,
+                    result_path=result_path,
                 )
 
             completed_pid: int | None = None
@@ -2357,6 +2371,8 @@ def _materialize_pending_recipes_with_subprocess_fanout(
     finally:
         if active_processes:
             _terminate_active_recipe_subprocesses(active_processes)
+        for active_process in active_processes.values():
+            active_process.result_path.unlink(missing_ok=True)
 
 
 def _invocation_record_payload(
