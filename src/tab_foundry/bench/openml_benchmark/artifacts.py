@@ -7,11 +7,14 @@ import platform
 from pathlib import Path
 from typing import Any, Mapping
 
+import torch
+
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
     resolve_train_elapsed_seconds,
 )
 from tab_foundry.device import resolve_device
+from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
 from .dataset_common import BenchmarkDataset, BenchmarkDatasetEvaluationError
@@ -112,6 +115,92 @@ def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
     ]
 
 
+def _resolve_checkpoint_selection(checkpoint_selection: str) -> str:
+    normalized = str(checkpoint_selection).strip().lower()
+    if normalized in {"", "all"}:
+        return "all"
+    if normalized == "best_and_final":
+        return normalized
+    raise RuntimeError(
+        "checkpoint_selection must be one of ['all', 'best_and_final'], "
+        f"got {checkpoint_selection!r}"
+    )
+
+
+def _checkpoint_global_step(checkpoint_path: Path) -> int | None:
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(f"checkpoint payload must be a mapping: {checkpoint_path}")
+    raw_global_step = payload.get("global_step")
+    if raw_global_step is None:
+        return None
+    return int(raw_global_step)
+
+
+def selected_checkpoint_snapshots(
+    run_dir: Path,
+    *,
+    checkpoint_selection: str = "all",
+) -> list[dict[str, Any]]:
+    snapshots = collect_checkpoint_snapshots(run_dir)
+    selection = _resolve_checkpoint_selection(checkpoint_selection)
+    if selection == "all":
+        return snapshots
+
+    final_snapshot = snapshots[-1]
+    snapshots_by_step = {int(snapshot["step"]): snapshot for snapshot in snapshots}
+    final_checkpoint_path = resolve_latest_checkpoint_path(run_dir)
+    if final_checkpoint_path is None:
+        final_checkpoint_path = Path(str(final_snapshot["path"]))
+    try:
+        best_checkpoint_path = resolve_tab_foundry_best_checkpoint(run_dir)
+    except RuntimeError:
+        best_checkpoint_path = final_checkpoint_path
+    candidates = [
+        best_checkpoint_path,
+        final_checkpoint_path,
+    ]
+    selected: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    fallback_elapsed_seconds = float(final_snapshot["elapsed_seconds"])
+    fallback_step = int(final_snapshot["step"])
+
+    for checkpoint_path in candidates:
+        resolved_checkpoint_path = checkpoint_path.expanduser().resolve()
+        resolved_path_str = str(resolved_checkpoint_path)
+        if resolved_path_str in seen_paths:
+            continue
+        checkpoint_step = _checkpoint_global_step(resolved_checkpoint_path)
+        base_snapshot = (
+            None
+            if checkpoint_step is None
+            else snapshots_by_step.get(int(checkpoint_step))
+        )
+        if base_snapshot is None and checkpoint_step is None:
+            selected_step = fallback_step
+        elif base_snapshot is not None:
+            selected_step = int(base_snapshot["step"])
+        else:
+            if checkpoint_step is None:
+                raise RuntimeError(
+                    "checkpoint selection resolved without a fallback step or checkpoint step"
+                )
+            selected_step = int(checkpoint_step)
+        selected.append(
+            {
+                "step": selected_step,
+                "path": resolved_path_str,
+                "elapsed_seconds": (
+                    fallback_elapsed_seconds
+                    if base_snapshot is None
+                    else float(base_snapshot["elapsed_seconds"])
+                ),
+            }
+        )
+        seen_paths.add(resolved_path_str)
+    return selected
+
+
 def evaluate_tab_foundry_run(
     run_dir: Path,
     *,
@@ -120,6 +209,7 @@ def evaluate_tab_foundry_run(
     device: str,
     allow_checkpoint_failures: bool = False,
     allow_missing_values: bool = False,
+    checkpoint_selection: str = "all",
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
 
@@ -127,7 +217,10 @@ def evaluate_tab_foundry_run(
 
     resolved_device = resolve_device(device)
     curve_records: list[dict[str, Any]] = []
-    for snapshot in collect_checkpoint_snapshots(run_dir):
+    for snapshot in selected_checkpoint_snapshots(
+        run_dir,
+        checkpoint_selection=checkpoint_selection,
+    ):
         checkpoint_path = Path(str(snapshot["path"]))
         try:
             predictor: Any

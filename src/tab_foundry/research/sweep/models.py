@@ -21,6 +21,7 @@ MATERIALIZED_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-queue-v1"
 RESOLVED_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-resolved-queue-v1"
 DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_NANOTABPFN,)
 DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_TABICLV2,)
+ALLOWED_BENCHMARK_CHECKPOINT_SELECTIONS: Final = frozenset({"all", "best_and_final"})
 
 
 def _require_non_empty_string(value: str, *, context: str) -> str:
@@ -62,6 +63,15 @@ def _normalize_optional_external_benchmarks(
             allow_empty=True,
         )
     )
+
+
+def _normalize_benchmark_checkpoint_selection(value: Any, *, field_name: str) -> str:
+    normalized = _require_non_empty_string(str(value), context=field_name).strip().lower()
+    if normalized not in ALLOWED_BENCHMARK_CHECKPOINT_SELECTIONS:
+        raise ValueError(
+            f"{field_name} must be one of {sorted(ALLOWED_BENCHMARK_CHECKPOINT_SELECTIONS)}"
+        )
+    return normalized
 
 
 class _SweepPayloadModel(BaseModel):
@@ -238,6 +248,17 @@ class SweepPayload(_SweepPayloadModel):
         return _normalize_optional_external_benchmarks(value, field_name="external_benchmarks")
 
 
+class ReuseTrainArtifactPayload(_SweepPayloadModel):
+    run_dir: StrictStr
+    training_surface_fingerprint: StrictStr
+
+    @field_validator("run_dir", "training_surface_fingerprint")
+    @classmethod
+    def _validate_required_strings(cls, value: str, info: ValidationInfo) -> str:
+        assert info.field_name is not None
+        return _require_non_empty_string(value, context=str(info.field_name))
+
+
 class QueueRowPayload(_SweepPayloadModel):
     order: StrictInt
     delta_ref: StrictStr
@@ -251,6 +272,7 @@ class QueueRowPayload(_SweepPayloadModel):
     training: dict[StrictStr, Any] = Field(default_factory=dict)
     parameter_adequacy_plan: list[str] = Field(default_factory=list)
     execution_policy: StrictStr = "benchmark_full"
+    benchmark_checkpoint_selection: StrictStr = "all"
     run_id: StrictStr | None = None
     followup_run_ids: list[str] = Field(default_factory=list)
     decision: StrictStr | None = None
@@ -259,6 +281,7 @@ class QueueRowPayload(_SweepPayloadModel):
     next_action: StrictStr = ""
     notes: list[str] = Field(default_factory=list)
     dynamic_model_overrides: dict[StrictStr, Any] | None = None
+    reuse_train_artifact: ReuseTrainArtifactPayload | None = None
     screen_metrics: dict[StrictStr, Any] | None = None
     benchmark_metrics: dict[StrictStr, Any] | None = None
     parent_delta_ref: StrictStr | None = None
@@ -269,10 +292,16 @@ class QueueRowPayload(_SweepPayloadModel):
         "anchor_delta",
         "interpretation_status",
         "execution_policy",
+        "benchmark_checkpoint_selection",
     )
     @classmethod
     def _validate_required_strings(cls, value: str, info: ValidationInfo) -> str:
         assert info.field_name is not None
+        if info.field_name == "benchmark_checkpoint_selection":
+            return _normalize_benchmark_checkpoint_selection(
+                value,
+                field_name=str(info.field_name),
+            )
         return _require_non_empty_string(value, context=str(info.field_name))
 
     @field_validator("run_id", "decision", "parent_delta_ref")
@@ -312,6 +341,7 @@ class MaterializedQueueRowPayload(_SweepPayloadModel):
     training: dict[StrictStr, Any] = Field(default_factory=dict)
     parameter_adequacy_plan: list[str] = Field(default_factory=list)
     execution_policy: StrictStr = "benchmark_full"
+    benchmark_checkpoint_selection: StrictStr = "all"
     run_id: StrictStr | None = None
     followup_run_ids: list[str] = Field(default_factory=list)
     decision: StrictStr | None = None
@@ -320,6 +350,7 @@ class MaterializedQueueRowPayload(_SweepPayloadModel):
     next_action: StrictStr = ""
     notes: list[str] = Field(default_factory=list)
     dynamic_model_overrides: dict[StrictStr, Any] | None = None
+    reuse_train_artifact: ReuseTrainArtifactPayload | None = None
     screen_metrics: dict[StrictStr, Any] | None = None
     benchmark_metrics: dict[StrictStr, Any] | None = None
     parent_delta_ref: StrictStr | None = None
@@ -338,10 +369,16 @@ class MaterializedQueueRowPayload(_SweepPayloadModel):
         "delta_id",
         "status",
         "execution_policy",
+        "benchmark_checkpoint_selection",
     )
     @classmethod
     def _validate_required_strings(cls, value: str, info: ValidationInfo) -> str:
         assert info.field_name is not None
+        if info.field_name == "benchmark_checkpoint_selection":
+            return _normalize_benchmark_checkpoint_selection(
+                value,
+                field_name=str(info.field_name),
+            )
         return _require_non_empty_string(value, context=str(info.field_name))
 
     @field_validator(

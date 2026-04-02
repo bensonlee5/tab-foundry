@@ -1,0 +1,106 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_010_classification_evolution_medium_v5
+rows:
+- order: 1
+  delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
+  status: ready
+  rationale: Remove the row-order confound between `tf_rd_010_classification_evolution_medium_v4`
+    row 1 and rows 2 through 4 before promoting any TF-RD-010 missingness recommendation
+    on the medium benchmark rung.
+  hypothesis: A fresh sorted-order retrain on `tf_rd_010_dagzoo_medium_control_curated_v5`
+    should provide the canonical medium control comparator for `medium_v4` rows 2
+    through 4 without changing the benchmark contract.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and retrain `tf_rd_010_dagzoo_medium_control_curated_v5` under the current sorted-order
+    code path before benchmarking on the hub-owned medium classification manifest.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      schedule:
+        stages:
+        - name: prior_dump
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+      runtime:
+        grad_accum_steps: 4
+      optimizer:
+        min_lr: 1.0e-05
+  parameter_adequacy_plan:
+  - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
+    from `openml_classification_medium_v1.json` before execution.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline
+    before treating any row outcome as a promotion or defer decision.
+  - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target
+    log loss per test cell, then inspect calibration, runtime, stability, and any
+    retained legacy cell-likelihood diagnostics as guardrails.
+  - Compare directly against `tf_rd_010_classification_evolution_medium_v4` rows
+    2 through 4 before promoting any missingness recommendation or reopening `large_v2`.
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Train this row fresh under the sorted-order code path, benchmark and
+    register it on the intended hub-backed medium classification manifest, then compare
+    it directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through
+    4 before any missingness promotion; `large_v2` stays blocked until this row is
+    promoted.
+  notes:
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - 'This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it
+    to `159984` corpus manifest records/tasks: `144` invocation cells x `1111` datasets,
+    still capped at `<=1024` total rows per synthetic dataset.'
+  - 'Trusted executions use a single synthetic epoch only: one pass over `159984`
+    corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to
+    `2500` optimizer steps with an allowed short final batch.'
+  - '`tf_rd_010_classification_evolution_medium_v4` remains completed historical
+    evidence: row 1 reused an older unsorted control train artifact while rows 2
+    through 4 were trained after dataset sorting was enabled.'
+  - '`tf_rd_010_classification_evolution_medium_v5` is intentionally a single-row
+    follow-up that reopens only the control anchor to remove that order confound.'
+  - '`tf_rd_010_classification_evolution_medium_v5` uses the pilot-aligned control
+    contract: `task_batch_size=16`, `grad_accum_steps=4`, `runtime.grad_clip=0.0`,
+    `max_steps=2500`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and
+    `optimizer.min_lr=1e-5`.'
+  - This row benchmarks only `best.pt` and `latest.pt` after the fresh sorted-order
+    retrain so the follow-up stays scoped to the control confound.
+  - This row must be trained fresh under the current sorted-order code path; do not
+    reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
+    or any earlier unsorted control artifact.
+  - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
+    canonical benchmark registration must use the intended hub-backed medium classification
+    manifest.
+  - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4`
+    rows 2 through 4 before promoting any missingness recommendation.
+  - '`large_v2` remains blocked until this row is benchmarked, registered, and promoted.'

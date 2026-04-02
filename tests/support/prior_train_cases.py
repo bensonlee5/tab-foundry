@@ -2885,6 +2885,87 @@ def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
     assert all("roc_auc" in record for record in records)
 
 
+def test_evaluate_tab_foundry_run_can_limit_to_best_and_final_checkpoints(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _FakeClassifier:
+        def __init__(self, checkpoint_path: Path, *, device: str = "cpu") -> None:
+            self.checkpoint_path = checkpoint_path
+            self.device = device
+            self.model_spec = SimpleNamespace(arch="tabfoundry_staged", stage="nano_exact")
+            self.model = SimpleNamespace(benchmark_profile=None)
+
+        def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_FakeClassifier":
+            _ = (x_train, y_train)
+            return self
+
+        def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+            _ = x_test
+            return np.tile(np.asarray([[0.25, 0.75]], dtype=np.float64), (x_test.shape[0], 1))
+
+    monkeypatch.setattr(checkpoint_module, "TabFoundryClassifier", _FakeClassifier)
+
+    run_dir = tmp_path / "prior_run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    torch.save({"model": {}, "config": {}, "global_step": 25}, checkpoint_dir / "best.pt")
+    torch.save({"model": {}, "config": {}, "global_step": 50}, checkpoint_dir / "latest.pt")
+    (checkpoint_dir / "step_000025.pt").write_bytes(b"step25")
+    (checkpoint_dir / "step_000050.pt").write_bytes(b"step50")
+    history_path = run_dir / "train_history.jsonl"
+    history_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "step": 25,
+                        "stage": "prior_dump",
+                        "train_loss": 0.5,
+                        "train_acc": 0.5,
+                        "lr": 4.0e-3,
+                        "grad_norm": 1.0,
+                        "elapsed_seconds": 1.0,
+                        "train_elapsed_seconds": 1.0,
+                        "val_loss": None,
+                        "val_acc": None,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "step": 50,
+                        "stage": "prior_dump",
+                        "train_loss": 0.4,
+                        "train_acc": 0.6,
+                        "lr": 4.0e-3,
+                        "grad_norm": 1.1,
+                        "elapsed_seconds": 2.0,
+                        "train_elapsed_seconds": 2.0,
+                        "val_loss": None,
+                        "val_acc": None,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    x = np.tile(np.arange(20, dtype=np.float32)[:, None], (1, 2))
+    y = np.asarray([0, 1] * 10, dtype=np.int64)
+    records = evaluate_tab_foundry_run(
+        run_dir,
+        datasets={"toy": (x, y)},
+        task_type="supervised_classification",
+        device="cpu",
+        checkpoint_selection="best_and_final",
+    )
+
+    assert [Path(str(record["checkpoint_path"])).name for record in records] == ["best.pt", "latest.pt"]
+    assert [int(record["step"]) for record in records] == [25, 50]
+    assert all("roc_auc" in record for record in records)
+
+
 def test_tabfoundry_staged_nano_exact_matches_simple_prior_batch_loss() -> None:
     torch.manual_seed(0)
     simple = TabFoundrySimpleClassifier(

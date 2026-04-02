@@ -14,6 +14,7 @@ DEFAULT_NANOTABPFN_SEEDS = 2
 DEFAULT_NANOTABPFN_EVAL_EVERY = 250
 DEFAULT_NANOTABPFN_BATCH_SIZE = 32
 DEFAULT_NANOTABPFN_LR = 4.0e-3
+DEFAULT_TAB_FOUNDRY_CHECKPOINT_SELECTION = "all"
 DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION = "tabicl-classifier-v2-20260212.ckpt"
 DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION = "tabicl-regressor-v2-20260212.ckpt"
 
@@ -32,6 +33,7 @@ class BenchmarkComparisonConfig:
     nanotabpfn_eval_every: int = DEFAULT_NANOTABPFN_EVAL_EVERY
     nanotabpfn_batch_size: int = DEFAULT_NANOTABPFN_BATCH_SIZE
     nanotabpfn_lr: float = DEFAULT_NANOTABPFN_LR
+    tab_foundry_checkpoint_selection: str = DEFAULT_TAB_FOUNDRY_CHECKPOINT_SELECTION
     control_baseline_id: str | None = None
     control_baseline_registry: Path | None = None
     benchmark_manifest_path: Path | None = None

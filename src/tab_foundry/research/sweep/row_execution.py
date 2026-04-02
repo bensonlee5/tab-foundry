@@ -63,6 +63,7 @@ DEFAULT_NANOTABPFN_LR = _DEFAULT_NANOTABPFN_LR
 DEFAULT_TRACK = "system_delta_binary_medium_v1"
 DEFAULT_BUDGET_CLASS = "short-run"
 DEFAULT_DECISION = "defer"
+DEFAULT_BENCHMARK_CHECKPOINT_SELECTION = "all"
 DEFAULT_CONCLUSION = (
     "Canonical benchmark comparison recorded against the locked sweep anchor; "
     "interpret this row in the full sweep context."
@@ -78,6 +79,38 @@ def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any] | 
     if not isinstance(raw_value, Mapping):
         return None
     return cast(Mapping[str, Any], raw_value)
+
+
+def _append_unique_queue_note(queue_row: dict[str, Any], note: str) -> None:
+    notes = queue_row.get("notes")
+    normalized_notes = [str(item) for item in notes] if isinstance(notes, list) else []
+    if note not in normalized_notes:
+        normalized_notes.append(note)
+    queue_row["notes"] = normalized_notes
+
+
+def _reuse_train_artifact_payload(
+    row: Mapping[str, Any],
+) -> tuple[str, Path, str] | None:
+    raw_payload = row.get("reuse_train_artifact")
+    if raw_payload is None:
+        return None
+    if not isinstance(raw_payload, Mapping):
+        raise RuntimeError("reuse_train_artifact must be a mapping when present")
+    raw_run_dir = raw_payload.get("run_dir")
+    if not isinstance(raw_run_dir, str) or not raw_run_dir.strip():
+        raise RuntimeError("reuse_train_artifact.run_dir must be a non-empty string")
+    raw_fingerprint = raw_payload.get("training_surface_fingerprint")
+    if not isinstance(raw_fingerprint, str) or not raw_fingerprint.strip():
+        raise RuntimeError(
+            "reuse_train_artifact.training_surface_fingerprint must be a non-empty string"
+        )
+    normalized_run_dir = str(raw_run_dir).strip()
+    return (
+        normalized_run_dir,
+        resolve_registry_path_value(normalized_run_dir),
+        str(raw_fingerprint).strip(),
+    )
 
 
 def _sweep_wandb_summary_payload(
@@ -144,6 +177,17 @@ def _normalize_execution_policy(queue_row: Mapping[str, Any]) -> str:
     return policy
 
 
+def _benchmark_checkpoint_selection(
+    queue_row: Mapping[str, Any],
+    materialized_row: Mapping[str, Any],
+) -> str:
+    for payload in (materialized_row, queue_row):
+        raw_value = payload.get("benchmark_checkpoint_selection")
+        if isinstance(raw_value, str) and raw_value.strip():
+            return str(raw_value).strip().lower()
+    return DEFAULT_BENCHMARK_CHECKPOINT_SELECTION
+
+
 def _optional_typed_sweep(sweep_meta: Mapping[str, Any]) -> SweepPayload | None:
     try:
         return SweepPayload.model_validate(sweep_meta)
@@ -186,6 +230,7 @@ def run_row(
     reuse_nanotabpfn_only: bool = False,
 ) -> str:
     execution_policy = _normalize_execution_policy(queue_row)
+    benchmark_checkpoint_selection = _benchmark_checkpoint_selection(queue_row, materialized_row)
     sweep = _optional_typed_sweep(sweep_meta)
     _row_dependencies.resolve_dynamic_model_overrides(
         queue=queue,
@@ -264,8 +309,62 @@ def run_row(
             f"sweep {sweep_id!r} row {int(queue_row['order']):02d}: "
             f"expected={expected_surface_fingerprint} tracked={tracked_surface_fingerprint}"
         )
-    training_backend = resolve_training_backend(cfg)
-    if _training_state.completed_train_artifacts_exist(
+    reuse_train_artifact = _reuse_train_artifact_payload(materialized_row)
+    if reuse_train_artifact is None:
+        reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
+    training_backend = resolve_training_backend(
+        cfg,
+        allow_unresolved_corpus_ref=reuse_train_artifact is not None,
+    )
+    effective_train_dir = train_dir
+    if reuse_train_artifact is not None:
+        configured_reuse_run_dir, effective_train_dir, reuse_surface_fingerprint = reuse_train_artifact
+        current_surface_fingerprint = expected_surface_fingerprint or tracked_surface_fingerprint
+        if (
+            current_surface_fingerprint is not None
+            and reuse_surface_fingerprint != current_surface_fingerprint
+        ):
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] pinned reusable train artifact does not match "
+                "the resolved queue contract: "
+                f"expected={current_surface_fingerprint} pinned={reuse_surface_fingerprint}"
+            )
+        if not _training_state.completed_train_artifacts_exist(
+            effective_train_dir,
+            expected_backend=training_backend,
+        ):
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] pinned reusable train artifact is missing or incomplete: "
+                f"{configured_reuse_run_dir}"
+            )
+        observed_training_surface_record = _training_state.load_training_surface_record(
+            effective_train_dir / "training_surface_record.json"
+        )
+        if observed_training_surface_record is None:
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] reusable training surface record is missing at "
+                f"{effective_train_dir / 'training_surface_record.json'}"
+            )
+        observed_surface_fingerprint = _training_state.training_surface_record_fingerprint(
+            observed_training_surface_record
+        )
+        if observed_surface_fingerprint != reuse_surface_fingerprint:
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] pinned reusable train artifact fingerprint mismatch: "
+                f"expected={reuse_surface_fingerprint} observed={observed_surface_fingerprint}"
+            )
+        _append_unique_queue_note(
+            queue_row,
+            f"Benchmarked pinned reusable training artifact `{configured_reuse_run_dir}`.",
+        )
+        print(
+            f"[row {int(queue_row['order']):02d}] reusing pinned train artifacts",
+            f"run_id={run_id}",
+            f"training_backend={training_backend}",
+            f"source_run_dir={effective_train_dir}",
+            flush=True,
+        )
+    elif _training_state.completed_train_artifacts_exist(
         train_dir,
         expected_backend=training_backend,
         expected_training_surface_record=expected_training_surface_record,
@@ -339,26 +438,28 @@ def run_row(
             f"output_dir={train_result.output_dir}",
             flush=True,
         )
+        effective_train_dir = train_dir
 
-    observed_training_surface_record = _training_state.load_training_surface_record(
-        train_dir / "training_surface_record.json"
-    )
-    if observed_training_surface_record is None:
-        raise RuntimeError(
-            f"[row {int(queue_row['order']):02d}] training surface record is missing at "
-            f"{train_dir / 'training_surface_record.json'}"
+    if reuse_train_artifact is None:
+        observed_training_surface_record = _training_state.load_training_surface_record(
+            effective_train_dir / "training_surface_record.json"
         )
-    observed_surface_fingerprint = _training_state.training_surface_record_fingerprint(
-        observed_training_surface_record
-    )
-    if expected_surface_fingerprint is not None and observed_surface_fingerprint != expected_surface_fingerprint:
-        raise RuntimeError(
-            f"[row {int(queue_row['order']):02d}] executed training surface does not match resolved queue "
-            f"contract: expected={expected_surface_fingerprint} observed={observed_surface_fingerprint}"
+        if observed_training_surface_record is None:
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] training surface record is missing at "
+                f"{effective_train_dir / 'training_surface_record.json'}"
+            )
+        observed_surface_fingerprint = _training_state.training_surface_record_fingerprint(
+            observed_training_surface_record
         )
+        if expected_surface_fingerprint is not None and observed_surface_fingerprint != expected_surface_fingerprint:
+            raise RuntimeError(
+                f"[row {int(queue_row['order']):02d}] executed training surface does not match resolved queue "
+                f"contract: expected={expected_surface_fingerprint} observed={observed_surface_fingerprint}"
+            )
 
     if execution_policy == SCREEN_ONLY_POLICY:
-        row_screen_metrics = screen_metrics(run_dir=train_dir)
+        row_screen_metrics = screen_metrics(run_dir=effective_train_dir)
         update_screened_queue_row(
             queue_row=queue_row,
             run_id=run_id,
@@ -450,11 +551,12 @@ def run_row(
         )
     summary = run_nanotabpfn_benchmark(
         BenchmarkComparisonConfig(
-            tab_foundry_run_dir=train_dir,
+            tab_foundry_run_dir=effective_train_dir,
             out_root=benchmark_dir,
             nanotabpfn_root=nanotabpfn_root,
             nanotab_prior_dump=prior_dump,
             device=device,
+            tab_foundry_checkpoint_selection=benchmark_checkpoint_selection,
             control_baseline_id=str(
                 sweep.control_baseline_id if sweep is not None else sweep_meta["control_baseline_id"]
             ),
@@ -475,7 +577,7 @@ def run_row(
         experiment=training_surface.training_experiment,
         config_profile=training_surface.training_config_profile,
         budget_class=DEFAULT_BUDGET_CLASS,
-        run_dir=train_dir,
+        run_dir=effective_train_dir,
         comparison_summary_path=benchmark_dir / "comparison_summary.json",
         decision=decision,
         conclusion=conclusion,
@@ -497,9 +599,9 @@ def run_row(
         registry_path=paths.registry_path,
     )
     run_entry = cast(dict[str, Any], registration["run"])
-    row_queue_metrics = queue_metrics(summary, run_dir=train_dir, run_entry=run_entry)
+    row_queue_metrics = queue_metrics(summary, run_dir=effective_train_dir, run_entry=run_entry)
     _ = posthoc_update_wandb_summary(
-        telemetry_path=train_dir / "telemetry.json",
+        telemetry_path=effective_train_dir / "telemetry.json",
         payload=_sweep_wandb_summary_payload(
             run_entry=run_entry,
             queue_metrics=row_queue_metrics,

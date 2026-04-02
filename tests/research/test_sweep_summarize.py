@@ -63,3 +63,32 @@ def test_render_sweep_summary_table_handles_empty_rows() -> None:
 
     assert "Sweep summary: sweep_id=empty_sweep rows=0" in rendered
     assert "delta_id" in rendered
+
+
+def test_render_sweep_summary_table_uses_log_loss_delta_for_classification_objective() -> None:
+    rendered = render_sweep_summary_table(
+        {
+            "sweep_id": "classification_sweep",
+            "row_count": 1,
+            "rows": [
+                {
+                    "order": 1,
+                    "delta_id": "delta_classification",
+                    "status": "completed",
+                    "decision": "keep",
+                    "stability": "ok",
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    "delta_final_bpc": 12.5,
+                    "delta_final_log_loss": -0.031,
+                    "delta_final_roc_auc": 0.004,
+                    "clipped_step_fraction": 0.01,
+                    "upper_block_post_warmup_mean_slope": 0.001,
+                    "run_id": "run_1",
+                }
+            ],
+        }
+    )
+
+    assert "delta_classification" in rendered
+    assert "-0.0310" in rendered
+    assert "+12.5000" not in rendered

@@ -22,13 +22,13 @@ def _optional_float(value: Any) -> float | None:
     return float(value)
 
 
-def completed_queue_metrics_from_registry_run(run: Mapping[str, Any]) -> dict[str, float]:
+def completed_queue_metrics_from_registry_run(run: Mapping[str, Any]) -> dict[str, Any]:
     metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
     diagnostics = cast(dict[str, Any], run["training_diagnostics"])
     comparisons = cast(dict[str, Any], run.get("comparisons", {}))
     raw_vs_anchor = comparisons.get("vs_anchor", {})
     vs_anchor = cast(dict[str, Any], raw_vs_anchor if isinstance(raw_vs_anchor, Mapping) else {})
-    expected: dict[str, float] = {}
+    expected: dict[str, Any] = {}
 
     best_step = _optional_float(metrics.get("best_step"))
     if best_step is not None:
@@ -63,6 +63,8 @@ def completed_queue_metrics_from_registry_run(run: Mapping[str, Any]) -> dict[st
             continue
         expected[f"final_minus_best_{suffix}"] = final_value - best_value
     objective_metric = objective_metric_from_run(run)
+    if objective_metric is not None:
+        expected["objective_metric"] = objective_metric
     for drift_key in preferred_drift_metric_keys(objective_metric):
         drift_value = expected.get(drift_key)
         if drift_value is not None:

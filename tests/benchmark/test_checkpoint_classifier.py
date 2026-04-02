@@ -608,6 +608,66 @@ def test_tab_foundry_classifier_cell_likelihood_metrics_propagates_valid_counts(
     assert metrics["excluded_non_finite_cell_count"] == pytest.approx(1.0)
 
 
+def test_tab_foundry_classifier_sandwich_benchmark_paths_honor_checkpoint_input_normalization(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingSandwichClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_sandwich",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "sandwich_cell_metrics_norm.pt"
+    torch.save(
+        {"model": model.state_dict(), "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+
+    x_train = np.asarray(
+        [
+            [1.0, 3.0, 10.0, -5.0],
+            [2.0, 3.0, 12.0, -5.0],
+            [4.0, 3.0, 14.0, -5.0],
+        ],
+        dtype=np.float32,
+    )
+    x_test = np.asarray(
+        [
+            [3.0, 3.0, 16.0, -5.0],
+            [5.0, 3.0, 8.0, -5.0],
+        ],
+        dtype=np.float32,
+    )
+    expected_train, expected_test = normalize_train_test_arrays(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.set_benchmark_feature_types(["floating", "floating", "floating", "floating"])
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
+    _ = classifier.predict_proba(x_test)
+    _ = classifier.cell_likelihood_metrics(x_test)
+
+    assert model.forward_batches
+    assert model.cell_likelihood_batches
+    predict_batch = model.forward_batches[-1]
+    likelihood_batch = model.cell_likelihood_batches[-1]
+    assert np.allclose(predict_batch.x_train.cpu().numpy(), expected_train, atol=1.0e-6)
+    assert np.allclose(predict_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
+    assert np.allclose(likelihood_batch.x_train.cpu().numpy(), expected_train, atol=1.0e-6)
+    assert np.allclose(likelihood_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
+
+
 def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without_override(
     tmp_path: Path,
 ) -> None:

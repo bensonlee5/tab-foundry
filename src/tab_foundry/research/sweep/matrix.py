@@ -11,7 +11,9 @@ from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 from .inspection_artifacts import queue_metadata_payload
 from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
 from .objective_metrics import (
+    display_metric_label,
     first_present_metric_key,
+    is_classification_objective_metric,
     objective_metric_from_queue_metrics,
     objective_metric_from_run,
     preferred_drift_metric_keys,
@@ -225,7 +227,10 @@ def _run_metric_parts_without_anchor(run: dict[str, Any]) -> list[str]:
             continue
         raw_value = metrics.get(key)
         if raw_value is not None:
-            parts.append(f"{label} `{float(raw_value):.4f}`")
+            parts.append(
+                f"{display_metric_label(label, metric_key=key, objective_metric=objective_metric)} "
+                f"`{float(raw_value):.4f}`"
+            )
     final_training_time = metrics.get("final_training_time")
     if final_training_time is not None:
         parts.append(f"final training time `{float(final_training_time):.1f}s`")
@@ -523,6 +528,13 @@ def render_system_delta_matrix(
             lines.append(f"- Training overrides: `{queue_row['training'].get('overrides', {})}`")
         else:
             lines.append(f"- Preprocessing overrides: `{queue_row['preprocessing'].get('overrides', {})}`")
+        reuse_train_artifact = queue_row.get("reuse_train_artifact")
+        if isinstance(reuse_train_artifact, Mapping):
+            lines.append(f"- Reuse train artifact: `{reuse_train_artifact.get('run_dir')}`")
+            lines.append(
+                "- Reuse training surface fingerprint: "
+                f"`{reuse_train_artifact.get('training_surface_fingerprint')}`"
+            )
         lines.append("- Parameter adequacy plan:")
         for plan_item in cast(list[str], queue_row.get("parameter_adequacy_plan", [])):
             lines.append(f"  - {plan_item}")
@@ -531,6 +543,10 @@ def render_system_delta_matrix(
             for adequacy_knob in cast(list[str], queue_row["adequacy_knobs"]):
                 lines.append(f"  - {adequacy_knob}")
         lines.append(f"- Execution policy: `{queue_row.get('execution_policy', 'benchmark_full')}`")
+        lines.append(
+            "- Benchmark checkpoint selection: "
+            f"`{queue_row.get('benchmark_checkpoint_selection', 'all')}`"
+        )
         lines.append(f"- Interpretation status: `{queue_row.get('interpretation_status', 'pending')}`")
         lines.append(f"- Decision: `{queue_row.get('decision')}`")
         if cast(list[str], queue_row.get("confounders", [])):
@@ -572,7 +588,7 @@ def render_system_delta_matrix(
                     cast(Mapping[str, Any], inline_metrics)
                 )
                 if (
-                    inline_objective_metric != "final_log_loss_at_matched_regime_budget"
+                    not is_classification_objective_metric(inline_objective_metric)
                     and inline_metrics.get("best_bpc") is not None
                     and inline_metrics.get("final_bpc") is not None
                 ):
@@ -580,10 +596,22 @@ def render_system_delta_matrix(
                     step = inline_metrics.get("best_step", "?")
                     final_bpc = float(inline_metrics["final_bpc"])
                     drift = float(inline_metrics["drift"])
-                    lines.append(f"  - Best BPC: `{best_bpc:.4f}` (step {step})")
-                    lines.append(f"  - Final BPC: `{final_bpc:.4f}`")
+                    lines.append(
+                        "  - "
+                        f"{display_metric_label('Best BPC', metric_key='best_bpc', objective_metric=inline_objective_metric)}: "
+                        f"`{best_bpc:.4f}` (step {step})"
+                    )
+                    lines.append(
+                        "  - "
+                        f"{display_metric_label('Final BPC', metric_key='final_bpc', objective_metric=inline_objective_metric)}: "
+                        f"`{final_bpc:.4f}`"
+                    )
                     if inline_metrics.get("final_bpf") is not None:
-                        lines.append(f"  - Final BPF: `{float(inline_metrics['final_bpf']):.4f}`")
+                        lines.append(
+                            "  - "
+                            f"{display_metric_label('Final BPF', metric_key='final_bpf', objective_metric=inline_objective_metric)}: "
+                            f"`{float(inline_metrics['final_bpf']):.4f}`"
+                        )
                     lines.append(f"  - Drift (final − best): `{drift:.4f}`")
                 elif inline_metrics.get("best_log_loss") is not None and inline_metrics.get("final_log_loss") is not None:
                     best_log_loss = float(inline_metrics["best_log_loss"])
@@ -601,6 +629,23 @@ def render_system_delta_matrix(
                             f"  - Final ROC AUC: `{float(inline_metrics['final_roc_auc']):.4f}`"
                         )
                     lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                    if is_classification_objective_metric(inline_objective_metric):
+                        if inline_metrics.get("final_bpc") is not None or inline_metrics.get("final_bpf") is not None:
+                            lines.append(
+                                "  - Legacy feature-cell diagnostics remain secondary to log loss on classification-objective rows."
+                            )
+                        if inline_metrics.get("final_bpc") is not None:
+                            lines.append(
+                                "  - "
+                                f"{display_metric_label('Final BPC', metric_key='final_bpc', objective_metric=inline_objective_metric)}: "
+                                f"`{float(inline_metrics['final_bpc']):.4f}`"
+                            )
+                        if inline_metrics.get("final_bpf") is not None:
+                            lines.append(
+                                "  - "
+                                f"{display_metric_label('Final BPF', metric_key='final_bpf', objective_metric=inline_objective_metric)}: "
+                                f"`{float(inline_metrics['final_bpf']):.4f}`"
+                            )
                 else:
                     best = float(inline_metrics["best_roc_auc"])
                     step = inline_metrics.get("best_step", "?")
@@ -614,12 +659,19 @@ def render_system_delta_matrix(
                     primary_external_label = str(
                         inline_metrics.get("primary_external_label", "External benchmark")
                     )
+                    control_metric_label = "control"
+                    if is_classification_objective_metric(inline_objective_metric):
+                        control_metric_label = "control log loss"
                     lines.append(
-                        f"  - {primary_external_label} control: `{float(primary_external_best):.4f}`"
+                        f"  - {primary_external_label} {control_metric_label}: "
+                        f"`{float(primary_external_best):.4f}`"
                     )
                 elif "nanotabpfn_best" in inline_metrics:
+                    nanotabpfn_control_label = "control"
+                    if is_classification_objective_metric(inline_objective_metric):
+                        nanotabpfn_control_label = "control log loss"
                     lines.append(
-                        f"  - {EXTERNAL_BENCHMARK_LABELS['nanotabpfn']} control: "
+                        f"  - {EXTERNAL_BENCHMARK_LABELS['nanotabpfn']} {nanotabpfn_control_label}: "
                         f"`{float(inline_metrics['nanotabpfn_best']):.4f}`"
                     )
                 if "max_grad_norm" in inline_metrics:
@@ -668,9 +720,17 @@ def render_system_delta_matrix(
                 if spec is None:
                     continue
                 label, delta_key = spec
-                metric_parts.append(f"{label} `{metrics[metric_key]}`")
+                rendered_label = display_metric_label(
+                    label,
+                    metric_key=metric_key,
+                    objective_metric=objective_metric,
+                )
+                metric_parts.append(f"{rendered_label} `{metrics[metric_key]}`")
                 if delta_key is not None:
-                    metric_parts.append(f"delta {label.lower()} `{metrics[delta_key]}`")
+                    metric_parts.append(
+                        f"{display_metric_label(f'delta {label.lower()}', metric_key=delta_key, objective_metric=objective_metric)} "
+                        f"`{metrics[delta_key]}`"
+                    )
             metric_parts.extend(
                 [
                     f"final-minus-best `{metrics['final_minus_best']}`",

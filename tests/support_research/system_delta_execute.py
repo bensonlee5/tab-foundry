@@ -342,6 +342,9 @@ def _write_anchor_recovery_registry(
                             }
                         },
                         'artifacts': artifacts,
+                        'regime_budget': {
+                            'objective_metric': 'final_log_loss_at_matched_regime_budget',
+                        },
                         'sweep': {
                             'sweep_id': sweep_id,
                             'delta_id': delta_id,
@@ -870,6 +873,7 @@ def test_execute_sweep_recovers_partial_anchor_promotion_before_running_later_ro
     assert recovered_row['decision'] == 'accept'
     assert recovered_row['interpretation_status'] == 'completed'
     benchmark_metrics = recovered_row['benchmark_metrics']
+    assert benchmark_metrics['objective_metric'] == 'final_log_loss_at_matched_regime_budget'
     assert benchmark_metrics['best_step'] == 42.0
     assert benchmark_metrics['best_log_loss'] == pytest.approx(0.41)
     assert benchmark_metrics['final_log_loss'] == pytest.approx(0.39)
@@ -970,6 +974,67 @@ def test_execute_sweep_promotes_anchor_before_queue_write_and_matrix_sync(
 
     assert executed == ['promoted_anchor_v2']
     assert events == ['run_row', 'promote_anchor', 'write_yaml', 'sync_sweep_matrix']
+
+
+def test_execute_sweep_preserves_external_completed_rows_when_syncing_queue(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'completed'
+    queue['rows'][0]['run_id'] = ANCHOR_RUN_ID
+    queue['rows'][0]['decision'] = 'accept'
+    queue['rows'][0]['interpretation_status'] = 'completed'
+    queue['rows'][0]['notes'] = ['Original anchor note.']
+    queue['rows'][1]['status'] = 'ready'
+    _write_yaml(queue_path, queue)
+
+    recovered_run_dir = tmp_path / 'recovered_row_1_run'
+    recovered_run_dir.mkdir(parents=True, exist_ok=True)
+    (recovered_run_dir / 'telemetry.json').write_text('{}\n', encoding='utf-8')
+    _write_anchor_recovery_registry(
+        paths.registry_path,
+        run_id='row_2_v1',
+        sweep_id=sweep_id,
+        delta_id='delta_shared_feature_norm',
+        queue_order=2,
+        decision='defer',
+        conclusion='Recovered completed row 2 from the benchmark registry.',
+        run_dir=recovered_run_dir,
+    )
+
+    def fake_run_row(**kwargs: Any) -> str:
+        current = _load_yaml(queue_path)
+        external_row = current['rows'][0]
+        external_row['notes'] = ['External process updated row 1 while row 2 was running.']
+        _write_yaml(queue_path, current)
+        return 'row_2_v1'
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        orders=[2],
+        paths=paths,
+    )
+
+    assert executed == ['row_2_v1']
+    recovered_queue = _load_yaml(queue_path)
+    assert recovered_queue['rows'][0]['status'] == 'completed'
+    assert recovered_queue['rows'][0]['run_id'] == ANCHOR_RUN_ID
+    assert recovered_queue['rows'][0]['decision'] == 'accept'
+    assert recovered_queue['rows'][0]['notes'] == ['External process updated row 1 while row 2 was running.']
+    assert recovered_queue['rows'][1]['status'] == 'completed'
+    assert recovered_queue['rows'][1]['run_id'] == 'row_2_v1'
+    assert recovered_queue['rows'][1]['decision'] == 'defer'
+    assert recovered_queue['rows'][1]['benchmark_metrics']['final_log_loss'] == pytest.approx(0.39)
 
 
 def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -1536,6 +1601,57 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
     assert '- Column stage: final-window mean grad norm `0.4200`, activation early-to-final mean delta `+0.1200`' in text
     assert '- Context stage: final-window mean grad norm `0.7300`, activation early-to-final mean delta `+0.2400`' in text
     assert text.index('Best log loss') < text.index('Best ROC AUC')
+
+
+def test_result_card_text_marks_classification_bpc_metrics_as_legacy_diagnostics() -> None:
+    text = _result_card_text(
+        row={
+            'delta_id': 'delta',
+            'description': 'Use the refreshed benchmark surface.',
+            'anchor_delta': 'anchor-only comparison.',
+        },
+        run_id='sd_test_v1',
+        anchor_run_id='anchor_v1',
+        summary={
+            'primary_external_benchmark': 'tabiclv2',
+            'tab_foundry': {},
+            'tabiclv2': {},
+        },
+        queue_metrics={
+            'objective_metric': 'final_log_loss_at_matched_regime_budget',
+            'best_step': 125,
+            'primary_external_label': 'TabICLv2',
+            'primary_external_best_log_loss': 0.392,
+            'primary_external_final_log_loss': 0.401,
+            'primary_external_best_roc_auc': 0.818,
+            'primary_external_final_roc_auc': 0.811,
+            'best_log_loss': 0.401,
+            'final_log_loss': 0.409,
+            'final_minus_best_log_loss': 0.008,
+            'delta_final_log_loss': -0.011,
+            'final_brier_score': 0.118,
+            'delta_final_brier_score': -0.004,
+            'best_roc_auc': 0.812,
+            'final_roc_auc': 0.804,
+            'delta_final_roc_auc': -0.006,
+            'best_bpc': 2.011,
+            'final_bpc': 2.037,
+            'final_minus_best_bpc': 0.026,
+            'delta_final_bpc': 0.013,
+            'best_bpf': 2.007,
+            'final_bpf': 2.028,
+            'final_minus_best_bpf': 0.021,
+            'delta_final_bpf': 0.012,
+        },
+        decision='defer',
+        conclusion='Monitor log-loss deltas before promotion.',
+    )
+
+    assert 'Legacy feature-cell diagnostics use normalized benchmark inputs' in text
+    assert '- Final BPC (legacy feature-cell diagnostic): `2.0370`' in text
+    assert '- Final BPF (legacy feature-cell diagnostic): `2.0280`' in text
+    assert text.index('Best log loss') < text.index('Final ROC AUC')
+    assert text.index('Final ROC AUC') < text.index('Final BPC (legacy feature-cell diagnostic)')
 
 
 def test_screen_metrics_reads_upper_block_summary_and_final_train_loss_ema(tmp_path: Path) -> None:
@@ -2135,6 +2251,14 @@ def test_run_row_reset_tf_rd_010_style_row_allocates_fresh_run_id_and_retrains(
         program_path=tmp_path / 'program.md',
         control_baseline_registry_path=control_baseline_registry_path,
     )
+    (
+        paths.repo_root
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+    ).mkdir(parents=True, exist_ok=True)
 
     captured: dict[str, Any] = {}
 
@@ -3145,6 +3269,557 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     assert captured_posthoc['payload']['comparison']['stage_local_stability']['context']['activation_final_window_mean'] == pytest.approx(2.1)
     assert queue_row['status'] == 'completed'
     assert queue_row['interpretation_status'] == 'completed'
+
+
+def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v4'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    reusable_train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'research'
+        / 'adequacy'
+        / 'tf_rd_010_synthetic_adequacy_v3'
+        / 'pilot'
+        / 'production_control_curated_v5'
+        / 'train'
+    )
+    (reusable_train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (reusable_train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (reusable_train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(reusable_train_dir / 'telemetry.json', success=True)
+    reusable_surface_record = {
+        'labels': {'training': 'prior_cosine_warmup'},
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5'},
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {'backend': 'manifest', 'surface_label': 'prior_cosine_warmup'},
+    }
+    _write_custom_training_surface_record(
+        reusable_train_dir / 'training_surface_record.json',
+        reusable_surface_record,
+    )
+    (reusable_train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    reusable_surface_fingerprint = training_state_module.training_surface_record_fingerprint(
+        reusable_surface_record
+    )
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5',
+        },
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'execution_policy': 'benchmark_full',
+        'benchmark_checkpoint_selection': 'best_and_final',
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': reusable_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Benchmark the pinned TF-RD-010 control train artifact.',
+        'anchor_delta': 'Keep the row contract fixed while benchmarking the adequacy control artifact.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5',
+        },
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'benchmark_checkpoint_selection': 'best_and_final',
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': reusable_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+    (
+        paths.repo_root
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+    ).mkdir(parents=True, exist_ok=True)
+
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'row_id_for_order', lambda *_args, **_kwargs: run_id)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: dict(reusable_surface_record),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'train_from_manifest_cfg',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('manifest trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('prior trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'ensure_nanotabpfn_python',
+        lambda **_: (_ for _ in ()).throw(AssertionError('unexpected nanotabpfn bootstrap')),
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured['benchmark_run_dir'] = config.tab_foundry_run_dir
+        captured['benchmark_out_root'] = config.out_root
+        captured['checkpoint_selection'] = config.tab_foundry_checkpoint_selection
+        return {
+            'external_benchmarks': [],
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.41,
+                'final_log_loss': 0.40,
+                'best_to_final_log_loss_delta': -0.01,
+                'training_diagnostics': {'max_grad_norm': 7.5},
+            },
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+    monkeypatch.setattr(
+        runner_module,
+        'queue_metrics',
+        lambda _summary, *, run_dir, run_entry: captured.update(
+            {'queue_metrics_run_dir': run_dir}
+        )
+        or {
+            'best_step': 100,
+            'final_log_loss': 0.40,
+            'delta_final_log_loss': -0.01,
+            'max_grad_norm': 7.5,
+            'clipped_step_fraction': 0.0,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'posthoc_update_wandb_summary',
+        lambda *, telemetry_path, payload: captured.update(
+            {'telemetry_path': telemetry_path, 'wandb_payload': payload}
+        )
+        or True,
+    )
+
+    def fake_register_benchmark_run(**kwargs: Any) -> dict[str, Any]:
+        captured['registration_run_dir'] = kwargs['run_dir']
+        captured['comparison_summary_path'] = kwargs['comparison_summary_path']
+        return {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.01,
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(runner_module, 'register_benchmark_run', fake_register_benchmark_run)
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+            'benchmark_manifest_path': 'bundle.json',
+            'external_benchmarks': [],
+            'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'surface_role': 'custom',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='keep',
+        conclusion='Benchmark the pinned TF-RD-010 control train artifact without retraining.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured['benchmark_run_dir'] == reusable_train_dir
+    assert captured['benchmark_out_root'] == benchmark_dir
+    assert captured['checkpoint_selection'] == 'best_and_final'
+    assert captured['registration_run_dir'] == reusable_train_dir
+    assert captured['comparison_summary_path'] == benchmark_dir / 'comparison_summary.json'
+    assert captured['queue_metrics_run_dir'] == reusable_train_dir
+    assert captured['telemetry_path'] == reusable_train_dir / 'telemetry.json'
+    assert train_dir.exists() is False
+    assert queue_row['status'] == 'completed'
+    assert queue_row['interpretation_status'] == 'completed'
+    assert any(
+        'Benchmarked pinned reusable training artifact' in note
+        for note in cast(list[str], queue_row['notes'])
+    )
+
+
+def test_run_row_reuse_train_artifact_rejects_incomplete_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v4'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    reusable_train_dir = tmp_path / 'incomplete_reusable_train'
+    reusable_train_dir.mkdir(parents=True, exist_ok=True)
+    current_row_surface_record = {'training': {'backend': 'manifest'}}
+    current_row_surface_fingerprint = training_state_module.training_surface_record_fingerprint(
+        current_row_surface_record
+    )
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'execution_policy': 'benchmark_full',
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': current_row_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Reject incomplete reusable train artifacts.',
+        'anchor_delta': 'Keep the row contract fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': current_row_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: current_row_surface_record,
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'train_from_manifest_cfg',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('manifest trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+
+    with pytest.raises(RuntimeError, match='pinned reusable train artifact is missing or incomplete'):
+        _ = runner_module.run_row(
+            sweep_id=sweep_id,
+            sweep_meta={
+                'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+                'benchmark_manifest_path': 'bundle.json',
+                'external_benchmarks': [],
+                'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'surface_role': 'custom',
+            },
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            anchor_run_id='anchor_v1',
+            parent_run_id='anchor_v1',
+            queue=queue,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cpu',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            decision='keep',
+            conclusion='Reject incomplete reusable train artifacts.',
+            paths=paths,
+        )
+
+
+def test_run_row_reuse_train_artifact_rejects_fingerprint_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v4'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    reusable_train_dir = tmp_path / 'reusable_train'
+    (reusable_train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (reusable_train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (reusable_train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(reusable_train_dir / 'telemetry.json', success=True)
+    current_row_surface_record = {
+        'labels': {'training': 'prior_cosine_warmup'},
+        'training': {'backend': 'manifest', 'surface_label': 'prior_cosine_warmup'},
+    }
+    current_row_surface_fingerprint = training_state_module.training_surface_record_fingerprint(
+        current_row_surface_record
+    )
+    _write_custom_training_surface_record(
+        reusable_train_dir / 'training_surface_record.json',
+        {
+            'labels': {'training': 'drifted_surface'},
+            'training': {'backend': 'manifest', 'surface_label': 'drifted_surface'},
+        },
+    )
+    (reusable_train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'execution_policy': 'benchmark_full',
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': current_row_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Reject reusable train-artifact fingerprint drift.',
+        'anchor_delta': 'Keep the row contract fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': current_row_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: current_row_surface_record,
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'train_from_manifest_cfg',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('manifest trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+
+    with pytest.raises(RuntimeError, match='pinned reusable train artifact fingerprint mismatch'):
+        _ = runner_module.run_row(
+            sweep_id=sweep_id,
+            sweep_meta={
+                'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+                'benchmark_manifest_path': 'bundle.json',
+                'external_benchmarks': [],
+                'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'surface_role': 'custom',
+            },
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            anchor_run_id='anchor_v1',
+            parent_run_id='anchor_v1',
+            queue=queue,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cpu',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            decision='keep',
+            conclusion='Reject reusable train-artifact fingerprint drift.',
+            paths=paths,
+        )
+
+
+def test_run_row_reuse_train_artifact_rejects_row_contract_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_010_classification_evolution_medium_v4'
+    delta_ref = 'delta_data_manifest_root_tf_rd_010_dagzoo_medium_control'
+    reusable_train_dir = tmp_path / 'reusable_train'
+    (reusable_train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (reusable_train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (reusable_train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(reusable_train_dir / 'telemetry.json', success=True)
+    reusable_surface_record = {
+        'labels': {'training': 'prior_cosine_warmup'},
+        'training': {'backend': 'manifest', 'surface_label': 'prior_cosine_warmup'},
+    }
+    _write_custom_training_surface_record(
+        reusable_train_dir / 'training_surface_record.json',
+        reusable_surface_record,
+    )
+    (reusable_train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    reusable_surface_fingerprint = training_state_module.training_surface_record_fingerprint(
+        reusable_surface_record
+    )
+    current_row_surface_record = {
+        'labels': {'training': 'different_contract'},
+        'training': {'backend': 'manifest', 'surface_label': 'different_contract'},
+    }
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'execution_policy': 'benchmark_full',
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': reusable_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Reject reusable train artifacts when the row contract drifts.',
+        'anchor_delta': 'Keep the row contract fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'data': {'source': 'manifest', 'surface_label': 'tf_rd_010_dagzoo_medium_control'},
+        'training': {'surface_label': 'prior_cosine_warmup'},
+        'reuse_train_artifact': {
+            'run_dir': str(reusable_train_dir),
+            'training_surface_fingerprint': reusable_surface_fingerprint,
+        },
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    registry_path, control_baseline_registry_path = _write_local_registry_snapshots(tmp_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'build_lightweight_training_surface_record',
+        lambda **_kwargs: current_row_surface_record,
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'train_from_manifest_cfg',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('manifest trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+
+    with pytest.raises(RuntimeError, match='pinned reusable train artifact does not match the resolved queue contract'):
+        _ = runner_module.run_row(
+            sweep_id=sweep_id,
+            sweep_meta={
+                'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+                'benchmark_manifest_path': 'bundle.json',
+                'external_benchmarks': [],
+                'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+                'surface_role': 'custom',
+            },
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            anchor_run_id='anchor_v1',
+            parent_run_id='anchor_v1',
+            queue=queue,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cpu',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            decision='keep',
+            conclusion='Reject reusable train artifacts when the row contract drifts.',
+            paths=paths,
+        )
 
 
 def test_run_row_benchmark_full_supports_local_only_benchmark(

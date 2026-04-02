@@ -25,6 +25,7 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         f"decision={row.get('decision') or 'n/a'}",
         f"run_id={row.get('run_id') or 'n/a'}",
         f"parent_delta_ref={row.get('parent_delta_ref') or 'n/a'}",
+        f"benchmark_checkpoint_selection={row.get('benchmark_checkpoint_selection') or 'all'}",
         f"training_experiment={queue['training_experiment']}",
         f"training_config_profile={queue['training_config_profile']}",
         f"surface_role={queue['surface_role']}",
@@ -45,6 +46,13 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         lines.append(f"preprocessing.surface_label={preprocessing.get('surface_label')}")
     if training is not None:
         lines.append(f"training.surface_label={training.get('surface_label')}")
+    reuse_train_artifact = cast(Mapping[str, Any] | None, row.get("reuse_train_artifact"))
+    if reuse_train_artifact is not None:
+        lines.append(f"reuse_train_artifact.run_dir={reuse_train_artifact.get('run_dir')}")
+        lines.append(
+            "reuse_train_artifact.training_surface_fingerprint="
+            f"{reuse_train_artifact.get('training_surface_fingerprint')}"
+        )
     module_selection = model.get("module_selection")
     if isinstance(module_selection, Mapping):
         lines.append(f"model.module_selection={json.dumps(module_selection, sort_keys=True)}")

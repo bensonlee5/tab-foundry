@@ -1878,3 +1878,111 @@ def test_checked_in_system_delta_matrix_matches_rendered_selected_sweep() -> Non
     ).read_text(encoding="utf-8")
 
     assert checked_in == rendered
+
+
+def test_system_delta_matrix_classification_rows_keep_log_loss_primary_and_label_bpc_legacy(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    queue = load_system_delta_queue(
+        sweep_id="binary_md_v1",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+    row = deepcopy(queue["rows"][0])
+    row["delta_id"] = "delta_classification_metrics"
+    row["status"] = "completed"
+    row["run_id"] = "classification_run"
+    row["decision"] = "keep"
+    row["interpretation_status"] = "completed"
+    row["notes"] = []
+    row["followup_run_ids"] = []
+    row["confounders"] = []
+    queue["rows"] = [row]
+    queue["anchor_run_id"] = "anchor_run"
+    monkeypatch.setattr(
+        matrix_module,
+        "queue_metadata_payload",
+        lambda _queue: {
+            "sweep_id": "binary_md_v1",
+            "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
+            "control_baseline_id": "cls_benchmark_linear_v2",
+            "external_benchmarks": ["tabiclv2"],
+            "training_experiment": "cls_benchmark_staged_prior",
+            "training_config_profile": "cls_benchmark_staged_prior",
+            "surface_role": "hybrid_diagnostic",
+            "comparison_policy": "anchor_only",
+        },
+    )
+
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema": "tab-foundry-benchmark-runs-v1",
+                "version": 1,
+                "runs": {
+                    "anchor_run": {
+                        "run_id": "anchor_run",
+                        "tab_foundry_metrics": {
+                            "final_log_loss": 0.44,
+                            "final_brier_score": 0.12,
+                            "best_roc_auc": 0.81,
+                            "final_roc_auc": 0.80,
+                            "final_bpc": 2.02,
+                            "final_bpf": 2.01,
+                            "best_training_time": 120.0,
+                            "final_training_time": 130.0,
+                        },
+                        "regime_budget": {
+                            "objective_metric": "final_log_loss_at_matched_regime_budget"
+                        },
+                    },
+                    "classification_run": {
+                        "run_id": "classification_run",
+                        "tab_foundry_metrics": {
+                            "final_log_loss": 0.43,
+                            "final_brier_score": 0.11,
+                            "best_roc_auc": 0.82,
+                            "final_roc_auc": 0.81,
+                            "final_bpc": 2.03,
+                            "final_bpf": 2.02,
+                            "best_training_time": 121.0,
+                            "final_training_time": 131.0,
+                            "final_minus_best_log_loss": 0.01,
+                            "final_minus_best_bpc": 0.02,
+                            "final_minus_best_bpf": 0.01,
+                            "final_minus_best_roc_auc": -0.01,
+                            "final_minus_best_brier_score": 0.01,
+                        },
+                        "comparisons": {
+                            "vs_anchor": {
+                                "final_log_loss_delta": -0.01,
+                                "final_brier_score_delta": -0.01,
+                                "final_roc_auc_delta": 0.01,
+                                "final_bpc_delta": 0.01,
+                                "final_bpf_delta": 0.01,
+                            }
+                        },
+                        "regime_budget": {
+                            "objective_metric": "final_log_loss_at_matched_regime_budget"
+                        },
+                    },
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    rendered = render_system_delta_matrix(
+        queue,
+        registry_path=registry_path,
+    )
+
+    assert rendered.index("final log loss `0.4300`") < rendered.index(
+        "final BPC (legacy feature-cell diagnostic) `2.0300`"
+    )
+    assert "final BPF (legacy feature-cell diagnostic) `2.0200`" in rendered

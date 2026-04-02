@@ -38,7 +38,7 @@ generator:
     num_datasets: 1111
     filter_max_attempts: 256
     teacher_conditional_export: true
-  fingerprint: 08163566e2ab
+  fingerprint: 98adc655179a
 review_summary:
   grid_family: balanced_rows_features_classes_v1
   config_refs:

@@ -50,33 +50,6 @@ def _missingness_payload(mode: str | None, rate: float | None) -> dict[str, Any]
     return payload
 
 
-def _dagzoo_semantics_payload(inputs: Mapping[str, Any]) -> dict[str, Any]:
-    teacher_conditional_export = bool(inputs.get("teacher_conditional_export", False))
-    payload: dict[str, Any] = {}
-    diagnostics_payload: dict[str, Any] = {}
-    if teacher_conditional_export:
-        diagnostics_payload["teacher_conditional_export"] = True
-    if diagnostics_payload:
-        payload["diagnostics"] = diagnostics_payload
-    return payload
-
-
-def _target_parent_dataset_overrides(
-    *,
-    teacher_conditional_export: bool,
-) -> dict[str, Any]:
-    if not teacher_conditional_export:
-        return {}
-    return {
-        "target_parent_prior": _TARGET_PARENT_PRIOR,
-        "target_parent_count_min": 1,
-        "target_parent_count_max": None,
-        "target_parent_near_max_band_min_fraction": _TARGET_PARENT_NEAR_MAX_BAND_MIN_FRACTION,
-        "target_parent_below_sqrt_prob": _TARGET_PARENT_BELOW_SQRT_PROB,
-        "target_parent_midrange_prob": _TARGET_PARENT_MIDRANGE_PROB,
-    }
-
-
 def _posterior_predictive_review_summary_fields(
     *,
     teacher_conditional_export: bool,
@@ -199,10 +172,6 @@ def build_balanced_medium_recipe(
     missing_rate_raw = inputs.get("missing_rate")
     missing_rate = None if missing_rate_raw is None else float(missing_rate_raw)
     teacher_conditional_export = bool(inputs.get("teacher_conditional_export", False))
-    semantics_payload = _dagzoo_semantics_payload(inputs)
-    target_parent_dataset_overrides = _target_parent_dataset_overrides(
-        teacher_conditional_export=teacher_conditional_export,
-    )
     invocations: list[dict[str, Any]] = []
     for row_index, row_total in enumerate(sorted(_ROW_SPECS), start=1):
         n_train, n_test = _ROW_SPECS[row_total]
@@ -223,7 +192,6 @@ def build_balanced_medium_recipe(
                         "categorical_ratio_min": 0.0,
                         "categorical_ratio_max": 1.0,
                         "max_categorical_cardinality": 12,
-                        **target_parent_dataset_overrides,
                     },
                     "graph": {
                         "n_nodes_min": graph_min,
@@ -232,7 +200,6 @@ def build_balanced_medium_recipe(
                     "filter": {
                         "max_attempts": filter_max_attempts,
                     },
-                    **semantics_payload,
                 },
                 "num_datasets": num_datasets,
                 "seed": int(f"{row_index}{feature_count:02d}{class_count:02d}"),
@@ -272,10 +239,6 @@ def build_aligned_control_recipe(
     missing_rate_raw = inputs.get("missing_rate")
     missing_rate = None if missing_rate_raw is None else float(missing_rate_raw)
     teacher_conditional_export = bool(inputs.get("teacher_conditional_export", False))
-    semantics_payload = _dagzoo_semantics_payload(inputs)
-    target_parent_dataset_overrides = _target_parent_dataset_overrides(
-        teacher_conditional_export=teacher_conditional_export,
-    )
     invocations: list[dict[str, Any]] = []
     for feature_count, class_count in product(sorted(_ALIGNED_FEATURE_GRAPH_BANDS), _ALIGNED_CLASS_COUNTS):
         graph_min, graph_max = _ALIGNED_FEATURE_GRAPH_BANDS[feature_count]
@@ -293,11 +256,10 @@ def build_aligned_control_recipe(
                             "n_features_max": feature_count,
                             "n_classes_min": class_count,
                             "n_classes_max": class_count,
-                        "categorical_ratio_min": 0.0,
-                        "categorical_ratio_max": 1.0,
-                        "max_categorical_cardinality": 12,
-                        **target_parent_dataset_overrides,
-                    },
+                            "categorical_ratio_min": 0.0,
+                            "categorical_ratio_max": 1.0,
+                            "max_categorical_cardinality": 12,
+                        },
                         "graph": {
                             "n_nodes_min": graph_min,
                             "n_nodes_max": graph_max,
@@ -305,7 +267,6 @@ def build_aligned_control_recipe(
                         "filter": {
                             "max_attempts": filter_max_attempts,
                         },
-                        **semantics_payload,
                     },
                     "num_datasets": num_datasets,
                     "seed": seed,
@@ -340,11 +301,7 @@ def build_factorized_canary_recipe(
     base_config_ref = str(inputs.get("base_config_ref", "configs/default.yaml"))
     num_datasets = int(inputs.get("num_datasets", 32))
     filter_max_attempts = int(inputs.get("filter_max_attempts", 64))
-    semantics_payload = _dagzoo_semantics_payload(inputs)
     teacher_conditional_export = bool(inputs.get("teacher_conditional_export", False))
-    target_parent_dataset_overrides = _target_parent_dataset_overrides(
-        teacher_conditional_export=teacher_conditional_export,
-    )
     invocations: list[dict[str, Any]] = []
     for row_index, row_total in enumerate(sorted(_ROW_SPECS), start=1):
         n_train, n_test = _ROW_SPECS[row_total]
@@ -364,7 +321,6 @@ def build_factorized_canary_recipe(
                         "categorical_ratio_min": 0.0,
                         "categorical_ratio_max": 0.0,
                         "max_categorical_cardinality": 12,
-                        **target_parent_dataset_overrides,
                     },
                     "graph": {
                         "n_nodes_min": 2,
@@ -373,7 +329,6 @@ def build_factorized_canary_recipe(
                     "filter": {
                         "max_attempts": filter_max_attempts,
                     },
-                    **semantics_payload,
                 },
                 "num_datasets": num_datasets,
                 "seed": int(f"{row_index}0602"),

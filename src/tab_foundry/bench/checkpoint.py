@@ -212,27 +212,43 @@ class TabFoundryClassifier:
         )
         return self
 
-    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+    def _require_fitted_benchmark_state(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, FittedPreprocessorState]:
         if (
             self._classes is None
             or self._preprocessor_state is None
             or self._raw_x_train is None
             or self._raw_y_train is None
         ):
-            raise RuntimeError("fit() must be called before predict_proba()")
+            raise RuntimeError("fit() must be called before benchmark inference")
+        return (
+            self._classes,
+            self._raw_x_train,
+            self._raw_y_train,
+            self._preprocessor_state,
+        )
 
+    def _preprocess_benchmark_inputs(
+        self,
+        x_test: np.ndarray,
+    ) -> tuple[np.ndarray, FittedPreprocessorState, Any]:
+        classes, raw_x_train, raw_y_train, preprocessor_state = self._require_fitted_benchmark_state()
         raw_x_test = np.asarray(x_test, dtype=np.float32)
         processed = apply_fitted_preprocessor(
             task="classification",
-            state=self._preprocessor_state,
-            x_train=self._raw_x_train,
-            y_train=self._raw_y_train,
+            state=preprocessor_state,
+            x_train=raw_x_train,
+            y_train=raw_y_train,
             x_test=raw_x_test,
             y_test=None,
             impute_missing=bool(
                 self.preprocessing_surface.impute_missing and not self._preserve_non_finite_inputs
             ),
         )
+        return classes, preprocessor_state, processed
+
+    def _normalize_benchmark_inputs(self, *, processed: Any) -> tuple[np.ndarray, np.ndarray]:
         model_arch = str(getattr(self.model_spec, "arch", "tabfoundry_staged")).strip().lower()
         normalization_mode = cast(
             InputNormalizationMode,
@@ -246,25 +262,46 @@ class TabFoundryClassifier:
         if (
             internal_normalization
             or normalization_mode == "none"
-            or self._preserve_non_finite_inputs
         ):
-            x_train_norm, x_test_norm = processed.x_train, processed.x_test
-        else:
-            x_train_norm, x_test_norm = normalize_train_test_arrays(
-                processed.x_train,
-                processed.x_test,
-                mode=normalization_mode,
-            )
-        num_classes = int(processed.num_classes or self._classes.size)
-        batch = TaskBatch(
-            x_train=torch.tensor(x_train_norm, dtype=torch.float32, device=self.device),
-            y_train=torch.tensor(processed.y_train, dtype=torch.int64, device=self.device),
-            x_test=torch.tensor(x_test_norm, dtype=torch.float32, device=self.device),
-            y_test=torch.zeros((x_test_norm.shape[0],), dtype=torch.int64, device=self.device),
+            return processed.x_train, processed.x_test
+        return normalize_train_test_arrays(
+            processed.x_train,
+            processed.x_test,
+            mode=normalization_mode,
+            preserve_non_finite=self._preserve_non_finite_inputs,
+        )
+
+    def _benchmark_task_batch(
+        self,
+        *,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        x_test: np.ndarray,
+        feature_types: list[str],
+        num_classes: int,
+    ) -> TaskBatch:
+        return TaskBatch(
+            x_train=torch.tensor(x_train, dtype=torch.float32, device=self.device),
+            y_train=torch.tensor(y_train, dtype=torch.int64, device=self.device),
+            x_test=torch.tensor(x_test, dtype=torch.float32, device=self.device),
+            y_test=torch.zeros((x_test.shape[0],), dtype=torch.int64, device=self.device),
             metadata={
                 "dataset": "external_benchmark",
-                "feature_types": list(self._preprocessor_state.feature_types),
+                "feature_types": feature_types,
             },
+            num_classes=num_classes,
+        )
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        classes, preprocessor_state, processed = self._preprocess_benchmark_inputs(x_test)
+
+        x_train_norm, x_test_norm = self._normalize_benchmark_inputs(processed=processed)
+        num_classes = int(processed.num_classes or classes.size)
+        batch = self._benchmark_task_batch(
+            x_train=x_train_norm,
+            y_train=processed.y_train,
+            x_test=x_test_norm,
+            feature_types=list(preprocessor_state.feature_types),
             num_classes=num_classes,
         )
         with torch.no_grad():
@@ -295,38 +332,18 @@ class TabFoundryClassifier:
         return classes[np.asarray(probabilities.argmax(axis=1), dtype=np.int64)]
 
     def cell_likelihood_metrics(self, x_test: np.ndarray) -> dict[str, float]:
-        if (
-            self._preprocessor_state is None
-            or self._raw_x_train is None
-            or self._raw_y_train is None
-        ):
-            raise RuntimeError("fit() must be called before cell_likelihood_metrics()")
+        classes, preprocessor_state, processed = self._preprocess_benchmark_inputs(x_test)
         forward_cell_likelihood = getattr(self.model, "forward_cell_likelihood", None)
         if not callable(forward_cell_likelihood):
             raise RuntimeError("checkpoint model does not expose forward_cell_likelihood()")
 
-        raw_x_test = np.asarray(x_test, dtype=np.float32)
-        processed = apply_fitted_preprocessor(
-            task="classification",
-            state=self._preprocessor_state,
-            x_train=self._raw_x_train,
-            y_train=self._raw_y_train,
-            x_test=raw_x_test,
-            y_test=None,
-            impute_missing=bool(
-                self.preprocessing_surface.impute_missing and not self._preserve_non_finite_inputs
-            ),
-        )
-        batch = TaskBatch(
-            x_train=torch.tensor(processed.x_train, dtype=torch.float32, device=self.device),
-            y_train=torch.tensor(processed.y_train, dtype=torch.int64, device=self.device),
-            x_test=torch.tensor(processed.x_test, dtype=torch.float32, device=self.device),
-            y_test=torch.zeros((processed.x_test.shape[0],), dtype=torch.int64, device=self.device),
-            metadata={
-                "dataset": "external_benchmark",
-                "feature_types": list(self._preprocessor_state.feature_types),
-            },
-            num_classes=int(processed.num_classes or 2),
+        x_train_norm, x_test_norm = self._normalize_benchmark_inputs(processed=processed)
+        batch = self._benchmark_task_batch(
+            x_train=x_train_norm,
+            y_train=processed.y_train,
+            x_test=x_test_norm,
+            feature_types=list(preprocessor_state.feature_types),
+            num_classes=int(processed.num_classes or classes.size),
         )
         with torch.no_grad():
             output = forward_cell_likelihood(batch)

@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .objective_metrics import (
+    is_classification_objective_metric,
+    objective_metric_from_queue_metrics,
+)
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
@@ -70,6 +74,7 @@ def summarize_sweep(
         if status == "screened" and not include_screened:
             continue
         metrics = _row_metric_payload(row)
+        objective_metric = objective_metric_from_queue_metrics(metrics)
         rows_payload.append(
             {
                 "order": int(row["order"]),
@@ -78,6 +83,7 @@ def summarize_sweep(
                 "decision": None if row.get("decision") is None else str(row["decision"]),
                 "run_id": None if row.get("run_id") is None else str(row["run_id"]),
                 "stability": _stability_verdict(row, metrics),
+                "objective_metric": objective_metric,
                 "final_roc_auc": _optional_float(metrics.get("final_roc_auc")),
                 "delta_final_roc_auc": _optional_float(metrics.get("delta_final_roc_auc")),
                 "final_bpc": _optional_float(metrics.get("final_bpc")),
@@ -124,6 +130,14 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
     ]
     rendered_rows: list[list[str]] = []
     for row in rows:
+        if is_classification_objective_metric(cast(str | None, row.get("objective_metric"))):
+            primary_delta = cast(float | None, row["delta_final_log_loss"])
+        else:
+            primary_delta = (
+                cast(float | None, row["delta_final_bpc"])
+                if row.get("delta_final_bpc") is not None
+                else cast(float | None, row["delta_final_log_loss"])
+            )
         rendered_rows.append(
             [
                 f"{int(row['order']):02d}",
@@ -131,12 +145,7 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
                 str(row["status"]),
                 str(row["decision"] or "n/a"),
                 str(row["stability"]),
-                _format_float(
-                    cast(float | None, row["delta_final_bpc"])
-                    if row.get("delta_final_bpc") is not None
-                    else cast(float | None, row["delta_final_log_loss"]),
-                    signed=True,
-                ),
+                _format_float(primary_delta, signed=True),
                 _format_float(cast(float | None, row["delta_final_roc_auc"]), signed=True),
                 _format_float(cast(float | None, row["clipped_step_fraction"])),
                 _format_float(cast(float | None, row["upper_block_post_warmup_mean_slope"])),

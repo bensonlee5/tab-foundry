@@ -36,7 +36,7 @@ generator:
     num_datasets: 32
     filter_max_attempts: 64
     teacher_conditional_export: true
-  fingerprint: ee33b72586a8
+  fingerprint: 813b23195da5
 review_summary:
   grid_family: factorized_canary_rows_only_v1
   config_refs:

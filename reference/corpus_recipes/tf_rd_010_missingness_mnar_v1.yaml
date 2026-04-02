@@ -25,7 +25,7 @@ generator:
     filter_max_attempts: 256
     missing_mode: mnar
     missing_rate: 0.25
-  fingerprint: 3aff6bfe045c
+  fingerprint: a62a43e26a2c
 review_summary:
   grid_family: balanced_rows_features_classes_v1
   config_refs:

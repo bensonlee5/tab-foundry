@@ -26,12 +26,25 @@ def normalize_train_test_arrays(
     x_test: np.ndarray,
     *,
     mode: InputNormalizationMode,
+    preserve_non_finite: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Normalize numpy train/test arrays using train-only statistics."""
 
     normalized_mode = normalize_mode(mode)
     train = np.asarray(x_train, dtype=np.float32)
     test = np.asarray(x_test, dtype=np.float32)
+    if preserve_non_finite:
+        import torch
+
+        from .tensors import normalize_train_test_tensors
+
+        preserved_train_norm, preserved_test_norm = normalize_train_test_tensors(
+            torch.from_numpy(train),
+            torch.from_numpy(test),
+            mode=mode,
+            preserve_non_finite=True,
+        )
+        return preserved_train_norm.cpu().numpy(), preserved_test_norm.cpu().numpy()
     train_stats = np.asarray(x_train, dtype=np.float64)
     test_stats = np.asarray(x_test, dtype=np.float64)
     if normalized_mode == "none":
@@ -47,20 +60,23 @@ def normalize_train_test_arrays(
         mean = train_stats.mean(axis=0, dtype=np.float64)
         std = train_stats.std(axis=0, dtype=np.float64)
         std = np.where(std < EPS, 1.0, std)
-        train_norm = (train_stats - mean) / std
-        test_norm = (test_stats - mean) / std
+        train_zscore = (train_stats - mean) / std
+        test_zscore = (test_stats - mean) / std
 
         if normalized_mode == "train_zscore_clip":
             return (
-                np.clip(train_norm, -CLIP_VALUE, CLIP_VALUE).astype(np.float32, copy=False),
-                np.clip(test_norm, -CLIP_VALUE, CLIP_VALUE).astype(np.float32, copy=False),
+                np.clip(train_zscore, -CLIP_VALUE, CLIP_VALUE).astype(np.float32, copy=False),
+                np.clip(test_zscore, -CLIP_VALUE, CLIP_VALUE).astype(np.float32, copy=False),
             )
         if normalized_mode == "train_zscore_tanh":
             return (
-                smooth_tanh_np(train_norm).astype(np.float32, copy=False),
-                smooth_tanh_np(test_norm).astype(np.float32, copy=False),
+                smooth_tanh_np(train_zscore).astype(np.float32, copy=False),
+                smooth_tanh_np(test_zscore).astype(np.float32, copy=False),
             )
-        return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
+        return train_zscore.astype(np.float32, copy=False), test_zscore.astype(
+            np.float32,
+            copy=False,
+        )
 
     if normalized_mode == "train_rankgauss":
         n_cols = train_stats.shape[1]
@@ -84,13 +100,16 @@ def normalize_train_test_arrays(
         q75 = np.quantile(train_stats, ROBUST_QUANTILE_UPPER, axis=0)
         iqr = q75 - q25
         iqr = np.where(iqr < EPS, 1.0, iqr)
-        train_norm = (train_stats - median) / iqr
-        test_norm = (test_stats - median) / iqr
+        train_robust = (train_stats - median) / iqr
+        test_robust = (test_stats - median) / iqr
         if normalized_mode == "train_robust_tanh":
             return (
-                smooth_tanh_np(train_norm).astype(np.float32, copy=False),
-                smooth_tanh_np(test_norm).astype(np.float32, copy=False),
+                smooth_tanh_np(train_robust).astype(np.float32, copy=False),
+                smooth_tanh_np(test_robust).astype(np.float32, copy=False),
             )
-        return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
+        return train_robust.astype(np.float32, copy=False), test_robust.astype(
+            np.float32,
+            copy=False,
+        )
 
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")

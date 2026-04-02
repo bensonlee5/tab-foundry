@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping, cast
 
@@ -28,6 +29,89 @@ def _optional_non_empty_string(value: Any, *, context: str) -> str | None:
     return str(value).strip()
 
 
+def _queue_row_by_order(
+    *,
+    sweep_id: str,
+    queue: Mapping[str, Any],
+    order: int,
+) -> dict[str, Any]:
+    matching_rows = [row for row in sorted_rows(queue) if int(row["order"]) == order]
+    if not matching_rows:
+        raise RuntimeError(f"sweep {sweep_id!r} does not contain queue row {order}")
+    return matching_rows[0]
+
+
+def _registry_run_for_run_id(
+    *,
+    run_id: str,
+    paths: ExecutionPaths,
+) -> dict[str, Any] | None:
+    registry = load_benchmark_run_registry(paths.registry_path)
+    runs = cast(dict[str, dict[str, Any]], registry["runs"])
+    return runs.get(run_id)
+
+
+def _sync_completed_queue_row(
+    *,
+    sweep_id: str,
+    queue_path: Path,
+    local_queue: Mapping[str, Any],
+    order: int,
+    run_id: str,
+    expected_delta_ref: str,
+    paths: ExecutionPaths,
+) -> dict[str, Any]:
+    queue = read_yaml(queue_path)
+    local_queue_row = _queue_row_by_order(sweep_id=sweep_id, queue=local_queue, order=order)
+    queue_row = _queue_row_by_order(sweep_id=sweep_id, queue=queue, order=order)
+    queue_delta_ref = _optional_non_empty_string(
+        queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} queue row {order}.delta_ref",
+    )
+    local_delta_ref = _optional_non_empty_string(
+        local_queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} local queue row {order}.delta_ref",
+    )
+    if queue_delta_ref != expected_delta_ref:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} queue row {order} delta_ref changed from "
+            f"{expected_delta_ref!r} to {queue_delta_ref!r} during execution"
+        )
+    if local_delta_ref != expected_delta_ref:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} local queue row {order} has delta_ref {local_delta_ref!r}, "
+            f"expected {expected_delta_ref!r}"
+        )
+
+    run = _registry_run_for_run_id(run_id=run_id, paths=paths)
+    if run is not None:
+        recover_completed_queue_row_from_registry_run(
+            queue_row=queue_row,
+            run_id=run_id,
+            run=run,
+        )
+        source = "benchmark_registry"
+    else:
+        recovered_queue_row = cast(dict[str, Any], deepcopy(local_queue_row))
+        recovered_queue_row["status"] = "completed"
+        recovered_queue_row["run_id"] = run_id
+        queue_row.clear()
+        queue_row.update(recovered_queue_row)
+        source = "in_memory_queue"
+
+    write_yaml(queue_path, queue)
+    _row_sync.sync_sweep_matrix(sweep_id=sweep_id, paths=paths)
+    print(
+        "Synchronized completed queue row.",
+        f"sweep_id={sweep_id}",
+        f"order={order}",
+        f"run_id={run_id}",
+        f"source={source}",
+        flush=True,
+    )
+    return queue
+
+
 def _recover_partial_anchor_promotion(
     *,
     sweep_id: str,
@@ -43,17 +127,14 @@ def _recover_partial_anchor_promotion(
     if anchor_run_id is None:
         return
 
-    queue_rows = sorted_rows(queue)
     if any(
         str(row.get("status", "")).strip().lower() == "completed"
         and str(row.get("run_id", "")).strip() == anchor_run_id
-        for row in queue_rows
+        for row in sorted_rows(queue)
     ):
         return
 
-    registry = load_benchmark_run_registry(paths.registry_path)
-    runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    run = runs.get(anchor_run_id)
+    run = _registry_run_for_run_id(run_id=anchor_run_id, paths=paths)
     if run is None:
         raise RuntimeError(
             f"sweep {sweep_id!r} anchor_run_id {anchor_run_id!r} is missing from the benchmark registry"
@@ -83,12 +164,7 @@ def _recover_partial_anchor_promotion(
         sweep_payload.get("delta_id"),
         context=f"benchmark registry run {anchor_run_id!r}.sweep.delta_id",
     )
-    matching_rows = [row for row in queue_rows if int(row["order"]) == queue_order]
-    if not matching_rows:
-        raise RuntimeError(
-            f"sweep {sweep_id!r} does not contain queue row {queue_order} for anchor recovery"
-        )
-    queue_row = matching_rows[0]
+    queue_row = _queue_row_by_order(sweep_id=sweep_id, queue=queue, order=queue_order)
     queue_delta_ref = _optional_non_empty_string(
         queue_row.get("delta_ref"),
         context=f"sweep {sweep_id!r} queue row {queue_order}.delta_ref",
@@ -158,7 +234,6 @@ def execute_sweep(
         catalog_path=resolved_paths.catalog_path,
         sweeps_root=resolved_paths.sweeps_root,
     )
-    queue_rows = sorted_rows(queue)
     materialized_rows = _row_sync.materialized_row_map(
         sweep_id=resolved_sweep_id,
         paths=resolved_paths,
@@ -173,6 +248,7 @@ def execute_sweep(
     if not selected_rows:
         print("No rows selected for execution.", f"sweep_id={resolved_sweep_id}", flush=True)
         return []
+    selected_orders = [int(row["order"]) for row in selected_rows]
 
     comparison_policy = str(sweep_meta.get("comparison_policy", "anchor_only")).strip().lower()
     current_anchor_run_id = sweep_meta.get("anchor_run_id")
@@ -181,13 +257,15 @@ def execute_sweep(
         if isinstance(current_anchor_run_id, str) and current_anchor_run_id.strip()
         else None
     )
-    first_queue_order = min(int(row["order"]) for row in queue_rows)
+    first_queue_order = min(int(row["order"]) for row in sorted_rows(queue))
     executed_run_ids: list[str] = []
     decision_map = dict(decision_overrides or {})
     conclusion_map = dict(conclusion_overrides or {})
 
-    for index, queue_row in enumerate(selected_rows):
-        order = int(queue_row["order"])
+    for index, order in enumerate(selected_orders):
+        queue = read_yaml(queue_path)
+        queue_rows = sorted_rows(queue)
+        queue_row = _queue_row_by_order(sweep_id=resolved_sweep_id, queue=queue, order=order)
         decision = str(decision_map.get(order, decision_default)).strip().lower()
         if decision not in ALLOWED_DECISIONS:
             raise RuntimeError(f"decision must be one of {sorted(ALLOWED_DECISIONS)}, got {decision!r}")
@@ -242,8 +320,15 @@ def execute_sweep(
                 index_path=resolved_paths.index_path,
                 sweeps_root=resolved_paths.sweeps_root,
             )
-        write_yaml(queue_path, queue)
-        _row_sync.sync_sweep_matrix(sweep_id=resolved_sweep_id, paths=resolved_paths)
+        queue = _sync_completed_queue_row(
+            sweep_id=resolved_sweep_id,
+            queue_path=queue_path,
+            local_queue=queue,
+            order=order,
+            run_id=run_id,
+            expected_delta_ref=str(queue_row["delta_ref"]),
+            paths=resolved_paths,
+        )
         executed_run_ids.append(run_id)
 
     return executed_run_ids
