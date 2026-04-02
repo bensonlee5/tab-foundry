@@ -36,7 +36,7 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.1"
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.5"
 TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
     "numpy>=2.1",
     "openml>=0.15",
@@ -152,10 +152,15 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     resolved_tab_realdata_hub_root = resolve_tab_realdata_hub_root(
         tab_realdata_hub_root=config.tab_realdata_hub_root,
     )
-    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(resolved_tab_realdata_hub_root)
+    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(
+        resolved_tab_realdata_hub_root
+    )
     tabicl_python_version = _python_version_info(tabicl_python)
     tabicl_requires_runtime_dependency_bootstrap = tabicl_python_version < (3, 14)
-    if tabicl_requires_runtime_dependency_bootstrap and resolved_tab_realdata_hub_root is None:
+    if (
+        tabicl_requires_runtime_dependency_bootstrap
+        and resolved_tab_realdata_hub_root is None
+    ):
         raise RuntimeError(
             "tabicl benchmark env uses Python "
             f"{tabicl_python_version[0]}.{tabicl_python_version[1]}, but the published "
