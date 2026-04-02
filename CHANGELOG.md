@@ -7,27 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.16.2] - 2026-04-01
-
-### Added
-
-- User-facing note: system-delta sweep rows can now pin a reusable external
-  training artifact via `reuse_train_artifact.run_dir` plus a normalized
-  `training_surface_fingerprint`. Execution validates the pinned `train/`
-  artifact, skips retraining, benchmarks against that reused run dir, and
-  records the reused train path in the benchmark registry and sweep-facing
-  inspection output.
+## [0.16.2] - 2026-04-02
 
 ### Changed
 
-- User-facing note: classification-objective benchmark replays now apply the
-  same external input normalization to legacy cell-likelihood diagnostics as
-  classifier probability inference, which fixes inflated `final_bpc` /
-  `final_bpf` values on large-magnitude real-data benchmark columns.
-- User-facing note: classification-objective system-delta reporting now quotes
-  matched-budget `final_log_loss` first, keeps Brier / ROC alongside it, and
-  labels BPC / BPF as secondary legacy feature-cell diagnostics instead of
-  treating them as the primary quoted metric.
+- User-facing note: batched corpus materialization now hands off recipe-worker
+  results through temp files instead of stdout pipes, preventing verbose
+  `dagzoo` runs from stalling shared fanout and preserving per-recipe default
+  worker-thread sizing when `materialize_worker_threads` is left unset.
 
 ## [0.16.1] - 2026-04-01
 
