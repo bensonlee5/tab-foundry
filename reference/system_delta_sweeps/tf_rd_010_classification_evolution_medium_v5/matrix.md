@@ -5,11 +5,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 ## Sweep
 
 - Sweep id: `tf_rd_010_classification_evolution_medium_v5`
-- Sweep status: `ready`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `321583ee6c16ada3f6b7441596c853fbf811bf5421757d63ec33655924bf3f80`
+- Resolved queue inputs fingerprint: `9a867454cebd1602395f58f5b81043282e239b8561a098109cbe6eea70f569df`
 
 ## Locked Surface
 
@@ -38,7 +38,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Train this row fresh under the sorted-order code path, benchmark and register it on the intended hub-backed medium classification manifest, then compare it directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before any missingness promotion; `large_v2` stays blocked until this row is promoted. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Compare this completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before any missingness promotion, and decide whether downstream medium and large interpretation should carry forward the original `medium_v4` control or this sorted-order replay. |
 
 ## Detailed Rows
 
@@ -82,7 +82,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - This row must be trained fresh under the current sorted-order code path; do not reuse `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train` or any earlier unsorted control artifact.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
   - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4` rows 2 through 4 before promoting any missingness recommendation.
-  - `large_v2` remains blocked until this row is benchmarked, registered, and promoted.
+  - `large_v2` is no longer blocked on execution, but its interpretation still depends on whether downstream comparison should inherit the original `medium_v4` control or this completed sorted-order replay.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
