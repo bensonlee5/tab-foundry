@@ -1075,6 +1075,429 @@ def test_materialize_corpus_recipe_aborts_without_manifest_when_subprocess_fanou
     assert not any(recipe_root.glob("*/manifest.parquet"))
 
 
+def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worker_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+    captured: dict[str, Any] = {}
+    callback_order: list[str] = []
+
+    def _record_for(recipe_id: str) -> dict[str, Any]:
+        return {
+            "recipe_id": recipe_id,
+            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+            "manifest": {
+                "manifest_path": str((repo_tmp_path / f"{recipe_id}.parquet").resolve())
+            },
+        }
+
+    def _fake_recipe_worker_fanout(
+        *,
+        pending_requests,
+        materialize_processes: int | None,
+        materialize_worker_threads: int | None,
+        prioritized_recipe_ids,
+        on_recipe_materialized=None,
+    ) -> list[dict[str, Any]]:
+        captured.update(
+            {
+                "pending_recipe_ids": [pending.recipe_id for pending in pending_requests],
+                "requested_exact_refs": [pending.requested_exact_ref for pending in pending_requests],
+                "requires_recipe_record": [
+                    pending.requires_recipe_record for pending in pending_requests
+                ],
+                "materialize_processes": materialize_processes,
+                "materialize_worker_threads": materialize_worker_threads,
+                "prioritized_recipe_ids": list(prioritized_recipe_ids),
+            }
+        )
+        assert on_recipe_materialized is not None
+        completed = [_record_for("current_recipe"), _record_for("size_recipe")]
+        for record in completed:
+            on_recipe_materialized(record)
+        return completed
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_pending_recipes_with_subprocess_fanout",
+        _fake_recipe_worker_fanout,
+    )
+
+    records = corpus_materialization_module.materialize_corpus_refs_batch(
+        corpus_refs=["size_recipe", "current_recipe"],
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        materialize_processes=3,
+        materialize_worker_threads=2,
+        prioritized_recipe_ids=["current_recipe"],
+        on_corpus_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
+        repo_root=repo_tmp_path,
+    )
+
+    assert captured == {
+        "pending_recipe_ids": ["size_recipe", "current_recipe"],
+        "requested_exact_refs": [None, None],
+        "requires_recipe_record": [True, True],
+        "materialize_processes": 3,
+        "materialize_worker_threads": 2,
+        "prioritized_recipe_ids": ["current_recipe"],
+    }
+    assert callback_order == ["current_recipe", "size_recipe"]
+    assert [str(record["recipe_id"]) for record in records] == ["size_recipe", "current_recipe"]
+
+
+def test_materialize_corpus_refs_batch_reuses_cached_exact_ref_without_recipe_worker(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+
+    def _unexpected_recipe_worker_fanout(**_kwargs: Any) -> list[dict[str, Any]]:
+        raise AssertionError("cached exact refs should not spawn recipe workers")
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_pending_recipes_with_subprocess_fanout",
+        _unexpected_recipe_worker_fanout,
+    )
+
+    records = corpus_materialization_module.materialize_corpus_refs_batch(
+        corpus_refs=[str(record["corpus_ref"])],
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert [str(item["corpus_ref"]) for item in records] == [str(record["corpus_ref"])]
+
+
+def test_materialize_corpus_refs_batch_rejects_conflicting_uncached_exact_refs(
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+
+    with pytest.raises(RuntimeError, match="multiple pinned corpus ids for recipe 'current_recipe'"):
+        _ = corpus_materialization_module.materialize_corpus_refs_batch(
+            corpus_refs=[
+                "current_recipe/current_recipe__deadbeefdead",
+                "current_recipe/current_recipe__feedfacefeed",
+            ],
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            repo_root=repo_tmp_path,
+        )
+
+
+def test_materialize_corpus_refs_batch_rejects_mismatched_pinned_exact_ref_from_recipe_worker(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+
+    def _fake_recipe_worker_fanout(
+        *,
+        pending_requests,
+        materialize_processes: int | None,
+        materialize_worker_threads: int | None,
+        prioritized_recipe_ids,
+        on_recipe_materialized=None,
+    ) -> list[dict[str, Any]]:
+        del pending_requests, materialize_processes, materialize_worker_threads, prioritized_recipe_ids
+        assert on_recipe_materialized is not None
+        on_recipe_materialized(
+            {
+                "recipe_id": "current_recipe",
+                "corpus_ref": "current_recipe/current_recipe__123456789abc",
+                "manifest": {
+                    "manifest_path": str((repo_tmp_path / "current_recipe.parquet").resolve())
+                },
+            }
+        )
+        return []
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_pending_recipes_with_subprocess_fanout",
+        _fake_recipe_worker_fanout,
+    )
+
+    with pytest.raises(RuntimeError, match="pinned to an exact corpus id"):
+        _ = corpus_materialization_module.materialize_corpus_refs_batch(
+            corpus_refs=["current_recipe/current_recipe__deadbeefdead"],
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=False,
+            repo_root=repo_tmp_path,
+        )
+
+
+def test_materialize_corpus_refs_batch_aborts_without_manifest_when_recipe_worker_fanout_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_recipe_registry(repo_tmp_path)
+
+    def _failing_recipe_worker_fanout(**_kwargs: Any) -> list[dict[str, Any]]:
+        raise RuntimeError("recipe worker failed")
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_materialize_pending_recipes_with_subprocess_fanout",
+        _failing_recipe_worker_fanout,
+    )
+
+    with pytest.raises(RuntimeError, match="recipe worker failed"):
+        _ = corpus_materialization_module.materialize_corpus_refs_batch(
+            corpus_refs=["current_recipe", "size_recipe"],
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=True,
+            repo_root=repo_tmp_path,
+        )
+
+    for recipe_id in ("current_recipe", "size_recipe"):
+        recipe_root = repo_tmp_path / "outputs" / "corpora" / recipe_id
+        assert not any(recipe_root.glob("*/manifest.parquet"))
+
+
+def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_and_splits_process_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    launched_recipe_ids: list[str] = []
+    launched_process_allocations: list[int] = []
+    launched_worker_threads: list[int] = []
+    callback_order: list[str] = []
+    completion_order = ["size_recipe", "current_recipe", "adequacy_recipe"]
+    completed_indices = [0]
+    active_processes: dict[str, Any] = {}
+    worker_thread_resolution_inputs: list[tuple[int | None, int | None]] = []
+
+    def _fake_resolve_worker_threads(
+        threads: int | None,
+        *,
+        materialize_processes: int | None,
+    ) -> int:
+        worker_thread_resolution_inputs.append((threads, materialize_processes))
+        return 7
+
+    class FakePopen:
+        next_pid = 1000
+
+        def __init__(
+            self,
+            argv: list[str],
+            *,
+            cwd: Path,
+            text: bool,
+            stdout: Any,
+            stderr: Any,
+        ) -> None:
+            del cwd, text, stdout, stderr
+            self.args = argv
+            self.pid = FakePopen.next_pid
+            FakePopen.next_pid += 1
+            recipe_id = argv[argv.index("--recipe-id") + 1]
+            launched_recipe_ids.append(recipe_id)
+            launched_process_allocations.append(
+                int(argv[argv.index("--materialize-processes") + 1])
+            )
+            launched_worker_threads.append(
+                int(argv[argv.index("--materialize-worker-threads") + 1])
+            )
+            self.recipe_id = recipe_id
+            self.returncode: int | None = None
+            self.stdout_text = json.dumps(
+                {
+                    "recipe_id": recipe_id,
+                    "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+                    "manifest": {
+                        "manifest_path": str((repo_tmp_path / f"{recipe_id}.parquet").resolve())
+                    },
+                }
+            )
+            self.stderr_text = ""
+            active_processes[recipe_id] = self
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def communicate(self) -> tuple[str, str]:
+            return self.stdout_text, self.stderr_text
+
+        def terminate(self) -> None:
+            if self.returncode is None:
+                self.returncode = -15
+
+        def wait(self, timeout: float | None = None) -> int:
+            del timeout
+            if self.returncode is None:
+                self.returncode = 0
+            return self.returncode
+
+        def kill(self) -> None:
+            self.returncode = -9
+
+    def _fake_sleep(_seconds: float) -> None:
+        if completed_indices[0] >= len(completion_order):
+            raise AssertionError("scheduler slept after all fake completions were consumed")
+        recipe_id = completion_order[completed_indices[0]]
+        completed_indices[0] += 1
+        active_processes[recipe_id].returncode = 0
+
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        "_resolve_materialize_worker_threads",
+        _fake_resolve_worker_threads,
+    )
+    monkeypatch.setattr(corpus_materialization_module.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(corpus_materialization_module.time, "sleep", _fake_sleep)
+
+    records = corpus_materialization_module._materialize_pending_recipes_with_subprocess_fanout(
+        pending_requests=[
+            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                recipe_id="adequacy_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                recipe_id="current_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                recipe_id="size_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+        ],
+        materialize_processes=4,
+        materialize_worker_threads=None,
+        prioritized_recipe_ids=["current_recipe"],
+        on_recipe_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
+    )
+
+    assert worker_thread_resolution_inputs == [(None, 4)]
+    assert launched_recipe_ids == ["current_recipe", "adequacy_recipe", "size_recipe"]
+    assert launched_process_allocations == [2, 1, 1]
+    assert launched_worker_threads == [7, 7, 7]
+    assert callback_order == completion_order
+    assert [str(record["recipe_id"]) for record in records] == completion_order
+
+
+def test_materialize_pending_recipes_with_subprocess_fanout_terminates_remaining_workers_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    process_by_recipe_id: dict[str, Any] = {}
+    completion_order = ["current_recipe"]
+    completed_indices = [0]
+
+    class FakePopen:
+        next_pid = 2000
+
+        def __init__(
+            self,
+            argv: list[str],
+            *,
+            cwd: Path,
+            text: bool,
+            stdout: Any,
+            stderr: Any,
+        ) -> None:
+            del cwd, text, stdout, stderr
+            self.args = argv
+            self.pid = FakePopen.next_pid
+            FakePopen.next_pid += 1
+            self.recipe_id = argv[argv.index("--recipe-id") + 1]
+            self.returncode: int | None = None
+            self.stdout_text = ""
+            self.stderr_text = "boom"
+            self.terminated = False
+            process_by_recipe_id[self.recipe_id] = self
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+        def communicate(self) -> tuple[str, str]:
+            return self.stdout_text, self.stderr_text
+
+        def terminate(self) -> None:
+            self.terminated = True
+            if self.returncode is None:
+                self.returncode = -15
+
+        def wait(self, timeout: float | None = None) -> int:
+            del timeout
+            if self.returncode is None:
+                self.returncode = 0
+            return self.returncode
+
+        def kill(self) -> None:
+            self.returncode = -9
+
+    def _fake_sleep(_seconds: float) -> None:
+        if completed_indices[0] >= len(completion_order):
+            raise AssertionError("scheduler slept after the failure was already injected")
+        recipe_id = completion_order[completed_indices[0]]
+        completed_indices[0] += 1
+        process_by_recipe_id[recipe_id].returncode = 1
+
+    monkeypatch.setattr(corpus_materialization_module.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(corpus_materialization_module.time, "sleep", _fake_sleep)
+
+    with pytest.raises(RuntimeError, match="recipe materialization subprocess failed"):
+        _ = corpus_materialization_module._materialize_pending_recipes_with_subprocess_fanout(
+            pending_requests=[
+                corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                    recipe_id="current_recipe",
+                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                    force=True,
+                    repo_root=repo_tmp_path,
+                    requested_exact_ref=None,
+                    requires_recipe_record=True,
+                    sweep_id=None,
+                    sweeps_root=None,
+                ),
+                corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                    recipe_id="size_recipe",
+                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                    force=True,
+                    repo_root=repo_tmp_path,
+                    requested_exact_ref=None,
+                    requires_recipe_record=True,
+                    sweep_id=None,
+                    sweeps_root=None,
+                ),
+            ],
+            materialize_processes=2,
+            materialize_worker_threads=3,
+            prioritized_recipe_ids=(),
+        )
+
+    assert process_by_recipe_id["size_recipe"].terminated is True
+
+
 def test_materialize_corpus_recipe_backfills_adequacy_metadata_from_recipe_when_handoff_omits_provenance(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,

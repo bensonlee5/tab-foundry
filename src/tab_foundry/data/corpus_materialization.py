@@ -83,12 +83,6 @@ class _PendingCorpusMaterialization:
     stage_root: Path
     sweep_id: str | None
     sweeps_root: Path | None
-    invocation_queue: deque[DagzooInvocationRecipe]
-    remaining_invocations: int
-    shape_acceptance_rates: dict[tuple[int | None, int | None, int | None], list[float]] = field(
-        default_factory=dict
-    )
-    row_acceptance_rates: dict[int, list[float]] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -96,6 +90,32 @@ class _ActiveInvocationProcess:
     process: subprocess.Popen[str]
     pending: _PendingCorpusMaterialization | None
     spec: DagzooInvocationRecipe
+
+
+@dataclass(slots=True)
+class _BatchedRecipeRequest:
+    recipe_id: str
+    requires_recipe_record: bool = False
+    exact_refs: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class _PendingRecipeWorkerMaterialization:
+    recipe_id: str
+    dagzoo_root: Path
+    force: bool
+    repo_root: Path
+    requested_exact_ref: str | None
+    requires_recipe_record: bool
+    sweep_id: str | None
+    sweeps_root: Path | None
+
+
+@dataclass(slots=True)
+class _ActiveRecipeProcess:
+    process: subprocess.Popen[str]
+    pending: _PendingRecipeWorkerMaterialization
+    materialize_processes: int
 
 
 def _resolved_cpu_count(*, cpu_count: int | None = None) -> int:
@@ -438,49 +458,6 @@ def _clamp_expected_acceptance_rate(rate: float | None) -> float | None:
         _ACCEPTED_ONLY_MAX_EXPECTED_ACCEPTANCE_RATE,
         max(_ACCEPTED_ONLY_MIN_EXPECTED_ACCEPTANCE_RATE, float(rate)),
     )
-
-
-def _initial_expected_acceptance_rate(
-    pending: _PendingCorpusMaterialization,
-    *,
-    spec: DagzooInvocationRecipe,
-) -> float | None:
-    shape_key = _invocation_shape_key(spec)
-    shape_rates = pending.shape_acceptance_rates.get(shape_key)
-    if shape_rates:
-        return _clamp_expected_acceptance_rate(sum(shape_rates) / float(len(shape_rates)))
-    row_total = shape_key[0]
-    if row_total is not None:
-        row_rates = pending.row_acceptance_rates.get(int(row_total))
-        if row_rates:
-            return _clamp_expected_acceptance_rate(sum(row_rates) / float(len(row_rates)))
-    return None
-
-
-def _record_completed_invocation_acceptance_rate(
-    pending: _PendingCorpusMaterialization,
-    *,
-    spec: DagzooInvocationRecipe,
-) -> None:
-    summary_path = _invocation_materialization_summary_path(
-        corpus_root=pending.stage_root,
-        invocation_id=spec.invocation_id,
-    )
-    if not summary_path.exists():
-        return
-    summary_payload = _read_json_mapping(
-        summary_path,
-        context=f"accepted_only materialization summary for invocation {spec.invocation_id!r}",
-    )
-    acceptance_rate = _float_or_none(summary_payload.get("acceptance_rate"))
-    clamped_rate = _clamp_expected_acceptance_rate(acceptance_rate)
-    if clamped_rate is None:
-        return
-    shape_key = _invocation_shape_key(spec)
-    pending.shape_acceptance_rates.setdefault(shape_key, []).append(clamped_rate)
-    row_total = shape_key[0]
-    if row_total is not None:
-        pending.row_acceptance_rates.setdefault(int(row_total), []).append(clamped_rate)
 
 
 def _dagzoo_generate_config(
@@ -1066,73 +1043,156 @@ def materialize_corpus_refs_batch(
     normalized_refs = [
         _ensure_non_empty_string(corpus_ref, context="corpus_ref") for corpus_ref in corpus_refs
     ]
-    prepared_corpora: list[_PendingCorpusMaterialization] = []
+    grouped_requests: dict[str, _BatchedRecipeRequest] = {}
+    ordered_recipe_ids: list[str] = []
     records_by_recipe_id: dict[str, dict[str, Any]] = {}
     records_by_exact_ref: dict[str, dict[str, Any]] = {}
-    seen_recipe_ids: set[str] = set()
+    notified_recipe_ids: set[str] = set()
+    pending_requests: list[_PendingRecipeWorkerMaterialization] = []
 
-    try:
-        for normalized_ref in normalized_refs:
-            recipe_id, separator, _corpus_id = normalized_ref.partition("/")
-            if separator:
-                record = materialize_corpus_ref(
-                    corpus_ref=normalized_ref,
-                    dagzoo_root=resolved_dagzoo_root,
-                    force=force,
-                    materialize_processes=materialize_processes,
-                    materialize_worker_threads=materialize_worker_threads,
+    def _dispatch_corpus_materialized(record: dict[str, Any]) -> None:
+        if on_corpus_materialized is None:
+            return
+        recipe_id = _ensure_non_empty_string(
+            record.get("recipe_id"),
+            context="materialized corpus record recipe_id",
+        )
+        if recipe_id in notified_recipe_ids:
+            return
+        on_corpus_materialized(record)
+        notified_recipe_ids.add(recipe_id)
+
+    for normalized_ref in normalized_refs:
+        recipe_id, separator, _corpus_id = normalized_ref.partition("/")
+        request = grouped_requests.get(recipe_id)
+        if request is None:
+            request = _BatchedRecipeRequest(recipe_id=recipe_id)
+            grouped_requests[recipe_id] = request
+            ordered_recipe_ids.append(recipe_id)
+        if separator:
+            if normalized_ref not in request.exact_refs:
+                request.exact_refs.append(normalized_ref)
+            continue
+        request.requires_recipe_record = True
+
+    for recipe_id in ordered_recipe_ids:
+        request = grouped_requests[recipe_id]
+        cached_exact_records: dict[str, dict[str, Any]] = {}
+        unresolved_exact_refs: list[str] = []
+        for exact_ref in request.exact_refs:
+            cached_record = None
+            if not force:
+                cached_record = _load_reusable_corpus_record(
+                    exact_ref,
                     repo_root=resolved_repo_root,
                     sweep_id=sweep_id,
                     sweeps_root=sweeps_root,
                 )
-                records_by_exact_ref[normalized_ref] = record
-                records_by_recipe_id.setdefault(str(record["recipe_id"]), record)
-                if on_corpus_materialized is not None:
-                    on_corpus_materialized(record)
+            if cached_record is None:
+                unresolved_exact_refs.append(exact_ref)
                 continue
-            if recipe_id in seen_recipe_ids or recipe_id in records_by_recipe_id:
-                continue
-            seen_recipe_ids.add(recipe_id)
-            prepared = _prepare_recipe_materialization(
+            records_by_exact_ref[exact_ref] = cached_record
+            cached_exact_records[exact_ref] = cached_record
+
+        distinct_unresolved_exact_refs = list(dict.fromkeys(unresolved_exact_refs))
+        if len(distinct_unresolved_exact_refs) > 1:
+            raise RuntimeError(
+                "batch requested multiple pinned corpus ids for recipe "
+                f"{recipe_id!r}: {distinct_unresolved_exact_refs!r}. "
+                "Materialize those exact corpus refs separately."
+            )
+        unresolved_exact_ref = (
+            distinct_unresolved_exact_refs[0] if distinct_unresolved_exact_refs else None
+        )
+        if unresolved_exact_ref is not None:
+            pending_requests.append(
+                _PendingRecipeWorkerMaterialization(
+                    recipe_id=recipe_id,
+                    dagzoo_root=resolved_dagzoo_root,
+                    force=force,
+                    repo_root=resolved_repo_root,
+                    requested_exact_ref=unresolved_exact_ref,
+                    requires_recipe_record=request.requires_recipe_record,
+                    sweep_id=sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+            )
+            continue
+
+        recipe_record = None
+        if request.requires_recipe_record:
+            recipe_record = _load_reusable_recipe_record_for_request(
                 recipe_id=recipe_id,
-                dagzoo_root=resolved_dagzoo_root,
                 force=force,
                 repo_root=resolved_repo_root,
                 sweep_id=sweep_id,
                 sweeps_root=sweeps_root,
             )
-            if isinstance(prepared, dict):
-                records_by_recipe_id[recipe_id] = prepared
-                if on_corpus_materialized is not None:
-                    on_corpus_materialized(prepared)
+            if recipe_record is None:
+                pending_requests.append(
+                    _PendingRecipeWorkerMaterialization(
+                        recipe_id=recipe_id,
+                        dagzoo_root=resolved_dagzoo_root,
+                        force=force,
+                        repo_root=resolved_repo_root,
+                        requested_exact_ref=None,
+                        requires_recipe_record=True,
+                        sweep_id=sweep_id,
+                        sweeps_root=sweeps_root,
+                    )
+                )
                 continue
-            prepared_corpora.append(prepared)
+            records_by_recipe_id[recipe_id] = recipe_record
 
-        if prepared_corpora:
-            finalized_records = _materialize_pending_corpora_with_shared_subprocess_fanout(
-                pending_corpora=prepared_corpora,
-                force=force,
-                materialize_processes=materialize_processes,
-                materialize_worker_threads=materialize_worker_threads,
-                prioritized_recipe_ids=prioritized_recipe_ids,
-                on_corpus_materialized=on_corpus_materialized,
-            )
-            records_by_recipe_id.update(
-                {str(record["recipe_id"]): record for record in finalized_records}
-            )
+        notification_record = recipe_record
+        if notification_record is None and cached_exact_records:
+            notification_record = records_by_exact_ref[request.exact_refs[0]]
+        if notification_record is not None:
+            _dispatch_corpus_materialized(notification_record)
 
-        resolved_records: list[dict[str, Any]] = []
-        for normalized_ref in normalized_refs:
-            recipe_id, separator, _corpus_id = normalized_ref.partition("/")
-            if separator:
-                resolved_records.append(records_by_exact_ref[normalized_ref])
-                continue
-            resolved_records.append(records_by_recipe_id[recipe_id])
-        return resolved_records
-    finally:
-        for pending in prepared_corpora:
-            if pending.stage_root.exists():
-                shutil.rmtree(pending.stage_root)
+    if pending_requests:
+        pending_by_recipe_id = {pending.recipe_id: pending for pending in pending_requests}
+
+        def _on_recipe_materialized(record: dict[str, Any]) -> None:
+            recipe_id = _ensure_non_empty_string(
+                record.get("recipe_id"),
+                context="recipe worker record recipe_id",
+            )
+            pending = pending_by_recipe_id[recipe_id]
+            materialized_corpus_ref = _ensure_non_empty_string(
+                record.get("corpus_ref"),
+                context="recipe worker record corpus_ref",
+            )
+            if (
+                pending.requested_exact_ref is not None
+                and materialized_corpus_ref != pending.requested_exact_ref
+            ):
+                raise RuntimeError(
+                    f"requested corpus_ref {pending.requested_exact_ref!r} is pinned to an exact corpus id, "
+                    f"but materializing recipe {recipe_id!r} produced {materialized_corpus_ref!r}"
+                )
+            if pending.requires_recipe_record:
+                records_by_recipe_id[recipe_id] = record
+            if pending.requested_exact_ref is not None:
+                records_by_exact_ref[pending.requested_exact_ref] = record
+            _dispatch_corpus_materialized(record)
+
+        _ = _materialize_pending_recipes_with_subprocess_fanout(
+            pending_requests=pending_requests,
+            materialize_processes=materialize_processes,
+            materialize_worker_threads=materialize_worker_threads,
+            prioritized_recipe_ids=prioritized_recipe_ids,
+            on_recipe_materialized=_on_recipe_materialized,
+        )
+
+    resolved_records: list[dict[str, Any]] = []
+    for normalized_ref in normalized_refs:
+        recipe_id, separator, _corpus_id = normalized_ref.partition("/")
+        if separator:
+            resolved_records.append(records_by_exact_ref[normalized_ref])
+            continue
+        resolved_records.append(records_by_recipe_id[recipe_id])
+    return resolved_records
 
 
 def _materialize_invocation(
@@ -1442,6 +1502,57 @@ def _materialize_invocations_with_subprocess_fanout(
             _terminate_active_invocation_subprocesses(active_processes)
 
 
+def _load_reusable_recipe_record(
+    *,
+    recipe: CorpusRecipe,
+    storage: CorpusRecipeStorageContext,
+    force: bool,
+    repo_root: Path,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> dict[str, Any] | None:
+    if force:
+        return None
+    existing_record = _load_reusable_corpus_record(
+        recipe.recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if existing_record is None or not _record_matches_recipe(
+        existing_record,
+        recipe,
+        storage=storage,
+    ):
+        return None
+    return existing_record
+
+
+def _load_reusable_recipe_record_for_request(
+    *,
+    recipe_id: str,
+    force: bool,
+    repo_root: Path,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> dict[str, Any] | None:
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    storage = _recipe_storage_context(recipe, repo_root=repo_root)
+    return _load_reusable_recipe_record(
+        recipe=recipe,
+        storage=storage,
+        force=force,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+
+
 def _prepare_recipe_materialization(
     *,
     recipe_id: str,
@@ -1458,19 +1569,16 @@ def _prepare_recipe_materialization(
         sweeps_root=sweeps_root,
     )
     storage = _recipe_storage_context(recipe, repo_root=repo_root)
-    if not force:
-        existing_record = _load_reusable_corpus_record(
-            recipe.recipe_id,
-            repo_root=repo_root,
-            sweep_id=sweep_id,
-            sweeps_root=sweeps_root,
-        )
-        if existing_record is not None and _record_matches_recipe(
-            existing_record,
-            recipe,
-            storage=storage,
-        ):
-            return existing_record
+    existing_record = _load_reusable_recipe_record(
+        recipe=recipe,
+        storage=storage,
+        force=force,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if existing_record is not None:
+        return existing_record
 
     recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe.recipe_id
     stage_root = recipe_root / ".staging"
@@ -1486,8 +1594,6 @@ def _prepare_recipe_materialization(
         stage_root=stage_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
-        invocation_queue=deque(recipe.invocations),
-        remaining_invocations=len(recipe.invocations),
     )
 
 
@@ -1527,8 +1633,6 @@ def _pending_recipe_materialization_from_existing_stage(
         stage_root=resolved_stage_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
-        invocation_queue=deque(),
-        remaining_invocations=0,
     )
 
 
@@ -2043,107 +2147,200 @@ def finalize_staged_corpus_recipe(
     }
 
 
-def _pop_next_pending_invocation(
-    pending_corpora: Sequence[_PendingCorpusMaterialization],
+def _recipe_worker_argv(
     *,
-    next_index: list[int],
-) -> tuple[_PendingCorpusMaterialization, DagzooInvocationRecipe] | None:
-    if not pending_corpora:
-        return None
-    start_index = next_index[0] % len(pending_corpora)
-    for offset in range(len(pending_corpora)):
-        index = (start_index + offset) % len(pending_corpora)
-        pending = pending_corpora[index]
-        if not pending.invocation_queue:
-            continue
-        next_index[0] = index + 1
-        return pending, pending.invocation_queue.popleft()
-    return None
-
-
-def _materialize_pending_corpora_with_shared_subprocess_fanout(
-    *,
-    pending_corpora: Sequence[_PendingCorpusMaterialization],
+    recipe_id: str,
+    dagzoo_root: Path,
     force: bool,
+    repo_root: Path,
+    materialize_processes: int,
+    materialize_worker_threads: int,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> list[str]:
+    argv = [
+        sys.executable,
+        "-m",
+        "tab_foundry.data.corpus_materialization_recipe_worker",
+        "--recipe-id",
+        str(recipe_id),
+        "--dagzoo-root",
+        str(dagzoo_root.expanduser().resolve()),
+        "--repo-root",
+        str(repo_root.expanduser().resolve()),
+        "--materialize-processes",
+        str(int(materialize_processes)),
+        "--materialize-worker-threads",
+        str(int(materialize_worker_threads)),
+    ]
+    if force:
+        argv.append("--force")
+    if sweep_id is not None:
+        argv.extend(["--sweep-id", str(sweep_id)])
+    if sweeps_root is not None:
+        argv.extend(["--sweeps-root", str(sweeps_root.expanduser().resolve())])
+    return argv
+
+
+def _terminate_active_recipe_subprocesses(
+    active_processes: Mapping[int, _ActiveRecipeProcess],
+) -> None:
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is None:
+            process.terminate()
+    deadline = time.monotonic() + 5.0
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is not None:
+            continue
+        remaining = deadline - time.monotonic()
+        try:
+            process.wait(timeout=max(0.0, remaining))
+        except subprocess.TimeoutExpired:
+            process.kill()
+    for active_process in active_processes.values():
+        process = active_process.process
+        if process.poll() is None:
+            process.wait()
+
+
+def _materialize_process_slot_allocations(
+    *,
+    total_processes: int,
+    worker_count: int,
+) -> list[int]:
+    if worker_count <= 0:
+        return []
+    resolved_total = max(1, int(total_processes))
+    resolved_workers = max(1, int(worker_count))
+    base, remainder = divmod(resolved_total, resolved_workers)
+    return [
+        base + (1 if index < remainder else 0)
+        for index in range(resolved_workers)
+    ]
+
+
+def _load_completed_recipe_worker_record(
+    active_process: _ActiveRecipeProcess,
+) -> dict[str, Any]:
+    process = active_process.process
+    stdout, stderr = process.communicate()
+    returncode = process.returncode
+    if returncode is None:
+        returncode = process.poll()
+    if returncode is None:
+        raise RuntimeError(
+            "recipe materialization subprocess ended without a return code: "
+            f"recipe_id={active_process.pending.recipe_id!r}"
+        )
+    if int(returncode) != 0:
+        detail = stderr.strip() if isinstance(stderr, str) else ""
+        detail_suffix = f" stderr={detail!r}" if detail else ""
+        raise RuntimeError(
+            "recipe materialization subprocess failed: "
+            f"recipe_id={active_process.pending.recipe_id!r} "
+            f"returncode={int(returncode)} "
+            f"argv={process.args!r}{detail_suffix}"
+        )
+    normalized_stdout = stdout.strip() if isinstance(stdout, str) else ""
+    if not normalized_stdout:
+        raise RuntimeError(
+            "recipe materialization subprocess produced no JSON record: "
+            f"recipe_id={active_process.pending.recipe_id!r} "
+            f"argv={process.args!r}"
+        )
+    try:
+        payload = json.loads(normalized_stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "recipe materialization subprocess emitted invalid JSON: "
+            f"recipe_id={active_process.pending.recipe_id!r} "
+            f"argv={process.args!r}"
+        ) from exc
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(
+            "recipe materialization subprocess JSON payload must decode to an object: "
+            f"recipe_id={active_process.pending.recipe_id!r} "
+            f"argv={process.args!r}"
+        )
+    return {str(key): value for key, value in payload.items()}
+
+
+def _materialize_pending_recipes_with_subprocess_fanout(
+    *,
+    pending_requests: Sequence[_PendingRecipeWorkerMaterialization],
     materialize_processes: int | None,
     materialize_worker_threads: int | None,
     prioritized_recipe_ids: Sequence[str],
-    on_corpus_materialized: Callable[[dict[str, Any]], None] | None = None,
+    on_recipe_materialized: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
-    if not pending_corpora:
+    if not pending_requests:
         return []
 
-    total_invocations = sum(int(pending.remaining_invocations) for pending in pending_corpora)
-    max_processes = min(_resolve_materialize_processes(materialize_processes), total_invocations)
+    total_process_budget = _resolve_materialize_processes(materialize_processes)
     resolved_worker_threads = _resolve_materialize_worker_threads(
         materialize_worker_threads,
-        materialize_processes=max_processes,
+        materialize_processes=total_process_budget,
+    )
+    max_workers = min(total_process_budget, len(pending_requests))
+    available_process_slots = deque(
+        _materialize_process_slot_allocations(
+            total_processes=total_process_budget,
+            worker_count=max_workers,
+        )
     )
     prioritized_ids = {str(recipe_id) for recipe_id in prioritized_recipe_ids}
-    priority_corpora = [
-        pending for pending in pending_corpora if pending.recipe.recipe_id in prioritized_ids
-    ]
-    regular_corpora = [
-        pending for pending in pending_corpora if pending.recipe.recipe_id not in prioritized_ids
-    ]
-    priority_index = [0]
-    regular_index = [0]
-    active_processes: dict[int, _ActiveInvocationProcess] = {}
+    launch_queue = deque(
+        [
+            pending
+            for pending in pending_requests
+            if pending.recipe_id in prioritized_ids
+        ]
+        + [
+            pending
+            for pending in pending_requests
+            if pending.recipe_id not in prioritized_ids
+        ]
+    )
+    active_processes: dict[int, _ActiveRecipeProcess] = {}
     finalized_records: list[dict[str, Any]] = []
 
     try:
-        while active_processes or any(pending.remaining_invocations > 0 for pending in pending_corpora):
-            while len(active_processes) < max_processes:
-                next_task = _pop_next_pending_invocation(
-                    priority_corpora,
-                    next_index=priority_index,
-                )
-                if next_task is None:
-                    next_task = _pop_next_pending_invocation(
-                        regular_corpora,
-                        next_index=regular_index,
-                    )
-                if next_task is None:
-                    break
-                pending, spec = next_task
-                initial_expected_acceptance_rate = None
-                if str(pending.recipe.manifest_policy.filter_policy).strip() == "accepted_only":
-                    initial_expected_acceptance_rate = _initial_expected_acceptance_rate(
-                        pending,
-                        spec=spec,
-                    )
+        while launch_queue or active_processes:
+            while launch_queue and available_process_slots:
+                pending = launch_queue.popleft()
+                allocated_processes = available_process_slots.popleft()
                 process = subprocess.Popen(
-                    _invocation_worker_argv(
-                        recipe_id=pending.recipe.recipe_id,
-                        invocation_id=str(spec.invocation_id),
+                    _recipe_worker_argv(
+                        recipe_id=pending.recipe_id,
                         dagzoo_root=pending.dagzoo_root,
-                        corpus_root=pending.stage_root,
+                        force=pending.force,
                         repo_root=pending.repo_root,
+                        materialize_processes=allocated_processes,
                         materialize_worker_threads=resolved_worker_threads,
-                        initial_expected_acceptance_rate=initial_expected_acceptance_rate,
                         sweep_id=pending.sweep_id,
                         sweeps_root=pending.sweeps_root,
                     ),
                     cwd=pending.repo_root,
                     text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                 )
-                active_processes[int(process.pid)] = _ActiveInvocationProcess(
+                active_processes[int(process.pid)] = _ActiveRecipeProcess(
                     process=process,
                     pending=pending,
-                    spec=spec,
+                    materialize_processes=allocated_processes,
                 )
 
             completed_pid: int | None = None
-            completed_active_process: _ActiveInvocationProcess | None = None
-            completed_returncode: int | None = None
+            completed_active_process: _ActiveRecipeProcess | None = None
             while completed_active_process is None:
                 for pid, active_process in list(active_processes.items()):
-                    returncode = active_process.process.poll()
-                    if returncode is None:
+                    if active_process.process.poll() is None:
                         continue
                     completed_pid = pid
                     completed_active_process = active_process
-                    completed_returncode = int(returncode)
                     break
                 if completed_active_process is None:
                     time.sleep(_INVOCATION_SUBPROCESS_POLL_INTERVAL_SECONDS)
@@ -2151,32 +2348,15 @@ def _materialize_pending_corpora_with_shared_subprocess_fanout(
             assert completed_pid is not None
             del active_processes[completed_pid]
             assert completed_active_process is not None
-            if completed_returncode != 0:
-                raise RuntimeError(
-                    "invocation materialization subprocess failed: "
-                    f"recipe_id={completed_active_process.pending.recipe.recipe_id if completed_active_process.pending is not None else 'unknown'} "
-                    f"invocation_id={completed_active_process.spec.invocation_id} "
-                    f"returncode={completed_returncode} "
-                    f"argv={completed_active_process.process.args!r}"
-                )
-
-            completed_pending = completed_active_process.pending
-            assert completed_pending is not None
-            if str(completed_pending.recipe.manifest_policy.filter_policy).strip() == "accepted_only":
-                _record_completed_invocation_acceptance_rate(
-                    completed_pending,
-                    spec=completed_active_process.spec,
-                )
-            completed_pending.remaining_invocations -= 1
-            if completed_pending.remaining_invocations <= 0:
-                record = _finalize_materialized_recipe(completed_pending, force=force)
-                finalized_records.append(record)
-                if on_corpus_materialized is not None:
-                    on_corpus_materialized(record)
+            available_process_slots.appendleft(completed_active_process.materialize_processes)
+            record = _load_completed_recipe_worker_record(completed_active_process)
+            finalized_records.append(record)
+            if on_recipe_materialized is not None:
+                on_recipe_materialized(record)
         return finalized_records
     finally:
         if active_processes:
-            _terminate_active_invocation_subprocesses(active_processes)
+            _terminate_active_recipe_subprocesses(active_processes)
 
 
 def _invocation_record_payload(
