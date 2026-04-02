@@ -3,7 +3,7 @@ sweep_id: tf_rd_010_classification_evolution_medium_v5
 rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: ready
+  status: completed
   rationale: Remove the row-order confound between `tf_rd_010_classification_evolution_medium_v4`
     row 1 and rows 2 through 4 before promoting any TF-RD-010 missingness recommendation
     on the medium benchmark rung.
@@ -62,13 +62,13 @@ rows:
   - Rank by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target
     log loss per test cell, then inspect calibration, runtime, stability, and any
     retained legacy cell-likelihood diagnostics as guardrails.
-  - Compare directly against `tf_rd_010_classification_evolution_medium_v4` rows
-    2 through 4 before promoting any missingness recommendation or reopening `large_v2`.
+  - Compare directly against `tf_rd_010_classification_evolution_medium_v4` rows 2
+    through 4 before promoting any missingness recommendation or reopening `large_v2`.
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Train this row fresh under the sorted-order code path, benchmark and
     register it on the intended hub-backed medium classification manifest, then compare
@@ -84,9 +84,9 @@ rows:
   - 'Trusted executions use a single synthetic epoch only: one pass over `159984`
     corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to
     `2500` optimizer steps with an allowed short final batch.'
-  - '`tf_rd_010_classification_evolution_medium_v4` remains completed historical
-    evidence: row 1 reused an older unsorted control train artifact while rows 2
-    through 4 were trained after dataset sorting was enabled.'
+  - '`tf_rd_010_classification_evolution_medium_v4` remains completed historical evidence:
+    row 1 reused an older unsorted control train artifact while rows 2 through 4 were
+    trained after dataset sorting was enabled.'
   - '`tf_rd_010_classification_evolution_medium_v5` is intentionally a single-row
     follow-up that reopens only the control anchor to remove that order confound.'
   - '`tf_rd_010_classification_evolution_medium_v5` uses the pilot-aligned control
@@ -104,3 +104,31 @@ rows:
   - Compare the completed sorted-order control directly against `tf_rd_010_classification_evolution_medium_v4`
     rows 2 through 4 before promoting any missingness recommendation.
   - '`large_v2` remains blocked until this row is benchmarked, registered, and promoted.'
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v5_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 3.652196974843809
+    best_bpc: 2.115388645268446
+    best_bpf: 2.115368489878754
+    best_roc_auc: 0.6044474696018965
+    best_log_loss: 0.6849303353676671
+    best_brier_score: 0.42461597370802434
+    final_bpc: 2.115388645268446
+    final_bpf: 2.115368489878754
+    final_roc_auc: 0.6044474696018965
+    final_log_loss: 0.6849303353676671
+    final_brier_score: 0.42461597370802434
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.0017465028165957186
+    delta_final_bpf: 0.0017494534917448235
+    delta_final_log_loss: 0.0037575952900411602
+    delta_final_brier_score: 0.0017109034309208404
+    delta_final_roc_auc: -0.004957409955761882
