@@ -6,7 +6,7 @@ This is the canonical long-form evidence note for
 - Status: `planned`
 - Milestone: `Next`
 - Dependency position: runs after the first carried sandwich dagzoo many-class
-  slice and the steering-derived corpus decision are explicit, and before
+  slice and the full TF-RD-021 carry-forward decision are explicit, and before
   TF-RD-009 scaling fits; it should not reopen sandwich-parent or regime-choice
   work, but it should hand one explicit kernel/runtime policy back to later
   scaling work
@@ -66,8 +66,8 @@ This is the canonical long-form evidence note for
   and measurable before chasing larger architecture or optimizer changes for
   speed
 - the runtime ladder should stay classification-only and should inherit one
-  frozen carried recipe rather than reopening sandwich-parent selection,
-  steering, or law design
+  frozen carried recipe rather than reopening sandwich-parent selection, the
+  upstream dagzoo surface expansion, or law design
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
