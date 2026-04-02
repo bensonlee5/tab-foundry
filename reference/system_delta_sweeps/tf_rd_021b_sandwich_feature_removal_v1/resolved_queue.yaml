@@ -180,6 +180,7 @@ rows:
   - If the drop is weak, prefer removing this feature entirely rather than retaining
     a reduced nonzero count.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1
   followup_run_ids: []
   decision: defer
@@ -192,6 +193,7 @@ rows:
   - This row underperformed the locked sweep anchor on final log loss and final ROC
     AUC; keep the compact hybrid anchor and do not promote this row.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 2375
@@ -253,6 +255,8 @@ rows:
       feature_group_size: 1
       many_class_base: 2
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -261,22 +265,7 @@ rows:
         many_class_base: 2
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -290,8 +279,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -322,6 +309,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: null
       corpus_id: null
       corpus_record_path: null
@@ -380,7 +369,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: daa8e2880fd1c1fc9b686043f21e608ca2191d07611a8f6bb82f755941c1821c
+  resolved_surface_fingerprint: de22492d7f4e07652d6b74ca6573478f9d6b0b11f4bee8a20ebd350afb69361e
 - order: 2
   delta_id: delta_tf_rd_021b_sandwich_ffexp1_v1
   status: completed
@@ -446,6 +435,7 @@ rows:
   - Do not add `sandwich_ff_expansion=0` in this pass; freeze work can only choose
     between the anchor and the supported `=1` contraction.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -458,6 +448,7 @@ rows:
   - This row underperformed the locked sweep anchor on final log loss and final ROC
     AUC; keep the compact hybrid anchor and do not promote this row.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 2475
@@ -516,6 +507,8 @@ rows:
       feature_group_size: 1
       many_class_base: 2
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -524,22 +517,7 @@ rows:
         many_class_base: 2
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -553,8 +531,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -585,6 +561,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: null
       corpus_id: null
       corpus_record_path: null
@@ -643,7 +621,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: a969600e5ea7307bea21582d11bc04d13a3e54e616d1d5486ce91afc085b6f0d
+  resolved_surface_fingerprint: 949abfb08ac10554a2f602e947d4898261f375607db8b17f99d5abd83deb6fc9
 - order: 3
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
   status: completed
@@ -710,6 +688,7 @@ rows:
   - Prefer this row over the anchor only if the combined simplification remains bounded
     on final quality and stability.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -722,6 +701,7 @@ rows:
   - This row underperformed the locked sweep anchor on final log loss and final ROC
     AUC; keep the compact hybrid anchor and do not promote this row.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 2475
@@ -784,6 +764,8 @@ rows:
       feature_group_size: 1
       many_class_base: 2
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -792,22 +774,7 @@ rows:
         many_class_base: 2
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -821,8 +788,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -853,6 +818,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: null
       corpus_id: null
       corpus_record_path: null
@@ -911,7 +878,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: af30ea825400595b892b58557e83097e34e82da4652aa8280a3e9317ae84c896
+  resolved_surface_fingerprint: 74dd7c9436b4e1913080123a7dacb346dece0f732cf586a84ae27c9405fd989a
 - order: 4
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
   status: completed
@@ -980,6 +947,7 @@ rows:
   - If this row is close enough to the anchor, the later freeze should prefer it over
     larger retained-feature variants.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -993,6 +961,7 @@ rows:
     but it still underperformed the locked sweep anchor; keep the compact hybrid anchor
     and do not promote this row.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 2450
@@ -1055,6 +1024,8 @@ rows:
       feature_group_size: 1
       many_class_base: 2
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -1063,22 +1034,7 @@ rows:
         many_class_base: 2
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
@@ -1092,8 +1048,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -1124,6 +1078,8 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: null
+      requested_corpus_ref: null
+      materialization_state: null
       recipe_id: null
       corpus_id: null
       corpus_record_path: null
@@ -1182,6 +1138,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: cfc826242fc7d58fcc16e1d1df9e2d8e089f8e3b66fa6fbc81454189aabbcffa
+  resolved_surface_fingerprint: b39b2c9cb050ee5d77977ddcf6ac2d4a04e9c2c1d121d4bd836dc98c2f790434
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
-inputs_fingerprint: 1abca7c6bc942217221215adbf3ec2a1448fa47afff22cd12ee500e4fb059273
+inputs_fingerprint: 148e72b243a3f2ac90ec0050ea55c7967ad988708c38a9a124cdbe826b38c46a

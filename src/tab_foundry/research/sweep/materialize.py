@@ -132,6 +132,19 @@ def _optional_parent_delta_ref(queue_row: QueueRowPayload | Mapping[str, Any]) -
     return normalized
 
 
+def _reuse_train_artifact_payload(
+    queue_row: QueueRowPayload | Mapping[str, Any],
+) -> dict[str, Any] | None:
+    raw_payload = queue_row.get("reuse_train_artifact")
+    if raw_payload is None:
+        return None
+    if isinstance(raw_payload, Mapping):
+        return cast(dict[str, Any], _copy_jsonable(raw_payload))
+    if hasattr(raw_payload, "to_payload_dict"):
+        return cast(dict[str, Any], raw_payload.to_payload_dict())
+    return None
+
+
 def _json_fingerprint(payload: Mapping[str, Any]) -> str:
     return sha256_text(json.dumps(_copy_jsonable(payload), sort_keys=True, separators=(",", ":")))
 
@@ -308,6 +321,9 @@ def inspection_row(
         ),
         "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
         "execution_policy": str(queue_row.get("execution_policy", "benchmark_full")),
+        "benchmark_checkpoint_selection": str(
+            queue_row.get("benchmark_checkpoint_selection", "all")
+        ),
         "run_id": queue_row.get("run_id"),
         "followup_run_ids": cast(list[Any], _copy_jsonable(queue_row.get("followup_run_ids", []))),
         "decision": queue_row.get("decision"),
@@ -324,6 +340,9 @@ def inspection_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
+    if reuse_train_artifact is not None:
+        payload["reuse_train_artifact"] = reuse_train_artifact
     parent_delta_ref = _optional_parent_delta_ref(queue_row)
     if parent_delta_ref is not None:
         payload["parent_delta_ref"] = parent_delta_ref
@@ -522,6 +541,9 @@ def materialize_row(
         ),
         "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
         "execution_policy": str(queue_row.get("execution_policy", "benchmark_full")),
+        "benchmark_checkpoint_selection": str(
+            queue_row.get("benchmark_checkpoint_selection", "all")
+        ),
         "run_id": queue_row.get("run_id"),
         "followup_run_ids": cast(list[Any], _copy_jsonable(queue_row.get("followup_run_ids", []))),
         "decision": queue_row.get("decision"),
@@ -538,6 +560,9 @@ def materialize_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
+    if reuse_train_artifact is not None:
+        payload["reuse_train_artifact"] = reuse_train_artifact
     parent_delta_ref = _optional_parent_delta_ref(queue_row)
     if parent_delta_ref is not None:
         payload["parent_delta_ref"] = parent_delta_ref

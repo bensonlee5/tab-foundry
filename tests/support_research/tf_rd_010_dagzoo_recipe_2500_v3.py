@@ -59,7 +59,6 @@ def _grid_signature(recipe: dict[str, Any], *, missingness: str | None) -> set[t
         assert invocation["device"] == "cpu"
         assert invocation["hardware_policy"] == "none"
         dataset = invocation["config_overrides"]["dataset"]
-        diagnostics = invocation["config_overrides"]["diagnostics"]
         graph = invocation["config_overrides"]["graph"]
         retry_policy = invocation["config_overrides"]["filter"]
 
@@ -70,13 +69,13 @@ def _grid_signature(recipe: dict[str, Any], *, missingness: str | None) -> set[t
         assert dataset["categorical_ratio_min"] == 0.0
         assert dataset["categorical_ratio_max"] == 1.0
         assert dataset["max_categorical_cardinality"] == 12
-        assert dataset["target_parent_prior"] == TARGET_PARENT_PRIOR
-        assert dataset["target_parent_count_min"] == 1
-        assert dataset["target_parent_count_max"] is None
-        assert dataset["target_parent_near_max_band_min_fraction"] == 0.75
-        assert dataset["target_parent_below_sqrt_prob"] == 0.05
-        assert dataset["target_parent_midrange_prob"] == 0.20
-        assert diagnostics["teacher_conditional_export"] is True
+        assert "target_parent_prior" not in dataset
+        assert "target_parent_count_min" not in dataset
+        assert "target_parent_count_max" not in dataset
+        assert "target_parent_near_max_band_min_fraction" not in dataset
+        assert "target_parent_below_sqrt_prob" not in dataset
+        assert "target_parent_midrange_prob" not in dataset
+        assert "diagnostics" not in invocation["config_overrides"]
 
         class_count = dataset["n_classes_min"]
         assert class_count in CLASS_COUNTS
@@ -215,18 +214,17 @@ def test_tf_rd_010_factorized_canary_recipe_tracks_the_row_ladder_only() -> None
     seen_rows: set[int] = set()
     for invocation in invocations:
         dataset = invocation["config_overrides"]["dataset"]
-        diagnostics = invocation["config_overrides"]["diagnostics"]
         row_total = int(dataset["n_train"]) + int(dataset["n_test"])
         assert row_total in ROW_SPECS
         assert dataset["n_features_min"] == dataset["n_features_max"] == 6
         assert dataset["n_classes_min"] == dataset["n_classes_max"] == 2
         assert dataset["categorical_ratio_min"] == dataset["categorical_ratio_max"] == 0.0
-        assert dataset["target_parent_prior"] == TARGET_PARENT_PRIOR
-        assert dataset["target_parent_count_min"] == 1
-        assert dataset["target_parent_count_max"] is None
-        assert dataset["target_parent_near_max_band_min_fraction"] == 0.75
-        assert dataset["target_parent_below_sqrt_prob"] == 0.05
-        assert dataset["target_parent_midrange_prob"] == 0.20
-        assert diagnostics["teacher_conditional_export"] is True
+        assert "target_parent_prior" not in dataset
+        assert "target_parent_count_min" not in dataset
+        assert "target_parent_count_max" not in dataset
+        assert "target_parent_near_max_band_min_fraction" not in dataset
+        assert "target_parent_below_sqrt_prob" not in dataset
+        assert "target_parent_midrange_prob" not in dataset
+        assert "diagnostics" not in invocation["config_overrides"]
         seen_rows.add(row_total)
     assert seen_rows == set(ROW_SPECS)

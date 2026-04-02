@@ -3,7 +3,7 @@ sweep_id: tf_rd_010_classification_evolution_medium_v4
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
 status: ready
 complexity_level: classification_md
-anchor_run_id: null
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
@@ -16,38 +16,70 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - This TF-RD-010 medium successor sweep now reuses the completed `tf_rd_010_synthetic_adequacy_v3` production-control training leg as the control-row training artifact. The stale top-level pilot summary under `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/summary.md` is blocked canary output and is not the current gate artifact for this sweep.
-  - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context only rather than active execution evidence.
-  - Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward.
+  - This TF-RD-010 medium successor sweep now reuses the completed `tf_rd_010_synthetic_adequacy_v3`
+    production-control training leg as the control-row training artifact. The stale
+    top-level pilot summary under `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/summary.md`
+    is blocked canary output and is not the current gate artifact for this sweep.
+  - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup context
+    only rather than active execution evidence.
+  - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
+    architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
-  - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo front shape while expanding to `159984` corpus manifest records/tasks per front: `144` invocation cells x `1111` datasets, capped at `<=1024` total rows per synthetic dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and class counts covering every integer from `2` through `10`.'
-  - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and large classification validation bundles plus their materialized manifest parquet outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
-  - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct multiclass head.
-  - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect calibration, runtime, stability, and any retained legacy cell-likelihood diagnostics as guardrails only.
-  - The medium validation rung follows the upstream hub bundle policy `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`; the repo-local `openml_classification_medium_v1` manifest is still a stale placeholder and must not be treated as canonical benchmark-facing evidence.
-  - 'Trusted executions follow the pilot-aligned synthetic one-epoch policy for corpus-backed rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`, resolving to `2500` optimizer steps with `task_batch_size=16`, `runtime.grad_accum_steps=4`, `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.'
-  - The completed control-row training artifact lives at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train` and reached `step 2500`; medium row 1 should benchmark and register that artifact rather than retraining the control front.
-  - Missingness rows remain open in this package, but they are exploratory only until curated missingness fronts exist because the control row now uses curated `accepted_only` `v5` while the missingness rows remain `include_all` `v3`.
+  - 'The active TF-RD-010 synthetic corpora preserve the explicit balanced DAGZoo
+    front shape while expanding to `159984` corpus manifest records/tasks per front:
+    `144` invocation cells x `1111` datasets, capped at `<=1024` total rows per synthetic
+    dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and
+    class counts covering every integer from `2` through `10`.'
+  - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and
+    large classification validation bundles plus their materialized manifest parquet
+    outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
+  - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`,
+    `many_class_base=10`, and a direct multiclass head.
+  - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly
+    as label-target log loss per test cell, then inspect calibration, runtime, stability,
+    and any retained legacy cell-likelihood diagnostics as guardrails only.
+  - The medium validation rung follows the upstream hub bundle policy `min_classes=2`,
+    `max_classes=10`, and `max_missing_pct=20.0`; the repo-local `openml_classification_medium_v1`
+    manifest is still a stale placeholder and must not be treated as canonical benchmark-facing
+    evidence.
+  - 'Trusted executions follow the pilot-aligned synthetic one-epoch policy for corpus-backed
+    rows: one pass over `159984` corpus manifest records/tasks at `prior_dump_batch_size=64`,
+    resolving to `2500` optimizer steps with `task_batch_size=16`, `runtime.grad_accum_steps=4`,
+    `runtime.grad_clip=0.0`, linear schedule `warmup_ratio=0.10`, `lr_max=1e-3`, and
+    `optimizer.min_lr=1e-5`.'
+  - The completed control-row training artifact lives at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
+    and reached `step 2500`; medium row 1 should benchmark and register that artifact
+    rather than retraining the control front.
+  - Missingness rows remain open in this package, but they are exploratory only until
+    curated missingness fronts exist because the control row now uses curated `accepted_only`
+    `v5` while the missingness rows remain `include_all` `v3`.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
-    anchor: '`dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests.'
-    interpretation: This sweep defines the repo-to-repo contract for the first benchmark-evolution lane.
+    anchor: '`dagzoo` owns the synthetic training fronts while `tab-realdata-hub`
+      owns the real-data validation manifests.'
+    interpretation: This sweep defines the repo-to-repo contract for the first benchmark-evolution
+      lane.
   - dimension: classification head
-    upstream: Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes.
+    upstream: Label-conditioning choices should stay modular so target handling can
+      evolve after the backbone stabilizes.
     anchor: Direct multiclass head with `many_class_base=10`.
-    interpretation: Treat this as a bounded head/output evolution, not a staged hierarchical many-class port.
+    interpretation: Treat this as a bounded head/output evolution, not a staged hierarchical
+      many-class port.
   - dimension: summary bandwidth
     upstream: Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`.
     anchor: The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`.
-    interpretation: The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor.
+    interpretation: The new benchmark package should evaluate the evolved contract
+      directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
     anchor: Hub-backed medium classification manifest under local benchmark-manifest
       id `openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`.
-    interpretation: Keep the smaller hub-backed classification validation rung fixed while the synthetic training front reruns on the corrected sandwich and training surface.
+    interpretation: Keep the smaller hub-backed classification validation rung fixed
+      while the synthetic training front reruns on the corrected sandwich and training
+      surface.
 anchor_context:
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
   experiment: cls_benchmark_sandwich_classification_evolution_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_v1
   model:
@@ -57,7 +89,7 @@ anchor_context:
     stage_label: null
     module_selection: null
   surface_labels:
-    data: tf_rd_010_dagzoo_medium_control
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
     model: tabfoundry_sandwich
     preprocessing: runtime_default
     training: prior_cosine_warmup

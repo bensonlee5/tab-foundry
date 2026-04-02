@@ -14,6 +14,7 @@ from tab_foundry.external_benchmarks import (
 )
 
 from .objective_metrics import objective_metric_from_run, preferred_drift_metric_keys
+from .objective_metrics import is_classification_objective_metric
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -199,24 +200,44 @@ def queue_metrics(
             primary_external_name,
         )
 
-    metric_keys = (
-        "best_bpc",
-        "final_bpc",
-        "best_bpf",
-        "final_bpf",
-        "best_log_loss",
-        "final_log_loss",
-        "best_brier_score",
-        "final_brier_score",
-        "best_roc_auc",
-        "final_roc_auc",
-        "best_crps",
-        "final_crps",
-        "best_avg_pinball_loss",
-        "final_avg_pinball_loss",
-        "best_picp_90",
-        "final_picp_90",
-    )
+    if is_classification_objective_metric(objective_metric):
+        metric_keys = (
+            "best_log_loss",
+            "final_log_loss",
+            "best_brier_score",
+            "final_brier_score",
+            "best_roc_auc",
+            "final_roc_auc",
+            "best_bpc",
+            "final_bpc",
+            "best_bpf",
+            "final_bpf",
+            "best_crps",
+            "final_crps",
+            "best_avg_pinball_loss",
+            "final_avg_pinball_loss",
+            "best_picp_90",
+            "final_picp_90",
+        )
+    else:
+        metric_keys = (
+            "best_bpc",
+            "final_bpc",
+            "best_bpf",
+            "final_bpf",
+            "best_log_loss",
+            "final_log_loss",
+            "best_brier_score",
+            "final_brier_score",
+            "best_roc_auc",
+            "final_roc_auc",
+            "best_crps",
+            "final_crps",
+            "best_avg_pinball_loss",
+            "final_avg_pinball_loss",
+            "best_picp_90",
+            "final_picp_90",
+        )
     for metric_key in metric_keys:
         tab_foundry_value = optional_metric(tab_foundry, metric_key)
         if tab_foundry_value is not None:
@@ -249,26 +270,66 @@ def queue_metrics(
         if drift_value is not None:
             metrics["drift"] = drift_value
             break
-    if metrics.get("primary_external_best_roc_auc") is not None:
-        metrics["primary_external_best"] = metrics["primary_external_best_roc_auc"]
-    if metrics.get("primary_external_final_roc_auc") is not None:
-        metrics["primary_external_final"] = metrics["primary_external_final_roc_auc"]
-    if metrics.get("nanotabpfn_best_roc_auc") is not None:
-        metrics["nanotabpfn_best"] = metrics["nanotabpfn_best_roc_auc"]
-    if metrics.get("nanotabpfn_final_roc_auc") is not None:
-        metrics["nanotabpfn_final"] = metrics["nanotabpfn_final_roc_auc"]
+    preferred_external_metric_pairs = (
+        ("primary_external_best_log_loss", "primary_external_final_log_loss", "primary_external_best", "primary_external_final"),
+        ("primary_external_best_roc_auc", "primary_external_final_roc_auc", "primary_external_best", "primary_external_final"),
+        ("primary_external_best_crps", "primary_external_final_crps", "primary_external_best", "primary_external_final"),
+    )
+    if not is_classification_objective_metric(objective_metric):
+        preferred_external_metric_pairs = (
+            ("primary_external_best_roc_auc", "primary_external_final_roc_auc", "primary_external_best", "primary_external_final"),
+            ("primary_external_best_log_loss", "primary_external_final_log_loss", "primary_external_best", "primary_external_final"),
+            ("primary_external_best_crps", "primary_external_final_crps", "primary_external_best", "primary_external_final"),
+        )
+    for best_key, final_key, generic_best_key, generic_final_key in preferred_external_metric_pairs:
+        if metrics.get(best_key) is not None:
+            metrics[generic_best_key] = metrics[best_key]
+        if metrics.get(final_key) is not None:
+            metrics[generic_final_key] = metrics[final_key]
+        if metrics.get(generic_best_key) is not None or metrics.get(generic_final_key) is not None:
+            break
+    preferred_nanotabpfn_metric_pairs = (
+        ("nanotabpfn_best_log_loss", "nanotabpfn_final_log_loss", "nanotabpfn_best", "nanotabpfn_final"),
+        ("nanotabpfn_best_roc_auc", "nanotabpfn_final_roc_auc", "nanotabpfn_best", "nanotabpfn_final"),
+        ("nanotabpfn_best_crps", "nanotabpfn_final_crps", "nanotabpfn_best", "nanotabpfn_final"),
+    )
+    if not is_classification_objective_metric(objective_metric):
+        preferred_nanotabpfn_metric_pairs = (
+            ("nanotabpfn_best_roc_auc", "nanotabpfn_final_roc_auc", "nanotabpfn_best", "nanotabpfn_final"),
+            ("nanotabpfn_best_log_loss", "nanotabpfn_final_log_loss", "nanotabpfn_best", "nanotabpfn_final"),
+            ("nanotabpfn_best_crps", "nanotabpfn_final_crps", "nanotabpfn_best", "nanotabpfn_final"),
+        )
+    for best_key, final_key, generic_best_key, generic_final_key in preferred_nanotabpfn_metric_pairs:
+        if metrics.get(best_key) is not None:
+            metrics[generic_best_key] = metrics[best_key]
+        if metrics.get(final_key) is not None:
+            metrics[generic_final_key] = metrics[final_key]
+        if metrics.get(generic_best_key) is not None or metrics.get(generic_final_key) is not None:
+            break
 
     if run_entry is not None:
-        comparison_keys = {
-            "final_bpc_delta": "delta_final_bpc",
-            "final_bpf_delta": "delta_final_bpf",
-            "final_log_loss_delta": "delta_final_log_loss",
-            "final_brier_score_delta": "delta_final_brier_score",
-            "final_roc_auc_delta": "delta_final_roc_auc",
-            "final_crps_delta": "delta_final_crps",
-            "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
-            "final_picp_90_delta": "delta_final_picp_90",
-        }
+        if is_classification_objective_metric(objective_metric):
+            comparison_keys = {
+                "final_log_loss_delta": "delta_final_log_loss",
+                "final_brier_score_delta": "delta_final_brier_score",
+                "final_roc_auc_delta": "delta_final_roc_auc",
+                "final_bpc_delta": "delta_final_bpc",
+                "final_bpf_delta": "delta_final_bpf",
+                "final_crps_delta": "delta_final_crps",
+                "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
+                "final_picp_90_delta": "delta_final_picp_90",
+            }
+        else:
+            comparison_keys = {
+                "final_bpc_delta": "delta_final_bpc",
+                "final_bpf_delta": "delta_final_bpf",
+                "final_log_loss_delta": "delta_final_log_loss",
+                "final_brier_score_delta": "delta_final_brier_score",
+                "final_roc_auc_delta": "delta_final_roc_auc",
+                "final_crps_delta": "delta_final_crps",
+                "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
+                "final_picp_90_delta": "delta_final_picp_90",
+            }
         for comparison_key, queue_key in comparison_keys.items():
             value = comparison_metric(run_entry, comparison_key)
             if value is not None:

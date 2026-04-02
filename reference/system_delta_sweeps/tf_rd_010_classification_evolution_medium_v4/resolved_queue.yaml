@@ -8,7 +8,7 @@ sweep_id: tf_rd_010_classification_evolution_medium_v4
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v3
 sweep_status: ready
 complexity_level: classification_md
-anchor_run_id: null
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
@@ -84,7 +84,7 @@ anchor_surface:
       while the synthetic training front reruns on the corrected sandwich and training
       surface.
 anchor_context:
-  run_id: null
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
   experiment: cls_benchmark_sandwich_classification_evolution_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_v1
   model:
@@ -94,14 +94,14 @@ anchor_context:
     stage_label: null
     module_selection: null
   surface_labels:
-    data: tf_rd_010_dagzoo_medium_control
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
     model: tabfoundry_sandwich
     preprocessing: runtime_default
     training: prior_cosine_warmup
 rows:
 - order: 1
   delta_id: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: ready
+  status: completed
   rationale: Establish the TF-RD-010 classification control front before reading any
     missingness harder-front effect on the smaller medium benchmark rung.
   hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
@@ -167,10 +167,11 @@ rows:
     log loss per test cell, then inspect calibration, runtime, stability, and any
     retained legacy cell-likelihood diagnostics as guardrails.
   execution_policy: benchmark_full
-  run_id: null
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark and register the completed pilot control run on the intended
     hub-backed medium classification manifest as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_curated_v5`,
@@ -190,6 +191,8 @@ rows:
     contract: `task_batch_size=16`, `grad_accum_steps=4`, `runtime.grad_clip=0.0`,
     `max_steps=2500`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and
     `optimizer.min_lr=1e-5`.'
+  - Row 1 benchmarks only the reusable artifact's `best.pt` and `latest.pt` checkpoints
+    instead of the full 100-snapshot curve.
   - The completed pilot control training artifact at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
     reached `step 2500` and is the reusable training artifact for row 1.
   - The current top-level adequacy summary file is stale blocked canary output and
@@ -197,9 +200,46 @@ rows:
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
+  - Benchmarked pinned reusable training artifact `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v5`.
+  - Benchmarked the pinned TF-RD-010 medium control train artifact against the refreshed
+    hub-backed medium manifest using best and final checkpoints only, then promoted
+    it as the sweep anchor.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v5`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v6`.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v6`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v7`.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v7`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`.
   dynamic_model_overrides: null
+  reuse_train_artifact:
+    run_dir: outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train
+    training_surface_fingerprint: 1614c767510feacd669b4868fd2dfacbe7332f0b64b9c694c448caca85794d20
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 3.3992550294813357
+    clipped_step_fraction: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    best_log_loss: 0.681172740077626
+    final_log_loss: 0.681172740077626
+    best_brier_score: 0.4229050702771035
+    final_brier_score: 0.4229050702771035
+    best_roc_auc: 0.6094048795576584
+    final_roc_auc: 0.6094048795576584
+    best_bpc: 2.1136421424518503
+    final_bpc: 2.1136421424518503
+    best_bpf: 2.1136190363870093
+    final_bpf: 2.1136190363870093
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
   parent_delta_ref: null
   dimension_family: data
   family: provenance
@@ -411,7 +451,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: recipe_definition
+      resolution_source: local_corpus_record
   parameter_adequacy_plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
@@ -419,6 +459,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -447,10 +488,13 @@ rows:
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable
+    on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -549,15 +593,102 @@ rows:
       surface_label: tf_rd_010_missingness_mcar
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_missingness_mcar_v3
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec
       requested_corpus_ref: null
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mcar_v3
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_missingness_mcar_v3__ea57f87af5ec
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/manifest.parquet
+        manifest_sha256: ea57f87af5ec94a05f2435f8770c12baefc66703c12691043949e82c0d58a509
+      dagzoo_provenance:
+        comparator_role: tf_rd_010_candidate
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_missingness_mcar_v3__ea57f87af5ec
+        corpus_ref: tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec
+        corpus_variant: tf_rd_010_missingness_mcar
+        generator_fingerprint: c572b8b035fc
+        invocation_count: 144
+        manifest_record_count: 159984
+        posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: tf_rd_010_candidate
+          corpus_recipe_version: v3
+          corpus_variant: tf_rd_010_missingness_mcar
+          downstream_issue: 205
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness_mechanism: mcar
+          per_invocation_num_datasets: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          task_grid: balanced_rows_features_classes_v1
+          teacher_conditional_export: true
+        recipe_id: tf_rd_010_missingness_mcar_v3
+        recipe_kind: dagzoo_python_generated
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          metric_definition: label-target log loss per test cell
+          missingness:
+            mechanism: mcar
+            rate: 0.25
+          num_datasets_per_invocation: 1111
+          posterior_predictive_factorization: independent_p_x_complete_and_p_y_given_x_complete
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_parent_below_sqrt_prob: 0.05
+          target_parent_midrange_prob: 0.2
+          target_parent_mode: max
+          target_parent_near_max_band_min_fraction: 0.75
+          target_parent_prior: near_max_mixture
+          teacher_conditional_export: true
+        surface_label: tf_rd_010_missingness_mcar
+        target_derivation: tabiclv2_latent_node
+        target_parent_below_sqrt_prob: 0.05
+        target_parent_midrange_prob: 0.2
+        target_parent_mode: max
+        target_parent_near_max_band_min_fraction: 0.75
+        target_parent_prior: near_max_mixture
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+        teacher_conditional_export: true
+        teacher_conditional_metric_definition: label-target log loss per test cell
       overrides:
         source: manifest
         manifest_path: null
@@ -605,7 +736,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 995d37d1a01450ad97757de24b4bc9dd9d91e134942c79a2001353dd51a33592
+  resolved_surface_fingerprint: 60f35937e0c9701505f061f4c886e3ee2027c5376fcb492fb32c097b15b73fa7
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
   status: ready
@@ -672,6 +803,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -700,10 +832,13 @@ rows:
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable
+    on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -925,6 +1060,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -953,10 +1089,13 @@ rows:
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`,
     while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable
+    on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder;
     canonical benchmark registration must use the intended hub-backed medium classification
     manifest.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -1114,4 +1253,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 06e855120e76bfedb0eed931904d480d7996198504cb73097dcf5f3c9bf796a1
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml
-inputs_fingerprint: 7157a79e2f6014aa89b7a2c3bee20041eabd44b7e597cb70c1d8338de5cf51a0
+inputs_fingerprint: 027ce054b301bf42cf4b991ed2f68c0570fd393250fa2032349e100fb08ceb28

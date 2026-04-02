@@ -518,7 +518,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         json.dumps(benchmark_bundle, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    policy_calls: dict[str, list[bool]] = {"datasets": [], "evaluate": []}
+    policy_calls: dict[str, list[Any]] = {"datasets": [], "evaluate": [], "checkpoint_selection": []}
     captured_posthoc: dict[str, Any] = {}
 
     monkeypatch.setattr(
@@ -558,7 +558,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         compare_module,
         "evaluate_tab_foundry_run",
         lambda *_args, **_kwargs: (
-            policy_calls["evaluate"].append(bool(_kwargs["allow_missing_values"])) or [
+            policy_calls["evaluate"].append(bool(_kwargs["allow_missing_values"])),
+            policy_calls["checkpoint_selection"].append(str(_kwargs["checkpoint_selection"])),
+            [
                 {
                     "checkpoint_path": "/tmp/step_000025.pt",
                     "step": 25,
@@ -576,8 +578,8 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     "evaluation_error_type": "ValueError",
                     "failed_dataset": "toy",
                 },
-            ]
-        ),
+            ],
+        )[-1]
     )
     monkeypatch.setattr(
         compare_module,
@@ -700,7 +702,11 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["cmd"][captured["cmd"].index("--eval-every") + 1] == str(
         compare_module.DEFAULT_NANOTABPFN_EVAL_EVERY
     )
-    assert policy_calls == {"datasets": [False], "evaluate": [False]}
+    assert policy_calls == {
+        "datasets": [False],
+        "evaluate": [False],
+        "checkpoint_selection": ["all"],
+    }
     assert summary["dataset_count"] == 1
     assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
     assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)

@@ -166,6 +166,27 @@ def test_preserve_non_finite_normalizes_only_finite_values() -> None:
     assert test_norm[1, 1].item() == pytest.approx(2.0)
 
 
+def test_array_preserve_non_finite_normalizes_only_finite_values() -> None:
+    x_train = np.asarray([[1.0, np.nan], [3.0, 5.0]], dtype=np.float32)
+    x_test = np.asarray([[5.0, np.nan], [np.nan, 7.0]], dtype=np.float32)
+
+    train_norm, test_norm = normalize_train_test_arrays(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    assert np.isnan(train_norm[0, 1])
+    assert np.isnan(test_norm[0, 1])
+    assert np.isnan(test_norm[1, 0])
+    assert float(train_norm[0, 0]) == pytest.approx(-1.0)
+    assert float(train_norm[1, 0]) == pytest.approx(1.0)
+    assert float(test_norm[0, 0]) == pytest.approx(3.0)
+    assert float(train_norm[1, 1]) == pytest.approx(0.0)
+    assert float(test_norm[1, 1]) == pytest.approx(2.0)
+
+
 def test_preserve_non_finite_keeps_signed_infinities_distinct() -> None:
     x_train = torch.tensor(
         [

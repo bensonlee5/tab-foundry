@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 - Parent sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
 - Complexity level: `binary_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `1abca7c6bc942217221215adbf3ec2a1448fa47afff22cd12ee500e4fb059273`
+- Resolved queue inputs fingerprint: `148e72b243a3f2ac90ec0050ea55c7967ad988708c38a9a124cdbe826b38c46a`
 
 ## Locked Surface
 
@@ -65,7 +65,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross` from `4` to `0`.
 - Expected effect: If the structural gain comes from stage-0 full-cell access and dual readout more than from latent recycling, removing the self-attention stack may be only weakly harmful.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `daa8e2880fd1c1fc9b686043f21e608ca2191d07611a8f6bb82f755941c1821c`
+- Resolved surface fingerprint: `de22492d7f4e07652d6b74ca6573478f9d6b0b11f4bee8a20ebd350afb69361e`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -75,6 +75,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep stage count, latent count, and FF expansion fixed so this row isolates removal of the latent self-refinement feature.
   - Compare directly against the compact control before collapsing self-attention depth into later frozen defaults.
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -97,7 +98,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `a969600e5ea7307bea21582d11bc04d13a3e54e616d1d5486ce91afc085b6f0d`
+- Resolved surface fingerprint: `949abfb08ac10554a2f602e947d4898261f375607db8b17f99d5abd83deb6fc9`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -107,6 +108,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep latent count, stage count, and summary-token count fixed so this row isolates FF capacity.
   - Compare directly against the compact control before treating FF expansion as a live scaling axis.
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -129,7 +131,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If the hybrid path is structurally adequate already, combining self-attention removal with 1x FF expansion may preserve most of the fit while simplifying the trunk materially.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `af30ea825400595b892b58557e83097e34e82da4652aa8280a3e9317ae84c896`
+- Resolved surface fingerprint: `74dd7c9436b4e1913080123a7dacb346dece0f732cf586a84ae27c9405fd989a`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -139,6 +141,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep summary-token multiplicity fixed so this row reads removal of latent refinement plus minimal FF capacity only.
   - Compare directly against the compact control before carrying this compound simplification into harder-surface work.
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -161,7 +164,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis` from `4` to `1`.
 - Expected effect: If the hybrid architecture mainly needs the stage-0 full-cell path and the final cell-stream readout, this compound simplification may preserve bounded quality with the smallest remaining nonzero summary/FF settings.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `cfc826242fc7d58fcc16e1d1df9e2d8e089f8e3b66fa6fbc81454189aabbcffa`
+- Resolved surface fingerprint: `b39b2c9cb050ee5d77977ddcf6ac2d4a04e9c2c1d121d4bd836dc98c2f790434`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
@@ -171,6 +174,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Treat this as the lower bound of the current expressible removal-first simplification package.
   - Compare directly against both the anchor and the simpler compound row before freezing any defaults.
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:

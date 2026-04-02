@@ -236,6 +236,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         device=config.device,
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,
+        checkpoint_selection=config.tab_foundry_checkpoint_selection,
     )
     tab_foundry_records = cast(
         list[dict[str, Any]],

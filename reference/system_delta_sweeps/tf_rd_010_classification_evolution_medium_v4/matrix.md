@@ -9,11 +9,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v3`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `7157a79e2f6014aa89b7a2c3bee20041eabd44b7e597cb70c1d8338de5cf51a0`
+- Resolved queue inputs fingerprint: `027ce054b301bf42cf4b991ed2f68c0570fd393250fa2032349e100fb08ceb28`
 
 ## Locked Surface
 
-- Anchor run id: `null`
+- Anchor run id: `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
 - Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
 - External benchmarks: `none`
@@ -21,13 +21,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Training config profile: `cls_benchmark_sandwich_classification_evolution_v1`
 - Surface role: `custom`
 - Comparison policy: `anchor_only`
-- Anchor metrics: `pending trusted rerun`
+- Anchor metrics: final BPC `2.1136`, final BPF `2.1136`, final log loss `0.6812`, final Brier score `0.4229`, best ROC AUC `0.6094`, final ROC AUC `0.6094`, final training time `7449.8s`
 
 ## Anchor Comparison
 
 Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
-
-Pending trusted rerun: no anchor is registered yet, so this matrix records the locked benchmark surface and queue state before the first anchor promotion.
 
 | Dimension | Upstream EquiTabPFN | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
@@ -40,7 +38,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | ready | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Benchmark and register the completed pilot control run on the intended hub-backed medium classification manifest as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_curated_v5`, then promote it as the sweep anchor; do not retrain row 1. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Benchmark and register the completed pilot control run on the intended hub-backed medium classification manifest as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_curated_v5`, then promote it as the sweep anchor; do not retrain row 1. |
 | 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | ready | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Exploratory row: benchmark only after the row-1 control anchor is benchmarked and recorded; results are non-promotable until curated missingness fronts exist. |
 | 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | ready | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Exploratory row: benchmark only after the row-1 control anchor is benchmarked and recorded; results are non-promotable until curated missingness fronts exist. |
 | 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | ready | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Exploratory row: benchmark only after the row-1 control anchor is benchmarked and recorded; results are non-promotable until curated missingness fronts exist. |
@@ -50,7 +48,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 ### 1. `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests.
@@ -63,6 +61,8 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Resolved surface fingerprint: `db3d4d5e84ddcd1af92308fc86f283e1509c009ce8b0206a97cd4612ee9084a5`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5'}`
+- Reuse train artifact: `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
+- Reuse training surface fingerprint: `1614c767510feacd669b4868fd2dfacbe7332f0b64b9c694c448caca85794d20`
 - Parameter adequacy plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest from `openml_classification_medium_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline before treating any row outcome as a promotion or defer decision.
@@ -72,20 +72,31 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - medium and large real-data validation separation via `tab-realdata-hub` manifests
   - class-count coverage, feature-count coverage, missingness policy, and minority-class floor on the validation side
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Benchmark checkpoint selection: `best_and_final`
+- Interpretation status: `completed`
+- Decision: `keep`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
   - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.
   - Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - This row remains the intended TF-RD-010 medium reference for missingness and class-imbalance reporting on the medium validation pool.
   - `tf_rd_010_classification_evolution_medium_v4` uses the pilot-aligned control contract: `task_batch_size=16`, `grad_accum_steps=4`, `runtime.grad_clip=0.0`, `max_steps=2500`, linear schedule with `warmup_ratio=0.10`, `lr_max=1e-3`, and `optimizer.min_lr=1e-5`.
+  - Row 1 benchmarks only the reusable artifact's `best.pt` and `latest.pt` checkpoints instead of the full 100-snapshot curve.
   - The completed pilot control training artifact at `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train` reached `step 2500` and is the reusable training artifact for row 1.
   - The current top-level adequacy summary file is stale blocked canary output and must not be used as the row-1 gate artifact.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
+  - Benchmarked pinned reusable training artifact `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v5`.
+  - Benchmarked the pinned TF-RD-010 medium control train artifact against the refreshed hub-backed medium manifest using best and final checkpoints only, then promoted it as the sweep anchor.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v5`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v6`.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v6`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v7`.
+  - Supersedes historical queue run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v7`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8` with final log loss `0.6812`, delta final log loss `+0.0000`, final Brier score `0.4229`, delta final brier score `+0.0000`, final ROC AUC `0.6094`, delta final roc auc `+0.0000`, final BPC (legacy feature-cell diagnostic) `2.1136`, delta final bpc (legacy feature-cell diagnostic) `+0.0000`, final BPF (legacy feature-cell diagnostic) `2.1136`, delta final bpf (legacy feature-cell diagnostic) `+0.0000`, best ROC AUC `0.6094`, delta final training time `+0.0s`
 
 ### 2. `delta_data_manifest_root_tf_rd_010_missingness_mcar`
 
@@ -112,6 +123,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - fixed medium and large hub-owned validation manifests
   - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
@@ -125,6 +137,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - `tf_rd_010_classification_evolution_medium_v4` keeps the active sandwich benchmark path under `training.loss_surface=classification`, so `final_log_loss_at_matched_regime_budget` remains the canonical ranking key, interpreted explicitly as label-target log loss per test cell; `cell_bpc` is legacy-only historical context.
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mcar/result_card.md`
@@ -155,6 +168,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - fixed medium and large hub-owned validation manifests
   - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
@@ -168,6 +182,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - `tf_rd_010_classification_evolution_medium_v4` keeps the active sandwich benchmark path under `training.loss_surface=classification`, so `final_log_loss_at_matched_regime_budget` remains the canonical ranking key, interpreted explicitly as label-target log loss per test cell; `cell_bpc` is legacy-only historical context.
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mar/result_card.md`
@@ -198,6 +213,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - fixed medium and large hub-owned validation manifests
   - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
@@ -211,6 +227,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - `tf_rd_010_classification_evolution_medium_v4` keeps the active sandwich benchmark path under `training.loss_surface=classification`, so `final_log_loss_at_matched_regime_budget` remains the canonical ranking key, interpreted explicitly as label-target log loss per test cell; `cell_bpc` is legacy-only historical context.
   - The control comparison for this sweep now uses curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`, while this missingness row remains `include_all` `v3`.
   - This row is exploratory and non-promotable until curated missingness fronts exist.
+  - This row benchmarks only `best.pt` and `latest.pt` to keep the medium sweep tractable on CPU.
   - The repo-local `openml_classification_medium_v1` manifest is still a stale placeholder; canonical benchmark registration must use the intended hub-backed medium classification manifest.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v4/delta_data_manifest_root_tf_rd_010_missingness_mnar/result_card.md`

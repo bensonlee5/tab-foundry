@@ -31,6 +31,37 @@ def objective_metric_from_queue_metrics(queue_metrics: Mapping[str, Any] | None)
     return _normalized_metric_name(queue_metrics.get("objective_metric"))
 
 
+def is_classification_objective_metric(objective_metric: str | None) -> bool:
+    return objective_metric == CLASSIFICATION_OBJECTIVE_METRIC
+
+
+def is_legacy_feature_cell_metric_key(metric_key: str) -> bool:
+    return metric_key in {
+        "best_bpc",
+        "final_bpc",
+        "best_bpf",
+        "final_bpf",
+        "final_minus_best_bpc",
+        "final_minus_best_bpf",
+        "delta_final_bpc",
+        "delta_final_bpf",
+    }
+
+
+def display_metric_label(
+    label: str,
+    *,
+    metric_key: str,
+    objective_metric: str | None,
+) -> str:
+    if (
+        is_classification_objective_metric(objective_metric)
+        and is_legacy_feature_cell_metric_key(metric_key)
+    ):
+        return f"{label} (legacy feature-cell diagnostic)"
+    return label
+
+
 def preferred_final_metric_keys(objective_metric: str | None) -> tuple[str, ...]:
     if objective_metric == CLASSIFICATION_OBJECTIVE_METRIC:
         return (

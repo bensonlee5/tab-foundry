@@ -41,7 +41,7 @@ generator:
     missing_mode: mcar
     missing_rate: 0.25
     teacher_conditional_export: true
-  fingerprint: 8ae6b6c18971
+  fingerprint: c572b8b035fc
 review_summary:
   grid_family: balanced_rows_features_classes_v1
   config_refs:
