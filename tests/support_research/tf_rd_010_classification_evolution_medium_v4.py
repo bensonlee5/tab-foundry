@@ -18,7 +18,7 @@ EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_missingness_mnar",
 ]
 EXPECTED_CORPUS_REFS = [
-    "tf_rd_010_dagzoo_medium_control_v3",
+    "tf_rd_010_dagzoo_medium_control_curated_v5",
     "tf_rd_010_missingness_mcar_v3",
     "tf_rd_010_missingness_mar_v3",
     "tf_rd_010_missingness_mnar_v3",
@@ -48,7 +48,7 @@ def test_tf_rd_010_classification_evolution_medium_v4_is_registered_and_medium_v
 
     entry = sweeps[SWEEP_ID]
     assert entry["parent_sweep_id"] == PREVIOUS_SWEEP_ID
-    assert entry["status"] == "blocked_on_synthetic_adequacy"
+    assert entry["status"] == "ready"
     assert entry["anchor_run_id"] is None
     assert entry["complexity_level"] == "classification_md"
     assert entry["benchmark_manifest_path"] == (
@@ -65,48 +65,52 @@ def test_tf_rd_010_classification_evolution_medium_v4_records_the_accumulation_l
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == PREVIOUS_SWEEP_ID
-    assert sweep["status"] == "blocked_on_synthetic_adequacy"
+    assert sweep["status"] == "ready"
     assert sweep["anchor_run_id"] is None
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
-    assert "medium_v3" in notes[0]
-    assert "blocked pending `tf_rd_010_synthetic_adequacy_v1`" in notes[0]
+    assert "reuses the completed `tf_rd_010_synthetic_adequacy_v3` production-control training leg" in notes[0]
+    assert "blocked canary output" in notes[0]
     assert any("task_batch_size=16" in note for note in notes)
     assert any("grad_accum_steps=4" in note for note in notes)
     assert any("optimizer.min_lr=1e-5" in note for note in notes)
     assert any("lr_max=1e-3" in note for note in notes)
     assert any("final_log_loss_at_matched_regime_budget" in note for note in notes)
     assert any("label-target log loss per test cell" in note for note in notes)
-    assert any("training.loss_surface=classification" in note for note in notes)
+    assert any("direct multiclass head" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["blocked_on_synthetic_adequacy"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
     assert [row["run_id"] for row in rows] == [None] * len(EXPECTED_ROWS)
     assert [row["decision"] for row in rows] == [None] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["blocked"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
     assert [row["data"]["corpus_ref"] for row in rows] == EXPECTED_CORPUS_REFS
-    assert "Block this row pending `tf_rd_010_synthetic_adequacy_v1`" in rows[0]["next_action"]
-    assert "do not retune or rerun `medium_v4`" in rows[0]["next_action"]
-    assert all("Block this row pending `tf_rd_010_synthetic_adequacy_v1`" in row["next_action"] for row in rows[1:])
+    assert "Benchmark and register the completed pilot control run" in rows[0]["next_action"]
+    assert "do not retrain row 1" in rows[0]["next_action"]
     assert all(
-        any("task_batch_size=16" in note and "grad_accum_steps=4" in note for note in row["notes"])
-        for row in rows
+        "Exploratory row: benchmark only after the row-1 control anchor is benchmarked and recorded" in row["next_action"]
+        for row in rows[1:]
     )
+    assert all("159984" in " ".join(row["notes"]) for row in rows)
+    assert all("2500" in " ".join(row["notes"]) for row in rows)
+    assert "task_batch_size=16" in " ".join(rows[0]["notes"])
+    assert "grad_accum_steps=4" in " ".join(rows[0]["notes"])
+    assert "production_control_curated_v5/train" in " ".join(rows[0]["notes"])
+    assert "stale blocked canary output" in " ".join(rows[0]["notes"])
     assert all(
         any("training.loss_surface=classification" in note for note in row["notes"])
-        for row in rows
+        for row in rows[1:]
     )
     assert all(
-        any("medium_v3" in note and "historical no-clipping evidence only" in note for note in row["notes"])
-        for row in rows
+        any("curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v5`" in note for note in row["notes"])
+        for row in rows[1:]
     )
-    assert any("step `1324`" in note and "step_001200.pt" in note for note in rows[0]["notes"])
     assert all(
-        any("blocked until `tf_rd_010_synthetic_adequacy_v1` is interpreted" in note for note in row["notes"])
+        any("exploratory and non-promotable until curated missingness fronts exist" in note for note in row["notes"])
         for row in rows[1:]
     )
 
@@ -164,14 +168,14 @@ def test_tf_rd_010_classification_evolution_medium_v4_resolved_queue_captures_ru
 
     assert resolved["schema"] == "tab-foundry-system-delta-resolved-queue-v1"
     assert resolved["sweep_id"] == SWEEP_ID
-    assert resolved["sweep_status"] == "blocked_on_synthetic_adequacy"
+    assert resolved["sweep_status"] == "ready"
     assert resolved["anchor_run_id"] is None
 
     row = resolved["rows"][0]
-    assert row["status"] == "blocked_on_synthetic_adequacy"
+    assert row["status"] == "ready"
     assert row["run_id"] is None
     assert row["decision"] is None
-    assert row["interpretation_status"] == "blocked"
+    assert row["interpretation_status"] == "pending"
 
     resolved_surface = row["resolved_surface"]
     runtime = resolved_surface["runtime"]
@@ -197,21 +201,20 @@ def test_tf_rd_010_classification_evolution_medium_v4_matrix_and_medium_v3_matri
     ).read_text(encoding="utf-8")
 
     assert SWEEP_ID in v4_matrix
-    assert "Sweep status: `blocked_on_synthetic_adequacy`" in v4_matrix
+    assert "Sweep status: `ready`" in v4_matrix
     assert "Anchor run id: `null`" in v4_matrix
-    assert "Block this row pending `tf_rd_010_synthetic_adequacy_v1`" in v4_matrix
-    assert "grad_accum_steps': 4" in v4_matrix
+    assert "Benchmark and register the completed pilot control run" in v4_matrix
     assert "task_batch_size=16" in v4_matrix
     assert "optimizer.min_lr=1e-5" in v4_matrix
     assert "warmup_ratio=0.10" in v4_matrix
     assert "lr_max=1e-3" in v4_matrix
     assert "final_log_loss_at_matched_regime_budget" in v4_matrix
     assert "label-target log loss per test cell" in v4_matrix
-    assert "step `1324`" in v4_matrix
-    assert "step_001200.pt" in v4_matrix
-    assert "Block this row pending `tf_rd_010_synthetic_adequacy_v1`" in v4_matrix
+    assert "production_control_curated_v5/train" in v4_matrix
+    assert "stale blocked canary output" in v4_matrix
+    assert "tf_rd_010_dagzoo_medium_control_curated_v5" in v4_matrix
 
     assert PREVIOUS_SWEEP_ID in v3_matrix
     assert "Sweep status: `superseded`" in v3_matrix
     assert "historical no-clipping overfit evidence only" in v3_matrix
-    assert "`medium_v4` row 1" in v3_matrix
+    assert "`tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR pilot" in v3_matrix
