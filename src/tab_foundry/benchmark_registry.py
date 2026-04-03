@@ -11,7 +11,7 @@ from tab_foundry.registry.paths import (  # noqa: F401 - re-exported
     normalize_registry_path_value,
     resolve_registry_path_value,
 )
-from tab_foundry.registry.storage import load_versioned_registry_payload
+from tab_foundry.registry.storage import load_json_object_payload
 from tab_foundry.repo_paths import repo_root
 
 
@@ -61,19 +61,41 @@ def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
     """Load and minimally validate the benchmark run registry."""
 
     registry_path = (path or default_benchmark_run_registry_path()).expanduser().resolve()
-    payload = load_versioned_registry_payload(
+    payload = load_json_object_payload(
         registry_path,
         allow_missing=False,
         empty_payload=_empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="runs",
-        registry_label="benchmark run registry",
-        validate_entry_fn=_validate_run_entry,
-        entry_label="run_id",
+        payload_label="benchmark run registry",
     )
-    return cast(dict[str, Any], payload)
+    actual_keys = set(payload.keys())
+    if actual_keys != _TOP_LEVEL_KEYS:
+        raise RuntimeError(
+            "benchmark run registry keys mismatch: "
+            f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
+            f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
+        )
+    if payload["schema"] != REGISTRY_SCHEMA:
+        raise RuntimeError(
+            "benchmark run registry schema mismatch: "
+            f"expected={REGISTRY_SCHEMA!r}, actual={payload['schema']!r}"
+        )
+    if int(payload["version"]) != REGISTRY_VERSION:
+        raise RuntimeError(
+            "benchmark run registry version mismatch: "
+            f"expected={REGISTRY_VERSION}, actual={payload['version']}"
+        )
+    runs = payload["runs"]
+    if not isinstance(runs, dict):
+        raise RuntimeError("benchmark run registry runs must be an object")
+    for run_id, entry in runs.items():
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise RuntimeError("benchmark run registry run_id ids must be non-empty strings")
+        _validate_run_entry(entry, run_id=str(run_id))
+    return {
+        "schema": REGISTRY_SCHEMA,
+        "version": REGISTRY_VERSION,
+        "runs": {str(key): value for key, value in cast(dict[str, Any], runs).items()},
+    }
 
 
 def load_benchmark_run_entry(

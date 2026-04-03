@@ -23,7 +23,6 @@ from tab_foundry.bench.registry.record_helpers import (
 from tab_foundry.bench.registry.schema import (
     _BenchmarkRunEntryPayload,
     _BenchmarkRunRecordPayload,
-    _TOP_LEVEL_KEYS,
     _validate_payload_model,
     ALLOWED_DECISIONS,
     DEFAULT_BUDGET_CLASS,
@@ -41,7 +40,6 @@ from tab_foundry.bench.registry.summary_metrics import (
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
 from tab_foundry.registry.common import load_comparison_summary, resolve_config_path as _resolve_config_path_common
-from tab_foundry.registry.storage import load_versioned_registry_payload
 from tab_foundry.repo_paths import repo_root
 from tab_foundry.timestamps import utc_now as _utc_now_common
 
@@ -115,21 +113,6 @@ def validate_run_entry(entry: Any, *, run_id: str) -> None:
 
 
 def load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return load_versioned_registry_payload(
-        path,
-        allow_missing=allow_missing,
-        empty_payload=empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="runs",
-        registry_label="benchmark run registry",
-        validate_entry_fn=validate_run_entry,
-        entry_label="run_id",
-    )
-
-
-def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
     resolved_path = path.expanduser().resolve()
     if allow_missing and not resolved_path.exists():
         return empty_registry()
@@ -140,7 +123,7 @@ def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, 
     registry_path = (
         path or read_benchmark_registry.default_benchmark_run_registry_path()
     ).expanduser().resolve()
-    payload = _load_registry_payload(registry_path, allow_missing=True)
+    payload = load_registry_payload(registry_path, allow_missing=True)
     return registry_path, payload
 
 

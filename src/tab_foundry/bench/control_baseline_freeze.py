@@ -15,7 +15,6 @@ from tab_foundry.registry.common import (
     load_comparison_summary as _load_comparison_summary,
     resolve_config_path as _resolve_config_path_common,
 )
-from tab_foundry.registry.storage import load_versioned_registry_payload as _load_versioned_registry_payload
 from tab_foundry.bench.registry.summary_metrics import (
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
@@ -85,26 +84,13 @@ def _empty_registry() -> dict[str, Any]:
     }
 
 
-def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return _load_versioned_registry_payload(
-        path,
-        allow_missing=allow_missing,
-        empty_payload=_empty_registry(),
-        top_level_keys=read_control_baseline_registry._TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="baselines",
-        registry_label="control baseline registry",
-        validate_entry_fn=read_control_baseline_registry._validate_baseline_entry,
-        entry_label="baseline_id",
-    )
-
-
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
     registry_path = (
         path or read_control_baseline_registry.default_control_baseline_registry_path()
     ).expanduser().resolve()
-    payload = _load_registry_payload(registry_path, allow_missing=True)
+    if not registry_path.exists():
+        return registry_path, _empty_registry()
+    payload = read_control_baseline_registry.load_control_baseline_registry(registry_path)
     return registry_path, payload
 
 
