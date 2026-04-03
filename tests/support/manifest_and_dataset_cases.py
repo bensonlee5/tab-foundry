@@ -6,13 +6,14 @@ import os
 from pathlib import Path
 from typing import Any
 
+from click.testing import CliRunner
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import torch
 
-from tab_foundry.cli import build_parser
+import tab_foundry.cli as cli_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_realdata_hub.manifest import _stable_split, build_manifest
 from tab_foundry.export.exporter import export_checkpoint
@@ -667,36 +668,27 @@ def test_dataset_rejects_missing_inputs_by_default(tmp_path: Path) -> None:
 
 
 def test_cli_parser_rejects_legacy_flat_and_removed_preprocessor_state_surface() -> None:
-    parser = build_parser()
+    runner = CliRunner()
 
-    with pytest.raises(SystemExit):
-        parser.parse_args(["build-preprocessor-state"])
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["build-manifest"])
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["validate-export"])
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["train", "experiment=cls_smoke"])
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(["export", "--checkpoint", "checkpoint.pt", "--out-dir", "bundle"])
-
-    with pytest.raises(SystemExit):
-        parser.parse_args(
-            [
-                "export",
-                "bundle",
-                "--checkpoint",
-                "checkpoint.pt",
-                "--out-dir",
-                "bundle",
-                "--preprocessor-state",
-                "state.json",
-            ]
-        )
+    for argv in (
+        ["build-preprocessor-state"],
+        ["build-manifest"],
+        ["validate-export"],
+        ["train", "experiment=cls_smoke"],
+        ["export", "--checkpoint", "checkpoint.pt", "--out-dir", "bundle"],
+        [
+            "export",
+            "bundle",
+            "--checkpoint",
+            "checkpoint.pt",
+            "--out-dir",
+            "bundle",
+            "--preprocessor-state",
+            "state.json",
+        ],
+    ):
+        result = runner.invoke(cli_module.cli, argv)
+        assert result.exit_code != 0
 
 
 def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(

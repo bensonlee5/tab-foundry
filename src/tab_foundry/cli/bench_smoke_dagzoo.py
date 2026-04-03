@@ -2,74 +2,104 @@
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 import sys
 
+import click
+
 import tab_foundry.bench.dagzoo_smoke as smoke_module
+from tab_foundry.cli.click_utils import DEVICE_CHOICES, run_click_command
 
 
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--dagzoo-root", default="~/dev/dagzoo", help="Local dagzoo checkout root")
-    parser.add_argument("--out-root", default=None, help="Output directory root")
-    parser.add_argument(
-        "--num-datasets",
-        type=int,
-        default=smoke_module.DEFAULT_NUM_DATASETS,
-        help="Number of dagzoo datasets to generate",
-    )
-    parser.add_argument("--rows", type=int, default=smoke_module.DEFAULT_ROWS, help="Rows per generated dataset")
-    parser.add_argument(
-        "--device",
-        default=smoke_module.DEFAULT_DEVICE,
-        choices=("cpu", "cuda", "mps", "auto"),
-        help="Generation and training device",
-    )
-    parser.add_argument("--seed", type=int, default=smoke_module.DEFAULT_SEED, help="Shared run seed")
-    parser.add_argument(
-        "--train-steps",
-        type=int,
-        default=smoke_module.DEFAULT_TRAIN_STEPS,
-        help="Training steps for the smoke harness",
-    )
-    parser.add_argument(
-        "--checkpoint-every",
-        type=int,
-        default=smoke_module.DEFAULT_CHECKPOINT_EVERY,
-        help="Checkpoint snapshot cadence in steps",
-    )
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the dagzoo-backed tab-foundry smoke harness")
-    configure_parser(parser)
-    return parser
-
-
-def run_from_args(args: argparse.Namespace) -> int:
-    out_root = smoke_module._default_out_root() if args.out_root is None else Path(str(args.out_root))
+def _dagzoo_smoke_command(
+    *,
+    dagzoo_root: Path,
+    out_root: Path | None,
+    num_datasets: int,
+    rows: int,
+    device: str,
+    seed: int,
+    train_steps: int,
+    checkpoint_every: int,
+) -> int:
+    resolved_out_root = smoke_module._default_out_root() if out_root is None else out_root
     telemetry = smoke_module.run_dagzoo_smoke(
         smoke_module.SmokeConfig(
-            dagzoo_root=Path(str(args.dagzoo_root)),
-            out_root=out_root,
-            num_datasets=int(args.num_datasets),
-            rows=int(args.rows),
-            device=str(args.device),
-            seed=int(args.seed),
-            train_steps=int(args.train_steps),
-            checkpoint_every=int(args.checkpoint_every),
+            dagzoo_root=dagzoo_root,
+            out_root=resolved_out_root,
+            num_datasets=num_datasets,
+            rows=rows,
+            device=device,
+            seed=seed,
+            train_steps=train_steps,
+            checkpoint_every=checkpoint_every,
         )
     )
     print("dagzoo smoke complete:")
-    print(f"  out_root={out_root.resolve()}")
+    print(f"  out_root={resolved_out_root.resolve()}")
     print(f"  best_checkpoint={telemetry['artifacts']['best_checkpoint']}")
     print(f"  eval_metrics={telemetry['eval_metrics']}")
     print(f"  timings_seconds={telemetry['timings_seconds']}")
     return 0
 
 
+@click.command(name="dagzoo", help="Run the dagzoo smoke harness")
+@click.option("--dagzoo-root", default="~/dev/dagzoo", show_default=True, type=click.Path(path_type=Path), help="Local dagzoo checkout root")
+@click.option("--out-root", default=None, type=click.Path(path_type=Path), help="Output directory root")
+@click.option(
+    "--num-datasets",
+    default=smoke_module.DEFAULT_NUM_DATASETS,
+    show_default=True,
+    type=int,
+    help="Number of dagzoo datasets to generate",
+)
+@click.option("--rows", default=smoke_module.DEFAULT_ROWS, show_default=True, type=int, help="Rows per generated dataset")
+@click.option(
+    "--device",
+    default=smoke_module.DEFAULT_DEVICE,
+    show_default=True,
+    type=click.Choice(DEVICE_CHOICES),
+    help="Generation and training device",
+)
+@click.option("--seed", default=smoke_module.DEFAULT_SEED, show_default=True, type=int, help="Shared run seed")
+@click.option(
+    "--train-steps",
+    default=smoke_module.DEFAULT_TRAIN_STEPS,
+    show_default=True,
+    type=int,
+    help="Training steps for the smoke harness",
+)
+@click.option(
+    "--checkpoint-every",
+    default=smoke_module.DEFAULT_CHECKPOINT_EVERY,
+    show_default=True,
+    type=int,
+    help="Checkpoint snapshot cadence in steps",
+)
+def COMMAND(
+    dagzoo_root: Path,
+    out_root: Path | None,
+    num_datasets: int,
+    rows: int,
+    device: str,
+    seed: int,
+    train_steps: int,
+    checkpoint_every: int,
+) -> int:
+    return _dagzoo_smoke_command(
+        dagzoo_root=dagzoo_root,
+        out_root=out_root,
+        num_datasets=num_datasets,
+        rows=rows,
+        device=device,
+        seed=seed,
+        train_steps=train_steps,
+        checkpoint_every=checkpoint_every,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry bench smoke dagzoo")
 
 
 if __name__ == "__main__":

@@ -1733,10 +1733,11 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.16.4"
+version = "0.16.5"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
+    { name = "click" },
     { name = "graphviz" },
     { name = "hydra-core" },
     { name = "numpy" },
@@ -1789,6 +1790,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", specifier = ">=1.2" },
+    { name = "click", specifier = ">=8.1" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "h5py", marker = "extra == 'benchmark'", specifier = ">=3.12" },
     { name = "hydra-core", specifier = ">=1.3" },

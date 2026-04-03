@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+import click
 import torch
 
 import tab_foundry.cli.groups.data as data_group
+from tab_foundry.cli.click_utils import (
+    DEVICE_CHOICES,
+    GROUP_KWARGS,
+    device_option,
+    emit_payload,
+    json_output_option,
+    run_click_command,
+)
 from tab_foundry.config import compose_config
 from tab_foundry.config_inspection import (
     mapping_from_node,
@@ -29,7 +37,6 @@ from tab_foundry.task_batching import move_batch
 from tab_foundry.training.health import health_check, run_inspect
 
 
-_DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
 _MISSING_MARKER = "<missing>"
 _DIFF_EXCLUDED_PATHS = {"runtime.output_dir"}
 
@@ -409,180 +416,169 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _run_resolve_config(args: argparse.Namespace) -> int:
-    payload = resolve_config_payload(args.overrides)
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_resolve_config_text(payload))
+def _run_resolve_config(*, json_mode: bool, overrides: Sequence[str]) -> int:
+    payload = resolve_config_payload(overrides)
+    emit_payload(payload, json_mode=json_mode, render_text=render_resolve_config_text)
     return 0
 
 
-def _run_forward_check(args: argparse.Namespace) -> int:
+def _run_forward_check(*, json_mode: bool, device: str, seed: int, overrides: Sequence[str]) -> int:
     payload = forward_check(
-        args.overrides,
-        requested_device=str(args.device),
-        seed=int(args.seed),
+        overrides,
+        requested_device=device,
+        seed=seed,
     )
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_forward_check_text(payload))
+    emit_payload(payload, json_mode=json_mode, render_text=render_forward_check_text)
     return 0
 
 
-def _run_diff_config(args: argparse.Namespace) -> int:
+def _run_diff_config(*, json_mode: bool, left: Sequence[str], right: Sequence[str]) -> int:
     payload = diff_config_payloads(
-        [str(value) for value in args.left],
-        [str(value) for value in args.right],
+        [str(value) for value in left],
+        [str(value) for value in right],
     )
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_diff_config_text(payload))
+    emit_payload(payload, json_mode=json_mode, render_text=render_diff_config_text)
     return 0
 
 
-def _run_export_check(args: argparse.Namespace) -> int:
+def _run_export_check(
+    *,
+    checkpoint: Path,
+    out_dir: Path | None,
+    artifact_version: str,
+    json_mode: bool,
+) -> int:
     payload = export_check(
-        Path(str(args.checkpoint)),
-        out_dir=None if args.out_dir is None else Path(str(args.out_dir)),
-        artifact_version=str(args.artifact_version),
+        checkpoint,
+        out_dir=out_dir,
+        artifact_version=artifact_version,
     )
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_export_check_text(payload))
+    emit_payload(payload, json_mode=json_mode, render_text=render_export_check_text)
     return 0
 
 
-def _run_health_check(args: argparse.Namespace) -> int:
-    payload = health_check(Path(str(args.run_dir)))
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_health_check_text(payload))
+def _run_health_check(*, run_dir: Path, json_mode: bool) -> int:
+    payload = health_check(run_dir)
+    emit_payload(payload, json_mode=json_mode, render_text=render_health_check_text)
     return 0
 
 
-def _run_run_inspect(args: argparse.Namespace) -> int:
-    payload = run_inspect(Path(str(args.run_dir)))
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_run_inspect_text(payload))
+def _run_run_inspect(*, run_dir: Path, json_mode: bool) -> int:
+    payload = run_inspect(run_dir)
+    emit_payload(payload, json_mode=json_mode, render_text=render_run_inspect_text)
     return 0
-
-
-def register_subparsers(
-    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
-) -> None:
-    resolve_parser = subparsers.add_parser(
-        "resolve-config",
-        help="Compose one config and print the resolved build surface",
-    )
-    resolve_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    resolve_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
-    resolve_parser.set_defaults(func=_run_resolve_config)
-
-    forward_parser = subparsers.add_parser(
-        "forward-check",
-        help="Build one model and run a synthetic forward-only smoke check",
-    )
-    forward_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    forward_parser.add_argument(
-        "--device",
-        choices=_DEVICE_CHOICES,
-        default="auto",
-        help="Execution device; defaults to auto",
-    )
-    forward_parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Deterministic seed for model construction and synthetic inputs",
-    )
-    forward_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
-    forward_parser.set_defaults(func=_run_forward_check)
-
-    diff_parser = subparsers.add_parser(
-        "diff-config",
-        help="Compare two resolved config surfaces and print only effective differences",
-    )
-    diff_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    diff_parser.add_argument(
-        "--left",
-        action="append",
-        default=[],
-        help="Hydra override applied to the left-hand config",
-    )
-    diff_parser.add_argument(
-        "--right",
-        action="append",
-        default=[],
-        help="Hydra override applied to the right-hand config",
-    )
-    diff_parser.set_defaults(func=_run_diff_config)
-
-    export_parser = subparsers.add_parser(
-        "export-check",
-        help="Export one checkpoint, validate the bundle, and run a reference smoke",
-    )
-    export_parser.add_argument("--checkpoint", required=True, help="Input training checkpoint path")
-    export_parser.add_argument(
-        "--out-dir",
-        default=None,
-        help="Optional output bundle directory; omit to use a temporary bundle",
-    )
-    export_parser.add_argument(
-        "--artifact-version",
-        default=SCHEMA_VERSION_V3,
-        help="Export artifact schema version",
-    )
-    export_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    export_parser.set_defaults(func=_run_export_check)
-
-    health_parser = subparsers.add_parser(
-        "health-check",
-        help="Summarize run telemetry and instability signals",
-    )
-    health_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
-    health_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    health_parser.set_defaults(func=_run_health_check)
-
-    inspect_parser = subparsers.add_parser(
-        "run-inspect",
-        help="Inspect one run directory, its local artifacts, and any available benchmark metadata",
-    )
-    inspect_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
-    inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    inspect_parser.set_defaults(func=_run_run_inspect)
-
-    data_parser = subparsers.add_parser(
-        "data",
-        help="Internal data materialization helpers",
-    )
-    data_nested = data_parser.add_subparsers(dest="dev_data_command", required=True)
-
-    build_manifest_parser = data_nested.add_parser(
-        "build-manifest",
-        help="Build a manifest parquet from packed shard outputs",
-    )
-    data_group.configure_build_manifest_parser(build_manifest_parser)
-
-    generate_manifest_parser = data_nested.add_parser(
-        "generate-manifest",
-        help="Generate a dagzoo corpus and build a tab-foundry manifest",
-    )
-    data_group.configure_generate_manifest_parser(generate_manifest_parser)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Developer tooling")
-    register_subparsers(parser.add_subparsers(dest="command", required=True))
-    return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    return run_click_command(GROUP, argv, prog_name="tab-foundry dev")
+
+
+@click.command(
+    name="resolve-config",
+    help="Compose one config and print the resolved build surface",
+)
+@json_output_option
+@click.argument("overrides", nargs=-1, type=str)
+def RESOLVE_CONFIG_COMMAND(json_mode: bool, overrides: tuple[str, ...]) -> int:
+    return _run_resolve_config(json_mode=json_mode, overrides=overrides)
+
+
+@click.command(
+    name="forward-check",
+    help="Build one model and run a synthetic forward-only smoke check",
+)
+@json_output_option
+@device_option(default="auto", choices=DEVICE_CHOICES)
+@click.option(
+    "--seed",
+    default=1,
+    show_default=True,
+    type=int,
+    help="Deterministic seed for model construction and synthetic inputs",
+)
+@click.argument("overrides", nargs=-1, type=str)
+def FORWARD_CHECK_COMMAND(
+    json_mode: bool,
+    device: str,
+    seed: int,
+    overrides: tuple[str, ...],
+) -> int:
+    return _run_forward_check(json_mode=json_mode, device=device, seed=seed, overrides=overrides)
+
+
+@click.command(
+    name="diff-config",
+    help="Compare two resolved config surfaces and print only effective differences",
+)
+@json_output_option
+@click.option("--left", multiple=True, help="Hydra override applied to the left-hand config")
+@click.option("--right", multiple=True, help="Hydra override applied to the right-hand config")
+def DIFF_CONFIG_COMMAND(
+    json_mode: bool,
+    left: tuple[str, ...],
+    right: tuple[str, ...],
+) -> int:
+    return _run_diff_config(json_mode=json_mode, left=left, right=right)
+
+
+@click.command(
+    name="export-check",
+    help="Export one checkpoint, validate the bundle, and run a reference smoke",
+)
+@click.option("--checkpoint", required=True, type=click.Path(path_type=Path), help="Input training checkpoint path")
+@click.option(
+    "--out-dir",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional output bundle directory; omit to use a temporary bundle",
+)
+@click.option(
+    "--artifact-version",
+    default=SCHEMA_VERSION_V3,
+    show_default=True,
+    help="Export artifact schema version",
+)
+@json_output_option
+def EXPORT_CHECK_COMMAND(
+    checkpoint: Path,
+    out_dir: Path | None,
+    artifact_version: str,
+    json_mode: bool,
+) -> int:
+    return _run_export_check(
+        checkpoint=checkpoint,
+        out_dir=out_dir,
+        artifact_version=artifact_version,
+        json_mode=json_mode,
+    )
+
+
+@click.command(name="health-check", help="Summarize run telemetry and instability signals")
+@click.option("--run-dir", required=True, type=click.Path(path_type=Path), help="Run directory to inspect")
+@json_output_option
+def HEALTH_CHECK_COMMAND(run_dir: Path, json_mode: bool) -> int:
+    return _run_health_check(run_dir=run_dir, json_mode=json_mode)
+
+
+@click.command(
+    name="run-inspect",
+    help="Inspect one run directory, its local artifacts, and any available benchmark metadata",
+)
+@click.option("--run-dir", required=True, type=click.Path(path_type=Path), help="Run directory to inspect")
+@json_output_option
+def RUN_INSPECT_COMMAND(run_dir: Path, json_mode: bool) -> int:
+    return _run_run_inspect(run_dir=run_dir, json_mode=json_mode)
+
+
+@click.group(name="dev", help="Developer-focused inspection tools", **GROUP_KWARGS)
+def GROUP() -> None:
+    """Developer tooling group."""
+
+
+GROUP.add_command(RESOLVE_CONFIG_COMMAND)
+GROUP.add_command(FORWARD_CHECK_COMMAND)
+GROUP.add_command(DIFF_CONFIG_COMMAND)
+GROUP.add_command(EXPORT_CHECK_COMMAND)
+GROUP.add_command(HEALTH_CHECK_COMMAND)
+GROUP.add_command(RUN_INSPECT_COMMAND)
+GROUP.add_command(data_group.DEV_GROUP)

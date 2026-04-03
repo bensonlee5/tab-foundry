@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import argparse
+import click
 
 from tab_foundry.config import compose_config
 import tab_foundry.cli.train_prior as train_prior_cli
 from tab_foundry.training.trainer import train as run_training
+from tab_foundry.cli.click_utils import GROUP_KWARGS
 
 
-def _run_training_command(args: argparse.Namespace) -> int:
-    cfg = compose_config(args.overrides)
+def _run_training_command(*, overrides: tuple[str, ...]) -> int:
+    cfg = compose_config(list(overrides))
     result = run_training(cfg)
     print(
         "Training complete:",
@@ -22,26 +23,26 @@ def _run_training_command(args: argparse.Namespace) -> int:
     )
     return 0
 
-def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    parser = subparsers.add_parser("train", help="Training workflows")
-    nested = parser.add_subparsers(dest="train_command", required=True)
 
-    run_parser = nested.add_parser("run", help="Train from Hydra config")
-    run_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
-    run_parser.set_defaults(func=_run_training_command)
+@click.group(name="train", help="Training workflows", **GROUP_KWARGS)
+def GROUP() -> None:
+    """Training workflows."""
 
-    prior_parser = nested.add_parser("legacy-prior", help="Legacy exact-prior training workflows")
-    prior_nested = prior_parser.add_subparsers(dest="prior_command", required=True)
-    prior_simple_parser = prior_nested.add_parser(
-        "simple",
-        help="Train the exact-prior simple benchmark family",
-    )
-    train_prior_cli.configure_parser(prior_simple_parser)
-    prior_simple_parser.set_defaults(func=train_prior_cli.run_from_args)
 
-    prior_staged_parser = prior_nested.add_parser(
-        "staged",
-        help="Train the exact-prior staged benchmark family",
-    )
-    train_prior_cli.configure_parser(prior_staged_parser)
-    prior_staged_parser.set_defaults(func=train_prior_cli.run_staged_from_args)
+@click.command(name="run", help="Train from Hydra config")
+@click.argument("overrides", nargs=-1, type=str)
+def RUN_COMMAND(overrides: tuple[str, ...]) -> int:
+    return _run_training_command(overrides=overrides)
+
+
+@click.group(name="legacy-prior", help="Legacy exact-prior training workflows", **GROUP_KWARGS)
+def _legacy_prior_group() -> None:
+    """Legacy exact-prior training workflows."""
+
+
+_legacy_prior_group.add_command(train_prior_cli.COMMAND)
+_legacy_prior_group.add_command(train_prior_cli.STAGED_COMMAND)
+
+
+GROUP.add_command(RUN_COMMAND)
+GROUP.add_command(_legacy_prior_group)
