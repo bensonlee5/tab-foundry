@@ -6,11 +6,14 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from tab_foundry.bench.artifacts import write_json
+from tab_foundry.bench.openml_benchmark import normalize_benchmark_bundle
 from tab_foundry.bench.openml_bundle.config import (
     OpenMLBenchmarkBundleBuildResult,
     OpenMLBenchmarkBundleConfig,
     OpenMLBenchmarkCandidateReportEntry,
 )
+from tab_foundry.bench.openml_bundle.selection import resolve_selected_tasks
 
 
 def bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classes: int) -> dict[str, Any]:
@@ -28,11 +31,8 @@ def bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classes
 
 def build_openml_benchmark_bundle_result(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    resolve_selected_tasks_fn: Any,
-    normalize_benchmark_bundle_fn: Any,
 ) -> OpenMLBenchmarkBundleBuildResult:
-    selected_tasks, effective_max_classes, report_entries = resolve_selected_tasks_fn(config)
+    selected_tasks, effective_max_classes, report_entries = resolve_selected_tasks(config)
     payload = {
         "name": str(config.bundle_name),
         "version": int(config.version),
@@ -41,7 +41,7 @@ def build_openml_benchmark_bundle_result(
         "tasks": [dict(prepared.observed_task) for prepared in selected_tasks],
     }
     return OpenMLBenchmarkBundleBuildResult(
-        bundle=normalize_benchmark_bundle_fn(payload),
+        bundle=normalize_benchmark_bundle(payload),
         report_entries=report_entries,
     )
 
@@ -79,28 +79,23 @@ def render_openml_benchmark_candidate_report(
 
 def build_openml_benchmark_bundle(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    build_openml_benchmark_bundle_result_fn: Any,
 ) -> dict[str, Any]:
     """Build one normalized benchmark bundle from the notebook task set."""
 
-    return build_openml_benchmark_bundle_result_fn(config).bundle
+    return build_openml_benchmark_bundle_result(config).bundle
 
 
 def write_openml_benchmark_bundle(
     path: Path,
     config: OpenMLBenchmarkBundleConfig,
     *,
-    bundle: Mapping[str, Any] | None,
-    build_openml_benchmark_bundle_fn: Any,
-    normalize_benchmark_bundle_fn: Any,
-    write_json_fn: Any,
+    bundle: Mapping[str, Any] | None = None,
 ) -> Path:
     """Write one normalized benchmark bundle to disk."""
 
     payload = (
-        build_openml_benchmark_bundle_fn(config)
+        build_openml_benchmark_bundle(config)
         if bundle is None
-        else normalize_benchmark_bundle_fn(dict(bundle))
+        else normalize_benchmark_bundle(dict(bundle))
     )
-    return write_json_fn(path.expanduser().resolve(), payload)
+    return write_json(path.expanduser().resolve(), payload)

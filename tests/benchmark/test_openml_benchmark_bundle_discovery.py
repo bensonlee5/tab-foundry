@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 
 import tab_foundry.bench.openml_bundle as bundle_module
+import tab_foundry.bench.openml_bundle.discovery as discovery_module
+import tab_foundry.bench.openml_bundle.selection as selection_module
 
 from tests.benchmark.openml_bundle_fakes import prepared_task
 
@@ -109,7 +111,7 @@ def test_build_openml_benchmark_bundle_discovery_filters_dedupes_and_reports(
         )
 
     monkeypatch.setattr(
-        bundle_module.openml.tasks,
+        discovery_module.openml.tasks,
         "list_tasks",
         _fake_list_tasks,
     )
@@ -118,7 +120,7 @@ def test_build_openml_benchmark_bundle_discovery_filters_dedupes_and_reports(
         103: prepared_task(task_id=103, dataset_name="kept_dataset", n_rows=200, n_features=12, n_classes=2),
     }
     monkeypatch.setattr(
-        bundle_module,
+        selection_module,
         "prepare_openml_benchmark_task",
         lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
@@ -157,7 +159,7 @@ def test_build_openml_benchmark_bundle_discovery_rejects_below_min_task_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        bundle_module.openml.tasks,
+        discovery_module.openml.tasks,
         "list_tasks",
         lambda **_kwargs: pd.DataFrame(
             [
@@ -176,7 +178,7 @@ def test_build_openml_benchmark_bundle_discovery_rejects_below_min_task_count(
         ),
     )
     monkeypatch.setattr(
-        bundle_module,
+        selection_module,
         "prepare_openml_benchmark_task",
         lambda task_id, *, new_instances, task_type: prepared_task(
             task_id=int(task_id),
@@ -228,9 +230,9 @@ def test_build_openml_benchmark_bundle_discovery_falls_back_when_filtered_listin
             ]
         )
 
-    monkeypatch.setattr(bundle_module.openml.tasks, "list_tasks", _fake_list_tasks)
+    monkeypatch.setattr(discovery_module.openml.tasks, "list_tasks", _fake_list_tasks)
     monkeypatch.setattr(
-        bundle_module,
+        selection_module,
         "prepare_openml_benchmark_task",
         lambda task_id, *, new_instances, task_type: prepared_task(
             task_id=int(task_id),

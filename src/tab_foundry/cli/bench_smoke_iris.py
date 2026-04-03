@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
+from tab_foundry.bench.iris_smoke.config import default_out_root
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -51,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_from_args(args: argparse.Namespace) -> int:
-    out_root = iris_smoke_module._default_out_root() if args.out_root is None else Path(str(args.out_root))
+    out_root = default_out_root() if args.out_root is None else Path(str(args.out_root))
     telemetry = iris_smoke_module.run_iris_smoke(
         iris_smoke_module.IrisSmokeConfig(
             out_root=out_root,

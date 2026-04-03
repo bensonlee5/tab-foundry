@@ -7,6 +7,8 @@ from typing import Any
 import pytest
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
+import tab_foundry.bench.iris_smoke.report as iris_smoke_report_module
+import tab_foundry.bench.iris_smoke.runner as iris_smoke_runner_module
 import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli_module
 from tab_realdata_hub.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
@@ -58,7 +60,7 @@ def test_write_summary_markdown_includes_timings_and_benchmark(tmp_path: Path) -
         },
     }
 
-    iris_smoke_module._write_summary_markdown(summary_path, telemetry)
+    iris_smoke_report_module.write_summary_markdown(summary_path, telemetry)
 
     content = summary_path.read_text(encoding="utf-8")
     assert "# Iris Smoke Report" in content
@@ -149,9 +151,9 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
             metrics={"best_val_loss": 0.6, "train_elapsed_seconds": 0.1},
         )
 
-    monkeypatch.setattr(iris_smoke_module, "_write_iris_tasks", _fake_write_iris_tasks)
-    monkeypatch.setattr(iris_smoke_module, "build_manifest", _fake_build_manifest)
-    monkeypatch.setattr(iris_smoke_module, "train", _fake_train)
+    monkeypatch.setattr(iris_smoke_runner_module, "write_iris_tasks", _fake_write_iris_tasks)
+    monkeypatch.setattr(iris_smoke_runner_module, "build_manifest", _fake_build_manifest)
+    monkeypatch.setattr(iris_smoke_runner_module, "train", _fake_train)
 
     def _fake_evaluate_checkpoint(cfg: Any, *_args: Any, **_kwargs: Any) -> EvalResult:
         captured_cfg["eval_cfg"] = cfg
@@ -161,12 +163,12 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
         )
 
     monkeypatch.setattr(
-        iris_smoke_module,
+        iris_smoke_runner_module,
         "evaluate_checkpoint",
         _fake_evaluate_checkpoint,
     )
     monkeypatch.setattr(
-        iris_smoke_module,
+        iris_smoke_runner_module,
         "evaluate_iris_checkpoint",
         lambda *_args, **_kwargs: iris_smoke_module.IrisEvalSummary(
             checkpoint=tmp_path / "best.pt",
@@ -196,12 +198,12 @@ def test_run_iris_smoke_rejects_non_finite_train_metrics(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        iris_smoke_module,
-        "_write_iris_tasks",
+        iris_smoke_runner_module,
+        "write_iris_tasks",
         lambda generated_dir, **_kwargs: generated_dir.mkdir(parents=True, exist_ok=True) or generated_dir,
     )
     monkeypatch.setattr(
-        iris_smoke_module,
+        iris_smoke_runner_module,
         "build_manifest",
         lambda *_args, **kwargs: ManifestSummary(
             out_path=Path(str(kwargs["out_path"])),
@@ -249,9 +251,9 @@ def test_run_iris_smoke_rejects_non_finite_train_metrics(
             metrics={"best_val_loss": float("inf"), "train_elapsed_seconds": 0.1},
         )
 
-    monkeypatch.setattr(iris_smoke_module, "train", _fake_train)
+    monkeypatch.setattr(iris_smoke_runner_module, "train", _fake_train)
     monkeypatch.setattr(
-        iris_smoke_module,
+        iris_smoke_runner_module,
         "evaluate_checkpoint",
         lambda *_args, **_kwargs: EvalResult(
             checkpoint=tmp_path / "best.pt",
@@ -259,7 +261,7 @@ def test_run_iris_smoke_rejects_non_finite_train_metrics(
         ),
     )
     monkeypatch.setattr(
-        iris_smoke_module,
+        iris_smoke_runner_module,
         "evaluate_iris_checkpoint",
         lambda *_args, **_kwargs: iris_smoke_module.IrisEvalSummary(
             checkpoint=tmp_path / "best.pt",
