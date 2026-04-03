@@ -9,6 +9,7 @@ import numpy as np
 from omegaconf import DictConfig
 import torch
 
+from tab_foundry.device import resolve_device
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import ResolvedStageSurface
 from tab_foundry.model.spec import ModelBuildSpec
 
@@ -18,10 +19,9 @@ def resolve_prior_training_device_name(
     *,
     spec: ModelBuildSpec,
     staged_surface: ResolvedStageSurface | None,
-    resolve_device_fn,
 ) -> str:
     requested_device = str(getattr(cfg.runtime, "device", "auto") or "auto").strip()
-    resolved_device = resolve_device_fn(requested_device)
+    resolved_device = resolve_device(requested_device)
     if (
         resolved_device != "mps"
         or spec.arch != "tabfoundry_staged"

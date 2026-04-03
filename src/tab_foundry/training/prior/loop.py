@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import math
 from pathlib import Path
 import sys
@@ -48,11 +49,9 @@ from tab_foundry.training.prior.missingness import (
     _initial_missingness_summary,
     _prior_wandb_summary_payload,
 )
-from tab_foundry.training.prior.wandb import update_prior_wandb_summary
 from tab_foundry.training.prior_dump import PriorDumpNonFinitePolicy, PriorDumpTaskBatchReader
 from tab_foundry.training.schedule import stage_base_lr
-from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR
-from tab_foundry.training.surface import write_training_surface_record
+from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR, write_training_surface_record
 from tab_foundry.training.trainer_optimizer import _set_optimizer_base_lr, _set_optimizer_training_mode
 from tab_foundry.training.wandb import (
     finish_wandb_run,
@@ -68,6 +67,30 @@ from tab_foundry.types import TrainResult
 _PRIOR_STAGE_NAME = "prior_dump"
 
 
+@dataclass(slots=True)
+class PriorTrainingState:
+    global_step: int = 0
+    latest_checkpoint: Path | None = None
+    final_train_loss: float | None = None
+    final_train_acc: float | None = None
+    final_train_bpc: float | None = None
+    final_train_bpf: float | None = None
+    final_grad_norm: float = 0.0
+    grad_norm_sum: float = 0.0
+    grad_norm_count: int = 0
+    max_grad_norm: float = 0.0
+    clipped_step_count: int = 0
+    nan_skip_count: int = 0
+    train_elapsed_seconds: float = 0.0
+    examples_seen: int = 0
+    tokens_seen: int = 0
+    previous_train_loss: float | None = None
+    loss_ema: float | None = None
+    history_records: list[dict[str, Any]] = field(default_factory=list)
+    gradient_records: list[dict[str, Any]] = field(default_factory=list)
+    checkpoint_snapshots: list[dict[str, Any]] = field(default_factory=list)
+
+
 def _global_grad_norm_kind(value: float) -> str:
     if math.isnan(value):
         return "nan"
@@ -76,7 +99,7 @@ def _global_grad_norm_kind(value: float) -> str:
     return "finite"
 
 
-def _save_eval_mode_checkpoint(
+def _save_eval_mode_artifact(
     prepared_opts: list[tuple[str, torch.optim.Optimizer]],
     *,
     path: Path,
@@ -255,6 +278,419 @@ def _run_prior_step_with_microbatch_retry(
             microbatch_size = next_microbatch_size
 
 
+def _prepare_prior_optimizer(
+    *,
+    optimizer_selection: Any,
+    initial_lr: float,
+) -> tuple[list[tuple[str, torch.optim.Optimizer]], torch.optim.Optimizer, list[float]]:
+    if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
+        raise RuntimeError(
+            "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
+            f"resolved {optimizer_selection.resolved_name!r}"
+        )
+    if len(optimizer_selection.optimizers) != 1:
+        raise RuntimeError(
+            "exact-parity prior-dump training expects exactly one optimizer instance, "
+            f"got {len(optimizer_selection.optimizers)}"
+        )
+    prepared_opts = list(optimizer_selection.optimizers)
+    optimizer = prepared_opts[0][1]
+    _set_optimizer_training_mode(prepared_opts, training=True)
+    lr_scales = [1.0 for _ in optimizer.param_groups]
+    _set_optimizer_base_lr(
+        optimizer,
+        base_lr=initial_lr,
+        scales=lr_scales,
+    )
+    return prepared_opts, optimizer, lr_scales
+
+
+def _record_non_finite_loss_step(
+    *,
+    state: PriorTrainingState,
+    optimizer: torch.optim.Optimizer,
+    run: Any,
+    history_path: Path | None,
+    train_start: float,
+    grad_clip: float,
+) -> None:
+    state.nan_skip_count += 1
+    optimizer.zero_grad(set_to_none=True)
+    log_wandb_metrics(
+        run,
+        {
+            "train/nan_guard_triggered": True,
+            "train/nan_skip_count": float(state.nan_skip_count),
+        },
+        step=state.global_step,
+    )
+    history_payload = history_record(
+        global_step=state.global_step,
+        stage_name=_PRIOR_STAGE_NAME,
+        train_loss=float("nan"),
+        train_metrics={"nan_guard_triggered": 1.0},
+        lr=float(optimizer.param_groups[0]["lr"]),
+        grad_norm=None,
+        elapsed_seconds=time.perf_counter() - train_start,
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        val_metrics=None,
+        train_loss_delta=None,
+        train_loss_ema=state.loss_ema,
+        grad_clip_threshold=float(grad_clip),
+        grad_clip_triggered=False,
+    )
+    state.history_records.append(history_payload)
+    if history_path is not None:
+        append_history_record(history_path, history_payload)
+
+
+def _record_non_finite_grad_step(
+    *,
+    state: PriorTrainingState,
+    optimizer: torch.optim.Optimizer,
+    run: Any,
+    history_path: Path | None,
+    gradient_path: Path,
+    train_start: float,
+    grad_clip: float,
+    pre_clip_module_grad_norms: Mapping[str, float],
+    activation_norms: Mapping[str, float] | None,
+    global_grad_norm_kind: str,
+) -> None:
+    state.nan_skip_count += 1
+    optimizer.zero_grad(set_to_none=True)
+    elapsed_seconds = time.perf_counter() - train_start
+    log_wandb_metrics(
+        run,
+        {
+            "train/non_finite_grad_guard_triggered": True,
+            "train/non_finite_grad_kind": global_grad_norm_kind,
+            "train/nan_skip_count": float(state.nan_skip_count),
+        },
+        step=state.global_step,
+    )
+    history_payload = history_record(
+        global_step=state.global_step,
+        stage_name=_PRIOR_STAGE_NAME,
+        train_loss=float("nan"),
+        train_metrics={"non_finite_grad_guard_triggered": 1.0},
+        lr=float(optimizer.param_groups[0]["lr"]),
+        grad_norm=None,
+        elapsed_seconds=elapsed_seconds,
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        val_metrics=None,
+        train_loss_delta=None,
+        train_loss_ema=state.loss_ema,
+        grad_clip_threshold=float(grad_clip),
+        grad_clip_triggered=False,
+    )
+    state.history_records.append(history_payload)
+    if history_path is not None:
+        append_history_record(history_path, history_payload)
+
+    gradient_payload = gradient_history_record(
+        global_step=state.global_step,
+        stage_name=_PRIOR_STAGE_NAME,
+        train_loss=float("nan"),
+        train_acc=None,
+        lr=float(optimizer.param_groups[0]["lr"]),
+        global_grad_norm=None,
+        global_grad_norm_kind=global_grad_norm_kind,
+        module_grad_norms=pre_clip_module_grad_norms,
+        activation_norms=activation_norms,
+        elapsed_seconds=elapsed_seconds,
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        grad_clip_threshold=float(grad_clip),
+        grad_clip_triggered=False,
+    )
+    state.gradient_records.append(gradient_payload)
+    append_jsonl_record(gradient_path, gradient_payload)
+
+
+def _capture_successful_step(
+    state: PriorTrainingState,
+    *,
+    history_step_loss: float,
+    history_step_metrics: Mapping[str, float],
+    local_grad_norm: float,
+) -> None:
+    state.final_train_loss = float(history_step_loss)
+    state.final_train_acc = (
+        None if history_step_metrics.get("acc") is None else float(history_step_metrics["acc"])
+    )
+    state.final_train_bpc = (
+        None if history_step_metrics.get("bpc") is None else float(history_step_metrics["bpc"])
+    )
+    state.final_train_bpf = (
+        None if history_step_metrics.get("bpf") is None else float(history_step_metrics["bpf"])
+    )
+    state.final_grad_norm = float(local_grad_norm)
+    state.grad_norm_sum += state.final_grad_norm
+    state.grad_norm_count += 1
+    state.max_grad_norm = max(state.max_grad_norm, state.final_grad_norm)
+
+
+def _append_module_balance_metrics(
+    train_log: dict[str, Any],
+    *,
+    pre_clip_module_grad_norms: Mapping[str, float],
+) -> None:
+    feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
+    head_grad = pre_clip_module_grad_norms.get("direct_head")
+    if feature_grad is not None and float(feature_grad) > 0.0 and head_grad is not None:
+        train_log["train/module_balance/direct_head_to_feature_encoder"] = float(head_grad) / float(
+            feature_grad
+        )
+    if head_grad is not None and float(head_grad) > 0.0 and feature_grad is not None:
+        train_log["train/module_balance/feature_encoder_to_direct_head"] = float(feature_grad) / float(
+            head_grad
+        )
+
+
+def _prior_train_log_payload(
+    *,
+    state: PriorTrainingState,
+    history_step_loss: float,
+    history_step_metrics: Mapping[str, float],
+    optimizer: torch.optim.Optimizer,
+    elapsed_seconds: float,
+    grad_clip: float,
+    grad_clip_triggered: bool,
+    prior_dump_missingness: Mapping[str, Any],
+    synthetic_prior_missingness: Mapping[str, Any],
+    microbatch_size_used: int,
+    microbatch_count: int,
+    pre_clip_module_grad_norms: Mapping[str, float],
+    activation_norms: Mapping[str, float] | None,
+    loss_delta_value: float | None,
+) -> dict[str, Any]:
+    train_log: dict[str, Any] = {
+        "train/loss": float(history_step_loss),
+        "train/lr": float(optimizer.param_groups[0]["lr"]),
+        "train/grad_norm": float(state.final_grad_norm),
+        "train/loss_delta": loss_delta_value,
+        "train/loss_ema": state.loss_ema,
+        "train/elapsed_seconds": float(elapsed_seconds),
+        "train/train_elapsed_seconds": float(state.train_elapsed_seconds),
+        "train/grad_clip_threshold": float(grad_clip),
+        "train/grad_clip_triggered": grad_clip_triggered,
+        "train/grad_clip_count_so_far": int(state.clipped_step_count),
+        "train/grad_clip_fraction_so_far": float(state.clipped_step_count / state.global_step),
+        "train/prior_dump_skipped_batch_count": int(prior_dump_missingness["skipped_batch_count"]),
+        "train/prior_dump_non_finite_feature_count": int(prior_dump_missingness["non_finite_feature_count"]),
+        "train/prior_dump_non_finite_label_count": int(prior_dump_missingness["non_finite_label_count"]),
+        "train/synthetic_prior_masked_feature_count": int(synthetic_prior_missingness["masked_feature_count"]),
+        "train/prior_dump_microbatch_size": int(microbatch_size_used),
+        "train/prior_dump_microbatch_count": int(microbatch_count),
+        "train/stage": _PRIOR_STAGE_NAME,
+    }
+    for metric_name, metric_value in history_step_metrics.items():
+        train_log[f"train/{metric_name}"] = float(metric_value)
+    for module_name, module_value in pre_clip_module_grad_norms.items():
+        train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
+    _append_module_balance_metrics(
+        train_log,
+        pre_clip_module_grad_norms=pre_clip_module_grad_norms,
+    )
+    if activation_norms is not None:
+        for activation_name, activation_value in activation_norms.items():
+            train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
+    return train_log
+
+
+def _append_step_records(
+    *,
+    state: PriorTrainingState,
+    history_path: Path | None,
+    gradient_path: Path,
+    history_step_loss: float,
+    history_step_metrics: Mapping[str, float],
+    optimizer: torch.optim.Optimizer,
+    elapsed_seconds: float,
+    grad_clip: float,
+    grad_clip_triggered: bool,
+    pre_clip_module_grad_norms: Mapping[str, float],
+    activation_norms: Mapping[str, float] | None,
+    loss_delta_value: float | None,
+) -> None:
+    history_payload = history_record(
+        global_step=state.global_step,
+        stage_name=_PRIOR_STAGE_NAME,
+        train_loss=history_step_loss,
+        train_metrics=history_step_metrics,
+        lr=float(optimizer.param_groups[0]["lr"]),
+        grad_norm=state.final_grad_norm,
+        elapsed_seconds=elapsed_seconds,
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        val_metrics=None,
+        train_loss_delta=loss_delta_value,
+        train_loss_ema=state.loss_ema,
+        grad_clip_threshold=float(grad_clip),
+        grad_clip_triggered=grad_clip_triggered,
+    )
+    state.history_records.append(history_payload)
+    if history_path is not None:
+        append_history_record(history_path, history_payload)
+
+    gradient_payload = gradient_history_record(
+        global_step=state.global_step,
+        stage_name=_PRIOR_STAGE_NAME,
+        train_loss=history_step_loss,
+        train_acc=None if history_step_metrics.get("acc") is None else history_step_metrics["acc"],
+        lr=float(optimizer.param_groups[0]["lr"]),
+        global_grad_norm=state.final_grad_norm,
+        module_grad_norms=pre_clip_module_grad_norms,
+        activation_norms=activation_norms,
+        elapsed_seconds=elapsed_seconds,
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        grad_clip_threshold=float(grad_clip),
+        grad_clip_triggered=grad_clip_triggered,
+    )
+    state.gradient_records.append(gradient_payload)
+    append_jsonl_record(gradient_path, gradient_payload)
+
+
+def _maybe_save_snapshot_checkpoint(
+    *,
+    state: PriorTrainingState,
+    checkpoint_every: int,
+    output_dir: Path,
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
+    model: torch.nn.Module,
+    cfg: DictConfig,
+) -> None:
+    if state.global_step % checkpoint_every != 0:
+        return
+    checkpoint_path = output_dir / "checkpoints" / f"step_{state.global_step:06d}.pt"
+    _save_eval_mode_artifact(
+        prepared_opts,
+        path=checkpoint_path,
+        model=model,
+        global_step=state.global_step,
+        cfg=cfg,
+        restore_training=True,
+    )
+    state.checkpoint_snapshots.append(
+        {
+            "step": int(state.global_step),
+            "path": str(checkpoint_path.resolve()),
+            "elapsed_seconds": float(state.train_elapsed_seconds),
+            "train_elapsed_seconds": float(state.train_elapsed_seconds),
+        }
+    )
+
+
+def _maybe_print_progress(
+    *,
+    state: PriorTrainingState,
+    eval_every: int,
+    history_step_loss: float,
+    history_step_metrics: Mapping[str, float],
+) -> None:
+    if state.global_step % eval_every != 0:
+        return
+    if history_step_metrics.get("bpc") is not None:
+        primary_metric_fragment = f"bpc {history_step_metrics['bpc']:7.4f}"
+    elif history_step_metrics.get("acc") is not None:
+        primary_metric_fragment = f"acc {history_step_metrics['acc']:7.4f}"
+    else:
+        primary_metric_fragment = "metric     n/a"
+    print(
+        f"time {state.train_elapsed_seconds:7.1f}s | "
+        f"step {state.global_step:4d} | "
+        f"loss {history_step_loss:7.4f} | "
+        f"{primary_metric_fragment}"
+    )
+
+
+def _save_latest_checkpoint(
+    *,
+    state: PriorTrainingState,
+    output_dir: Path,
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
+    model: torch.nn.Module,
+    cfg: DictConfig,
+    artifacts: dict[str, Any],
+) -> None:
+    state.latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
+    _save_eval_mode_artifact(
+        prepared_opts,
+        path=state.latest_checkpoint,
+        model=model,
+        global_step=state.global_step,
+        cfg=cfg,
+        restore_training=False,
+    )
+    artifacts["latest_checkpoint"] = str(state.latest_checkpoint.resolve())
+
+
+def _build_prior_telemetry_payload(
+    *,
+    state: PriorTrainingState,
+    output_dir: Path,
+    task: str,
+    loss_surface: str,
+    training_surface_payload: dict[str, Any] | None,
+    artifacts: Mapping[str, Any],
+    missingness_summary: dict[str, Any] | None,
+    run: Any,
+    cfg: DictConfig,
+    device: torch.device,
+    train_start: float,
+    success: bool,
+    error: Exception | None = None,
+) -> tuple[dict[str, Any], float]:
+    wall_elapsed_seconds = time.perf_counter() - train_start
+    runtime_summary = build_runtime_summary(
+        train_elapsed_seconds=state.train_elapsed_seconds,
+        wall_elapsed_seconds=wall_elapsed_seconds,
+        examples_seen=state.examples_seen,
+        tokens_seen=state.tokens_seen,
+        peak_memory_summary=peak_device_memory_summary(device),
+    )
+    regime_budget = build_regime_budget_summary(
+        task=task,
+        loss_surface=loss_surface,
+        training_surface_record=training_surface_payload,
+        global_step=state.global_step,
+        tokens_seen=state.tokens_seen,
+    )
+    telemetry_payload = build_training_telemetry(
+        run_dir=output_dir,
+        task=task,
+        global_step=state.global_step,
+        success=success,
+        artifacts=dict(artifacts),
+        checkpoint_snapshots=state.checkpoint_snapshots,
+        history_records=state.history_records,
+        gradient_records=state.gradient_records,
+        runtime_summary=runtime_summary,
+        regime_budget=regime_budget,
+        missingness=missingness_summary,
+        training_surface_record=training_surface_payload,
+        wandb=wandb_identity_payload(run, cfg=cfg),
+        error=error,
+    )
+    return telemetry_payload, wall_elapsed_seconds
+
+
+def _update_prior_wandb_summary(
+    *,
+    run: Any,
+    output_dir: Path,
+    global_step: int,
+    telemetry_payload: dict[str, Any],
+) -> None:
+    update_wandb_summary(
+        run,
+        _prior_wandb_summary_payload(
+            output_dir=output_dir,
+            global_step=global_step,
+            telemetry_payload=telemetry_payload,
+        ),
+    )
+
+
 def run_prior_training(
     cfg: DictConfig,
     *,
@@ -303,41 +739,16 @@ def run_prior_training(
         "checkpoints_dir": str((output_dir / "checkpoints").resolve()),
         "latest_checkpoint": None,
     }
-    history_records: list[dict[str, Any]] = []
-    gradient_records: list[dict[str, Any]] = []
-    checkpoint_snapshots: list[dict[str, Any]] = []
     missingness_summary: dict[str, Any] | None = None
-
-    prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
-    optimizer: torch.optim.Optimizer | None = None
-    lr_scales: list[float] = []
-
-    history_step_loss = 0.0
-    history_step_metrics: dict[str, float] = {}
-    final_train_loss: float | None = None
-    final_train_acc: float | None = None
-    final_train_bpc: float | None = None
-    final_train_bpf: float | None = None
-    global_step = 0
-    latest_checkpoint: Path | None = None
-    final_grad_norm = 0.0
-    grad_norm_sum = 0.0
-    grad_norm_count = 0
-    max_grad_norm = 0.0
-    clipped_step_count = 0
-    nan_skip_count = 0
+    state = PriorTrainingState()
     train_start = time.perf_counter()
-    train_elapsed_seconds = 0.0
-    examples_seen = 0
-    tokens_seen = 0
-    previous_train_loss: float | None = None
-    loss_ema: float | None = None
+
     prior_missingness_generator = None
     if prior_missingness_config is not None:
         prior_missingness_generator = torch.Generator(device="cpu")
         prior_missingness_generator.manual_seed(int(cfg.runtime.seed))
 
-    def _record_non_finite_batch(batch_missingness) -> None:
+    def _record_non_finite_batch(batch_missingness: Any) -> None:
         if missingness_summary is None:
             raise RuntimeError("prior training setup did not initialize missingness state")
         _accumulate_missingness(
@@ -367,27 +778,10 @@ def run_prior_training(
             prior_missingness_config=prior_missingness_config,
             prior_dump_non_finite_policy=prior_dump_non_finite_policy,
         )
-
-        if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
-            raise RuntimeError(
-                "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
-                f"resolved {optimizer_selection.resolved_name!r}"
-            )
-        if len(optimizer_selection.optimizers) != 1:
-            raise RuntimeError(
-                "exact-parity prior-dump training expects exactly one optimizer instance, "
-                f"got {len(optimizer_selection.optimizers)}"
+        prepared_opts, optimizer, lr_scales = _prepare_prior_optimizer(
+            optimizer_selection=optimizer_selection,
+            initial_lr=initial_lr,
         )
-        prepared_opts = list(optimizer_selection.optimizers)
-        optimizer = prepared_opts[0][1]
-        _set_optimizer_training_mode(prepared_opts, training=True)
-        lr_scales = [1.0 for _ in optimizer.param_groups]
-        _set_optimizer_base_lr(
-            optimizer,
-            base_lr=initial_lr,
-            scales=lr_scales,
-        )
-
         reader = PriorDumpTaskBatchReader(
             prior_dump_path,
             num_steps=max_steps,
@@ -398,8 +792,8 @@ def run_prior_training(
         )
 
         for prior_step in reader:
-            if optimizer is None or missingness_summary is None:
-                raise RuntimeError("prior training setup did not initialize optimizer and missingness state")
+            if missingness_summary is None:
+                raise RuntimeError("prior training setup did not initialize missingness state")
             if prior_step.missingness is not None:
                 _accumulate_missingness(
                     missingness_summary,
@@ -415,9 +809,7 @@ def run_prior_training(
                     base_lr=current_base_lr,
                     scales=lr_scales,
                 )
-            forward_batched = getattr(model, "forward_batched", None)
-            if not callable(forward_batched):
-                raise RuntimeError("prior-dump training requires a model with forward_batched()")
+
             x_batch, y_train_batch, y_all_batch, feature_types_batch = stack_prior_step(
                 prior_step,
                 device=device,
@@ -452,335 +844,183 @@ def run_prior_training(
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
             )
-            step_train_duration = time.perf_counter() - step_train_start
-            train_elapsed_seconds += step_train_duration
-            global_step = int(prior_step.step_index)
-            examples_seen += step_examples_seen
-            tokens_seen += step_tokens_seen
+            state.train_elapsed_seconds += time.perf_counter() - step_train_start
+            state.global_step = int(prior_step.step_index)
+            state.examples_seen += step_examples_seen
+            state.tokens_seen += step_tokens_seen
+
             if not math.isfinite(history_step_loss):
-                nan_skip_count += 1
-                optimizer.zero_grad(set_to_none=True)
-                nan_log: dict[str, Any] = {
-                    "train/nan_guard_triggered": True,
-                    "train/nan_skip_count": float(nan_skip_count),
-                }
-                log_wandb_metrics(run, nan_log, step=global_step)
-                history_payload = history_record(
-                    global_step=global_step,
-                    stage_name=_PRIOR_STAGE_NAME,
-                    train_loss=float("nan"),
-                    train_metrics={"nan_guard_triggered": 1.0},
-                    lr=float(optimizer.param_groups[0]["lr"]),
-                    grad_norm=None,
-                    elapsed_seconds=time.perf_counter() - train_start,
-                    train_elapsed_seconds=train_elapsed_seconds,
-                    val_metrics=None,
-                    train_loss_delta=None,
-                    train_loss_ema=loss_ema,
-                    grad_clip_threshold=float(grad_clip),
-                    grad_clip_triggered=False,
+                _record_non_finite_loss_step(
+                    state=state,
+                    optimizer=optimizer,
+                    run=run,
+                    history_path=history_path,
+                    train_start=train_start,
+                    grad_clip=grad_clip,
                 )
-                history_records.append(history_payload)
-                if history_path is not None:
-                    append_history_record(history_path, history_payload)
                 continue
 
             pre_clip_module_grad_norms = module_grad_norms(model)
-            local_grad_norm = total_grad_norm(model.parameters())
-            clipped_grad_norm = local_grad_norm
+            local_grad_norm = float(total_grad_norm(model.parameters()))
             if grad_clip > 0:
                 clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                clipped_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
-            local_grad_norm = float(clipped_grad_norm)
-            global_grad_norm_kind = _global_grad_norm_kind(float(local_grad_norm))
+                local_grad_norm = float(
+                    normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+                )
+            global_grad_norm_kind = _global_grad_norm_kind(local_grad_norm)
             if global_grad_norm_kind != "finite":
-                nan_skip_count += 1
-                optimizer.zero_grad(set_to_none=True)
-                elapsed_seconds = time.perf_counter() - train_start
-                non_finite_grad_log: dict[str, Any] = {
-                    "train/non_finite_grad_guard_triggered": True,
-                    "train/non_finite_grad_kind": global_grad_norm_kind,
-                    "train/nan_skip_count": float(nan_skip_count),
-                }
-                log_wandb_metrics(run, non_finite_grad_log, step=global_step)
-                history_payload = history_record(
-                    global_step=global_step,
-                    stage_name=_PRIOR_STAGE_NAME,
-                    train_loss=float("nan"),
-                    train_metrics={"non_finite_grad_guard_triggered": 1.0},
-                    lr=float(optimizer.param_groups[0]["lr"]),
-                    grad_norm=None,
-                    elapsed_seconds=elapsed_seconds,
-                    train_elapsed_seconds=train_elapsed_seconds,
-                    val_metrics=None,
-                    train_loss_delta=None,
-                    train_loss_ema=loss_ema,
-                    grad_clip_threshold=float(grad_clip),
-                    grad_clip_triggered=False,
-                )
-                history_records.append(history_payload)
-                if history_path is not None:
-                    append_history_record(history_path, history_payload)
-                gradient_payload = gradient_history_record(
-                    global_step=global_step,
-                    stage_name=_PRIOR_STAGE_NAME,
-                    train_loss=float("nan"),
-                    train_acc=None,
-                    lr=float(optimizer.param_groups[0]["lr"]),
-                    global_grad_norm=None,
-                    global_grad_norm_kind=global_grad_norm_kind,
-                    module_grad_norms=pre_clip_module_grad_norms,
+                _record_non_finite_grad_step(
+                    state=state,
+                    optimizer=optimizer,
+                    run=run,
+                    history_path=history_path,
+                    gradient_path=gradient_path,
+                    train_start=train_start,
+                    grad_clip=grad_clip,
+                    pre_clip_module_grad_norms=pre_clip_module_grad_norms,
                     activation_norms=activation_norms,
-                    elapsed_seconds=elapsed_seconds,
-                    train_elapsed_seconds=train_elapsed_seconds,
-                    grad_clip_threshold=float(grad_clip),
-                    grad_clip_triggered=False,
+                    global_grad_norm_kind=global_grad_norm_kind,
                 )
-                gradient_records.append(gradient_payload)
-                append_jsonl_record(gradient_path, gradient_payload)
                 continue
+
             grad_clip_triggered = bool(grad_clip > 0 and local_grad_norm > grad_clip)
             if grad_clip_triggered:
-                clipped_step_count += 1
+                state.clipped_step_count += 1
 
             optimizer.step()
-
-            final_train_loss = float(history_step_loss)
-            final_train_acc = (
-                None if history_step_metrics.get("acc") is None else float(history_step_metrics["acc"])
+            _capture_successful_step(
+                state,
+                history_step_loss=history_step_loss,
+                history_step_metrics=history_step_metrics,
+                local_grad_norm=local_grad_norm,
             )
-            final_train_bpc = (
-                None if history_step_metrics.get("bpc") is None else float(history_step_metrics["bpc"])
-            )
-            final_train_bpf = (
-                None if history_step_metrics.get("bpf") is None else float(history_step_metrics["bpf"])
-            )
-            final_grad_norm = float(local_grad_norm)
-            grad_norm_sum += final_grad_norm
-            grad_norm_count += 1
-            max_grad_norm = max(max_grad_norm, final_grad_norm)
-
             loss_delta_value = train_loss_delta(
                 history_step_loss,
-                previous_train_loss=previous_train_loss,
+                previous_train_loss=state.previous_train_loss,
             )
-            loss_ema = update_loss_ema(history_step_loss, previous_ema=loss_ema)
-            previous_train_loss = history_step_loss
+            state.loss_ema = update_loss_ema(history_step_loss, previous_ema=state.loss_ema)
+            state.previous_train_loss = history_step_loss
             elapsed_seconds = time.perf_counter() - train_start
             prior_dump_missingness = cast(dict[str, Any], missingness_summary["prior_dump"])
             synthetic_prior_missingness = cast(dict[str, Any], missingness_summary["synthetic_prior"])
-            train_log: dict[str, Any] = {
-                "train/loss": float(history_step_loss),
-                "train/lr": float(optimizer.param_groups[0]["lr"]),
-                "train/grad_norm": float(final_grad_norm),
-                "train/loss_delta": loss_delta_value,
-                "train/loss_ema": loss_ema,
-                "train/elapsed_seconds": float(elapsed_seconds),
-                "train/train_elapsed_seconds": float(train_elapsed_seconds),
-                "train/grad_clip_threshold": float(grad_clip),
-                "train/grad_clip_triggered": grad_clip_triggered,
-                "train/grad_clip_count_so_far": int(clipped_step_count),
-                "train/grad_clip_fraction_so_far": float(clipped_step_count / global_step),
-                "train/prior_dump_skipped_batch_count": int(prior_dump_missingness["skipped_batch_count"]),
-                "train/prior_dump_non_finite_feature_count": int(prior_dump_missingness["non_finite_feature_count"]),
-                "train/prior_dump_non_finite_label_count": int(prior_dump_missingness["non_finite_label_count"]),
-                "train/synthetic_prior_masked_feature_count": int(synthetic_prior_missingness["masked_feature_count"]),
-                "train/prior_dump_microbatch_size": int(microbatch_size_used),
-                "train/prior_dump_microbatch_count": int(microbatch_count),
-                "train/stage": _PRIOR_STAGE_NAME,
-            }
-            for metric_name, metric_value in history_step_metrics.items():
-                train_log[f"train/{metric_name}"] = float(metric_value)
-            for module_name, module_value in pre_clip_module_grad_norms.items():
-                train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
-            feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
-            head_grad = pre_clip_module_grad_norms.get("direct_head")
-            if feature_grad is not None and float(feature_grad) > 0.0 and head_grad is not None:
-                train_log["train/module_balance/direct_head_to_feature_encoder"] = float(head_grad) / float(feature_grad)
-            if head_grad is not None and float(head_grad) > 0.0 and feature_grad is not None:
-                train_log["train/module_balance/feature_encoder_to_direct_head"] = float(feature_grad) / float(head_grad)
-            if activation_norms is not None:
-                for activation_name, activation_value in activation_norms.items():
-                    train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
-            log_wandb_metrics(run, train_log, step=global_step)
-            history_payload = history_record(
-                global_step=global_step,
-                stage_name=_PRIOR_STAGE_NAME,
-                train_loss=history_step_loss,
-                train_metrics=history_step_metrics,
-                lr=float(optimizer.param_groups[0]["lr"]),
-                grad_norm=final_grad_norm,
+            train_log = _prior_train_log_payload(
+                state=state,
+                history_step_loss=history_step_loss,
+                history_step_metrics=history_step_metrics,
+                optimizer=optimizer,
                 elapsed_seconds=elapsed_seconds,
-                train_elapsed_seconds=train_elapsed_seconds,
-                val_metrics=None,
-                train_loss_delta=loss_delta_value,
-                train_loss_ema=loss_ema,
-                grad_clip_threshold=float(grad_clip),
+                grad_clip=grad_clip,
                 grad_clip_triggered=grad_clip_triggered,
-            )
-            history_records.append(history_payload)
-            if history_path is not None:
-                append_history_record(history_path, history_payload)
-
-            gradient_payload = gradient_history_record(
-                global_step=global_step,
-                stage_name=_PRIOR_STAGE_NAME,
-                train_loss=history_step_loss,
-                train_acc=None if history_step_metrics.get("acc") is None else history_step_metrics["acc"],
-                lr=float(optimizer.param_groups[0]["lr"]),
-                global_grad_norm=final_grad_norm,
-                module_grad_norms=pre_clip_module_grad_norms,
+                prior_dump_missingness=prior_dump_missingness,
+                synthetic_prior_missingness=synthetic_prior_missingness,
+                microbatch_size_used=microbatch_size_used,
+                microbatch_count=microbatch_count,
+                pre_clip_module_grad_norms=pre_clip_module_grad_norms,
                 activation_norms=activation_norms,
-                elapsed_seconds=elapsed_seconds,
-                train_elapsed_seconds=train_elapsed_seconds,
-                grad_clip_threshold=float(grad_clip),
-                grad_clip_triggered=grad_clip_triggered,
+                loss_delta_value=loss_delta_value,
             )
-            gradient_records.append(gradient_payload)
-            append_jsonl_record(gradient_path, gradient_payload)
+            log_wandb_metrics(run, train_log, step=state.global_step)
+            _append_step_records(
+                state=state,
+                history_path=history_path,
+                gradient_path=gradient_path,
+                history_step_loss=history_step_loss,
+                history_step_metrics=history_step_metrics,
+                optimizer=optimizer,
+                elapsed_seconds=elapsed_seconds,
+                grad_clip=grad_clip,
+                grad_clip_triggered=grad_clip_triggered,
+                pre_clip_module_grad_norms=pre_clip_module_grad_norms,
+                activation_norms=activation_norms,
+                loss_delta_value=loss_delta_value,
+            )
+            _maybe_save_snapshot_checkpoint(
+                state=state,
+                checkpoint_every=checkpoint_every,
+                output_dir=output_dir,
+                prepared_opts=prepared_opts,
+                model=model,
+                cfg=cfg,
+            )
+            _maybe_print_progress(
+                state=state,
+                eval_every=eval_every,
+                history_step_loss=history_step_loss,
+                history_step_metrics=history_step_metrics,
+            )
 
-            if global_step % checkpoint_every == 0:
-                checkpoint_path = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
-                _save_eval_mode_checkpoint(
-                    prepared_opts,
-                    path=checkpoint_path,
-                    model=model,
-                    global_step=global_step,
-                    cfg=cfg,
-                    restore_training=True,
-                )
-                checkpoint_snapshots.append(
-                    {
-                        "step": int(global_step),
-                        "path": str(checkpoint_path.resolve()),
-                        "elapsed_seconds": float(train_elapsed_seconds),
-                        "train_elapsed_seconds": float(train_elapsed_seconds),
-                    }
-                )
-            if global_step % eval_every == 0:
-                if history_step_metrics.get("bpc") is not None:
-                    primary_metric_fragment = f"bpc {history_step_metrics['bpc']:7.4f}"
-                elif history_step_metrics.get("acc") is not None:
-                    primary_metric_fragment = f"acc {history_step_metrics['acc']:7.4f}"
-                else:
-                    primary_metric_fragment = "metric     n/a"
-                print(
-                    f"time {train_elapsed_seconds:7.1f}s | "
-                    f"step {global_step:4d} | "
-                    f"loss {history_step_loss:7.4f} | "
-                    f"{primary_metric_fragment}"
-                )
-
-        latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
-        _save_eval_mode_checkpoint(
-            prepared_opts,
-            path=latest_checkpoint,
+        _save_latest_checkpoint(
+            state=state,
+            output_dir=output_dir,
+            prepared_opts=prepared_opts,
             model=model,
-            global_step=global_step,
             cfg=cfg,
-            restore_training=False,
+            artifacts=artifacts,
         )
-        artifacts["latest_checkpoint"] = str(latest_checkpoint.resolve())
-        wall_elapsed_seconds = time.perf_counter() - train_start
-        runtime_summary = build_runtime_summary(
-            train_elapsed_seconds=train_elapsed_seconds,
-            wall_elapsed_seconds=wall_elapsed_seconds,
-            examples_seen=examples_seen,
-            tokens_seen=tokens_seen,
-            peak_memory_summary=peak_device_memory_summary(device),
-        )
-        regime_budget = build_regime_budget_summary(
+        telemetry_payload, wall_elapsed_seconds = _build_prior_telemetry_payload(
+            state=state,
+            output_dir=output_dir,
             task=str(cfg.task),
             loss_surface=loss_surface,
-            training_surface_record=training_surface_payload,
-            global_step=global_step,
-            tokens_seen=tokens_seen,
-        )
-        telemetry_payload = build_training_telemetry(
-            run_dir=output_dir,
-            task=str(cfg.task),
-            global_step=global_step,
-            success=True,
+            training_surface_payload=training_surface_payload,
             artifacts=artifacts,
-            checkpoint_snapshots=checkpoint_snapshots,
-            history_records=history_records,
-            gradient_records=gradient_records,
-            runtime_summary=runtime_summary,
-            regime_budget=regime_budget,
-            missingness=missingness_summary,
-            training_surface_record=training_surface_payload,
-            wandb=wandb_identity_payload(run, cfg=cfg),
+            missingness_summary=missingness_summary,
+            run=run,
+            cfg=cfg,
+            device=device,
+            train_start=train_start,
+            success=True,
         )
         write_training_telemetry(telemetry_output_path, telemetry_payload)
-        update_prior_wandb_summary(
-            run,
+        _update_prior_wandb_summary(
+            run=run,
             output_dir=output_dir,
-            global_step=global_step,
+            global_step=state.global_step,
             telemetry_payload=telemetry_payload,
-            prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
-            update_wandb_summary_fn=update_wandb_summary,
         )
         return TrainResult(
             output_dir=output_dir,
             best_checkpoint=None,
-            latest_checkpoint=latest_checkpoint,
-            global_step=global_step,
+            latest_checkpoint=state.latest_checkpoint,
+            global_step=state.global_step,
             metrics={
-                "final_train_loss": None if final_train_loss is None else float(final_train_loss),
-                "final_train_acc": None if final_train_acc is None else float(final_train_acc),
-                "final_train_bpc": None if final_train_bpc is None else float(final_train_bpc),
-                "final_train_bpf": None if final_train_bpf is None else float(final_train_bpf),
-                "train_elapsed_seconds": float(train_elapsed_seconds),
+                "final_train_loss": None if state.final_train_loss is None else float(state.final_train_loss),
+                "final_train_acc": None if state.final_train_acc is None else float(state.final_train_acc),
+                "final_train_bpc": None if state.final_train_bpc is None else float(state.final_train_bpc),
+                "final_train_bpf": None if state.final_train_bpf is None else float(state.final_train_bpf),
+                "train_elapsed_seconds": float(state.train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
-                "nan_skip_count": float(nan_skip_count),
+                "nan_skip_count": float(state.nan_skip_count),
                 **grad_norm_summary_from_running_totals(
-                    grad_norm_sum=grad_norm_sum,
-                    grad_norm_count=grad_norm_count,
-                    max_grad_norm=max_grad_norm,
-                    final_grad_norm=final_grad_norm,
+                    grad_norm_sum=state.grad_norm_sum,
+                    grad_norm_count=state.grad_norm_count,
+                    max_grad_norm=state.max_grad_norm,
+                    final_grad_norm=state.final_grad_norm,
                 ),
             },
         )
     except Exception as exc:
-        wall_elapsed_seconds = time.perf_counter() - train_start
-        runtime_summary = build_runtime_summary(
-            train_elapsed_seconds=train_elapsed_seconds,
-            wall_elapsed_seconds=wall_elapsed_seconds,
-            examples_seen=examples_seen,
-            tokens_seen=tokens_seen,
-            peak_memory_summary=peak_device_memory_summary(device),
-        )
-        regime_budget = build_regime_budget_summary(
+        telemetry_payload, _wall_elapsed_seconds = _build_prior_telemetry_payload(
+            state=state,
+            output_dir=output_dir,
             task=str(cfg.task),
             loss_surface=loss_surface,
-            training_surface_record=training_surface_payload,
-            global_step=global_step,
-            tokens_seen=tokens_seen,
-        )
-        telemetry_payload = build_training_telemetry(
-            run_dir=output_dir,
-            task=str(cfg.task),
-            global_step=global_step,
-            success=False,
+            training_surface_payload=training_surface_payload,
             artifacts=artifacts,
-            checkpoint_snapshots=checkpoint_snapshots,
-            history_records=history_records,
-            gradient_records=gradient_records,
-            runtime_summary=runtime_summary,
-            regime_budget=regime_budget,
-            missingness=missingness_summary,
-            training_surface_record=training_surface_payload,
-            wandb=wandb_identity_payload(run, cfg=cfg),
+            missingness_summary=missingness_summary,
+            run=run,
+            cfg=cfg,
+            device=device,
+            train_start=train_start,
+            success=False,
             error=exc,
         )
         write_training_telemetry(telemetry_output_path, telemetry_payload)
-        update_prior_wandb_summary(
-            run,
+        _update_prior_wandb_summary(
+            run=run,
             output_dir=output_dir,
-            global_step=global_step,
+            global_step=state.global_step,
             telemetry_payload=telemetry_payload,
-            prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
-            update_wandb_summary_fn=update_wandb_summary,
         )
         raise
     finally:

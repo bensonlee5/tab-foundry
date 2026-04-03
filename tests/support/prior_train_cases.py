@@ -17,6 +17,7 @@ import tab_foundry.bench.checkpoint as checkpoint_module
 from tab_foundry.bench.openml_benchmark import evaluate_tab_foundry_run
 import tab_foundry.cli.train_prior as train_prior_cli_module
 import tab_foundry.training.prior.loop as prior_loop_module
+import tab_foundry.training.prior.runtime as prior_runtime_module
 import tab_foundry.training.prior_train as prior_train_module
 from tab_foundry.training.prior_dump import (
     PriorDumpBatchMissingness,
@@ -2709,9 +2710,9 @@ def test_resolve_prior_training_device_name_falls_back_for_multilayer_row_cls_on
     cfg.runtime.device = "mps"
     spec = prior_train_module._model_spec_from_cfg(cfg)
     staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_train_module._resolve_prior_training_device_name(
+    device_name = prior_runtime_module.resolve_prior_training_device_name(
         cfg,
         spec=spec,
         staged_surface=staged_surface,
@@ -2731,9 +2732,9 @@ def test_resolve_prior_training_device_name_keeps_mps_for_target_column(
     cfg.runtime.device = "mps"
     spec = prior_train_module._model_spec_from_cfg(cfg)
     staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_train_module._resolve_prior_training_device_name(
+    device_name = prior_runtime_module.resolve_prior_training_device_name(
         cfg,
         spec=spec,
         staged_surface=staged_surface,
@@ -2753,9 +2754,9 @@ def test_resolve_prior_training_device_name_keeps_mps_for_single_layer_row_cls(
     cfg.runtime.device = "mps"
     spec = prior_train_module._model_spec_from_cfg(cfg)
     staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_train_module._resolve_prior_training_device_name(
+    device_name = prior_runtime_module.resolve_prior_training_device_name(
         cfg,
         spec=spec,
         staged_surface=staged_surface,
@@ -2792,7 +2793,7 @@ def test_train_tabfoundry_staged_prior_falls_back_to_cpu_for_multilayer_row_cls_
             fallback_reason=None,
         ),
     )
-    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
     cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=3)
     cfg.runtime.device = "mps"
 
