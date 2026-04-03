@@ -3,34 +3,38 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 import time
-from typing import Any, Callable
+from typing import Any
+
+from tab_realdata_hub.manifest import build_manifest
+from tab_foundry.bench.artifacts import (
+    checkpoint_snapshots_from_history,
+    ensure_finite_metrics,
+    plot_loss_curve,
+    write_json,
+)
+from tab_foundry.bench.iris import evaluate_iris_checkpoint
+from tab_foundry.bench.openml_benchmark import resolve_device
+from tab_foundry.bench.smoke_common import (
+    build_cls_smoke_eval_config,
+    build_cls_smoke_train_config,
+    build_manifest_payload,
+)
+from tab_foundry.training.evaluate import evaluate_checkpoint
+from tab_foundry.training.trainer import train
+
+from .config import IrisSmokeConfig
+from .data_gen import write_iris_tasks
+from .report import iris_benchmark_payload, write_summary_markdown
 
 
 def run_iris_smoke(
-    config: Any,
-    *,
-    resolve_device_fn: Callable[[str], str],
-    write_iris_tasks_fn: Callable[..., Path],
-    build_manifest_fn: Callable[..., Any],
-    train_fn: Callable[[Any], Any],
-    evaluate_checkpoint_fn: Callable[[Any], Any],
-    evaluate_iris_checkpoint_fn: Callable[..., Any],
-    ensure_finite_metrics_fn: Callable[..., Any],
-    plot_loss_curve_fn: Callable[..., Any],
-    checkpoint_snapshots_from_history_fn: Callable[..., Any],
-    write_json_fn: Callable[[Path, dict[str, Any]], Any],
-    write_summary_markdown_fn: Callable[[Path, dict[str, Any]], Path],
-    iris_benchmark_payload_fn: Callable[[Any], dict[str, Any]],
-    build_cls_smoke_train_config_fn: Callable[..., Any],
-    build_cls_smoke_eval_config_fn: Callable[..., Any],
-    build_manifest_payload_fn: Callable[[Any], dict[str, Any]],
+    config: IrisSmokeConfig,
 ) -> dict[str, Any]:
     """Execute the end-to-end Iris smoke harness."""
 
     out_root = config.out_root.expanduser().resolve()
-    resolved_device = resolve_device_fn(config.device)
+    resolved_device = resolve_device(config.device)
     if config.initial_num_tasks <= 0:
         raise ValueError(f"initial_num_tasks must be > 0, got {config.initial_num_tasks}")
     if config.max_num_tasks < config.initial_num_tasks:
@@ -92,7 +96,7 @@ def run_iris_smoke(
             attempted_task_counts.append(num_tasks)
 
             stage_start = time.perf_counter()
-            write_iris_tasks_fn(
+            write_iris_tasks(
                 generated_dir,
                 num_tasks=num_tasks,
                 seed=int(config.seed),
@@ -101,7 +105,7 @@ def run_iris_smoke(
             timings_seconds["generate_iris_tasks"] += time.perf_counter() - stage_start
 
             stage_start = time.perf_counter()
-            manifest_summary = build_manifest_fn(
+            manifest_summary = build_manifest(
                 data_roots=[generated_dir],
                 out_path=manifest_path,
                 train_ratio=config.train_ratio,
@@ -129,8 +133,8 @@ def run_iris_smoke(
         telemetry["config"]["final_num_tasks"] = num_tasks
 
         stage_start = time.perf_counter()
-        train_result = train_fn(
-            build_cls_smoke_train_config_fn(
+        train_result = train(
+            build_cls_smoke_train_config(
                 manifest_path=manifest_path,
                 output_dir=train_output_dir,
                 history_path=history_path,
@@ -147,8 +151,8 @@ def run_iris_smoke(
             raise RuntimeError("training did not produce a best checkpoint")
 
         stage_start = time.perf_counter()
-        eval_result = evaluate_checkpoint_fn(
-            build_cls_smoke_eval_config_fn(
+        eval_result = evaluate_checkpoint(
+            build_cls_smoke_eval_config(
                 manifest_path=manifest_path,
                 checkpoint_path=train_result.best_checkpoint,
                 device=resolved_device,
@@ -157,31 +161,31 @@ def run_iris_smoke(
         timings_seconds["eval"] = time.perf_counter() - stage_start
 
         stage_start = time.perf_counter()
-        iris_summary = evaluate_iris_checkpoint_fn(
+        iris_summary = evaluate_iris_checkpoint(
             train_result.best_checkpoint,
             device=resolved_device,
             seeds=int(config.iris_benchmark_seeds),
         )
         timings_seconds["iris_benchmark"] = time.perf_counter() - stage_start
 
-        normalized_train_metrics = ensure_finite_metrics_fn(train_result.metrics, context="train")
-        normalized_eval_metrics = ensure_finite_metrics_fn(eval_result.metrics, context="eval")
+        normalized_train_metrics = ensure_finite_metrics(train_result.metrics, context="train")
+        normalized_eval_metrics = ensure_finite_metrics(eval_result.metrics, context="eval")
 
-        plot_loss_curve_fn(history_path, loss_curve_path, title="tab-foundry iris smoke loss curve")
-        checkpoint_snapshots = checkpoint_snapshots_from_history_fn(
+        plot_loss_curve(history_path, loss_curve_path, title="tab-foundry iris smoke loss curve")
+        checkpoint_snapshots = checkpoint_snapshots_from_history(
             history_path,
             train_output_dir / "checkpoints",
         )
 
         telemetry["success"] = True
-        telemetry["manifest"] = build_manifest_payload_fn(manifest_summary)
+        telemetry["manifest"] = build_manifest_payload(manifest_summary)
         telemetry["checkpoint_snapshots"] = checkpoint_snapshots
         telemetry["train_metrics"] = {
             "global_step": int(train_result.global_step),
             **normalized_train_metrics,
         }
         telemetry["eval_metrics"] = normalized_eval_metrics
-        telemetry["iris_benchmark"] = iris_benchmark_payload_fn(iris_summary)
+        telemetry["iris_benchmark"] = iris_benchmark_payload(iris_summary)
         telemetry["artifacts"].update(
             {
                 "best_checkpoint": str(train_result.best_checkpoint),
@@ -190,11 +194,11 @@ def run_iris_smoke(
                 ),
             }
         )
-        write_summary_markdown_fn(summary_path, telemetry)
+        write_summary_markdown(summary_path, telemetry)
         return telemetry
     except Exception as exc:
         telemetry["error"] = f"{type(exc).__name__}: {exc}"
         raise
     finally:
         timings_seconds["total"] = time.perf_counter() - total_start
-        write_json_fn(telemetry_path, telemetry)
+        write_json(telemetry_path, telemetry)

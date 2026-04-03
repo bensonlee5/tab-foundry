@@ -6,6 +6,7 @@ import math
 from collections.abc import Mapping
 from typing import Any
 
+import openml
 from openml.tasks import TaskType
 
 from tab_foundry.bench.openml_bundle.config import (
@@ -59,8 +60,6 @@ def task_listing_records(task_listing: Any) -> list[Mapping[str, Any]]:
 
 def task_listing_rows_for_config(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    list_tasks_fn: Any,
 ) -> list[Mapping[str, Any]]:
     expected_task_type = (
         TaskType.SUPERVISED_CLASSIFICATION
@@ -76,13 +75,13 @@ def task_listing_rows_for_config(
     if float(config.max_missing_pct) <= 0.0:
         listing_filters["number_missing_values"] = 0
     try:
-        task_listing = list_tasks_fn(
+        task_listing = openml.tasks.list_tasks(
             task_type=expected_task_type,
             output_format="dataframe",
             **listing_filters,
         )
     except Exception:
-        task_listing = list_tasks_fn(
+        task_listing = openml.tasks.list_tasks(
             task_type=expected_task_type,
             output_format="dataframe",
         )
@@ -237,12 +236,10 @@ def dedupe_discovered_candidates(
 
 def collect_discovered_task_candidates(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    task_listing_rows_fn: Any,
 ) -> tuple[list[OpenMLBenchmarkTaskCandidate], list[OpenMLBenchmarkCandidateReportEntry]]:
     eligible_candidates: list[OpenMLBenchmarkTaskCandidate] = []
     report_entries: list[OpenMLBenchmarkCandidateReportEntry] = []
-    for row in task_listing_rows_fn(config):
+    for row in task_listing_rows_for_config(config):
         try:
             candidate = candidate_from_task_listing_row(row, config=config)
             keep_candidate, reason = candidate_matches_listing_filters(candidate, config)

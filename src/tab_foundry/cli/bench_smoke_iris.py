@@ -8,6 +8,7 @@ import sys
 import click
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
+from tab_foundry.bench.iris_smoke.config import default_out_root
 from tab_foundry.cli.click_utils import DEVICE_CHOICES, run_click_command
 
 
@@ -21,7 +22,7 @@ def _iris_smoke_command(
     iris_benchmark_seeds: int,
     checkpoint_every: int,
 ) -> int:
-    resolved_out_root = iris_smoke_module._default_out_root() if out_root is None else out_root
+    resolved_out_root = default_out_root() if out_root is None else out_root
     telemetry = iris_smoke_module.run_iris_smoke(
         iris_smoke_module.IrisSmokeConfig(
             out_root=resolved_out_root,

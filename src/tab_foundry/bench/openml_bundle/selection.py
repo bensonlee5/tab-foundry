@@ -5,15 +5,25 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+import openml
+
 from openml.tasks import TaskType
 
-from tab_foundry.bench.openml_benchmark import PreparedOpenMLBenchmarkTask
+from tab_foundry.bench.openml_benchmark import (
+    PreparedOpenMLBenchmarkTask,
+    prepare_openml_benchmark_task,
+    read_required_openml_quality,
+)
+from tab_foundry.bench.openml_task_source_registry import task_ids_for_source
 from tab_foundry.bench.openml_bundle.config import (
     OpenMLBenchmarkBundleConfig,
     OpenMLBenchmarkCandidateReportEntry,
     OpenMLBenchmarkTaskCandidate,
 )
-from tab_foundry.bench.openml_bundle.discovery import task_type_value
+from tab_foundry.bench.openml_bundle.discovery import (
+    collect_discovered_task_candidates,
+    task_type_value,
+)
 
 
 def validate_prepared_task(
@@ -52,19 +62,15 @@ def validate_prepared_task(
 
 def collect_task_candidates(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    get_task_fn: Any,
-    task_ids_for_source_fn: Any,
-    read_required_openml_quality_fn: Any,
 ) -> list[OpenMLBenchmarkTaskCandidate]:
     resolved_task_ids = (
         tuple(int(task_id) for task_id in config.task_ids)
         if config.task_ids is not None
-        else tuple(int(task_id) for task_id in task_ids_for_source_fn(config.task_source))
+        else tuple(int(task_id) for task_id in task_ids_for_source(config.task_source))
     )
     resolved_candidates: list[OpenMLBenchmarkTaskCandidate] = []
     for task_id in resolved_task_ids:
-        task = get_task_fn(int(task_id), download_splits=False)
+        task = openml.tasks.get_task(int(task_id), download_splits=False)
         expected_task_type = (
             TaskType.SUPERVISED_CLASSIFICATION
             if config.task_type == "supervised_classification"
@@ -78,7 +84,7 @@ def collect_task_candidates(
         raw_qualities = dataset_any.qualities
         candidate = OpenMLBenchmarkTaskCandidate(
             task_id=int(task_id),
-            number_of_features=read_required_openml_quality_fn(
+            number_of_features=read_required_openml_quality(
                 raw_qualities,
                 task_id=int(task_id),
                 quality_name="NumberOfFeatures",
@@ -86,13 +92,13 @@ def collect_task_candidates(
             number_of_classes=(
                 None
                 if config.task_type != "supervised_classification"
-                else read_required_openml_quality_fn(
+                else read_required_openml_quality(
                     raw_qualities,
                     task_id=int(task_id),
                     quality_name="NumberOfClasses",
                 )
             ),
-            missing_pct=read_required_openml_quality_fn(
+            missing_pct=read_required_openml_quality(
                 raw_qualities,
                 task_id=int(task_id),
                 quality_name="PercentageOfInstancesWithMissingValues",
@@ -100,7 +106,7 @@ def collect_task_candidates(
             minority_class_pct=(
                 None
                 if config.task_type != "supervised_classification"
-                else read_required_openml_quality_fn(
+                else read_required_openml_quality(
                     raw_qualities,
                     task_id=int(task_id),
                     quality_name="MinorityClassPercentage",
@@ -130,24 +136,13 @@ def collect_task_candidates(
 
 def resolve_selected_tasks(
     config: OpenMLBenchmarkBundleConfig,
-    *,
-    prepare_openml_benchmark_task_fn: Any,
-    get_task_fn: Any,
-    task_ids_for_source_fn: Any,
-    read_required_openml_quality_fn: Any,
-    collect_discovered_task_candidates_fn: Any,
 ) -> tuple[list[PreparedOpenMLBenchmarkTask], int, tuple[OpenMLBenchmarkCandidateReportEntry, ...]]:
     report_entries: list[OpenMLBenchmarkCandidateReportEntry] = []
     if config.discover_from_openml:
-        eligible_candidates, discovery_report_entries = collect_discovered_task_candidates_fn(config)
+        eligible_candidates, discovery_report_entries = collect_discovered_task_candidates(config)
         report_entries.extend(discovery_report_entries)
     else:
-        eligible_candidates = collect_task_candidates(
-            config,
-            get_task_fn=get_task_fn,
-            task_ids_for_source_fn=task_ids_for_source_fn,
-            read_required_openml_quality_fn=read_required_openml_quality_fn,
-        )
+        eligible_candidates = collect_task_candidates(config)
     if not eligible_candidates:
         raise RuntimeError("OpenML benchmark bundle produced no eligible tasks")
 
@@ -179,7 +174,7 @@ def resolve_selected_tasks(
     selected_tasks: list[PreparedOpenMLBenchmarkTask] = []
     for candidate in selected_candidates:
         try:
-            prepared = prepare_openml_benchmark_task_fn(
+            prepared = prepare_openml_benchmark_task(
                 int(candidate.task_id),
                 new_instances=int(config.new_instances),
                 task_type=str(config.task_type),
