@@ -17,9 +17,9 @@ from tab_foundry.bench.comparison_contract import (
     DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION,
     BenchmarkComparisonConfig,
 )
-from tab_foundry.bench.comparison_reporting import finalize_benchmark_summary
+from tab_foundry.bench.comparison_reporting import benchmark_wandb_summary_payload
 from tab_foundry.bench.external_runtime import (
-    fresh_nanotabpfn_execution_metadata as _fresh_nanotabpfn_execution_metadata,
+    nanotabpfn_execution_metadata as _nanotabpfn_execution_metadata,
     nanotabpfn_helper_command as _nanotabpfn_helper_command,
     nanotabpfn_python as _nanotabpfn_python,
     resolve_reuse_curve_path as _resolve_reuse_curve_path,
@@ -54,6 +54,7 @@ from tab_foundry.bench.openml_benchmark import (
     summarize_checkpoint_curve,
 )
 from tab_foundry.repo_paths import repo_root
+from tab_foundry.training.instability import gradient_history_path, telemetry_path
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 __all__ = [
@@ -130,6 +131,132 @@ def _load_runtime_benchmark_surface(
         cast(list[dict[str, Any]], benchmark_tasks),
         cast(dict[str, Any], benchmark_surface),
     )
+
+
+def _primary_external_curve_path(
+    *,
+    primary_external_benchmark: str | None,
+    nanotabpfn_records: Sequence[Mapping[str, Any]],
+    tabiclv2_records: Sequence[Mapping[str, Any]],
+    nanotabpfn_curve_path: Path,
+    tabiclv2_curve_path: Path,
+) -> str | None:
+    if primary_external_benchmark == EXTERNAL_BENCHMARK_NANOTABPFN and nanotabpfn_records:
+        return str(nanotabpfn_curve_path)
+    if primary_external_benchmark == EXTERNAL_BENCHMARK_TABICLV2 and tabiclv2_records:
+        return str(tabiclv2_curve_path)
+    return None
+
+
+def _artifact_payload(
+    *,
+    requested_external_benchmarks: Sequence[str],
+    primary_external_benchmark: str | None,
+    nanotabpfn_records: Sequence[Mapping[str, Any]],
+    tabiclv2_records: Sequence[Mapping[str, Any]],
+    benchmark_tasks_path: Path,
+    tab_foundry_curve_path: Path,
+    nanotabpfn_curve_path: Path,
+    tabiclv2_curve_path: Path,
+    comparison_curve_path: Path,
+    benchmark_manifest_path: Path,
+    benchmark_run_record_path: Path,
+    training_surface_record_path: Path,
+    tab_foundry_run_dir: Path,
+) -> dict[str, Any]:
+    gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
+    telemetry_json = telemetry_path(tab_foundry_run_dir)
+    return {
+        "benchmark_tasks_json": str(benchmark_tasks_path),
+        "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
+        "primary_external_curve_jsonl": _primary_external_curve_path(
+            primary_external_benchmark=primary_external_benchmark,
+            nanotabpfn_records=nanotabpfn_records,
+            tabiclv2_records=tabiclv2_records,
+            nanotabpfn_curve_path=nanotabpfn_curve_path,
+            tabiclv2_curve_path=tabiclv2_curve_path,
+        ),
+        "nanotabpfn_curve_jsonl": (
+            str(nanotabpfn_curve_path)
+            if EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and nanotabpfn_records
+            else None
+        ),
+        "tabiclv2_curve_jsonl": (
+            str(tabiclv2_curve_path)
+            if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks and tabiclv2_records
+            else None
+        ),
+        "comparison_curve_png": str(comparison_curve_path),
+        "benchmark_manifest": str(benchmark_manifest_path),
+        "gradient_history_jsonl": (
+            str(gradient_history_jsonl.resolve()) if gradient_history_jsonl.exists() else None
+        ),
+        "telemetry_json": str(telemetry_json.resolve()) if telemetry_json.exists() else None,
+        "benchmark_run_record_json": str(benchmark_run_record_path),
+        "training_surface_record_json": str(training_surface_record_path),
+    }
+
+
+def _finalize_benchmark_summary(
+    *,
+    summary: dict[str, Any],
+    requested_external_benchmarks: Sequence[str],
+    primary_external_benchmark: str | None,
+    nanotabpfn_records: Sequence[Mapping[str, Any]],
+    tabiclv2_records: Sequence[Mapping[str, Any]],
+    benchmark_tasks_path: Path,
+    tab_foundry_curve_path: Path,
+    nanotabpfn_curve_path: Path,
+    tabiclv2_curve_path: Path,
+    comparison_curve_path: Path,
+    benchmark_manifest_path: Path,
+    comparison_summary_path: Path,
+    benchmark_run_record_path: Path,
+    training_surface_record_path: Path,
+    tab_foundry_run_dir: Path,
+) -> dict[str, Any]:
+    summary["external_benchmarks"] = list(requested_external_benchmarks)
+    if primary_external_benchmark is not None:
+        summary["primary_external_benchmark"] = primary_external_benchmark
+    summary["artifacts"] = _artifact_payload(
+        requested_external_benchmarks=requested_external_benchmarks,
+        primary_external_benchmark=primary_external_benchmark,
+        nanotabpfn_records=nanotabpfn_records,
+        tabiclv2_records=tabiclv2_records,
+        benchmark_tasks_path=benchmark_tasks_path,
+        tab_foundry_curve_path=tab_foundry_curve_path,
+        nanotabpfn_curve_path=nanotabpfn_curve_path,
+        tabiclv2_curve_path=tabiclv2_curve_path,
+        comparison_curve_path=comparison_curve_path,
+        benchmark_manifest_path=benchmark_manifest_path,
+        benchmark_run_record_path=benchmark_run_record_path,
+        training_surface_record_path=training_surface_record_path,
+        tab_foundry_run_dir=tab_foundry_run_dir,
+    )
+    write_json(comparison_summary_path, summary)
+    benchmark_run_record = derive_benchmark_run_record(
+        run_dir=tab_foundry_run_dir,
+        comparison_summary_path=comparison_summary_path,
+        benchmark_run_record_path=benchmark_run_record_path,
+    )
+    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
+    tab_foundry_summary["manifest_path"] = str(benchmark_run_record["manifest_path"])
+    tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])
+    tab_foundry_summary["training_diagnostics"] = dict(benchmark_run_record["training_diagnostics"])
+    tab_foundry_summary["model_size"] = dict(benchmark_run_record["model_size"])
+    summary["artifacts"]["training_surface_record_json"] = cast(
+        dict[str, Any],
+        benchmark_run_record["artifacts"],
+    ).get("training_surface_record_path")
+    if benchmark_run_record.get("surface_labels") is not None:
+        tab_foundry_summary["surface_labels"] = dict(benchmark_run_record["surface_labels"])
+    write_json(comparison_summary_path, summary)
+    write_json(benchmark_run_record_path, benchmark_run_record)
+    _ = posthoc_update_wandb_summary(
+        telemetry_path=telemetry_path(tab_foundry_run_dir),
+        payload=benchmark_wandb_summary_payload(summary),
+    )
+    return summary
 
 
 def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any]:
@@ -365,14 +492,21 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                     "reuse_nanotabpfn_metadata is required to reuse a cached nanoTabPFN "
                     "curve without a local nanoTabPFN environment"
                 )
-            execution_metadata = _fresh_nanotabpfn_execution_metadata(
-                config=config,
+            requested_device = str(config.device).strip()
+            execution_metadata = _nanotabpfn_execution_metadata(
+                requested_device=requested_device,
+                resolved_device=resolve_device(requested_device),
+                host_fingerprint=benchmark_host_fingerprint(),
                 nanotabpfn_root=nanotabpfn_root,
                 nanotabpfn_python_path=nanotabpfn_python,
                 prior_dump=prior_dump,
+                tab_realdata_hub_root=_resolved_tab_realdata_hub_root(config),
+                steps=int(config.nanotabpfn_steps),
+                eval_every=int(config.nanotabpfn_eval_every),
+                seeds=int(config.nanotabpfn_seeds),
+                batch_size=int(config.nanotabpfn_batch_size),
+                lr=float(config.nanotabpfn_lr),
                 reuse_curve_path=reuse_curve_path,
-                resolve_device_fn=resolve_device,
-                benchmark_host_fingerprint_fn=benchmark_host_fingerprint,
             )
         cast(dict[str, Any], nanotabpfn_summary).update(execution_metadata)
     if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks:
@@ -396,7 +530,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
             )
     if nanotabpfn_error is not None:
         summary["nanotabpfn_error"] = nanotabpfn_error
-    return finalize_benchmark_summary(
+    return _finalize_benchmark_summary(
         summary=summary,
         requested_external_benchmarks=requested_external_benchmarks,
         primary_external_benchmark=primary_external_benchmark,
@@ -412,6 +546,4 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         benchmark_run_record_path=benchmark_run_record_path,
         training_surface_record_path=training_surface_record_path,
         tab_foundry_run_dir=tab_foundry_run_dir,
-        derive_benchmark_run_record_fn=derive_benchmark_run_record,
-        posthoc_update_wandb_summary_fn=posthoc_update_wandb_summary,
     )
