@@ -16,7 +16,9 @@ from tab_foundry.benchmark_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.bounce.config import BenchmarkBounceDiagnosisConfig, RerunMode, resolve_positive_int
+from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.trainer import train
 
 
 def resolve_run_dir_from_registry(
@@ -109,10 +111,6 @@ def prepare_dense_rerun_cfg(
 
 def run_dense_checkpoint_rerun(
     config: BenchmarkBounceDiagnosisConfig,
-    *,
-    checkpoint_cfg_from_run_fn: Any,
-    prior_train_fn: Any,
-    train_fn: Any,
 ) -> Path:
     if config.dense_checkpoint_every is None:
         raise RuntimeError("dense_checkpoint_every must be set to run a dense rerun")
@@ -122,7 +120,7 @@ def run_dense_checkpoint_rerun(
         else (config.out_root.expanduser().resolve() / "dense_checkpoint_run").resolve()
     )
     cfg = prepare_dense_rerun_cfg(
-        checkpoint_cfg_from_run_fn(config.run_dir),
+        checkpoint_cfg_from_run(config.run_dir),
         dense_output_dir=dense_output_dir,
         dense_checkpoint_every=resolve_positive_int(
             int(config.dense_checkpoint_every),
@@ -135,9 +133,9 @@ def run_dense_checkpoint_rerun(
     if rerun_mode == "auto":
         rerun_mode = infer_rerun_mode(cfg)
     if rerun_mode == "prior":
-        _ = prior_train_fn(cfg)
+        _ = train_tabfoundry_simple_prior(cfg)
     elif rerun_mode == "train":
-        _ = train_fn(cfg)
+        _ = train(cfg)
     else:
         raise RuntimeError(f"unsupported rerun_mode: {rerun_mode!r}")
     return dense_output_dir

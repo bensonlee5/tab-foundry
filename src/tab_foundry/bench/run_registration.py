@@ -10,7 +10,6 @@ import torch
 import tab_foundry.benchmark_registry as read_benchmark_registry
 from tab_foundry.bench.artifacts import load_history, write_json
 from tab_foundry.bench.openml_benchmark import resolve_tab_foundry_run_artifact_paths
-from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
     _load_training_telemetry,
@@ -42,10 +41,10 @@ from tab_foundry.bench.registry.summary_metrics import (
 )
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
-from tab_foundry.registry.common import load_comparison_summary
+from tab_foundry.registry.common import load_comparison_summary, resolve_config_path as _resolve_config_path_common
 from tab_foundry.registry.storage import load_versioned_registry_payload
-from tab_foundry.registry.storage import utc_now as _utc_now_common
 from tab_foundry.repo_paths import repo_root
+from tab_foundry.timestamps import utc_now as _utc_now_common
 
 __all__ = [
     "ALLOWED_DECISIONS",
@@ -161,7 +160,7 @@ def _resolve_registry_path_value(value: str) -> Path:
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
-    return _resolve_config_path_impl(raw_value, root_fn=repo_root)
+    return _resolve_config_path_common(raw_value, root=repo_root())
 
 
 def comparison_delta(

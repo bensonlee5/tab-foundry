@@ -6,6 +6,7 @@ from typing import Any
 from omegaconf import OmegaConf
 import pytest
 
+import tab_foundry.bench.bounce.execution as execution_module
 import tab_foundry.bench.bounce.rerun as rerun_module
 import tab_foundry.bench.bounce_diagnosis as diagnosis_module
 
@@ -33,7 +34,7 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
     dense_calls: list[dict[str, Any]] = []
 
     monkeypatch.setattr(
-        diagnosis_module.rerun_module,
+        rerun_module,
         "checkpoint_cfg_from_run",
         lambda _run_dir: OmegaConf.create(
             {
@@ -118,7 +119,7 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
                     "roc_auc_task_bootstrap_ci": {"lower": 0.70, "upper": 0.74},
                 },
             ]
-        diagnosis_module.write_jsonl(out_path, records)
+        execution_module.write_jsonl(out_path, records)
         return {
             "bundle": {"name": "bundle", "version": 1, "source_path": str(out_path), "task_count": 2, "task_ids": [1, 2]},
             "benchmark_manifest": {
@@ -141,13 +142,13 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
             "benchmark_tasks": [],
             "records": records,
             "records_path": str(out_path.resolve()),
-            "summary": diagnosis_module.curve_summary(records),
+            "summary": execution_module.curve_summary(records),
         }
 
-    monkeypatch.setattr(diagnosis_module, "train_tabfoundry_simple_prior", _fake_prior_train)
-    monkeypatch.setattr(diagnosis_module, "_evaluate_one_bundle", _fake_evaluate_one_bundle)
+    monkeypatch.setattr(rerun_module, "train_tabfoundry_simple_prior", _fake_prior_train)
+    monkeypatch.setattr(execution_module, "evaluate_one_bundle", _fake_evaluate_one_bundle)
     monkeypatch.setattr(
-        diagnosis_module,
+        execution_module,
         "load_history",
         lambda _path: [
             {"step": 25, "train_loss": 0.5, "grad_norm": 1.0},
@@ -259,11 +260,11 @@ def test_run_benchmark_bounce_diagnosis_dense_confirmation_inherits_missing_valu
             },
         ]
 
-    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
-    monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
-    monkeypatch.setattr(diagnosis_module, "_run_dense_checkpoint_rerun", lambda _config: dense_run_dir)
+    monkeypatch.setattr(execution_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
+    monkeypatch.setattr(execution_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
+    monkeypatch.setattr(execution_module, "run_dense_checkpoint_rerun", lambda _config: dense_run_dir)
     monkeypatch.setattr(
-        diagnosis_module,
+        execution_module,
         "load_history",
         lambda _path: [
             {"step": 25, "train_loss": 0.5, "grad_norm": 1.0},

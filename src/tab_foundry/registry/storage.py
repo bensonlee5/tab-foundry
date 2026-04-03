@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Mapping, cast
-
-from tab_foundry.timestamps import utc_now as utc_now
+from typing import Any, cast
 
 
 def load_versioned_registry_payload(
@@ -60,40 +58,3 @@ def load_versioned_registry_payload(
         "version": version,
         entries_key: normalized_entries,
     }
-
-
-def ensure_registry_payload(
-    path: Path | None,
-    *,
-    default_path: Path,
-    load_registry_payload_fn: Any,
-) -> tuple[Path, dict[str, Any]]:
-    registry_path = (path or default_path).expanduser().resolve()
-    payload = load_registry_payload_fn(registry_path, allow_missing=True)
-    return registry_path, payload
-
-
-def upsert_registry_entry(
-    entry: Mapping[str, Any],
-    *,
-    entry_id_key: str,
-    validate_entry_fn: Any,
-    registry_path: Path | None,
-    default_path: Path,
-    load_registry_payload_fn: Any,
-    entries_key: str,
-    write_json_fn: Any,
-    copy_jsonable_fn: Any,
-) -> Path:
-    entry_id = str(entry[entry_id_key])
-    validate_entry_fn(entry, **{entry_id_key: entry_id})
-    resolved_registry_path, payload = ensure_registry_payload(
-        registry_path,
-        default_path=default_path,
-        load_registry_payload_fn=load_registry_payload_fn,
-    )
-    entries = cast(dict[str, Any], payload[entries_key])
-    entries[entry_id] = copy_jsonable_fn(entry)
-    write_json_fn(resolved_registry_path, payload)
-    return resolved_registry_path
-
