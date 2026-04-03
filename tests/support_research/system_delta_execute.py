@@ -27,6 +27,7 @@ from tab_foundry.research.sweep.artifacts import ExecutionPaths
 import tab_foundry.research.sweep.configuration as configuration_module
 from tab_foundry.research.sweep.configuration import compose_cfg as _compose_cfg
 import tab_foundry.research.sweep.curve_reuse as curve_reuse_module
+import tab_foundry.research.sweep.device_policy as device_policy_module
 from tab_foundry.research.sweep.queue_updates import queue_metrics as _queue_metrics
 import tab_foundry.research.sweep.row_dependencies as row_dependencies_module
 import tab_foundry.research.sweep.row_execution as runner_module
@@ -203,7 +204,7 @@ def _write_compare_summary(
         if device is not None:
             nanotabpfn['device'] = str(device)
         if device is not None and resolved_device is None:
-            nanotabpfn['resolved_device'] = curve_reuse_module.resolve_device(str(device))
+            nanotabpfn['resolved_device'] = device_policy_module._resolve_device(str(device))
         if resolved_device is not None:
             nanotabpfn['resolved_device'] = str(resolved_device)
         if device is not None and host_fingerprint is None:
@@ -4065,7 +4066,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
     prior_dump = nanotab_root / '300k_150x5_2.h5'
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -4298,7 +4299,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
     prior_dump = nanotab_root / '300k_150x5_2.h5'
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -4540,7 +4541,7 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         'message': 'helper returned non-zero exit status 1',
         'returncode': 1,
     }
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -5133,7 +5134,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
 
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -5222,7 +5223,7 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
 
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -5310,7 +5311,7 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
     nanotab_python.chmod(0o755)
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
@@ -5395,7 +5396,7 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
     nanotab_python.chmod(0o755)
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(device_policy_module, '_resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',
