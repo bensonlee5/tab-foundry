@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .corpus_materialization import materialize_corpus_recipe
+from .corpus_materialization_recipe import materialize_corpus_recipe
 
 
 def build_parser() -> argparse.ArgumentParser:

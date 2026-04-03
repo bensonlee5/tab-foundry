@@ -10,7 +10,7 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import pytest
 
-import tab_foundry.data.corpus_materialization as corpus_materialization_module
+import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
@@ -1335,7 +1335,7 @@ def test_compose_cfg_resolves_sweep_local_corpus_from_nondefault_sweeps_root(
     sweep_id = 'tf_rd_local'
     _write_sweep_recipe_registry(tmp_path, sweep_id=sweep_id)
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_invocation_module,
         'run_dagzoo_generate',
         _fake_run_dagzoo_generate,
     )

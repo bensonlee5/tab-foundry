@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 import pytest
 import torch
 
-import tab_foundry.data.corpus_materialization as corpus_materialization_module
+import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspection_artifacts as inspection_artifacts_module
@@ -708,7 +708,7 @@ def test_inspect_and_diff_fallback_resolve_sweep_local_corpus_for_nondefault_swe
     _patch_registry(monkeypatch, registry_payload=registry_payload)
     _write_sweep_recipe_registry(tmp_path, sweep_id="mini_sweep")
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_invocation_module,
         "run_dagzoo_generate",
         _fake_run_dagzoo_generate,
     )

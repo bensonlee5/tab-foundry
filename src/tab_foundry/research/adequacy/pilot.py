@@ -17,7 +17,6 @@ from omegaconf import OmegaConf
 from sklearn.linear_model import LogisticRegression
 
 from tab_foundry.config import compose_config
-import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_loading import build_dagzoo_provenance_summary
 from tab_foundry.data.corpus_lookup import (
     hydrate_corpus_record_manifest_characteristics,
@@ -25,6 +24,7 @@ from tab_foundry.data.corpus_lookup import (
 )
 from tab_foundry.data.corpus_materialization import (
     build_staged_corpus_manifest,
+    load_staged_corpus_recipe_preview,
     materialize_corpus_refs_batch,
 )
 from tab_foundry.data.dataset import (
@@ -831,63 +831,6 @@ def score_canary_block(
     }
 
 
-def _staged_invocation_summary_payload(
-    *,
-    dagzoo_root: Path,
-    corpus_root: Path,
-    spec: Any,
-) -> dict[str, Any]:
-    materialization_summary_path = corpus_materialization_module._invocation_materialization_summary_path(
-        corpus_root=corpus_root,
-        invocation_id=spec.invocation_id,
-    )
-    if not materialization_summary_path.exists():
-        return corpus_materialization_module._invocation_record_payload(
-            dagzoo_root=dagzoo_root,
-            corpus_root=corpus_root,
-            spec=spec,
-        )
-    summary_payload = _read_json_mapping(
-        materialization_summary_path,
-        context=f"materialization summary for invocation {spec.invocation_id!r}",
-    )
-    filter_root = corpus_materialization_module._invocation_filter_root(
-        corpus_root=corpus_root,
-        invocation_id=spec.invocation_id,
-    )
-    curated_root = corpus_materialization_module._invocation_curated_root(
-        corpus_root=corpus_root,
-        invocation_id=spec.invocation_id,
-    )
-    payload: dict[str, Any] = {
-        "invocation_id": str(spec.invocation_id),
-        "num_datasets": int(spec.num_datasets),
-        "filter": _drop_none_values(
-            {
-                "filter_policy": str(summary_payload.get("filter_policy", "accepted_only")).strip(),
-                "target_accepted_datasets": int(
-                    summary_payload.get("target_accepted_datasets", spec.num_datasets)
-                ),
-                "accepted_datasets": int(summary_payload.get("accepted_datasets", 0)),
-                "rejected_datasets": int(summary_payload.get("rejected_datasets", 0)),
-                "curated_accepted_datasets": int(
-                    summary_payload.get("curated_accepted_datasets", 0)
-                ),
-                "acceptance_rate": summary_payload.get("acceptance_rate"),
-                "filter_manifest_path": str((filter_root / "filter_manifest.ndjson").resolve()),
-                "filter_summary_path": str((filter_root / "filter_summary.json").resolve()),
-                "curated_dir": str(curated_root.resolve()),
-            }
-        ),
-    }
-    handoff_provenance = summary_payload.get("handoff_provenance")
-    if isinstance(handoff_provenance, Mapping):
-        payload["handoff_provenance"] = _drop_none_values(
-            {str(key): value for key, value in handoff_provenance.items()}
-        )
-    return payload
-
-
 def _staged_direct_manifest_record(
     *,
     requested_corpus_ref: str,
@@ -914,7 +857,7 @@ def _staged_direct_manifest_record(
         )
 
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
-    pending = corpus_materialization_module._pending_recipe_materialization_from_existing_stage(
+    preview = load_staged_corpus_recipe_preview(
         recipe_id=recipe_id,
         dagzoo_root=dagzoo_root,
         repo_root=resolved_repo_root,
@@ -922,27 +865,21 @@ def _staged_direct_manifest_record(
         sweep_id=None,
         sweeps_root=None,
     )
-    invocation_payloads = [
-        _staged_invocation_summary_payload(
-            dagzoo_root=dagzoo_root,
-            corpus_root=pending.stage_root,
-            spec=spec,
-        )
-        for spec in pending.recipe.invocations
-    ]
+    invocation_payloads = cast(list[dict[str, Any]], preview["invocations"])
     dagzoo_provenance_summary = build_dagzoo_provenance_summary(
-        recipe=pending.recipe,
+        recipe=cast(Mapping[str, Any], preview["recipe"]),
         corpus_ref=requested_corpus_ref,
         corpus_id="staged",
         provenance={"invocations": invocation_payloads},
-        surface_label=pending.recipe.surface_label,
+        surface_label=str(preview["surface_label"]),
     )
     return {
         "schema": "tab-foundry-staged-corpus-preview-v1",
-        "recipe_id": pending.recipe.recipe_id,
+        "recipe_id": str(preview["recipe_id"]),
         "corpus_id": None,
         "corpus_ref": None,
-        "surface_label": pending.recipe.surface_label,
+        "surface_label": str(preview["surface_label"]),
+        "stage_root": str(preview["stage_root"]),
         "corpus_record_path": None,
         "manifest": {
             "manifest_path": str(direct_manifest_path),
