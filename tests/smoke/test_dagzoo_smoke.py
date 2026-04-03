@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from click.testing import CliRunner
 import tab_foundry.bench.dagzoo_smoke as smoke_module
 import tab_foundry.cli.bench_smoke_dagzoo as smoke_cli_module
 from tab_realdata_hub.dagzoo_handoff import DagzooHandoffInfo
@@ -12,13 +13,34 @@ from tab_realdata_hub.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 
 
-def test_build_parser_defaults_match_indicative_profile() -> None:
-    args = smoke_cli_module.build_parser().parse_args([])
-    assert args.num_datasets == 128
-    assert args.rows == 1024
-    assert args.train_steps == 250
-    assert args.checkpoint_every == 25
-    assert args.device == "cpu"
+def test_click_defaults_match_indicative_profile(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def _fake_run(config: Any) -> dict[str, Any]:
+        captured["config"] = config
+        return {
+            "artifacts": {"best_checkpoint": str(tmp_path / "best.pt")},
+            "eval_metrics": {"loss": 0.1},
+            "timings_seconds": {"total": 0.1},
+        }
+
+    monkeypatch.setattr(smoke_module, "run_dagzoo_smoke", _fake_run)
+
+    result = CliRunner().invoke(
+        smoke_cli_module.COMMAND,
+        ["--out-root", str(tmp_path / "run")],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.num_datasets == 128
+    assert config.rows == 1024
+    assert config.train_steps == 250
+    assert config.checkpoint_every == 25
+    assert config.device == "cpu"
 
 
 def test_plot_loss_curve_writes_png(tmp_path: Path) -> None:

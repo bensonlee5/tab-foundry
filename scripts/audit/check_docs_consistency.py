@@ -10,7 +10,9 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
-from tab_foundry.cli.app import build_parser
+import click
+
+from tab_foundry.cli.app import cli
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = (
@@ -155,23 +157,16 @@ def _iter_doc_snippets(path: Path) -> Iterable[tuple[int, str]]:
                 yield lineno, snippet
 
 
-def _subparser_action(parser: argparse.ArgumentParser):
-    for action in parser._actions:
-        if action.__class__.__name__ == "_SubParsersAction":
-            return action
-    return None
-
-
-def _build_cli_tree(parser: argparse.ArgumentParser) -> dict[str, dict]:
-    action = _subparser_action(parser)
-    if action is None:
+def _build_cli_tree(command: click.Command) -> dict[str, dict[str, dict]]:
+    if not isinstance(command, click.Group):
         return {}
-    return {name: _build_cli_tree(child) for name, child in action.choices.items()}
+    return {
+        name: _build_cli_tree(child)
+        for name, child in command.commands.items()
+    }
 
 
 def live_cli_leaf_commands() -> set[str]:
-    parser = build_parser()
-
     def _walk(node: dict[str, dict], prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
         if not node:
             return [prefix]
@@ -180,7 +175,7 @@ def live_cli_leaf_commands() -> set[str]:
             result.extend(_walk(child, prefix + (name,)))
         return result
 
-    return {"tab-foundry " + " ".join(path) for path in _walk(_build_cli_tree(parser)) if path}
+    return {"tab-foundry " + " ".join(path) for path in _walk(_build_cli_tree(cli)) if path}
 
 
 def _normalize_snippet(snippet: str) -> str:
@@ -303,8 +298,7 @@ def scan_docs_consistency(
     repo_root: Path = REPO_ROOT,
     roots: Iterable[str] = DEFAULT_ROOTS,
 ) -> list[tuple[Path, int, str]]:
-    parser = build_parser()
-    cli_tree = _build_cli_tree(parser)
+    cli_tree = _build_cli_tree(cli)
     errors: list[tuple[Path, int, str]] = []
 
     for root_rel in roots:

@@ -2,77 +2,40 @@
 
 from __future__ import annotations
 
-import argparse
 import sys
 from pathlib import Path
 
+import click
+
+from tab_foundry.cli.click_utils import run_click_command, sweep_path_options
 from tab_foundry.research.sweep.graph import GraphPaths, render_sweep_graphs
-from tab_foundry.research.sweep.paths_io import (
-    default_catalog_path,
-    default_registry_path,
-    default_sweep_index_path,
-    default_sweeps_root,
-)
 
 
-def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument("--sweep-id", required=True, help="Sweep id to inspect")
-    parser.add_argument("--anchor", action="store_true", help="Render the selected sweep anchor graph")
-    parser.add_argument("--all-rows", action="store_true", help="Render graphs for every row in the sweep")
-    parser.add_argument("--order", type=int, action="append", default=[], help="Specific queue order to render")
-    parser.add_argument(
-        "--delta-ref",
-        action="append",
-        default=[],
-        help="Specific delta_ref / materialized delta_id to render; repeatable",
-    )
-    parser.add_argument(
-        "--out-dir",
-        default=None,
-        help="Optional output directory; defaults to outputs/staged_ladder/research/<sweep_id>/architecture_graphs",
-    )
-    parser.add_argument(
-        "--catalog-path",
-        default=str(default_catalog_path()),
-        help="Path to reference/system_delta_catalog.yaml",
-    )
-    parser.add_argument(
-        "--index-path",
-        default=str(default_sweep_index_path()),
-        help="Path to reference/system_delta_sweeps/index.yaml",
-    )
-    parser.add_argument(
-        "--registry-path",
-        default=str(default_registry_path()),
-        help="Path to benchmark_run_registry_v1.json",
-    )
-    parser.add_argument(
-        "--sweeps-root",
-        default=str(default_sweeps_root()),
-        help="Path to reference/system_delta_sweeps/",
-    )
-    return parser
-
-
-def build_parser() -> argparse.ArgumentParser:
-    return configure_parser(
-        argparse.ArgumentParser(description="Render torchview architecture graphs for sweep targets")
-    )
-
-
-def run_from_args(args: argparse.Namespace) -> int:
+def _graph_command(
+    *,
+    sweep_id: str,
+    anchor: bool,
+    all_rows: bool,
+    order: tuple[int, ...],
+    delta_ref: tuple[str, ...],
+    out_dir: Path | None,
+    catalog_path: Path,
+    index_path: Path,
+    registry_path: Path,
+    sweeps_root: Path,
+) -> int:
     result = render_sweep_graphs(
-        sweep_id=str(args.sweep_id),
-        anchor=bool(args.anchor),
-        all_rows=bool(args.all_rows),
-        orders=[int(value) for value in args.order],
-        delta_refs=[str(value) for value in args.delta_ref],
-        out_dir=None if args.out_dir is None else Path(str(args.out_dir)),
+        sweep_id=sweep_id,
+        anchor=anchor,
+        all_rows=all_rows,
+        orders=list(order),
+        delta_refs=list(delta_ref),
+        out_dir=out_dir,
         paths=GraphPaths(
-            index_path=Path(str(args.index_path)).expanduser().resolve(),
-            catalog_path=Path(str(args.catalog_path)).expanduser().resolve(),
-            sweeps_root=Path(str(args.sweeps_root)).expanduser().resolve(),
-            registry_path=Path(str(args.registry_path)).expanduser().resolve(),
+            index_path=index_path.expanduser().resolve(),
+            catalog_path=catalog_path.expanduser().resolve(),
+            sweeps_root=sweeps_root.expanduser().resolve(),
+            registry_path=registry_path.expanduser().resolve(),
         ),
     )
     print(
@@ -85,8 +48,42 @@ def run_from_args(args: argparse.Namespace) -> int:
     return 0
 
 
+@click.command(name="graph", help="Render torchview architecture graphs for sweep targets")
+@click.option("--sweep-id", required=True, help="Sweep id to inspect")
+@click.option("--anchor", is_flag=True, help="Render the selected sweep anchor graph")
+@click.option("--all-rows", is_flag=True, help="Render graphs for every row in the sweep")
+@click.option("--order", multiple=True, type=int, help="Specific queue order to render")
+@click.option("--delta-ref", multiple=True, help="Specific delta_ref / materialized delta_id to render; repeatable")
+@click.option("--out-dir", default=None, type=click.Path(path_type=Path), help="Optional output directory; defaults to outputs/staged_ladder/research/<sweep_id>/architecture_graphs")
+@sweep_path_options(include_registry=True, include_sweeps_root=True)
+def COMMAND(
+    sweep_id: str,
+    anchor: bool,
+    all_rows: bool,
+    order: tuple[int, ...],
+    delta_ref: tuple[str, ...],
+    out_dir: Path | None,
+    catalog_path: Path,
+    index_path: Path,
+    registry_path: Path,
+    sweeps_root: Path,
+) -> int:
+    return _graph_command(
+        sweep_id=sweep_id,
+        anchor=anchor,
+        all_rows=all_rows,
+        order=order,
+        delta_ref=delta_ref,
+        out_dir=out_dir,
+        catalog_path=catalog_path,
+        index_path=index_path,
+        registry_path=registry_path,
+        sweeps_root=sweeps_root,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry research sweep graph")
 
 
 if __name__ == "__main__":

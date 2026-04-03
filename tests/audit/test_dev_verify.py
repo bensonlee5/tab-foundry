@@ -315,6 +315,21 @@ def test_build_precommit_check_ids_sorts_and_deduplicates_explicit_test_paths() 
     assert plan.check_ids == ("audit", "ruff", "mypy")
 
 
+def test_build_precommit_check_ids_excludes_support_modules_from_explicit_pytest() -> None:
+    index = dev_verify.load_dev_index()
+
+    _, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
+        [
+            "tests/support/cli.py",
+            "tests/support/manifest_and_dataset_cases.py",
+            "tests/cli/test_app.py",
+        ],
+        index,
+    )
+
+    assert explicit_pytest_paths == ("tests/cli/test_app.py",)
+
+
 def test_execute_precommit_paths_adds_n0_to_bucket_pytest(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from click.testing import CliRunner
 import pytest
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
@@ -12,13 +13,35 @@ from tab_realdata_hub.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 
 
-def test_build_parser_defaults_match_ci_profile() -> None:
-    args = iris_smoke_cli_module.build_parser().parse_args([])
-    assert args.device == "cpu"
-    assert args.initial_num_tasks == 64
-    assert args.max_num_tasks == 512
-    assert args.iris_benchmark_seeds == 5
-    assert args.checkpoint_every == 2
+def test_click_defaults_match_ci_profile(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def _fake_run(config: Any) -> dict[str, Any]:
+        captured["config"] = config
+        return {
+            "artifacts": {"best_checkpoint": str(tmp_path / "best.pt")},
+            "eval_metrics": {"loss": 0.1},
+            "iris_benchmark": {"means": {"tab_foundry": 0.9}},
+            "timings_seconds": {"total": 0.1},
+        }
+
+    monkeypatch.setattr(iris_smoke_module, "run_iris_smoke", _fake_run)
+
+    result = CliRunner().invoke(
+        iris_smoke_cli_module.COMMAND,
+        ["--out-root", str(tmp_path / "run")],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.device == "cpu"
+    assert config.initial_num_tasks == 64
+    assert config.max_num_tasks == 512
+    assert config.iris_benchmark_seeds == 5
+    assert config.checkpoint_every == 2
 
 
 def test_write_summary_markdown_includes_timings_and_benchmark(tmp_path: Path) -> None:

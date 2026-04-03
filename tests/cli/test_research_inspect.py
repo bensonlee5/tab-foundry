@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 from pathlib import Path
 from typing import Any
@@ -11,7 +10,7 @@ import tab_foundry.cli.research_inspect as research_inspect_cli_module
 
 
 @pytest.mark.parametrize("json_mode", [False, True])
-def test_research_inspect_run_from_args_emits_expected_output(
+def test_research_inspect_command_emits_expected_output(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     json_mode: bool,
@@ -38,16 +37,14 @@ def test_research_inspect_run_from_args_emits_expected_output(
     monkeypatch.setattr(research_inspect_cli_module, "inspect_sweep_row", _fake_inspect_sweep_row)
     monkeypatch.setattr(research_inspect_cli_module, "render_sweep_row_text", _fake_render_sweep_row_text)
 
-    exit_code = research_inspect_cli_module.run_from_args(
-        argparse.Namespace(
-            order=1,
-            sweep_id="mini_sweep",
-            json=json_mode,
-            index_path="index.yaml",
-            catalog_path="catalog.yaml",
-            sweeps_root="reference/system_delta_sweeps",
-            registry_path="registry.json",
-        )
+    exit_code = research_inspect_cli_module._inspect_command(
+        order=1,
+        sweep_id="mini_sweep",
+        json_mode=json_mode,
+        index_path=Path("index.yaml"),
+        catalog_path=Path("catalog.yaml"),
+        sweeps_root=Path("reference/system_delta_sweeps"),
+        registry_path=Path("registry.json"),
     )
 
     assert exit_code == 0

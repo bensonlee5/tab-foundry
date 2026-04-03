@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.5] - 2026-04-02
+
+### Changed
+
+- User-facing note: the packaged `tab-foundry` CLI now uses Click as its
+  canonical command framework while preserving the existing top-level groups,
+  subcommand paths, and flag names across `data`, `dev`, `train`, `eval`,
+  `export`, `bench`, and `research`.
+- User-facing note: click-backed command entrypoints now drive the direct leaf
+  CLI modules too, so benchmark, smoke, prior, and sweep helper entrypoints
+  share the same packaged CLI behavior instead of maintaining separate
+  argparse-only parsing surfaces.
+
 ## [0.16.4] - 2026-04-02
 
 ### Added
