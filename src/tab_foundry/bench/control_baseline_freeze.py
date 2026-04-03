@@ -17,7 +17,6 @@ from tab_foundry.registry.common import (
 )
 from tab_foundry.registry.storage import load_versioned_registry_payload as _load_versioned_registry_payload
 from tab_foundry.bench.registry.summary_metrics import (
-    benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
 from tab_foundry.data.surface import resolve_data_surface
@@ -116,11 +115,25 @@ def _normalize_registry_path(path: Path) -> str:
     )
 
 
-def _resolve_registry_path_value(value: str) -> Path:
-    return read_control_baseline_registry.resolve_registry_path_value(
-        value,
+def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    benchmark_bundle_source = str(
+        benchmark_bundle.get("source_path")
+        if benchmark_bundle.get("source_path") is not None
+        else ""
+    ).strip()
+    if not benchmark_bundle_source:
+        raise RuntimeError("comparison summary benchmark_bundle.source_path must be a non-empty string")
+    resolved_source_path = read_control_baseline_registry.resolve_registry_path_value(
+        benchmark_bundle_source,
         root=repo_root(),
     )
+    return {
+        "name": str(benchmark_bundle["name"]),
+        "version": int(benchmark_bundle["version"]),
+        "source_path": _normalize_registry_path(resolved_source_path),
+        "task_count": int(benchmark_bundle["task_count"]),
+        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
+    }
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
@@ -219,12 +232,7 @@ def derive_control_baseline_entry(
             )
             if _is_repo_local_path_value(benchmark_manifest_value):
                 benchmark_bundle_for_registry["source_path"] = benchmark_manifest_value
-    benchmark_bundle_payload = _benchmark_bundle_payload_from_summary(
-        benchmark_bundle_for_registry,
-        source_context="comparison summary benchmark_bundle.source_path",
-        normalize_path_value_fn=_normalize_registry_path,
-        resolve_registry_path_value_fn=_resolve_registry_path_value,
-    )
+    benchmark_bundle_payload = _benchmark_bundle_payload(benchmark_bundle_for_registry)
     tab_foundry_metrics = _tab_foundry_metrics_from_summary(tab_foundry)
     entry = {
         "baseline_id": str(baseline_id),

@@ -11,6 +11,7 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from .instability import gradient_history_path, telemetry_path
+from .trainer_optimizer import _set_optimizer_training_mode
 
 
 def history_path_from_cfg(cfg: DictConfig) -> Path | None:
@@ -379,21 +380,19 @@ def save_checkpoint(
 
 
 def save_eval_mode_checkpoint(
-    prepared_opts: Sequence[tuple[str, torch.optim.Optimizer]],
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
     *,
     path: Path,
     model_state_factory: Callable[[], Mapping[str, Any]],
     global_step: int,
     cfg: DictConfig,
     restore_training: bool,
-    set_optimizer_training_mode_fn: Callable[..., None],
-    save_checkpoint_fn: Callable[..., None] = save_checkpoint,
 ) -> None:
     """Save a checkpoint while optimizers are in eval mode."""
 
-    set_optimizer_training_mode_fn(prepared_opts, training=False)
+    _set_optimizer_training_mode(prepared_opts, training=False)
     try:
-        save_checkpoint_fn(
+        save_checkpoint(
             path,
             model_state=model_state_factory(),
             global_step=global_step,
@@ -401,4 +400,4 @@ def save_eval_mode_checkpoint(
         )
     finally:
         if restore_training:
-            set_optimizer_training_mode_fn(prepared_opts, training=True)
+            _set_optimizer_training_mode(prepared_opts, training=True)

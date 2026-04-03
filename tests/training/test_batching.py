@@ -497,6 +497,7 @@ def test_build_manifest_task_dataset_shuffles_train_split_only(
 
 def test_evaluate_loader_respects_manifest_order_for_capped_shuffle_false_loader(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     manifest_path = _write_manifest_dataset(
         tmp_path,
@@ -531,13 +532,14 @@ def test_evaluate_loader_respects_manifest_order_for_capped_shuffle_false_loader
         seen_order_tags.extend(member["order_tag"] for member in batch.metadata["task_members"])
         return torch.tensor(1.0), {"acc": 0.5}
 
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
+
     metrics = trainer_metrics_module._evaluate_loader(
         _EvalOrderClassifier(),
         loader,
         accelerator=_FakeEvalAccelerator(),
         task="classification",
         max_batches=2,
-        compute_loss_and_metrics=_fake_compute,
     )
 
     assert seen_order_tags == ["task_0", "task_1"]

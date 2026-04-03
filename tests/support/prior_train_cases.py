@@ -16,6 +16,7 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_module
 from tab_foundry.bench.openml_benchmark import evaluate_tab_foundry_run
 import tab_foundry.cli.train_prior as train_prior_cli_module
+import tab_foundry.training.artifacts as training_artifacts_module
 import tab_foundry.training.prior.loop as prior_loop_module
 import tab_foundry.training.prior.runtime as prior_runtime_module
 import tab_foundry.training.prior_train as prior_train_module
@@ -996,14 +997,14 @@ def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
         ),
     )
 
-    original_save_checkpoint = prior_loop_module.save_checkpoint
+    original_save_checkpoint = training_artifacts_module.save_checkpoint
 
     def _recording_save_checkpoint(path: Path, *, model_state, global_step: int, cfg) -> None:
         _ = (model_state, global_step, cfg)
         save_events.append(path.name)
         original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
 
-    monkeypatch.setattr(prior_loop_module, "save_checkpoint", _recording_save_checkpoint)
+    monkeypatch.setattr(training_artifacts_module, "save_checkpoint", _recording_save_checkpoint)
 
     cfg = OmegaConf.create(
         {

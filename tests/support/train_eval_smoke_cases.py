@@ -15,6 +15,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 import tab_foundry.training.evaluate as evaluate_module
+import tab_foundry.training.artifacts as training_artifacts_module
 import tab_foundry.training.distributed as distributed_module
 import tab_foundry.training.trainer as trainer_module
 import tab_foundry.training.trainer_loop as trainer_loop_module
@@ -963,7 +964,7 @@ def test_train_smoke_saves_in_loop_checkpoints_in_eval_mode(
     _install_classification_fakes(monkeypatch)
     mode_tracking_optimizer: _ModeTrackingOptimizer | None = None
     save_events: list[tuple[str, str | None]] = []
-    original_save_checkpoint = trainer_loop_module.save_checkpoint
+    original_save_checkpoint = training_artifacts_module.save_checkpoint
 
     def _build_mode_tracking_optimizer(model, **_kwargs):
         nonlocal mode_tracking_optimizer
@@ -983,7 +984,7 @@ def test_train_smoke_saves_in_loop_checkpoints_in_eval_mode(
         original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
 
     monkeypatch.setattr(trainer_module, "build_optimizer", _build_mode_tracking_optimizer)
-    monkeypatch.setattr(trainer_loop_module, "save_checkpoint", _record_save)
+    monkeypatch.setattr(training_artifacts_module, "save_checkpoint", _record_save)
 
     cfg = _classification_cfg(tmp_path)
     cfg.schedule.stages = [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]
@@ -1020,8 +1021,7 @@ def test_train_smoke_saves_fallback_best_checkpoint_in_eval_mode(
     _install_classification_fakes(monkeypatch)
     mode_tracking_optimizer: _ModeTrackingOptimizer | None = None
     save_events: list[tuple[str, str | None]] = []
-    original_loop_save_checkpoint = trainer_loop_module.save_checkpoint
-    original_trainer_save_checkpoint = trainer_module.save_checkpoint
+    original_save_checkpoint = training_artifacts_module.save_checkpoint
 
     def _build_mode_tracking_optimizer(model, **_kwargs):
         nonlocal mode_tracking_optimizer
@@ -1034,21 +1034,14 @@ def test_train_smoke_saves_fallback_best_checkpoint_in_eval_mode(
             fallback_reason=None,
         )
 
-    def _record_loop_save(path: Path, *, model_state, global_step: int, cfg) -> None:
+    def _record_save(path: Path, *, model_state, global_step: int, cfg) -> None:
         _ = (model_state, global_step, cfg)
         mode = None if mode_tracking_optimizer is None or not mode_tracking_optimizer.events else mode_tracking_optimizer.events[-1]
         save_events.append((path.name, mode))
-        original_loop_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
-
-    def _record_trainer_save(path: Path, *, model_state, global_step: int, cfg) -> None:
-        _ = (model_state, global_step, cfg)
-        mode = None if mode_tracking_optimizer is None or not mode_tracking_optimizer.events else mode_tracking_optimizer.events[-1]
-        save_events.append((path.name, mode))
-        original_trainer_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+        original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
 
     monkeypatch.setattr(trainer_module, "build_optimizer", _build_mode_tracking_optimizer)
-    monkeypatch.setattr(trainer_loop_module, "save_checkpoint", _record_loop_save)
-    monkeypatch.setattr(trainer_module, "save_checkpoint", _record_trainer_save)
+    monkeypatch.setattr(training_artifacts_module, "save_checkpoint", _record_save)
 
     cfg = _classification_cfg(tmp_path)
     cfg.schedule.stages = [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]
@@ -1209,7 +1202,7 @@ def test_evaluate_checkpoint_weights_metrics_by_actual_task_batch_size(
     monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
-    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
 
     cfg = _classification_cfg(tmp_path)
     cfg.eval.checkpoint = str(tmp_path / "weighted_eval.pt")
@@ -1253,7 +1246,7 @@ def test_evaluate_checkpoint_caps_by_task_count_without_overshooting(
     monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
-    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
 
     cfg = _classification_cfg(tmp_path)
     cfg.eval.checkpoint = str(tmp_path / "capped_eval.pt")
@@ -1297,7 +1290,7 @@ def test_evaluate_checkpoint_processes_first_task_batch_even_when_it_exceeds_cap
     monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
-    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
 
     cfg = _classification_cfg(tmp_path)
     cfg.eval.checkpoint = str(tmp_path / "first_batch_eval.pt")

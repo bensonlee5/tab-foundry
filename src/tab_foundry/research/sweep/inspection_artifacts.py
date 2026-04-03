@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import json
 from pathlib import Path
 from typing import Any, Mapping, cast
@@ -15,8 +14,6 @@ from tab_foundry.research.lane_contract import resolve_sweep_semantics
 
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import repo_root
-
-PathResolver = Callable[[str], Path]
 
 
 def load_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
@@ -111,8 +108,6 @@ def registry_run_entry(
 def registry_artifact_path(
     run_entry: Mapping[str, Any] | None,
     key: str,
-    *,
-    resolve_registry_path: PathResolver | None = None,
 ) -> Path | None:
     if not isinstance(run_entry, Mapping):
         return None
@@ -122,8 +117,7 @@ def registry_artifact_path(
     raw_value = artifacts.get(key)
     if not isinstance(raw_value, str) or not raw_value.strip():
         return None
-    resolver = resolve_registry_path or resolve_registry_path_value
-    return resolver(raw_value)
+    return resolve_registry_path_value(raw_value)
 
 
 def canonical_row_run_root(*, sweep_id: str, delta_id: str, run_id: str) -> Path:
@@ -147,47 +141,40 @@ def _resolved_run_artifact_paths(
     *,
     registry_run: Mapping[str, Any] | None,
     expected_root: Path | None,
-    resolve_registry_path: PathResolver | None = None,
 ) -> dict[str, Path | None]:
     run_dir = registry_artifact_path(
         registry_run,
         "run_dir",
-        resolve_registry_path=resolve_registry_path,
     )
     if run_dir is None and expected_root is not None:
         run_dir = expected_root / "train"
     benchmark_dir = registry_artifact_path(
         registry_run,
         "benchmark_dir",
-        resolve_registry_path=resolve_registry_path,
     )
     if benchmark_dir is None and expected_root is not None:
         benchmark_dir = expected_root / "benchmark"
     training_surface_record = registry_artifact_path(
         registry_run,
         "training_surface_record_path",
-        resolve_registry_path=resolve_registry_path,
     )
     if training_surface_record is None and run_dir is not None:
         training_surface_record = run_dir / "training_surface_record.json"
     best_checkpoint = registry_artifact_path(
         registry_run,
         "best_checkpoint_path",
-        resolve_registry_path=resolve_registry_path,
     )
     if best_checkpoint is None and run_dir is not None:
         best_checkpoint = run_dir / "checkpoints" / "best.pt"
     comparison_summary = registry_artifact_path(
         registry_run,
         "comparison_summary_path",
-        resolve_registry_path=resolve_registry_path,
     )
     if comparison_summary is None and benchmark_dir is not None:
         comparison_summary = benchmark_dir / "comparison_summary.json"
     benchmark_record = registry_artifact_path(
         registry_run,
         "benchmark_run_record_path",
-        resolve_registry_path=resolve_registry_path,
     )
     if benchmark_record is None and benchmark_dir is not None:
         benchmark_record = benchmark_dir / "benchmark_run_record.json"
@@ -206,7 +193,6 @@ def resolved_row_artifact_paths(
     queue: Mapping[str, Any],
     row: Mapping[str, Any],
     registry_run: Mapping[str, Any] | None,
-    resolve_registry_path: PathResolver | None = None,
 ) -> dict[str, Path | None]:
     run_id = optional_string(row.get("run_id"))
     expected_root = (
@@ -227,7 +213,6 @@ def resolved_row_artifact_paths(
         **_resolved_run_artifact_paths(
             registry_run=registry_run,
             expected_root=expected_root,
-            resolve_registry_path=resolve_registry_path,
         ),
     }
 
@@ -235,12 +220,10 @@ def resolved_row_artifact_paths(
 def resolved_anchor_artifact_paths(
     *,
     registry_run: Mapping[str, Any] | None,
-    resolve_registry_path: PathResolver | None = None,
 ) -> dict[str, Path | None]:
     return _resolved_run_artifact_paths(
         registry_run=registry_run,
         expected_root=None,
-        resolve_registry_path=resolve_registry_path,
     )
 
 

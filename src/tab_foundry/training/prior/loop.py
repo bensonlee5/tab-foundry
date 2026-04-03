@@ -19,7 +19,6 @@ from tab_foundry.training.artifacts import (
     gradient_history_record,
     history_path_from_cfg,
     history_record,
-    save_checkpoint,
     save_eval_mode_checkpoint,
 )
 from tab_foundry.training.instability import (
@@ -115,8 +114,6 @@ def _save_eval_mode_artifact(
         global_step=global_step,
         cfg=cfg,
         restore_training=restore_training,
-        set_optimizer_training_mode_fn=_set_optimizer_training_mode,
-        save_checkpoint_fn=save_checkpoint,
     )
 
 

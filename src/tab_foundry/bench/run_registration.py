@@ -31,7 +31,6 @@ from tab_foundry.bench.registry.schema import (
     REGISTRY_VERSION,
 )
 from tab_foundry.bench.registry.summary_metrics import (
-    benchmark_bundle_payload_from_summary,
     ensure_mapping,
     ensure_non_empty_string,
     ensure_optional_finite_number,
@@ -161,6 +160,24 @@ def _resolve_registry_path_value(value: str) -> Path:
 
 def _resolve_config_path(raw_value: Any) -> Path:
     return _resolve_config_path_common(raw_value, root=repo_root())
+
+
+def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    benchmark_bundle_source = ensure_non_empty_string(
+        benchmark_bundle.get("source_path"),
+        context="comparison_summary.benchmark_bundle.source_path",
+    )
+    resolved_source_path = read_benchmark_registry.resolve_registry_path_value(
+        benchmark_bundle_source,
+        root=repo_root(),
+    )
+    return {
+        "name": str(benchmark_bundle["name"]),
+        "version": int(benchmark_bundle["version"]),
+        "source_path": _normalize_registry_path(resolved_source_path),
+        "task_count": int(benchmark_bundle["task_count"]),
+        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
+    }
 
 
 def comparison_delta(
@@ -303,12 +320,7 @@ def derive_benchmark_run_record(
             state_dict=raw_state_dict,
             summary_tab_foundry=tab_foundry,
         ),
-        "benchmark_bundle": benchmark_bundle_payload_from_summary(
-            benchmark_bundle,
-            source_context="comparison_summary.benchmark_bundle.source_path",
-            normalize_path_value_fn=_normalize_registry_path,
-            resolve_registry_path_value_fn=_resolve_registry_path_value,
-        ),
+        "benchmark_bundle": _benchmark_bundle_payload(benchmark_bundle),
         "artifacts": {
             "run_dir": _normalize_registry_path(resolved_run_dir),
             "benchmark_dir": _normalize_registry_path(resolved_summary_path.parent),
