@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from .queue_updates import read_jsonl
+from .queue_updates import read_jsonl, runtime_and_regime_metrics
 
 
 PRIMARY_TOLERANCE = 0.05
@@ -71,7 +71,7 @@ def screen_metrics(*, run_dir: Path) -> dict[str, Any]:
     if not isinstance(block_payloads, Mapping):
         raise RuntimeError("upper_transformer_blocks.blocks must be a mapping")
 
-    return {
+    metrics = {
         "upper_block_names": [str(name) for name in block_names],
         "upper_block_final_window_mean": _optional_float(aggregate, "final_window_mean"),
         "upper_block_post_warmup_mean_slope": _optional_float(aggregate, "post_warmup_mean_slope"),
@@ -92,6 +92,13 @@ def screen_metrics(*, run_dir: Path) -> dict[str, Any]:
             if isinstance(payload, Mapping)
         },
     }
+    metrics.update(
+        runtime_and_regime_metrics(
+            run_entry=None,
+            telemetry_payload=telemetry_payload,
+        )
+    )
+    return metrics
 
 
 def pick_screen_winner(

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.4] - 2026-04-02
+
+### Added
+
+- User-facing note: added `runtime=tf_rd_022_policy` and
+  `experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+  as named benchmark/runtime surfaces for the TF-RD-022 classification runtime
+  policy handoff.
+- User-facing note: added `tf_rd_024_classification_knob_sweep_v1` as the
+  bounded post-performance architecture sweep scaffold that inherits the
+  TF-RD-022 runtime surface on the closed TF-RD-010 benchmark contract.
+
+### Changed
+
+- User-facing note: `tab-foundry dev run-inspect` now exposes compact
+  `runtime_summary` and `regime_budget` sections in both text and JSON output.
+- User-facing note: sweep summary tables and result cards now carry compact
+  runtime and regime-budget comparison fields, including throughput, reserved
+  VRAM, and tokens-per-step, so TF-RD-022 comparisons no longer require manual
+  log inspection.
+
 ## [0.16.3] - 2026-04-02
 
 ### Added

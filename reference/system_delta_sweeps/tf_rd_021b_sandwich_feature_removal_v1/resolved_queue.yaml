@@ -1140,4 +1140,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: b39b2c9cb050ee5d77977ddcf6ac2d4a04e9c2c1d121d4bd836dc98c2f790434
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
-inputs_fingerprint: 148e72b243a3f2ac90ec0050ea55c7967ad988708c38a9a124cdbe826b38c46a
+inputs_fingerprint: 3b00c2a29a5f96cc7d6a9f005c12d63a700fbef96a06581e64171ae135075744

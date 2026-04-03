@@ -381,6 +381,59 @@ def _comparison_summary_excerpt(summary: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _runtime_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "peak_vram_allocated": _summary_value(payload, "peak_vram_allocated"),
+        "peak_vram_reserved": _summary_value(payload, "peak_vram_reserved"),
+        "throughput_examples_per_second": _summary_value(
+            payload, "throughput_examples_per_second"
+        ),
+        "throughput_tokens_per_second": _summary_value(payload, "throughput_tokens_per_second"),
+        "non_train_overhead_seconds": _summary_value(payload, "non_train_overhead_seconds"),
+    }
+
+
+def _regime_budget_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "tokens_per_step": _summary_value(payload, "tokens_per_step"),
+        "tokens_seen": _summary_value(payload, "tokens_seen"),
+        "token_budget": _summary_value(payload, "token_budget"),
+        "unique_task_budget": _summary_value(payload, "unique_task_budget"),
+        "objective_metric": _summary_value(payload, "objective_metric"),
+        "curriculum_id": _summary_value(payload, "curriculum_id"),
+    }
+
+
+def _preferred_runtime_summary(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("runtime_summary"), Mapping
+    ):
+        return _runtime_summary_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["runtime_summary"])
+        )
+    if isinstance(telemetry_payload, Mapping) and isinstance(telemetry_payload.get("runtime_summary"), Mapping):
+        return _runtime_summary_excerpt(cast(Mapping[str, Any], telemetry_payload["runtime_summary"]))
+    return None
+
+
+def _preferred_regime_budget(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("regime_budget"), Mapping
+    ):
+        return _regime_budget_excerpt(cast(Mapping[str, Any], benchmark_run_record["regime_budget"]))
+    if isinstance(telemetry_payload, Mapping) and isinstance(telemetry_payload.get("regime_budget"), Mapping):
+        return _regime_budget_excerpt(cast(Mapping[str, Any], telemetry_payload["regime_budget"]))
+    return None
+
+
 def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "run_id": _summary_value(record, "run_id"),
@@ -400,6 +453,16 @@ def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
         "training_diagnostics": (
             dict(cast(Mapping[str, Any], record.get("training_diagnostics")))
             if isinstance(record.get("training_diagnostics"), Mapping)
+            else None
+        ),
+        "runtime_summary": (
+            _runtime_summary_excerpt(cast(Mapping[str, Any], record.get("runtime_summary")))
+            if isinstance(record.get("runtime_summary"), Mapping)
+            else None
+        ),
+        "regime_budget": (
+            _regime_budget_excerpt(cast(Mapping[str, Any], record.get("regime_budget")))
+            if isinstance(record.get("regime_budget"), Mapping)
             else None
         ),
         "model_size": (
@@ -449,6 +512,7 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         if resolved_run_dir.name == "train"
         else resolved_run_dir / "benchmark"
     )
+    telemetry_payload = _read_json_mapping(telemetry_path(resolved_run_dir))
     comparison_summary = _read_json_mapping(benchmark_dir / "comparison_summary.json")
     benchmark_run_record = _read_json_mapping(benchmark_dir / "benchmark_run_record.json")
     training_surface_record_path = _run_inspect_training_surface_record_path(
@@ -501,6 +565,14 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         "comparison_summary": None
         if comparison_summary is None
         else _comparison_summary_excerpt(comparison_summary),
+        "runtime_summary": _preferred_runtime_summary(
+            benchmark_run_record=benchmark_run_record,
+            telemetry_payload=telemetry_payload,
+        ),
+        "regime_budget": _preferred_regime_budget(
+            benchmark_run_record=benchmark_run_record,
+            telemetry_payload=telemetry_payload,
+        ),
         "benchmark_run_record": None
         if benchmark_run_record is None
         else _benchmark_run_record_excerpt(benchmark_run_record),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tab_foundry.cli.dev import render_run_inspect_text
 from tab_foundry.training.health import health_check, run_inspect
 from tab_foundry.training.instability import build_training_telemetry
 
@@ -49,6 +50,27 @@ def _history_records() -> list[dict[str, object]]:
         }
         for step in range(1, 21)
     ]
+
+
+def _runtime_summary() -> dict[str, object]:
+    return {
+        "peak_vram_allocated": 1024,
+        "peak_vram_reserved": 2048,
+        "throughput_examples_per_second": 12.5,
+        "throughput_tokens_per_second": 6400.0,
+        "non_train_overhead_seconds": 0.8,
+    }
+
+
+def _regime_budget() -> dict[str, object]:
+    return {
+        "tokens_per_step": 512.0,
+        "tokens_seen": 38400,
+        "token_budget": 38400,
+        "unique_task_budget": 96,
+        "objective_metric": "final_log_loss_at_matched_regime_budget",
+        "curriculum_id": "dagzoo_shape_aware_multi_invocation",
+    }
 
 
 def _gradient_records() -> list[dict[str, object]]:
@@ -134,6 +156,8 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
         checkpoint_snapshots=[],
         history_records=history_records,
         gradient_records=gradient_records,
+        runtime_summary=_runtime_summary(),
+        regime_budget=_regime_budget(),
         training_surface_record=training_surface_record,
     )
     (run_dir / "telemetry.json").write_text(
@@ -173,6 +197,8 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
                     "preprocessing": "runtime_default",
                 },
                 "tab_foundry_metrics": {"best_roc_auc": 0.71},
+                "runtime_summary": _runtime_summary(),
+                "regime_budget": _regime_budget(),
             },
             indent=2,
             sort_keys=True,
@@ -186,9 +212,17 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
     assert payload["health"]["verdict"] == "ok"
     assert payload["comparison_summary"]["best_roc_auc"] == 0.71
     assert payload["benchmark_run_record"]["run_id"] == "row_one_run"
+    assert payload["runtime_summary"]["peak_vram_reserved"] == 2048
+    assert payload["regime_budget"]["token_budget"] == 38400
+    assert payload["benchmark_run_record"]["runtime_summary"]["throughput_tokens_per_second"] == 6400.0
     assert payload["artifacts"]["comparison_summary_json"]["exists"] is True
     assert payload["artifacts"]["latest_checkpoint_pt"]["exists"] is True
     assert payload["artifacts"]["latest_checkpoint_pt"]["path"].endswith("latest_stage1.pt")
+    rendered = render_run_inspect_text(payload)
+    assert "runtime_summary=" in rendered
+    assert "\"throughput_tokens_per_second\": 6400.0" in rendered
+    assert "regime_budget=" in rendered
+    assert "\"token_budget\": 38400" in rendered
 
 
 def test_run_inspect_keeps_partial_runs_inspectable_when_health_is_unavailable(tmp_path: Path) -> None:

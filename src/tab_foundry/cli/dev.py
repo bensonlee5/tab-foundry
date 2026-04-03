@@ -386,6 +386,12 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
             lines.append(f"best_roc_auc={comparison_summary['best_roc_auc']}")
         if comparison_summary.get("final_roc_auc") is not None:
             lines.append(f"final_roc_auc={comparison_summary['final_roc_auc']}")
+    runtime_summary = payload.get("runtime_summary")
+    if isinstance(runtime_summary, Mapping):
+        lines.append(f"runtime_summary={_format_jsonable(dict(runtime_summary))}")
+    regime_budget = payload.get("regime_budget")
+    if isinstance(regime_budget, Mapping):
+        lines.append(f"regime_budget={_format_jsonable(dict(regime_budget))}")
 
     benchmark_run_record = payload.get("benchmark_run_record")
     if isinstance(benchmark_run_record, Mapping) and benchmark_run_record.get("run_id") is not None:
