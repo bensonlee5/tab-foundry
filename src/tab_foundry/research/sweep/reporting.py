@@ -182,6 +182,12 @@ def append_metric_line(
     lines.append(f"- {label}: `{format_metric(value, signed=signed)}`")
 
 
+def append_scalar_line(lines: list[str], *, label: str, value: Any) -> None:
+    if value is None:
+        return
+    lines.append(f"- {label}: `{value}`")
+
+
 def _stage_local_stability_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
     lines: list[str] = []
     for stage_label, grad_key, activation_key in (
@@ -226,6 +232,33 @@ def _primary_external_summary(summary: Mapping[str, Any]) -> tuple[str | None, M
         if isinstance(candidate_payload, Mapping):
             return candidate_name, cast(Mapping[str, Any], candidate_payload)
     return None, None
+
+
+def _runtime_and_regime_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    append_metric_line(
+        lines,
+        label="Throughput examples/sec",
+        value=queue_metrics.get("throughput_examples_per_second"),
+    )
+    append_metric_line(
+        lines,
+        label="Throughput tokens/sec",
+        value=queue_metrics.get("throughput_tokens_per_second"),
+    )
+    append_scalar_line(lines, label="Peak VRAM allocated", value=queue_metrics.get("peak_vram_allocated"))
+    append_scalar_line(lines, label="Peak VRAM reserved", value=queue_metrics.get("peak_vram_reserved"))
+    append_metric_line(
+        lines,
+        label="Non-train overhead seconds",
+        value=queue_metrics.get("non_train_overhead_seconds"),
+    )
+    append_metric_line(lines, label="Tokens per step", value=queue_metrics.get("tokens_per_step"))
+    append_scalar_line(lines, label="Token budget", value=queue_metrics.get("token_budget"))
+    append_scalar_line(lines, label="Unique task budget", value=queue_metrics.get("unique_task_budget"))
+    append_scalar_line(lines, label="Objective metric", value=queue_metrics.get("objective_metric"))
+    append_scalar_line(lines, label="Curriculum id", value=queue_metrics.get("curriculum_id"))
+    return lines
 
 
 def result_card_text(
@@ -553,6 +586,10 @@ def result_card_text(
 
     append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
     append_metric_line(lines, label="clipped_step_fraction", value=queue_metrics.get("clipped_step_fraction"))
+    runtime_lines = _runtime_and_regime_lines(queue_metrics)
+    if runtime_lines:
+        lines.extend(["", "## Runtime and regime budget", ""])
+        lines.extend(runtime_lines)
     stage_local_lines = _stage_local_stability_lines(queue_metrics)
     if stage_local_lines:
         lines.extend(["", "## Stage-local stability", ""])

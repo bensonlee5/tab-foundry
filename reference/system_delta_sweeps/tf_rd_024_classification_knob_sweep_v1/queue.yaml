@@ -1,0 +1,584 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_024_classification_knob_sweep_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_024_cls_sandwich_latents12_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B latent-count family on the closed TF-RD-010
+    medium contract to see whether the retained sandwich remains overprovisioned
+    on latent-bank count once TF-RD-022 freezes the runtime policy.
+  hypothesis: Halving the latent bank from `24` to `12` should preserve most of
+    the medium-rung quality while lowering runtime and VRAM cost if the current
+    multiclass sandwich is still overprovisioned after the runtime-policy cleanup.
+  anchor_delta: Changes `model.sandwich_latents` from `24` to `12` while holding
+    `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the
+    inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 12
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Wait for the TF-RD-022 keep anchor, then execute this row on the inherited policy
+    surface without changing optimizer or schedule settings.
+  - Validate any kept medium-screen signal on the closed large-rung TF-RD-010 contract
+    before treating latent count as a persistent follow-on knob.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_024_cls_sandwich_heads2_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B attention-head family on the closed TF-RD-010
+    contract to test whether head factorization remains a live post-performance
+    knob once runtime policy is explicit.
+  hypothesis: Reducing `sandwich_heads` from `4` to `2` should stay close on the
+    medium benchmark if the retained sandwich is more trunk-limited than
+    head-partition-limited under the inherited TF-RD-022 policy.
+  anchor_delta: Changes `model.sandwich_heads` from `4` to `2` while holding
+    `d_icl=60`, `sandwich_layers=2`, `sandwich_latents=24`, the TF-RD-010 benchmark
+    contract, and the inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 2
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after the TF-RD-022 runtime policy is explicit and the anchor is
+    rerun on that surface.
+  - Keep head count as a live follow-on dimension only if the row stays close on medium
+    and earns large-rung validation.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_024_cls_sandwich_ffexp1_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B feed-forward expansion family on the closed
+    TF-RD-010 contract to check whether the retained sandwich still needs the
+    larger trunk MLP bracket after TF-RD-022.
+  hypothesis: Reducing `sandwich_ff_expansion` from `2` to `1` should remain
+    competitive on medium if the current direct-multiclass sandwich gains are
+    mostly structural rather than dependent on the larger FF bracket.
+  anchor_delta: Changes `model.sandwich_ff_expansion` from `2` to `1` while
+    holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract,
+    and the inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after TF-RD-022 closes and keep the schedule, optimizer, and data front
+    identical to the anchor.
+  - Promote the lower FF bracket only if the medium delta is negligible and large-rung
+    validation does not reverse the read.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_024_cls_sandwich_summarytokens1_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B summary-token family on the closed TF-RD-010
+    contract to measure whether the retained sandwich still needs extra summary-stream
+    bandwidth after runtime policy is fixed.
+  hypothesis: Because the direct-multiclass sandwich already keeps the raw-cell
+    bypass, reducing `sandwich_summary_tokens_per_axis` from `3` to `1` may preserve
+    most of the signal if extra summary bandwidth is no longer the binding factor.
+  anchor_delta: Changes `model.sandwich_summary_tokens_per_axis` from `3` to `1`
+    while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract,
+    and the inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 1
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after the TF-RD-022 runtime policy closes and the anchor is rerun
+    on that surface.
+  - Carry this as a follow-on knob only if medium and large validation both show it
+    is not materially harmful.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_024_cls_sandwich_selfattn1_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B latent self-refinement family on the closed
+    TF-RD-010 contract to test whether repeated latent self-attention is still
+    a meaningful contributor once TF-RD-022 stabilizes the runtime surface.
+  hypothesis: Reducing `sandwich_self_attention_per_cross` from `4` to `1` should
+    stay near-anchor if most of the retained gain now comes from the broader hybrid
+    structure rather than repeated latent self-refinement.
+  anchor_delta: Changes `model.sandwich_self_attention_per_cross` from `4` to `1`
+    while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract,
+    and the inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 1
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-022 runtime policy closes, then compare directly against
+    the inherited benchmark anchor before any broader follow-up.
+  - Carry this as a live axis only if both medium and large validation say the lower
+    bracket is competitive.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_024_cls_sandwich_headhidden64_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B lower head-hidden bracket on the closed TF-RD-010
+    contract to see whether the current classifier head is overprovisioned after
+    TF-RD-022.
+  hypothesis: Reducing `head_hidden_dim` from `96` to `64` should stay close to
+    anchor quality if the retained sandwich is still trunk-limited rather than
+    readout-limited under the inherited runtime policy.
+  anchor_delta: Changes `model.head_hidden_dim` from `96` to `64` while holding
+    `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the
+    inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 64
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-022 runtime policy closes and compare directly against
+    the inherited benchmark anchor.
+  - Keep the lower head bracket only if medium and large validation both show negligible
+    loss.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 7
+  delta_ref: delta_tf_rd_024_cls_sandwich_headhidden128_v1
+  status: blocked_on_runtime_policy
+  rationale: Reuse the TF-RD-021B upper head-hidden bracket on the closed TF-RD-010
+    contract to test whether the retained multiclass sandwich is actually readout-limited
+    once TF-RD-022 fixes the runtime surface.
+  hypothesis: Increasing `head_hidden_dim` from `96` to `128` should help only if
+    the current classifier head is the binding readout bottleneck; otherwise it should
+    add cost without a durable medium-rung gain.
+  anchor_delta: Changes `model.head_hidden_dim` from `96` to `128` while holding
+    `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the
+    inherited TF-RD-022 runtime policy fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 128
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-022 runtime policy closes and compare directly against
+    the inherited benchmark anchor.
+  - Keep the higher head bracket as a live follow-on only if the medium gain survives
+    large-rung validation.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the TF-RD-022 keep anchor, then screen this row on the
+    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

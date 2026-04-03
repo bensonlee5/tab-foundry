@@ -67,6 +67,80 @@ def comparison_metric(run_entry: Mapping[str, Any], key: str) -> float | None:
     return optional_metric(cast(Mapping[str, Any], vs_anchor), key)
 
 
+def optional_int(payload: Mapping[str, Any], key: str) -> int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    numeric = int(value)
+    if not math.isfinite(float(numeric)):
+        raise RuntimeError(f"{key} must be finite when present")
+    return numeric
+
+
+def optional_text(payload: Mapping[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return str(value).strip()
+
+
+def _runtime_and_regime_source(
+    *,
+    run_entry: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+    key: str,
+) -> Mapping[str, Any] | None:
+    if isinstance(run_entry, Mapping) and isinstance(run_entry.get(key), Mapping):
+        return cast(Mapping[str, Any], run_entry[key])
+    if isinstance(telemetry_payload, Mapping) and isinstance(telemetry_payload.get(key), Mapping):
+        return cast(Mapping[str, Any], telemetry_payload[key])
+    return None
+
+
+def runtime_and_regime_metrics(
+    *,
+    run_entry: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    runtime_summary = _runtime_and_regime_source(
+        run_entry=run_entry,
+        telemetry_payload=telemetry_payload,
+        key="runtime_summary",
+    )
+    regime_budget = _runtime_and_regime_source(
+        run_entry=run_entry,
+        telemetry_payload=telemetry_payload,
+        key="regime_budget",
+    )
+    metrics: dict[str, Any] = {}
+    if runtime_summary is not None:
+        for key in ("peak_vram_allocated", "peak_vram_reserved"):
+            value = optional_int(runtime_summary, key)
+            if value is not None:
+                metrics[key] = value
+        for key in (
+            "throughput_examples_per_second",
+            "throughput_tokens_per_second",
+            "non_train_overhead_seconds",
+        ):
+            metric_value = optional_metric(runtime_summary, key)
+            if metric_value is not None:
+                metrics[key] = metric_value
+    if regime_budget is not None:
+        metric_value = optional_metric(regime_budget, "tokens_per_step")
+        if metric_value is not None:
+            metrics["tokens_per_step"] = metric_value
+        for key in ("tokens_seen", "token_budget", "unique_task_budget"):
+            integer_value = optional_int(regime_budget, key)
+            if integer_value is not None:
+                metrics[key] = integer_value
+        for key in ("objective_metric", "curriculum_id"):
+            text_value = optional_text(regime_budget, key)
+            if text_value is not None:
+                metrics[key] = text_value
+    return metrics
+
+
 def _nested_mapping_value(payload: Mapping[str, Any], *keys: str) -> Mapping[str, Any] | None:
     current: Mapping[str, Any] | None = payload
     for key in keys:
@@ -175,6 +249,7 @@ def queue_metrics(
         else {}
     )
     gradient_records = read_jsonl(run_dir / "gradient_history.jsonl")
+    telemetry_payload = read_json(run_dir / "telemetry.json")
     max_grad_norm = optional_metric(
         cast(dict[str, Any], tab_foundry["training_diagnostics"]),
         "max_grad_norm",
@@ -190,7 +265,15 @@ def queue_metrics(
         "max_grad_norm": max_grad_norm,
         "clipped_step_fraction": clipped_step_fraction(gradient_records),
     }
+    metrics.update(
+        runtime_and_regime_metrics(
+            run_entry=run_entry,
+            telemetry_payload=telemetry_payload,
+        )
+    )
     objective_metric = objective_metric_from_run(run_entry)
+    if objective_metric is None and isinstance(metrics.get("objective_metric"), str):
+        objective_metric = cast(str, metrics["objective_metric"])
     if objective_metric is not None:
         metrics["objective_metric"] = objective_metric
     if primary_external_name is not None:

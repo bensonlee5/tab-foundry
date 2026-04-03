@@ -29,6 +29,12 @@ def _classification_queue_metrics() -> dict[str, float | int | str]:
         "final_bpf": 2.028,
         "final_minus_best_bpf": 0.021,
         "delta_final_bpf": 0.012,
+        "peak_vram_reserved": 2048,
+        "throughput_tokens_per_second": 6400.0,
+        "tokens_per_step": 512.0,
+        "token_budget": 38400,
+        "unique_task_budget": 96,
+        "curriculum_id": "dagzoo_shape_aware_multi_invocation",
     }
 
 
@@ -79,3 +85,8 @@ def test_result_card_text_marks_classification_bpc_metrics_as_legacy_diagnostics
     assert "- Final BPF (legacy feature-cell diagnostic): `2.0280`" in text
     assert text.index("Best log loss") < text.index("Final ROC AUC")
     assert text.index("Final ROC AUC") < text.index("Final BPC (legacy feature-cell diagnostic)")
+    assert "## Runtime and regime budget" in text
+    assert "- Throughput tokens/sec: `6400.0000`" in text
+    assert "- Peak VRAM reserved: `2048`" in text
+    assert "- Token budget: `38400`" in text
+    assert "- Curriculum id: `dagzoo_shape_aware_multi_invocation`" in text

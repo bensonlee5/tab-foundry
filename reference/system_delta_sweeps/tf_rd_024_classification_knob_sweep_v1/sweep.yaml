@@ -1,0 +1,108 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_024_classification_knob_sweep_v1
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+surface_role: classification_architecture_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This draft follow-on sweep starts only after TF-RD-022 closes on one explicit
+    runtime-policy keep anchor under [#168](https://github.com/bensonlee5/tab-foundry/issues/168)
+    plus child issues [#169](https://github.com/bensonlee5/tab-foundry/issues/169)
+    and [#170](https://github.com/bensonlee5/tab-foundry/issues/170).
+  - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
+    from the closed TF-RD-010 medium package on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`.
+  - Medium is the screening rung for this epic. Any row that looks keep-worthy on
+    medium still needs validation on the closed TF-RD-010 large contract before
+    the knob is carried forward.
+  - Keep the `dagzoo -> tab-realdata-hub -> tab-foundry` benchmark contract fixed.
+    This sweep does not reopen TF-RD-021 or dagzoo RD-002/RD-005; those remain
+    sidecar synthetic-data context rather than blockers on the main line.
+  - Reuse the historical TF-RD-021B sandwich delta families where possible so this
+    post-performance lane stays a bounded architecture-knob read instead of becoming
+    a parallel search program.
+  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`:
+    `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`,
+    `trace_activations=false`, `activation_checkpointing=false`,
+    `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`,
+    `optimizer.min_lr=1e-5`, and linear warmup at `lr_max=1e-3`.'
+  - The only live architecture knobs in this sweep are `head_hidden_dim`, `sandwich_summary_tokens_per_axis`,
+    `sandwich_latents`, `sandwich_heads`, `sandwich_ff_expansion`, and
+    `sandwich_self_attention_per_cross`.
+  - Keep `d_icl`, `sandwich_layers`, batch size, LR, clipping, optimizer family,
+    and corpus choice out of scope here; those remain reserved for TF-RD-009 or
+    other dedicated training-surface follow-up.
+  dimension_table:
+  - dimension: latent bank size
+    upstream: Perceiver-style models use latent count as an explicit memory and
+      fidelity knob.
+    anchor: TF-RD-010 medium control uses `sandwich_latents=24`.
+    interpretation: Read latent count only as a bounded post-performance architecture
+      knob on the closed multiclass benchmark contract.
+  - dimension: attention partitioning
+    upstream: Transformer head count changes factorization without changing total
+      width.
+    anchor: TF-RD-010 medium control uses `sandwich_heads=4`.
+    interpretation: If the lower head bracket is weak here, head count should stay
+      frozen outside later scale-law work.
+  - dimension: feed-forward width
+    upstream: FF expansion changes per-token capacity independently of attention
+      routing.
+    anchor: TF-RD-010 medium control uses `sandwich_ff_expansion=2`.
+    interpretation: This reads trunk MLP capacity only after runtime policy is fixed.
+  - dimension: summary-stream bandwidth
+    upstream: Sandwich summary tokens trade compact contextual bandwidth against
+      compute.
+    anchor: TF-RD-010 medium control uses `sandwich_summary_tokens_per_axis=3`.
+    interpretation: If the current benchmark contract mostly benefits from the broader
+      hybrid structure, summary multiplicity should be a bounded follow-on knob rather
+      than a fresh architecture branch.
+  - dimension: latent self-refinement depth
+    upstream: Perceiver-style models can vary how much latent self-attention happens
+      between cross-attention reads.
+    anchor: TF-RD-010 medium control uses `sandwich_self_attention_per_cross=4`.
+    interpretation: This asks whether repeated latent refinement is still carrying
+      signal once the direct multiclass benchmark surface is fixed.
+  - dimension: readout capacity
+    upstream: Head-hidden width changes prediction-head capacity without reopening
+      trunk width or depth.
+    anchor: TF-RD-010 medium control uses `head_hidden_dim=96`.
+    interpretation: Treat readout width as a bounded post-performance follow-up, not
+      as a proxy for `d_icl` or broader scaling work.
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: TF-RD-010 medium contract screens rows first; any keep must then validate
+      on the closed TF-RD-010 large contract.
+    interpretation: Medium is the fast screening rung, but promotion requires consistency
+      on the harder large rung before the knob stays live.
+  - dimension: training and runtime surface
+    upstream: No external paper fixes this exact prior-dump or runtime policy.
+    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+      with the inherited TF-RD-022 runtime policy.
+    interpretation: Hold optimizer, schedule, batching, and runtime policy fixed so
+      this sweep isolates architecture knobs only.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

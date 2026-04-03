@@ -6,8 +6,8 @@ This is the canonical long-form evidence note for
 - Status: `planned`
 - Milestone: `Next`
 - Dependency position: follows
-  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
   [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md),
+  [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md),
   [TF-RD-010](tf_rd_010_many_class_promotion.md), and the simplified-parent
   phase of
   [TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion)
@@ -48,11 +48,10 @@ This is the canonical long-form evidence note for
 - sandwich simplification under
   [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the required
   pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
-- the first scaling target is now a fixed dagzoo many-class plus missingness
-  slice rather than the earlier binary-only regime
-- TF-RD-021 now supplies that slice through a two-phase lane: freeze the
-  admissible post-RD-002/RD-005 dagzoo candidate surface first, then make one
-  bounded carry-forward decision before runtime or scaling work
+- the first scaling target is now the closed TF-RD-010 medium/large
+  classification benchmark contract rather than the earlier binary-only regime
+- TF-RD-024 now owns the bounded non-dynamics sandwich knob sweep that should
+  finish before TF-RD-009 freezes the remaining architecture knobs
 - regression is explicitly deferred from the first scaling program and is not a
   blocker for the first classification law fit
 
@@ -84,37 +83,38 @@ This is the canonical long-form evidence note for
   - depth via `sandwich_layers`
   - optimizer transfer via LR, momentum, and batch
   - fixed inherited runtime policy
-  - fixed curriculum or SCM-mixture slice
-- the first carried slice should be dagzoo-backed many-class plus missingness,
-  and the primary objective on that slice should be multiclass log loss
+  - fixed benchmark contract
+- the first carried slice should be the closed TF-RD-010 classification
+  benchmark contract, and the primary objective on that slice should be
+  multiclass log loss
 - matched token budget remains necessary, but comparisons should be interpreted
   through matched regime budget:
   - token budget
   - unique-task budget
   - fixed curriculum or SCM-mixture slice
   - fixed task-complexity band
+- TF-RD-024, not TF-RD-009, owns the bounded non-dynamics sandwich knob sweep;
+  TF-RD-009 should reserve `d_icl`, `sandwich_layers`, and optimizer transfer
+  as the main live dimensions
 - the first public single-knob interface should be derived from the fitted law
   later; it should not be authored up front
 
 ## Open Evidence Gaps
 
 - the dedicated literature-synthesis and law-design note is not yet written
-- the repo does not yet have one fixed dagzoo many-class plus missingness slice
-  on the same simplified sandwich trunk
 - the runtime policy is not yet finalized as a hard inherited precondition for
   the scaling ladder
-- the TF-RD-021 carry-forward keep/defer decision is not yet finalized on the carried
-  post-RD-002/RD-005 dagzoo slice
-- sweep/result summaries still need compact presentation of the new
-  runtime-summary and regime-budget fields
+- the TF-RD-024 bounded architecture keep/defer decision is not yet finalized
+- the repo still does not have one canonical TF-RD-009 artifact path on the
+  inherited benchmark and runtime contract
 
 ## Exit Signals
 
 - the repo has a written law-design note that separates theory-backed and
   empirical dimensions explicitly
 - width-depth classification laws are fit on the simplified sandwich family
-  under one carried dagzoo many-class plus missingness slice and one inherited
-  runtime policy
+  under the closed TF-RD-010 benchmark contract, one inherited runtime policy,
+  and one fixed post-TF-RD-024 non-scaling architecture surface
 - the scaling artifacts compare rows by matched regime budget with final
   multiclass log loss as the primary objective
 - any later `sandwich_scale` interface is explicitly derived from those law

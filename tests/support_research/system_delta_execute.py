@@ -1489,6 +1489,21 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
         },
     }
     run_entry = {
+        'runtime_summary': {
+            'peak_vram_allocated': 1024,
+            'peak_vram_reserved': 2048,
+            'throughput_examples_per_second': 12.5,
+            'throughput_tokens_per_second': 6400.0,
+            'non_train_overhead_seconds': 0.8,
+        },
+        'regime_budget': {
+            'tokens_per_step': 512.0,
+            'tokens_seen': 38400,
+            'token_budget': 38400,
+            'unique_task_budget': 96,
+            'objective_metric': 'final_log_loss_at_matched_regime_budget',
+            'curriculum_id': 'dagzoo_shape_aware_multi_invocation',
+        },
         'comparisons': {
             'vs_anchor': {
                 'final_log_loss_delta': -0.03,
@@ -1514,6 +1529,12 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['primary_external_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['nanotabpfn_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['clipped_step_fraction'] == pytest.approx(0.5)
+    assert queue_metrics['peak_vram_reserved'] == 2048
+    assert queue_metrics['throughput_tokens_per_second'] == pytest.approx(6400.0)
+    assert queue_metrics['tokens_per_step'] == pytest.approx(512.0)
+    assert queue_metrics['token_budget'] == 38400
+    assert queue_metrics['unique_task_budget'] == 96
+    assert queue_metrics['curriculum_id'] == 'dagzoo_shape_aware_multi_invocation'
     assert queue_metrics['column_encoder_final_window_mean_grad_norm'] == pytest.approx(0.42)
     assert queue_metrics['row_pool_final_window_mean_grad_norm'] == pytest.approx(0.55)
     assert queue_metrics['context_encoder_final_window_mean_grad_norm'] == pytest.approx(0.73)
@@ -1582,6 +1603,12 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
             'delta_final_roc_auc': -0.006,
             'max_grad_norm': 3.2,
             'clipped_step_fraction': 0.125,
+            'peak_vram_reserved': 2048,
+            'throughput_tokens_per_second': 6400.0,
+            'tokens_per_step': 512.0,
+            'token_budget': 38400,
+            'unique_task_budget': 96,
+            'curriculum_id': 'dagzoo_shape_aware_multi_invocation',
             'column_encoder_final_window_mean_grad_norm': 0.42,
             'row_pool_final_window_mean_grad_norm': 0.55,
             'context_encoder_final_window_mean_grad_norm': 0.73,
@@ -1597,6 +1624,9 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
     assert '- Delta final log loss vs anchor: `-0.0110`' in text
     assert '- TabICLv2 best log loss: `0.3920`' in text
     assert '- Final ROC AUC: `0.8040`' in text
+    assert '## Runtime and regime budget' in text
+    assert '- Throughput tokens/sec: `6400.0000`' in text
+    assert '- Token budget: `38400`' in text
     assert '## Stage-local stability' in text
     assert '- Column stage: final-window mean grad norm `0.4200`, activation early-to-final mean delta `+0.1200`' in text
     assert '- Context stage: final-window mean grad norm `0.7300`, activation early-to-final mean delta `+0.2400`' in text
@@ -1681,6 +1711,22 @@ def test_screen_metrics_reads_upper_block_summary_and_final_train_loss_ema(tmp_p
                         }
                     },
                 }
+                ,
+                'runtime_summary': {
+                    'peak_vram_allocated': 1024,
+                    'peak_vram_reserved': 2048,
+                    'throughput_examples_per_second': 12.5,
+                    'throughput_tokens_per_second': 6400.0,
+                    'non_train_overhead_seconds': 0.8,
+                },
+                'regime_budget': {
+                    'tokens_per_step': 512.0,
+                    'tokens_seen': 38400,
+                    'token_budget': 38400,
+                    'unique_task_budget': 96,
+                    'objective_metric': 'final_log_loss_at_matched_regime_budget',
+                    'curriculum_id': 'dagzoo_shape_aware_multi_invocation',
+                },
             }
         ),
         encoding='utf-8',
@@ -1707,6 +1753,10 @@ def test_screen_metrics_reads_upper_block_summary_and_final_train_loss_ema(tmp_p
     assert metrics['upper_block_post_warmup_mean_slope'] == pytest.approx(0.03125)
     assert metrics['clipped_step_fraction'] == pytest.approx(0.125)
     assert metrics['final_train_loss_ema'] == pytest.approx(0.5)
+    assert metrics['peak_vram_reserved'] == 2048
+    assert metrics['throughput_tokens_per_second'] == pytest.approx(6400.0)
+    assert metrics['tokens_per_step'] == pytest.approx(512.0)
+    assert metrics['token_budget'] == 38400
 
 
 def test_pick_screen_winner_prefers_rmsnorm_on_full_tie() -> None:

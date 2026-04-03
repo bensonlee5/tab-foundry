@@ -1,0 +1,13 @@
+seed: 1
+output_dir: outputs/tf_rd_022_policy
+device: auto
+mixed_precision: bf16
+num_workers: 0
+grad_clip: 0.0
+grad_accum_steps: 4
+trace_activations: false
+activation_checkpointing: false
+eval_every: 25
+checkpoint_every: 25
+val_batches: 0
+max_steps: 2500

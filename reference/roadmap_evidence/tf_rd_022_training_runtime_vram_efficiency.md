@@ -3,13 +3,14 @@
 This is the canonical long-form evidence note for
 [TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-before-classification-scaling).
 
-- Status: `planned`
+- Status: `partial`
 - Milestone: `Next`
-- Dependency position: runs after the first carried sandwich dagzoo many-class
-  slice and the full TF-RD-021 carry-forward decision are explicit, and before
-  TF-RD-009 scaling fits; it should not reopen sandwich-parent or regime-choice
-  work, but it should hand one explicit kernel/runtime policy back to later
-  scaling work
+- Dependency position: runs after the closed TF-RD-010 classification
+  benchmark contract is explicit, and before
+  [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md) and
+  [TF-RD-009](tf_rd_009_scaling_law_measurement.md); it should not reopen
+  sandwich-parent or regime-choice work, and it is not blocked by TF-RD-021 or
+  dagzoo RD-002 / RD-005
 
 ## External Evidence
 
@@ -52,41 +53,48 @@ This is the canonical long-form evidence note for
   - `curriculum_id`
   - `curriculum_mix`
   - `scm_complexity_summary`
-- canonical benchmark prior configs still inherit `runtime.mixed_precision: "no"` from `configs/experiment/_shared/compact_binary_prior.yaml` unless a
-  higher-level experiment overrides it
-- the shared runtime surface already supports `runtime.activation_checkpointing`,
-  and benchmark-facing exact-prior runs still default to
-  `runtime.trace_activations: true`
+- `tab-foundry dev run-inspect`, sweep summary output, and result-card reporting
+  now expose compact `runtime_summary` and `regime_budget` sections directly
+- the repo now has a named runtime policy surface at
+  `configs/runtime/tf_rd_022_policy.yaml` plus the inherited benchmark-facing
+  experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+- issue [#233](https://github.com/bensonlee5/tab-foundry/issues/233) is the
+  downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 policy
 
 ## Current Interpretation
 
 - TF-RD-022 is now a hard pre-scaling gate rather than an optional adjacent
   runtime-cleanup lane
+- TF-RD-022 runs directly on the closed TF-RD-010 benchmark contract; TF-RD-021
+  and dagzoo RD-002 / RD-005 remain sidecar context only
 - the highest-probability low-risk win is still to make runtime policy explicit
   and measurable before chasing larger architecture or optimizer changes for
   speed
 - the runtime ladder should stay classification-only and should inherit one
-  frozen carried recipe rather than reopening sandwich-parent selection, the
-  upstream dagzoo surface expansion, or law design
+  frozen recipe rather than reopening sandwich-parent selection, synthetic
+  surface expansion, or law design
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
   - activation checkpointing
+- use the existing medium benchmark rung as the fast screening stage, then
+  validate the kept policy on the closed TF-RD-010 medium and large targets
 - include low-level kernel tuning only to the extent needed to keep the
-  carried sandwich dagzoo slice reliable and efficient enough for scaling
+  inherited sandwich benchmark contract reliable and efficient enough for
+  scaling
 - batching reopens only after those reads and only under an explicit 80 GB A100
   guardrail
 
 ## Open Evidence Gaps
 
-- sweep and result summaries still need compact presentation of the new runtime
-  and regime-budget fields
 - the repo still lacks one explicit keep/defer decision on whether bf16 is
   benchmark-safe on the carried classification recipe
 - the repo still lacks one explicit keep/defer decision on benchmark-facing
   activation tracing versus screen-only tracing
+- the repo still lacks one explicit keep/defer decision on activation
+  checkpointing on the inherited classification recipe
 - the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
-  on the carried harder-surface classification recipe under an 80 GB A100
+  on the inherited harder-surface classification recipe under an 80 GB A100
   budget
 
 ## Exit Signals
@@ -95,6 +103,6 @@ This is the canonical long-form evidence note for
   scaling target, justified by repo-local time and VRAM evidence
 - artifacts and summaries expose runtime and VRAM metrics compactly enough to
   compare future runs without manual log inspection
-- later scaling, deferred CUDA-capacity follow-up, and TF-RD-009 can inherit
-  the same runtime policy and batching keep/stop rule without
-  re-deriving them
+- later TF-RD-024 architecture work, deferred CUDA-capacity follow-up, and
+  TF-RD-009 can inherit the same runtime policy and batching keep/stop rule
+  without re-deriving them
