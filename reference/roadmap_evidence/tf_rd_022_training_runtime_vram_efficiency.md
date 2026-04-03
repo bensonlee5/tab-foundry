@@ -58,6 +58,18 @@ This is the canonical long-form evidence note for
 - the repo now has a named runtime policy surface at
   `configs/runtime/tf_rd_022_policy.yaml` plus the inherited benchmark-facing
   experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+- sweep `tf_rd_022_runtime_policy_medium_v1` now records the intended
+  benchmark-first medium runtime ladder on the closed TF-RD-010 control
+  contract:
+  - row 1 replays the no-AMP control
+  - row 2 isolates bf16
+  - row 3 isolates benchmark-facing activation tracing on top of bf16
+  - row 4 isolates activation checkpointing on top of bf16
+- that sweep uses a benchmark-first keep bar: a row is eligible only if
+  `final_log_loss_at_matched_regime_budget` is non-worse than the no-AMP
+  control, with `peak_vram_reserved`, `throughput_tokens_per_second`, and
+  `non_train_overhead_seconds` used only as tie-breakers among benchmark-safe
+  rows
 - issue [#233](https://github.com/bensonlee5/tab-foundry/issues/233) is the
   downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 policy
 
@@ -73,6 +85,10 @@ This is the canonical long-form evidence note for
 - the runtime ladder should stay classification-only and should inherit one
   frozen recipe rather than reopening sandwich-parent selection, synthetic
   surface expansion, or law design
+- the concrete medium screening surface is now
+  `tf_rd_022_runtime_policy_medium_v1`, and any winner from that ladder should
+  promote into a two-row large validator rather than directly mutating the
+  carried runtime policy
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
@@ -93,6 +109,10 @@ This is the canonical long-form evidence note for
   activation tracing versus screen-only tracing
 - the repo still lacks one explicit keep/defer decision on activation
   checkpointing on the inherited classification recipe
+- the repo still lacks the actual `tf_rd_022_runtime_policy_medium_v1`
+  executions because this workspace does not expose a CUDA device; the sweep is
+  scaffolded and rendered, but the measured runtime evidence is still pending a
+  CUDA host
 - the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
   on the inherited harder-surface classification recipe under an 80 GB A100
   budget

@@ -1954,6 +1954,322 @@ deltas:
     default_next_action: Wait for the stage-1 knob-sensitivity read before executing the width or head-capacity follow-up.
     applicability_guards: []
 
+  delta_tf_rd_022_cls_runtime_control_noamp_v1:
+    dimension_family: training
+    family: runtime_policy
+    binary_applicable: false
+    description: Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing.
+    upstream_delta: Not applicable; this is the no-AMP runtime-policy control for TF-RD-022 on the closed classification benchmark contract.
+    expected_effect: Establish the benchmark-safe runtime and VRAM baseline before any low-risk runtime knob is considered.
+    adequacy_knobs:
+      - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`
+      - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute this row first as the same-bundle control replay for the TF-RD-022 runtime ladder.
+        - Use `final_log_loss_at_matched_regime_budget` as the primary ranking key, then inspect runtime and VRAM only as guardrails and tie-breakers.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        synthetic_epoch_budget:
+          epochs: 1
+          budget_unit: corpus_manifest_records
+          prior_dump_batch_size: 64
+          allow_partial_final_batch: true
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: "no"
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: false
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute this row first as the no-AMP control for the TF-RD-022 runtime ladder.
+    applicability_guards: []
+
+  delta_tf_rd_022_cls_runtime_bf16_v1:
+    dimension_family: training
+    family: runtime_policy
+    binary_applicable: false
+    description: Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification control recipe.
+    upstream_delta: Not applicable; this is the first low-risk AMP candidate for TF-RD-022 on the closed classification benchmark contract.
+    expected_effect: If AMP is benchmark-safe on the carried sandwich recipe, bf16 should preserve log loss while reducing runtime or VRAM cost versus the no-AMP control.
+    adequacy_knobs:
+      - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`
+      - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the no-AMP control row on `final_log_loss_at_matched_regime_budget`.
+        - Treat lower peak reserved VRAM, then higher token throughput, then lower non-train overhead as tie-breakers only if benchmark quality is non-worse.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        synthetic_epoch_budget:
+          epochs: 1
+          budget_unit: corpus_manifest_records
+          prior_dump_batch_size: 64
+          allow_partial_final_batch: true
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: false
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute after the no-AMP control and carry it forward only if benchmark quality is non-worse.
+    applicability_guards: []
+
+  delta_tf_rd_022_cls_runtime_trace_v1:
+    dimension_family: training
+    family: runtime_policy
+    binary_applicable: false
+    description: Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022 runtime candidate.
+    upstream_delta: Not applicable; this is the bounded activation-trace diagnostic for TF-RD-022 on the closed classification benchmark contract.
+    expected_effect: Benchmark-facing activation tracing should remain a measurable overhead unless it is effectively free on the carried classification recipe.
+    adequacy_knobs:
+      - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`
+      - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare this row against the simpler bf16 row first, not only against the no-AMP control.
+        - Treat this row as a diagnostic loser unless it is benchmark-safe and also beats the simpler bf16 row on the runtime tie-breakers.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        synthetic_epoch_budget:
+          epochs: 1
+          budget_unit: corpus_manifest_records
+          prior_dump_batch_size: 64
+          allow_partial_final_batch: true
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: true
+            activation_checkpointing: false
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute after the simpler bf16 row and keep it only if tracing remains benchmark-safe and runtime-competitive.
+    applicability_guards: []
+
+  delta_tf_rd_022_cls_runtime_checkpoint_v1:
+    dimension_family: training
+    family: runtime_policy
+    binary_applicable: false
+    description: Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate.
+    upstream_delta: Not applicable; this is the bounded activation-checkpointing diagnostic for TF-RD-022 on the closed classification benchmark contract.
+    expected_effect: Activation checkpointing may reduce reserved VRAM at the cost of runtime; it should stay deferred unless that trade remains benchmark-safe and materially useful.
+    adequacy_knobs:
+      - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`
+      - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare this row against the simpler bf16 row first, not only against the no-AMP control.
+        - Treat this row as a diagnostic loser unless it is benchmark-safe and also beats the simpler bf16 row on the runtime tie-breakers.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        synthetic_epoch_budget:
+          epochs: 1
+          budget_unit: corpus_manifest_records
+          prior_dump_batch_size: 64
+          allow_partial_final_batch: true
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute after the simpler bf16 row and keep it only if checkpointing remains benchmark-safe and runtime-competitive.
+    applicability_guards: []
+
   delta_tf_rd_024_cls_sandwich_latents12_v1:
     dimension_family: model
     family: architecture_followup

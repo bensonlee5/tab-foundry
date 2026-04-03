@@ -1742,4 +1742,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 744de72fd20db626ce100ba09225b16c8f395496f3a4359bd274b4a49926bbeb
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_knob_sweep_v1/resolved_queue.yaml
-inputs_fingerprint: 19b790d87fd18826d0db07457aff42e1f6573ea2b4a12a0077aefd68944f4145
+inputs_fingerprint: 3b7000f4995e502dc93fb13e5fe21eb62218d0aaa01eb833e7c8f859934c9ab3

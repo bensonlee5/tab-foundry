@@ -594,12 +594,21 @@ Legacy wording note:
   - the repo now has a named runtime policy surface at
     `configs/runtime/tf_rd_022_policy.yaml` plus the inherited benchmark-facing
     experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+  - sweep `tf_rd_022_runtime_policy_medium_v1` is now registered as the
+    benchmark-first TF-RD-022 medium screening ladder: row 1 replays the
+    no-AMP control, rows 2 through 4 isolate bf16, benchmark-facing activation
+    tracing, and activation checkpointing, and the keep bar requires
+    non-worse `final_log_loss_at_matched_regime_budget` before runtime or VRAM
+    tie-breakers are considered
   - the inherited validation contract is the closed TF-RD-010 medium and large
     classification benchmark package under issues
     [#202](https://github.com/bensonlee5/tab-foundry/issues/202),
     [#203](https://github.com/bensonlee5/tab-foundry/issues/203),
     [#204](https://github.com/bensonlee5/tab-foundry/issues/204), and
     [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
+  - the medium ladder is scaffolded and rendered in-repo, but the measured keep
+    or defer decision is still pending because this workspace does not expose a
+    CUDA device for the actual TF-RD-022 runtime runs
 - this epic now follows the closed TF-RD-010 benchmark contract directly; it
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
   dagzoo RD-005, or broader regime-choice work
@@ -612,9 +621,11 @@ Legacy wording note:
     [#169](https://github.com/bensonlee5/tab-foundry/issues/169) on one frozen
     classification recipe: treat bf16, benchmark-facing activation-trace
     policy, and activation checkpointing as the first runtime-policy knobs
+    through `tf_rd_022_runtime_policy_medium_v1`
   - use the existing medium benchmark rung as the fast screening stage for that
-    runtime ladder, then validate the kept policy on the closed TF-RD-010
-    medium and large benchmark targets before promotion
+    runtime ladder, then validate the kept policy in
+    `tf_rd_022_runtime_policy_large_validation_v1` on the closed TF-RD-010
+    large target before promotion
   - include any low-level kernel tuning only to the extent needed to make the
     inherited sandwich classification contract reliable and efficient enough
     for scaling

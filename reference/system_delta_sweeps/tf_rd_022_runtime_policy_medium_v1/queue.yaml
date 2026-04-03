@@ -1,0 +1,311 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_022_runtime_policy_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_022_cls_runtime_control_noamp_v1
+  status: ready
+  rationale: Establish the same-bundle no-AMP control replay before reading any TF-RD-022 runtime-policy change.
+  hypothesis: The closed TF-RD-010 classification recipe should remain the benchmark-safe reference point when rerun without AMP, activation tracing, or activation checkpointing.
+  anchor_delta: Re-run the closed TF-RD-010 classification control recipe with `mixed_precision='no'`, `trace_activations=false`, and `activation_checkpointing=false` on the medium benchmark contract.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: "no"
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Run this row first as the no-AMP control replay for the TF-RD-022 runtime ladder.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` baseline before interpreting any runtime-policy result as a keep or defer.
+  - Rank rows first by `final_log_loss_at_matched_regime_budget`, then inspect runtime and VRAM only as guardrails and tie-breakers.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute first, then use it as the same-bundle benchmark and runtime control for rows 2 through 4.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_022_cls_runtime_bf16_v1
+  status: ready
+  rationale: Test whether bf16 alone is a benchmark-safe runtime and VRAM improvement on the carried classification recipe.
+  hypothesis: Switching only `mixed_precision` to `bf16` should preserve `final_log_loss_at_matched_regime_budget` while reducing runtime or reserved VRAM versus the no-AMP control.
+  anchor_delta: Starting from row 1, switch only `runtime.mixed_precision` from `"no"` to `bf16`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row 1 on `final_log_loss_at_matched_regime_budget`.
+  - Promote to the large validator only if this row is non-worse on benchmark quality.
+  - Use lower `peak_vram_reserved`, then higher `throughput_tokens_per_second`, then lower `non_train_overhead_seconds` only as tie-breakers among benchmark-safe rows.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after row 1 and carry it forward only if bf16 is benchmark-safe on the medium rung.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_022_cls_runtime_trace_v1
+  status: ready
+  rationale: Measure the benchmark-facing activation-trace overhead on top of the simpler bf16 runtime candidate.
+  hypothesis: Activation tracing should stay a diagnostic-only cost on the carried classification recipe unless it is effectively free on both benchmark quality and runtime guardrails.
+  anchor_delta: Starting from row 2, switch only `runtime.trace_activations` from `false` to `true`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: true
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare this row against the simpler bf16 row first, not only against row 1.
+  - Treat it as a diagnostic loser unless it is benchmark-safe and also beats the simpler bf16 row on the runtime tie-breakers.
+  - Do not carry this row forward to large validation unless it wins the medium ladder under the benchmark-first keep bar.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after row 2, then defer it unless benchmark quality remains non-worse and tracing is runtime-competitive.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_022_cls_runtime_checkpoint_v1
+  status: ready
+  rationale: Measure the activation-checkpointing tradeoff on top of the simpler bf16 runtime candidate.
+  hypothesis: Activation checkpointing may reduce reserved VRAM, but it should stay deferred unless that reduction is benchmark-safe and beats the simpler bf16 row on the runtime tie-breakers.
+  anchor_delta: Starting from row 2, switch only `runtime.activation_checkpointing` from `false` to `true`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare this row against the simpler bf16 row first, not only against row 1.
+  - Treat it as a diagnostic loser unless it is benchmark-safe and also beats the simpler bf16 row on the runtime tie-breakers.
+  - Do not carry this row forward to large validation unless it wins the medium ladder under the benchmark-first keep bar.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after row 2, then defer it unless checkpointing is benchmark-safe and materially better on VRAM or runtime guardrails.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
