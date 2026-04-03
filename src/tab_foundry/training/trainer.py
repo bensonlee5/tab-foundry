@@ -30,7 +30,7 @@ from .surface import TRAINING_BACKEND_MANIFEST, write_training_surface_record
 from .trainer_finalize import finalize_training_run
 from .trainer_guards import _accelerator_num_processes
 from .trainer_loop import TrainingLoopState, run_training_loop
-from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader, _expected_metric_keys
+from .trainer_metrics import _compute_loss_and_metrics, _expected_metric_keys
 from .trainer_optimizer import _optimizer_lr_scales, _set_optimizer_training_mode
 from .trainer_runtime_config import (
     _checkpoint_every,
@@ -322,10 +322,6 @@ def train(cfg: DictConfig) -> TrainResult:
             trace_activations=trace_activations,
             flush_activation_trace_stats=_flush_activation_trace_stats,
             run=run,
-            compute_loss_and_metrics=_compute_loss_and_metrics,
-            evaluate_loader=_evaluate_loader,
-            move_batch_fn=move_batch,
-            normalize_grad_norm_value_fn=normalize_grad_norm_value,
             state=state,
         )
         accelerator.wait_for_everyone()

@@ -1359,7 +1359,7 @@ def test_train_history_weights_microstep_metrics_by_actual_task_count(
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(trainer_module, "build_task_loader", lambda *_args, **_kwargs: batches)
-    monkeypatch.setattr(trainer_module, "_compute_loss_and_metrics", _fake_compute)
+    monkeypatch.setattr(trainer_loop_module, "_compute_loss_and_metrics", _fake_compute)
 
     cfg = _classification_cfg(tmp_path)
     cfg.runtime.grad_accum_steps = 2
@@ -1478,7 +1478,7 @@ def test_train_grad_accum_streams_move_and_forward_in_lockstep(
         ),
     )
     monkeypatch.setattr(
-        trainer_module,
+        trainer_loop_module,
         "move_batch",
         lambda batch, _device: events.append("move") or batch,
     )
@@ -1570,7 +1570,7 @@ def test_train_aggregates_task_batching_telemetry_across_grad_accum_steps(
         "build_model_from_spec",
         lambda _spec: _TaskBatchAwareTinyClassifier(),
     )
-    monkeypatch.setattr(trainer_module, "_compute_loss_and_metrics", _fake_compute)
+    monkeypatch.setattr(trainer_loop_module, "_compute_loss_and_metrics", _fake_compute)
 
     cfg = _classification_cfg(tmp_path)
     cfg.training = {"task_batch_size": 2}
@@ -2293,7 +2293,7 @@ def test_train_records_non_finite_global_grad_norm_kinds(
     monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
     monkeypatch.setattr(trainer_module, "build_optimizer", _build_counting_optimizer)
     monkeypatch.setattr(
-        trainer_module,
+        trainer_loop_module,
         "normalize_grad_norm_value",
         lambda *_args, **_kwargs: grad_norm_value,
     )
