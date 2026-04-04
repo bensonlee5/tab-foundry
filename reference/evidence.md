@@ -274,19 +274,17 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the repo records one explicit keep/defer decision on whether a
     steering-derived corpus front changes the carried sandwich dagzoo slice
 
-### TF-RD-022: Performance Optimization On The Settled Sandwich Runtime Surface Before Classification Scaling
+### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
 - External evidence:
   - dedicated runtime-policy literature is not yet curated in this repo
-  - the next sources to curate are PyTorch bf16, activation-checkpointing,
-    throughput telemetry, benchmark execution, and materialization-path
-    references for A100-class training and local orchestration
+  - the next sources to curate are PyTorch bf16, activation-checkpointing, and
+    throughput or memory telemetry references for A100-class training
 - Repo-local evidence:
-  - completed historical issues `#58`, `#169`, and `#170` now record the
-    runtime-summary instrumentation, bounded medium ladder, and explicit
-    runtime-policy surface that settled the carried TF-RD-022 runtime policy
-  - epic `#168` plus child issues `#239`, `#240`, and `#241` now give the
-    active performance gate an explicit roadmap home
+  - deferred issue `#58` already tracks runtime or VRAM summary work but
+    stayed attached to the earlier TF-RD-002 measurement chain
+  - epic `#168` plus child issues `#169`, `#170`, and `#171` now give the
+    runtime lane an explicit roadmap home
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
   - sandwich architecture ownership now lives under the historical
@@ -294,13 +292,11 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     anchor-retention decision `#184`; this runtime lane is a dependency surface
     for later classification work rather than the owner of sandwich planning
   - training telemetry and benchmark-registry artifacts now preserve runtime
-    summaries and regime-budget metadata needed for later runtime-policy,
-    performance, and scaling comparisons
+    summaries and regime-budget metadata needed for later runtime-policy and
+    scaling comparisons
 - Success signal:
-  - the repo records one explicit carried runtime policy plus measured
-    keep/defer outcomes for training throughput, benchmark throughput, and
-    materialization throughput, and later scaling work can inherit that closed
-    performance gate
+  - the repo records one explicit kernel/runtime policy with peak-memory and
+    throughput evidence, and later scaling work can inherit it
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 

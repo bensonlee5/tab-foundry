@@ -32,16 +32,16 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 | precision policy | PyTorch AMP guidance treats bf16 as a low-risk accelerator-side runtime knob on supported CUDA hardware. | The closed TF-RD-010 contract was recorded with `mixed_precision='no'`. | Precision may change runtime and memory, but it only survives TF-RD-022 if benchmark quality is non-worse. |
 | activation tracing | Activation tracing is a repo-local observability surface rather than a benchmark objective. | The control row keeps `trace_activations=false`. | Benchmark-facing activation tracing should stay off unless it is effectively free on the carried classification recipe. |
 | activation checkpointing | Activation checkpointing is a standard memory-speed tradeoff, not a model change. | The control row keeps `activation_checkpointing=false`. | Checkpointing only survives if it is benchmark-safe and materially better on runtime or VRAM guardrails. |
-| benchmark contract | Not applicable. | Closed TF-RD-010 medium contract on `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. | Medium is the completed screening rung that fixed the carried TF-RD-022 runtime policy; later TF-RD-022 work should treat this ladder as historical policy-selection evidence rather than a pending promotion gate. |
+| benchmark contract | Not applicable. | Closed TF-RD-010 medium contract on `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. | Medium is the screening rung only; any keep-worthy row still needs large-rung validation before it becomes the TF-RD-022 carried policy. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_022_cls_runtime_control_noamp_v1` | runtime_policy | no | completed | none | Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing. | Keep this row as the benchmark-safe historical screening control for the settled TF-RD-022 runtime surface. |
+| 1 | `delta_tf_rd_022_cls_runtime_control_noamp_v1` | runtime_policy | no | completed | none | Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing. | Keep this row as the same-bundle benchmark-safe screening control while the checkpointing winner advances to the large validator. |
 | 2 | `delta_tf_rd_022_cls_runtime_bf16_v1` | runtime_policy | no | completed | none | Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification control recipe. | Keep this row as the simpler benchmark-safe bf16 reference, but defer it in favor of the lower-VRAM checkpointing winner. |
 | 3 | `delta_tf_rd_022_cls_runtime_trace_v1` | runtime_policy | no | completed | none | Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022 runtime candidate. | Defer this row as a benchmark-safe diagnostic that did not win the runtime tie-breakers against the kept checkpointing candidate. |
-| 4 | `delta_tf_rd_022_cls_runtime_checkpoint_v1` | runtime_policy | no | completed | none | Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate. | Carry this row as the settled TF-RD-022 runtime policy while later TF-RD-022 follow-up work profiles training, benchmark, and materialization speed on the same surface. |
+| 4 | `delta_tf_rd_022_cls_runtime_checkpoint_v1` | runtime_policy | no | completed | none | Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate. | Promote this row into `tf_rd_022_runtime_policy_large_validation_v1` on the closed TF-RD-010 large contract before treating it as the closed TF-RD-022 carried runtime policy. |
 
 ## Detailed Rows
 
@@ -98,7 +98,7 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 - Training overrides: `{'optimizer': {'min_lr': 1e-05}, 'runtime': {'mixed_precision': 'bf16', 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
   - Compare directly against row 1 on `final_log_loss_at_matched_regime_budget`.
-  - Treat non-worse quality here as evidence that pure bf16 is benchmark-safe on the historical medium ladder, not as a pending promotion requirement.
+  - Promote to the large validator only if this row is non-worse on benchmark quality.
   - Use lower `peak_vram_reserved`, then higher `throughput_tokens_per_second`, then lower `non_train_overhead_seconds` only as tie-breakers among benchmark-safe rows.
 - Adequacy knobs to dimension explicitly:
   - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
