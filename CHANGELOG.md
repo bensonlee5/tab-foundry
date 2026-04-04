@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.8] - 2026-04-04
+
+### Changed
+
+- User-facing note: `tab-foundry` checkpoint benchmark evaluation now batches
+  compatible `tabfoundry_sandwich` classification folds during the internal
+  OpenML replay path, materially reducing benchmark wall-clock without changing
+  benchmark outputs or artifact schemas.
+- User-facing note: `tab-foundry bench env bootstrap` now links a local
+  `tab-realdata-hub/src` checkout explicitly into the TabICLv2 helper
+  environment on Python 3.13 sibling setups, so local benchmark compare runs do
+  not fail on missing helper imports when the repo root is available.
+
 ## [0.16.7] - 2026-04-04
 
 ### Changed
