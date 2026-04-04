@@ -2926,3 +2926,110 @@ def test_build_comparison_summary_uses_log_loss_as_classification_best_step(tmp_
     assert summary['tab_foundry']['best_step'] == pytest.approx(50.0)
     assert summary['tab_foundry']['best_log_loss'] == pytest.approx(0.40)
     assert summary['tab_foundry']['best_roc_auc'] == pytest.approx(0.81)
+
+
+def test_build_comparison_summary_averages_external_scalar_metrics_across_seeds(
+    tmp_path: Path,
+) -> None:
+    summary = benchmark_module.build_comparison_summary(
+        tab_foundry_records=[
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.0,
+                "roc_auc": 0.80,
+                "log_loss": 0.40,
+                "brier_score": 0.12,
+                "dataset_roc_auc": {"toy": 0.80},
+                "dataset_log_loss": {"toy": 0.40},
+                "dataset_brier_score": {"toy": 0.12},
+            }
+        ],
+        nanotabpfn_records=[
+            {
+                "seed": 0,
+                "step": 25,
+                "training_time": 1.0,
+                "roc_auc": 0.90,
+                "log_loss": 0.30,
+                "brier_score": 0.10,
+                "dataset_roc_auc": {"toy": 0.90},
+                "dataset_log_loss": {"toy": 0.30},
+                "dataset_brier_score": {"toy": 0.10},
+            },
+            {
+                "seed": 1,
+                "step": 25,
+                "training_time": 3.0,
+                "roc_auc": 0.50,
+                "log_loss": 0.50,
+                "brier_score": 0.30,
+                "dataset_roc_auc": {"toy": 0.50},
+                "dataset_log_loss": {"toy": 0.50},
+                "dataset_brier_score": {"toy": 0.30},
+            },
+            {
+                "seed": 0,
+                "step": 50,
+                "training_time": 2.0,
+                "roc_auc": 0.40,
+                "log_loss": 0.60,
+                "brier_score": 0.40,
+                "dataset_roc_auc": {"toy": 0.40},
+                "dataset_log_loss": {"toy": 0.60},
+                "dataset_brier_score": {"toy": 0.40},
+            },
+            {
+                "seed": 1,
+                "step": 50,
+                "training_time": 4.0,
+                "roc_auc": 0.80,
+                "log_loss": 0.40,
+                "brier_score": 0.20,
+                "dataset_roc_auc": {"toy": 0.80},
+                "dataset_log_loss": {"toy": 0.40},
+                "dataset_brier_score": {"toy": 0.20},
+            },
+        ],
+        benchmark_tasks=[
+            {"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}
+        ],
+        benchmark_bundle={
+            "name": "toy_bundle",
+            "version": 1,
+            "selection": dict(DEFAULT_BENCHMARK_SELECTION),
+            "task_ids": [1],
+            "tasks": [
+                {
+                    "task_id": 1,
+                    "dataset_name": "toy",
+                    "n_rows": 6,
+                    "n_features": 2,
+                    "n_classes": 2,
+                }
+            ],
+        },
+        benchmark_manifest_path=tmp_path / "bundle.json",
+        tab_foundry_run_dir=tmp_path / "run",
+        task_type="supervised_classification",
+        nanotabpfn_root=tmp_path / "nano",
+        nanotabpfn_python=tmp_path / "nano" / ".venv" / "bin" / "python",
+    )
+
+    assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
+    assert summary["nanotabpfn"]["best_training_time"] == pytest.approx(2.0)
+    assert summary["nanotabpfn"]["best_log_loss"] == pytest.approx(0.40)
+    assert summary["nanotabpfn"]["best_roc_auc"] == pytest.approx(0.70)
+    assert summary["nanotabpfn"]["best_brier_score"] == pytest.approx(0.20)
+    assert summary["nanotabpfn"]["final_step"] == pytest.approx(50.0)
+    assert summary["nanotabpfn"]["final_training_time"] == pytest.approx(3.0)
+    assert summary["nanotabpfn"]["final_log_loss"] == pytest.approx(0.50)
+    assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.60)
+    assert summary["nanotabpfn"]["final_brier_score"] == pytest.approx(0.30)
+    assert summary["nanotabpfn"]["best_to_final_log_loss_delta"] == pytest.approx(0.10)
+    assert summary["nanotabpfn"]["best_to_final_roc_auc_delta"] == pytest.approx(-0.10)
+    assert summary["nanotabpfn"]["best_to_final_brier_score_delta"] == pytest.approx(0.10)
+    assert summary["nanotabpfn"]["best_dataset_log_loss"] == {"toy": pytest.approx(0.40)}
+    assert summary["nanotabpfn"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.50)}
+    assert summary["nanotabpfn"]["best_dataset_roc_auc"] == {"toy": pytest.approx(0.70)}
+    assert summary["nanotabpfn"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.60)}
