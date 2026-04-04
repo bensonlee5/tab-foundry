@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
-from tab_foundry.bench.helper_imports import resolve_tab_realdata_hub_root
+from tab_foundry.bench.helper_imports import (
+    resolve_tab_realdata_hub_root,
+    resolve_tab_realdata_hub_src_root,
+)
 
 
 NANOTABPFN_PYPROJECT = """[project]
@@ -126,6 +129,29 @@ def _install_tab_realdata_hub_runtime_dependencies(python_path: Path) -> None:
         _install_python_package(python_path, dependency)
 
 
+def _python_site_packages_path(python_path: Path) -> Path:
+    completed = subprocess.run(
+        [
+            str(python_path),
+            "-c",
+            "import sysconfig; print(sysconfig.get_path('purelib'))",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    resolved = Path(completed.stdout.strip()).expanduser().resolve()
+    if not resolved.exists():
+        raise RuntimeError(f"python purelib path does not exist: {resolved}")
+    return resolved
+
+
+def _install_explicit_src_root_path(python_path: Path, *, src_root: Path, module_name: str) -> None:
+    site_packages_path = _python_site_packages_path(python_path)
+    pth_path = site_packages_path / f"{module_name}_explicit_src_root.pth"
+    pth_path.write_text(f"{src_root.expanduser().resolve()}\n", encoding="utf-8")
+
+
 def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     """Create or refresh benchmark envs for sibling repos."""
 
@@ -171,6 +197,15 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     _install_python_package(nanotabpfn_python, tab_realdata_hub_spec)
     if tabicl_requires_runtime_dependency_bootstrap:
         _install_tab_realdata_hub_runtime_dependencies(tabicl_python)
+        explicit_src_root = resolve_tab_realdata_hub_src_root(
+            tab_realdata_hub_root=resolved_tab_realdata_hub_root,
+        )
+        if explicit_src_root is not None:
+            _install_explicit_src_root_path(
+                tabicl_python,
+                src_root=explicit_src_root,
+                module_name="tab_realdata_hub",
+            )
     else:
         _install_python_package(tabicl_python, tab_realdata_hub_spec)
 
@@ -182,7 +217,7 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     _validate_import(nanotabpfn_python, "tab_realdata_hub")
     _validate_import(tabpfn_python, "tabpfn")
     _validate_import(tabicl_python, "pyarrow")
-    if not tabicl_requires_runtime_dependency_bootstrap:
+    if not tabicl_requires_runtime_dependency_bootstrap or resolved_tab_realdata_hub_root is not None:
         _validate_import(tabicl_python, "tab_realdata_hub")
     _validate_import(tabicl_python, "tabicl")
 

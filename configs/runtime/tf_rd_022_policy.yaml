@@ -3,6 +3,10 @@ output_dir: outputs/tf_rd_022_policy
 device: auto
 mixed_precision: bf16
 num_workers: 0
+loader_pin_memory: false
+loader_persistent_workers: false
+loader_prefetch_factor: null
+non_blocking_device_transfer: false
 grad_clip: 0.0
 grad_accum_steps: 4
 trace_activations: false

@@ -50,6 +50,9 @@ This is the canonical long-form evidence note for
   pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
 - the first scaling target is now the closed TF-RD-010 medium/large
   classification benchmark contract rather than the earlier binary-only regime
+- TF-RD-022 now owns the three required pre-scaling performance follow-ups on
+  the settled runtime surface: training throughput, benchmark throughput, and
+  corpus materialization throughput
 - TF-RD-024 now owns the bounded non-dynamics sandwich knob sweep that should
   finish before TF-RD-009 freezes the remaining architecture knobs
 - regression is explicitly deferred from the first scaling program and is not a
@@ -102,8 +105,8 @@ This is the canonical long-form evidence note for
 ## Open Evidence Gaps
 
 - the dedicated literature-synthesis and law-design note is not yet written
-- the runtime policy is not yet finalized as a hard inherited precondition for
-  the scaling ladder
+- TF-RD-022 performance closeout is not yet finalized as a hard inherited
+  precondition for the scaling ladder
 - the TF-RD-024 bounded architecture keep/defer decision is not yet finalized
 - the repo still does not have one canonical TF-RD-009 artifact path on the
   inherited benchmark and runtime contract

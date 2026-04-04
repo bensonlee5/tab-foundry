@@ -3,6 +3,10 @@ output_dir: outputs/workstation
 device: auto
 mixed_precision: bf16
 num_workers: 0
+loader_pin_memory: false
+loader_persistent_workers: false
+loader_prefetch_factor: null
+non_blocking_device_transfer: false
 grad_clip: 10.0
 grad_accum_steps: 64
 trace_activations: false

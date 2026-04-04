@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 
 from accelerate.data_loader import BatchSamplerShard
 import numpy as np
@@ -397,6 +398,68 @@ def test_build_task_loader_construction_defers_task_signature_resolution(
         _ = next(iter(loader))
 
 
+def test_build_task_loader_omits_worker_only_overlap_kwargs_when_num_workers_is_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture_loader(_dataset: object, **kwargs: object) -> SimpleNamespace:
+        captured.update(kwargs)
+        return SimpleNamespace(**kwargs)
+
+    monkeypatch.setattr("tab_foundry.data.factory.DataLoader", _capture_loader)
+
+    loader = build_task_loader(
+        [_sample_batch()],
+        num_workers=0,
+        shuffle=False,
+        seed=0,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=4,
+    )
+
+    assert loader.pin_memory is True
+    assert loader.num_workers == 0
+    assert "persistent_workers" not in captured
+    assert "prefetch_factor" not in captured
+
+
+def test_build_task_loader_forwards_overlap_kwargs_for_manifest_batching(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture_loader(_dataset: object, **kwargs: object) -> SimpleNamespace:
+        captured.update(kwargs)
+        return SimpleNamespace(**kwargs)
+
+    monkeypatch.setattr("tab_foundry.data.factory.DataLoader", _capture_loader)
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(tmp_path),
+        split="train",
+        task="classification",
+    )
+
+    loader = build_task_loader(
+        dataset,
+        num_workers=2,
+        shuffle=False,
+        seed=0,
+        task_batch_size=2,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=2,
+    )
+
+    assert loader.pin_memory is True
+    assert loader.num_workers == 2
+    assert loader.persistent_workers is True
+    assert loader.prefetch_factor == 2
+    assert loader.batch_sampler is not None
+
+
 def test_packed_parquet_task_dataset_can_seed_shuffle_manifest_records(tmp_path: Path) -> None:
     manifest_path = _write_manifest_dataset(
         tmp_path,
@@ -612,3 +675,21 @@ def test_move_batch_moves_tensors_and_preserves_metadata() -> None:
     assert out.y_test.device.type == "cpu"
     assert out.metadata == batch.metadata
     assert out.num_classes == batch.num_classes
+
+
+def test_move_batch_forwards_non_blocking_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    batch = _sample_batch()
+    tracked_ids = {id(batch.x_train), id(batch.y_train), id(batch.x_test), id(batch.y_test)}
+    seen_flags: list[bool] = []
+    original_to = torch.Tensor.to
+
+    def _capture_to(self: torch.Tensor, *args: object, **kwargs: object) -> torch.Tensor:
+        if id(self) in tracked_ids:
+            seen_flags.append(bool(kwargs.get("non_blocking", False)))
+        return original_to(self, *args, **kwargs)
+
+    monkeypatch.setattr(torch.Tensor, "to", _capture_to)
+
+    _ = move_batch(batch, torch.device("cpu"), non_blocking=True)
+
+    assert seen_flags == [True, True, True, True]

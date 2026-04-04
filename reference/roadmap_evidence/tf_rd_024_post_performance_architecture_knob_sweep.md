@@ -34,9 +34,10 @@ This is the canonical long-form evidence note for
   `activation_checkpointing=true`
 - the sweep reuses historical TF-RD-021B sandwich delta families rather than
   introducing a separate architecture-search path
-- every drafted row is currently blocked on the TF-RD-022 large-validation
-  gate so the first execution can happen on one explicit inherited runtime
-  surface
+- every drafted row is currently blocked on TF-RD-022 performance closeout so
+  the first execution can happen only after training, benchmark, and
+  materialization speed follow-ups have closed on one explicit inherited
+  runtime surface
 
 ## Current Interpretation
 
@@ -53,6 +54,11 @@ This is the canonical long-form evidence note for
 - keep the runtime policy inherited from TF-RD-022 fixed across every row:
   `mixed_precision=bf16`, `trace_activations=false`,
   `activation_checkpointing=true`
+- TF-RD-024 should wait for TF-RD-022 to close issues
+  [#239](https://github.com/bensonlee5/tab-foundry/issues/239),
+  [#240](https://github.com/bensonlee5/tab-foundry/issues/240), and
+  [#241](https://github.com/bensonlee5/tab-foundry/issues/241), not for any
+  additional TF-RD-022 runtime-policy or batching step
 - keep these dimensions out of scope here:
   - `d_icl`
   - `sandwich_layers`
@@ -63,9 +69,8 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the TF-RD-022 large validator is not yet closed, so no TF-RD-024 rows should
-  run yet
-  yet
+- TF-RD-022 performance closeout is not yet complete, so no TF-RD-024 rows
+  should run yet
 - the repo does not yet have medium-rung execution results on the bounded knob
   set under the inherited TF-RD-022 policy
 - the repo does not yet have large-rung validation for any keep-worthy

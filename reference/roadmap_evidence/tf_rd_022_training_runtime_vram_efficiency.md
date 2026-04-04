@@ -1,7 +1,7 @@
-# TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
+# TF-RD-022: Performance Optimization On The Settled Sandwich Runtime Surface Before Classification Scaling
 
 This is the canonical long-form evidence note for
-[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-before-classification-scaling).
+[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-performance-optimization-on-the-settled-sandwich-runtime-surface-before-classification-scaling).
 
 - Status: `partial`
 - Milestone: `Next`
@@ -25,14 +25,18 @@ This is the canonical long-form evidence note for
 
 ## Repo-Local Evidence
 
-- [#58](https://github.com/bensonlee5/tab-foundry/issues/58) already existed as
-  the deferred runtime or VRAM measurement follow-up, but it stayed attached to
-  the closed TF-RD-002 measurement epic and never became a full runtime lane
-- epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) tracks
-  runtime and VRAM efficiency end to end, with child issues
-  [#169](https://github.com/bensonlee5/tab-foundry/issues/169),
-  [#170](https://github.com/bensonlee5/tab-foundry/issues/170), and
-  [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
+- completed historical issues [#58](https://github.com/bensonlee5/tab-foundry/issues/58),
+  [#169](https://github.com/bensonlee5/tab-foundry/issues/169), and
+  [#170](https://github.com/bensonlee5/tab-foundry/issues/170) now record the
+  runtime-summary instrumentation, bounded medium ladder, and first-class
+  runtime-policy surface that made TF-RD-022 explicit enough for downstream
+  work; issue [#171](https://github.com/bensonlee5/tab-foundry/issues/171) is
+  superseded because TF-RD-022 will not reopen harder-surface batching
+- epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now tracks
+  performance optimization on the settled runtime surface end to end, with
+  child issues [#239](https://github.com/bensonlee5/tab-foundry/issues/239),
+  [#240](https://github.com/bensonlee5/tab-foundry/issues/240), and
+  [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
 - sandwich architecture ownership now lives under the historical
   implementation record [#174](https://github.com/bensonlee5/tab-foundry/issues/174),
   umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),
@@ -84,8 +88,27 @@ This is the canonical long-form evidence note for
   control, with `peak_vram_reserved`, `throughput_tokens_per_second`, and
   `non_train_overhead_seconds` used only as tie-breakers among benchmark-safe
   rows
+- the carried TF-RD-022 runtime surface is now fixed to the measured medium
+  winner: `mixed_precision=bf16`, `trace_activations=false`, and
+  `activation_checkpointing=true`
+- benchmark throughput is still the most credible remaining local win because
+  medium benchmarking now takes more than an hour, the evaluator in
+  `src/tab_foundry/bench/openml_benchmark/metrics.py` is fully serial, and the
+  current medium manifest has repeated task signatures that can plausibly share
+  batched inference on the existing sandwich surface
+- training throughput still has bounded local headroom because the current
+  loader, device-transfer, and runtime defaults in
+  `src/tab_foundry/data/factory.py`,
+  `src/tab_foundry/task_batching.py`, and
+  `src/tab_foundry/training/runtime.py` are conservative rather than
+  aggressively overlapped
+- corpus materialization throughput remains worth a measured pass because the
+  workflow is slow in practice and the local orchestration path in
+  `src/tab_foundry/data/corpus_materialization_shared.py` still starts from a
+  fixed process cap that may or may not be the dominant bottleneck
 - issue [#233](https://github.com/bensonlee5/tab-foundry/issues/233) is the
-  downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 policy
+  downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 runtime
+  policy after TF-RD-022 closes its performance follow-up work
 
 ## Current Interpretation
 
@@ -93,45 +116,45 @@ This is the canonical long-form evidence note for
   runtime-cleanup lane
 - TF-RD-022 runs directly on the closed TF-RD-010 benchmark contract; TF-RD-021
   and dagzoo RD-002 / RD-005 remain sidecar context only
-- the highest-probability low-risk win is still to make runtime policy explicit
-  and measurable before chasing larger architecture or optimizer changes for
-  speed
-- the runtime ladder should stay classification-only and should inherit one
-  frozen recipe rather than reopening sandwich-parent selection, synthetic
-  surface expansion, or law design
-- the concrete medium screening surface is now
-  `tf_rd_022_runtime_policy_medium_v1`, and any winner from that ladder should
-  promote into a two-row large validator rather than directly mutating the
-  carried runtime policy
-- the medium ladder is now measured, and row 4 won the in-repo keep bar on the
-  completed CUDA rung; the remaining TF-RD-022 blocker is large-rung
-  validation, not medium execution
-- the bounded runtime knobs remain:
-  - `bf16`
-  - benchmark-facing activation-trace policy
-  - activation checkpointing
-- use the existing medium benchmark rung as the fast screening stage, then
-  validate the kept policy on the closed TF-RD-010 medium and large targets
-- include low-level kernel tuning only to the extent needed to keep the
-  inherited sandwich benchmark contract reliable and efficient enough for
-  scaling
-- batching reopens only after those reads and only under an explicit 80 GB A100
-  guardrail
+- runtime-policy selection is complete enough for downstream planning: the
+  carried TF-RD-022 surface is `bf16` with activation tracing off and
+  activation checkpointing on
+- the remaining TF-RD-022 work is bounded speed optimization on top of that
+  settled runtime surface rather than more runtime-policy selection
+- benchmark execution is the highest-priority remaining lane because the medium
+  benchmark runtime is already operationally expensive and the current
+  evaluation path is serial
+- training speed remains in scope because the codepath still leaves obvious
+  data-pipeline and transfer-overlap questions unanswered, but it should be
+  approached with profiling first and low-risk execution changes second
+- corpus materialization remains in scope because it is slow in practice, but
+  the first question there is bottleneck attribution between local
+  orchestration and upstream `tab-realdata-hub` or dagzoo work
+- TF-RD-022 should not reopen sandwich-parent selection, larger architecture
+  changes, law-design work, or harder-surface batching while those three speed
+  lanes are still unresolved
 
 ## Open Evidence Gaps
 
-- the repo still lacks the TF-RD-022 large-rung validator for the kept
-  checkpointing candidate
-- the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
-  on the inherited harder-surface classification recipe under an 80 GB A100
-  budget
+- the repo still lacks one explicit measured keep/defer decision for training
+  throughput on the settled runtime surface under issue
+  [#239](https://github.com/bensonlee5/tab-foundry/issues/239)
+- the repo still lacks one explicit measured keep/defer decision for medium
+  benchmark execution speed under issue
+  [#240](https://github.com/bensonlee5/tab-foundry/issues/240)
+- the repo still lacks one explicit measured keep/defer decision for corpus
+  materialization throughput, including local-versus-upstream bottleneck
+  attribution, under issue
+  [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
 
 ## Exit Signals
 
 - one explicit benchmark-safe runtime policy exists for the classification
   scaling target, justified by repo-local time and VRAM evidence
-- artifacts and summaries expose runtime and VRAM metrics compactly enough to
+- the repo has one explicit measured keep/defer outcome for training
+  throughput, medium benchmark throughput, and corpus materialization
+  throughput on that settled runtime surface
+- artifacts and summaries expose runtime and timing reads compactly enough to
   compare future runs without manual log inspection
-- later TF-RD-024 architecture work, deferred CUDA-capacity follow-up, and
-  TF-RD-009 can inherit the same runtime policy and batching keep/stop rule
-  without re-deriving them
+- later TF-RD-024 architecture work and TF-RD-009 can inherit the same runtime
+  policy and closed performance gate without re-deriving them

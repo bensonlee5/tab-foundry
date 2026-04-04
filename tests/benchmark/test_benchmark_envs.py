@@ -89,6 +89,7 @@ def test_bootstrap_benchmark_envs_uses_runtime_dependencies_for_py313_tabicl(
 
     installed: list[tuple[Path, str]] = []
     validated: list[tuple[Path, str]] = []
+    linked_src_roots: list[tuple[Path, Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda _root: None)
     monkeypatch.setattr(
@@ -106,6 +107,13 @@ def test_bootstrap_benchmark_envs_uses_runtime_dependencies_for_py313_tabicl(
         "_validate_import",
         lambda python_path, module_name: validated.append((python_path, module_name)),
     )
+    monkeypatch.setattr(
+        env_module,
+        "_install_explicit_src_root_path",
+        lambda python_path, *, src_root, module_name: linked_src_roots.append(
+            (python_path, src_root, module_name)
+        ),
+    )
 
     env_module.bootstrap_benchmark_envs(
         env_module.BenchmarkEnvConfig(
@@ -121,7 +129,14 @@ def test_bootstrap_benchmark_envs_uses_runtime_dependencies_for_py313_tabicl(
         (nano_root.resolve() / ".venv" / "bin" / "python", str(hub_root.resolve())),
         *((tabicl_python, dependency) for dependency in env_module.TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES),
     ]
-    assert (tabicl_python, "tab_realdata_hub") not in validated
+    assert linked_src_roots == [
+        (
+            tabicl_python,
+            hub_root.resolve() / "src",
+            "tab_realdata_hub",
+        )
+    ]
+    assert (tabicl_python, "tab_realdata_hub") in validated
 
 
 def test_bootstrap_benchmark_envs_requires_explicit_hub_root_for_py313_tabicl(

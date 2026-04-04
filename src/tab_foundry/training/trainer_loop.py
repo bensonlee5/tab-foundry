@@ -415,6 +415,7 @@ def run_training_loop(
     val_batches: int,
     train_start: float,
     trace_activations: bool,
+    non_blocking_device_transfer: bool,
     flush_activation_trace_stats,
     run: Any,
     state: TrainingLoopState,
@@ -466,7 +467,11 @@ def run_training_loop(
                 step_total_task_count += actual_task_count
                 step_examples_seen += task_batch_examples_seen(batch)
                 step_tokens_seen += task_batch_token_count(batch)
-                batch = move_batch(batch, accelerator.device)
+                batch = move_batch(
+                    batch,
+                    accelerator.device,
+                    non_blocking=non_blocking_device_transfer,
+                )
                 with accelerator.accumulate(model):
                     with accelerator.autocast():
                         output = model(batch)
@@ -709,6 +714,7 @@ def run_training_loop(
                     accelerator=accelerator,
                     task=task,
                     max_batches=val_batches,
+                    non_blocking_device_transfer=non_blocking_device_transfer,
                 )
                 log_wandb_metrics(
                     run,

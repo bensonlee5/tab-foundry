@@ -130,6 +130,7 @@ def _evaluate_loader(
     accelerator: Accelerator,
     task: str,
     max_batches: int,
+    non_blocking_device_transfer: bool = False,
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
@@ -152,7 +153,11 @@ def _evaluate_loader(
             actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
             if tasks_seen > 0 and tasks_seen + actual_task_count > max_batches:
                 break
-            batch = move_batch(batch, accelerator.device)
+            batch = move_batch(
+                batch,
+                accelerator.device,
+                non_blocking=non_blocking_device_transfer,
+            )
             with accelerator.autocast():
                 output = model(batch)
                 loss, metrics = _compute_loss_and_metrics(output, batch, task=task)

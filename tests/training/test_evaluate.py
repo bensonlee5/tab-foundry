@@ -7,6 +7,7 @@ import pytest
 import torch
 
 import tab_foundry.training.evaluate as evaluate_module
+import tab_foundry.training.runtime as training_runtime_module
 from tests.support.task_batching import write_task_batch_manifest_from_specs
 
 
@@ -148,6 +149,105 @@ def test_evaluate_checkpoint_rejects_regression_checkpoint_task(
     )
 
     with pytest.raises(RuntimeError, match="classification checkpoints"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+
+def test_evaluate_checkpoint_rejects_explicit_mps_runtime_device(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+            },
+        }
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: object())
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet"},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "mps", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(ValueError, match="MPS is unsupported for training and checkpoint evaluation"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+
+def test_evaluate_checkpoint_rejects_auto_runtime_device_when_it_resolves_to_mps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+            },
+        }
+
+    monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: object())
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet"},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "auto", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(ValueError, match="runtime.device='auto' resolved to 'mps'"):
         _ = evaluate_module.evaluate_checkpoint(cfg)
 
 
@@ -387,11 +487,17 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
         num_workers: int,
         seed: int,
         task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
         captured["loader_seed"] = seed
         captured["task_batch_size"] = task_batch_size
+        captured["pin_memory"] = pin_memory
+        captured["persistent_workers"] = persistent_workers
+        captured["prefetch_factor"] = prefetch_factor
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
@@ -411,7 +517,15 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
                 "max_mixed_radix_digits": 64,
             },
             "data": {"manifest_path": "unused.parquet"},
-            "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
+            "runtime": {
+                "seed": 1,
+                "num_workers": 3,
+                "device": "cpu",
+                "mixed_precision": "no",
+                "loader_pin_memory": True,
+                "loader_persistent_workers": True,
+                "loader_prefetch_factor": 2,
+            },
         }
     )
 
@@ -423,6 +537,9 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
     assert captured["shuffle"] is False
     assert captured["num_workers"] == 3
     assert captured["task_batch_size"] == 1
+    assert captured["pin_memory"] is True
+    assert captured["persistent_workers"] is True
+    assert captured["prefetch_factor"] == 2
 
 
 def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
@@ -460,11 +577,17 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
         num_workers: int,
         seed: int,
         task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
         captured["loader_seed"] = seed
         captured["task_batch_size"] = task_batch_size
+        captured["pin_memory"] = pin_memory
+        captured["persistent_workers"] = persistent_workers
+        captured["prefetch_factor"] = prefetch_factor
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
@@ -484,7 +607,15 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
                 "max_mixed_radix_digits": 64,
             },
             "data": {"manifest_path": "unused.parquet"},
-            "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
+            "runtime": {
+                "seed": 1,
+                "num_workers": 3,
+                "device": "cpu",
+                "mixed_precision": "no",
+                "loader_pin_memory": False,
+                "loader_persistent_workers": False,
+                "loader_prefetch_factor": None,
+            },
         }
     )
 
@@ -493,6 +624,9 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
 
     assert captured["loader_seed"] == 77
     assert captured["task_batch_size"] == 8
+    assert captured["pin_memory"] is False
+    assert captured["persistent_workers"] is False
+    assert captured["prefetch_factor"] is None
 
 
 def test_evaluate_checkpoint_disables_even_batch_padding_for_task_batching(
@@ -612,10 +746,12 @@ def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surfa
         accelerator: object,
         task: str,
         max_batches: int,
+        non_blocking_device_transfer: bool = False,
     ) -> dict[str, float]:
         captured["accelerator"] = accelerator
         captured["task"] = task
         captured["max_batches"] = max_batches
+        captured["non_blocking_device_transfer"] = non_blocking_device_transfer
         return {"val_loss": 1.25, "acc": 0.75}
 
     monkeypatch.setattr(evaluate_module, "_evaluate_loader", _fake_evaluate_loader)
@@ -640,6 +776,7 @@ def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surfa
     assert result.metrics == {"loss": 1.25, "acc": 0.75}
     assert captured["task"] == "classification"
     assert captured["max_batches"] == 1
+    assert captured["non_blocking_device_transfer"] is False
 
 
 def test_evaluate_checkpoint_rejects_tensor_batched_true_many_class_preflight(

@@ -22,6 +22,12 @@ from tab_foundry.types import EvalResult
 from .runtime import build_accelerator_from_runtime
 from .task_batching_validation import validate_task_batching_support
 from .trainer_metrics import _evaluate_loader
+from .trainer_runtime_config import (
+    _resolve_loader_persistent_workers,
+    _resolve_loader_pin_memory,
+    _resolve_loader_prefetch_factor,
+    _resolve_non_blocking_device_transfer,
+)
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
@@ -176,6 +182,10 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     task = model_spec.task
     eval_step = _resolved_checkpoint_step(payload)
     task_batch_size = resolve_task_batch_size(training_cfg)
+    loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
+    loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
+    loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
+    non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])
 
@@ -201,6 +211,9 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         num_workers=int(cfg.runtime.num_workers),
         seed=dataset_seed,
         task_batch_size=task_batch_size,
+        pin_memory=loader_pin_memory,
+        persistent_workers=loader_persistent_workers,
+        prefetch_factor=loader_prefetch_factor,
     )
 
     accelerator = build_accelerator_from_runtime(
@@ -224,6 +237,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
             accelerator=accelerator,
             task=task,
             max_batches=max_batches,
+            non_blocking_device_transfer=non_blocking_device_transfer,
         )
         result_metrics = {
             "loss": float(eval_metrics["val_loss"]),

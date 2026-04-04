@@ -36,7 +36,11 @@ from .trainer_runtime_config import (
     _checkpoint_every,
     _resolve_activation_checkpointing,
     _resolve_grad_accum_steps,
+    _resolve_loader_persistent_workers,
+    _resolve_loader_pin_memory,
+    _resolve_loader_prefetch_factor,
     _resolve_max_steps,
+    _resolve_non_blocking_device_transfer,
     _resolve_target_train_seconds,
     _resolve_val_batches,
 )
@@ -85,6 +89,10 @@ def train(cfg: DictConfig) -> TrainResult:
     target_train_seconds = _resolve_target_train_seconds(cfg.runtime)
     val_batches = _resolve_val_batches(cfg.runtime)
     task_batch_size = resolve_task_batch_size(cfg.get("training"))
+    loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
+    loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
+    loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
+    non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
@@ -123,6 +131,9 @@ def train(cfg: DictConfig) -> TrainResult:
         num_workers=int(cfg.runtime.num_workers),
         seed=seed,
         task_batch_size=task_batch_size,
+        pin_memory=loader_pin_memory,
+        persistent_workers=loader_persistent_workers,
+        prefetch_factor=loader_prefetch_factor,
     )
     val_loader = None
     if val_batches > 0:
@@ -146,6 +157,9 @@ def train(cfg: DictConfig) -> TrainResult:
             num_workers=int(cfg.runtime.num_workers),
             seed=seed + 1,
             task_batch_size=task_batch_size,
+            pin_memory=loader_pin_memory,
+            persistent_workers=loader_persistent_workers,
+            prefetch_factor=loader_prefetch_factor,
         )
     model = build_model_from_spec(model_spec)
     configure_model_loss_surface(model, loss_surface=loss_surface)
@@ -320,6 +334,7 @@ def train(cfg: DictConfig) -> TrainResult:
             val_batches=val_batches,
             train_start=train_start,
             trace_activations=trace_activations,
+            non_blocking_device_transfer=non_blocking_device_transfer,
             flush_activation_trace_stats=_flush_activation_trace_stats,
             run=run,
             state=state,

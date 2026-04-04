@@ -42,24 +42,24 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_024_cls_sandwich_latents12_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 freezes the runtime policy. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 2 | `delta_tf_rd_024_cls_sandwich_heads2_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the historical head-partition family by reducing `sandwich_heads` from `4` to `2` on the TF-RD-010 multiclass benchmark contract. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 3 | `delta_tf_rd_024_cls_sandwich_ffexp1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-MLP bracket by reducing `sandwich_ff_expansion` from `2` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 4 | `delta_tf_rd_024_cls_sandwich_summarytokens1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower summary-stream bracket by reducing `sandwich_summary_tokens_per_axis` from `3` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 5 | `delta_tf_rd_024_cls_sandwich_selfattn1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower latent-refinement bracket by reducing `sandwich_self_attention_per_cross` from `4` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 6 | `delta_tf_rd_024_cls_sandwich_headhidden64_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower readout-capacity bracket by reducing `head_hidden_dim` from `96` to `64` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 7 | `delta_tf_rd_024_cls_sandwich_headhidden128_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the upper readout-capacity bracket by increasing `head_hidden_dim` from `96` to `128` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 1 | `delta_tf_rd_024_cls_sandwich_latents12_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 closes its performance gate. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 2 | `delta_tf_rd_024_cls_sandwich_heads2_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the historical head-partition family by reducing `sandwich_heads` from `4` to `2` on the TF-RD-010 multiclass benchmark contract. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 3 | `delta_tf_rd_024_cls_sandwich_ffexp1_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the lower-MLP bracket by reducing `sandwich_ff_expansion` from `2` to `1` on the inherited multiclass benchmark surface. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 4 | `delta_tf_rd_024_cls_sandwich_summarytokens1_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the lower summary-stream bracket by reducing `sandwich_summary_tokens_per_axis` from `3` to `1` on the inherited multiclass benchmark surface. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 5 | `delta_tf_rd_024_cls_sandwich_selfattn1_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the lower latent-refinement bracket by reducing `sandwich_self_attention_per_cross` from `4` to `1` on the inherited multiclass benchmark surface. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 6 | `delta_tf_rd_024_cls_sandwich_headhidden64_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the lower readout-capacity bracket by reducing `head_hidden_dim` from `96` to `64` on the inherited multiclass benchmark surface. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 7 | `delta_tf_rd_024_cls_sandwich_headhidden128_v1` | architecture_followup | no | blocked_on_tf_rd_022 | none | Reuse the upper readout-capacity bracket by increasing `head_hidden_dim` from `96` to `128` on the inherited multiclass benchmark surface. | Wait for TF-RD-022 performance closeout, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_024_cls_sandwich_latents12_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 freezes the runtime policy.
-- Rationale: Reuse the TF-RD-021B latent-count family on the closed TF-RD-010 medium contract to see whether the retained sandwich remains overprovisioned on latent-bank count once TF-RD-022 freezes the runtime policy.
+- Description: Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 closes its performance gate.
+- Rationale: Reuse the TF-RD-021B latent-count family on the closed TF-RD-010 medium contract to see whether the retained sandwich remains overprovisioned on latent-bank count once TF-RD-022 has fully closed its performance gate.
 - Hypothesis: Halving the latent bank from `24` to `12` should preserve most of the medium-rung quality while lowering runtime and VRAM cost if the current multiclass sandwich is still overprovisioned after the runtime-policy cleanup.
 - Upstream delta: Reuses the TF-RD-021B latent-count family on the current classification benchmark surface instead of opening a new architecture path.
 - Anchor delta: Changes `model.sandwich_latents` from `24` to `12` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
@@ -69,7 +69,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 12, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
-  - Wait for the TF-RD-022 large-validation gate, then execute this row on the inherited policy surface without changing optimizer or schedule settings.
+  - Wait for TF-RD-022 performance closeout, then execute this row on the inherited policy surface without changing optimizer or schedule settings.
   - Validate any kept medium-screen signal on the closed large-rung TF-RD-010 contract before treating latent count as a persistent follow-on knob.
 - Adequacy knobs to dimension explicitly:
   - closed TF-RD-010 medium contract with curated `tf_rd_010_dagzoo_medium_control_curated_v5`
@@ -86,7 +86,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 2. `delta_tf_rd_024_cls_sandwich_heads2_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the historical head-partition family by reducing `sandwich_heads` from `4` to `2` on the TF-RD-010 multiclass benchmark contract.
@@ -117,7 +117,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 3. `delta_tf_rd_024_cls_sandwich_ffexp1_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the lower-MLP bracket by reducing `sandwich_ff_expansion` from `2` to `1` on the inherited multiclass benchmark surface.
@@ -148,7 +148,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 4. `delta_tf_rd_024_cls_sandwich_summarytokens1_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the lower summary-stream bracket by reducing `sandwich_summary_tokens_per_axis` from `3` to `1` on the inherited multiclass benchmark surface.
@@ -179,7 +179,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 5. `delta_tf_rd_024_cls_sandwich_selfattn1_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the lower latent-refinement bracket by reducing `sandwich_self_attention_per_cross` from `4` to `1` on the inherited multiclass benchmark surface.
@@ -210,7 +210,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 6. `delta_tf_rd_024_cls_sandwich_headhidden64_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the lower readout-capacity bracket by reducing `head_hidden_dim` from `96` to `64` on the inherited multiclass benchmark surface.
@@ -241,7 +241,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 7. `delta_tf_rd_024_cls_sandwich_headhidden128_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_runtime_policy`
+- Status: `blocked_on_tf_rd_022`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reuse the upper readout-capacity bracket by increasing `head_hidden_dim` from `96` to `128` on the inherited multiclass benchmark surface.

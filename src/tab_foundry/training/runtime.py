@@ -6,11 +6,32 @@ from accelerate import Accelerator
 from accelerate.utils import DataLoaderConfiguration
 from omegaconf import DictConfig
 
+from tab_foundry.device import resolve_device
+
+
+def resolve_training_device_name(runtime_cfg: DictConfig) -> str:
+    """Resolve the training/eval device and reject unsupported backends."""
+
+    requested_device = str(getattr(runtime_cfg, "device", "auto") or "auto").strip()
+    resolved_device = resolve_device(requested_device)
+    if resolved_device == "mps":
+        if requested_device.lower() == "mps":
+            raise ValueError(
+                "MPS is unsupported for training and checkpoint evaluation; "
+                "got runtime.device='mps'. Use runtime.device='cuda' or 'cpu' instead."
+            )
+        raise ValueError(
+            "MPS is unsupported for training and checkpoint evaluation; "
+            f"runtime.device={requested_device!r} resolved to 'mps'. "
+            "Use runtime.device='cuda' or 'cpu' instead."
+        )
+    return resolved_device
+
 
 def resolve_cpu_mode(runtime_cfg: DictConfig) -> bool:
     """Return whether execution should be pinned to CPU."""
 
-    return str(runtime_cfg.device).strip().lower() == "cpu"
+    return resolve_training_device_name(runtime_cfg) == "cpu"
 
 
 def resolve_mixed_precision(runtime_cfg: DictConfig, *, override: str | None = None) -> str:

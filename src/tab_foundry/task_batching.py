@@ -171,14 +171,19 @@ def collate_task_batch(
     return batch
 
 
-def move_batch(batch: TaskBatch, device: torch.device) -> TaskBatch:
+def move_batch(
+    batch: TaskBatch,
+    device: torch.device,
+    *,
+    non_blocking: bool = False,
+) -> TaskBatch:
     """Move tensors in a task batch to device."""
 
     return TaskBatch(
-        x_train=batch.x_train.to(device),
-        y_train=batch.y_train.to(device),
-        x_test=batch.x_test.to(device),
-        y_test=batch.y_test.to(device),
+        x_train=batch.x_train.to(device, non_blocking=non_blocking),
+        y_train=batch.y_train.to(device, non_blocking=non_blocking),
+        x_test=batch.x_test.to(device, non_blocking=non_blocking),
+        y_test=batch.y_test.to(device, non_blocking=non_blocking),
         metadata=batch.metadata,
         num_classes=batch.num_classes,
     )

@@ -26,7 +26,7 @@ Conventions:
 1. [TF-RD-018: Training-Surface Adequacy On The Promoted Anchor](tf_rd_018_training_surface_adequacy.md)
 1. [TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor](tf_rd_020_harder_dagzoo_corpus_fronts.md)
 1. [TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md)
-1. [TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling](tf_rd_022_training_runtime_vram_efficiency.md)
+1. [TF-RD-022: Performance Optimization On The Settled Sandwich Runtime Surface Before Classification Scaling](tf_rd_022_training_runtime_vram_efficiency.md)
 1. [TF-RD-024: Post-Performance Architecture-Knob Sweep On The Classification-First Sandwich Target](tf_rd_024_post_performance_architecture_knob_sweep.md)
 1. [TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen](tf_rd_021a_latent_bank_sandwich_prototype.md)
 1. [TF-RD-021B: Hybrid Full-Cell Sandwich Successor, Simplification, And Classification-First Scaling Prep](tf_rd_021b_hybrid_full_cell_sandwich_successor.md)
