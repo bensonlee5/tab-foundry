@@ -10,7 +10,7 @@ import pytest
 from tab_foundry.config import compose_config
 import tab_foundry.data.corpus_loading as corpus_loading_module
 import tab_foundry.data.corpus_lookup as corpus_lookup_module
-import tab_foundry.data.corpus_materialization as corpus_materialization_module
+import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.training.surface import build_training_surface_record
 
@@ -381,7 +381,11 @@ def test_build_training_surface_record_persists_corpus_identity(
     dagzoo_python.chmod(0o755)
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
-    monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+    monkeypatch.setattr(
+        corpus_materialization_invocation_module,
+        "run_dagzoo_generate",
+        _fake_run_dagzoo_generate,
+    )
     record = materialize_corpus_recipe(
         recipe_id="current_recipe",
         dagzoo_root=dagzoo_root,

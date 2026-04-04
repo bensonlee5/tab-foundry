@@ -10,15 +10,12 @@ import torch
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.openml_benchmark import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
-from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
-from tab_foundry.registry.common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
-from tab_foundry.registry.storage import (
-    ensure_registry_payload as _ensure_registry_payload_common,
-    load_versioned_registry_payload as _load_versioned_registry_payload,
-    upsert_registry_entry as _upsert_registry_entry_common,
+from tab_foundry.registry.common import (
+    copy_jsonable as _copy_jsonable,
+    load_comparison_summary as _load_comparison_summary,
+    resolve_config_path as _resolve_config_path_common,
 )
 from tab_foundry.bench.registry.summary_metrics import (
-    benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
 from tab_foundry.data.surface import resolve_data_surface
@@ -87,27 +84,46 @@ def _empty_registry() -> dict[str, Any]:
     }
 
 
-def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return _load_versioned_registry_payload(
-        path,
-        allow_missing=allow_missing,
-        empty_payload=_empty_registry(),
-        top_level_keys=read_control_baseline_registry._TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="baselines",
-        registry_label="control baseline registry",
-        validate_entry_fn=read_control_baseline_registry._validate_baseline_entry,
-        entry_label="baseline_id",
-    )
-
-
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
-    return _ensure_registry_payload_common(
-        path,
-        default_path=read_control_baseline_registry.default_control_baseline_registry_path(),
-        load_registry_payload_fn=_load_registry_payload,
+    registry_path = (
+        path or read_control_baseline_registry.default_control_baseline_registry_path()
+    ).expanduser().resolve()
+    if not registry_path.exists():
+        return registry_path, _empty_registry()
+    payload = read_control_baseline_registry.load_control_baseline_registry(registry_path)
+    return registry_path, payload
+
+
+def _normalize_registry_path(path: Path) -> str:
+    return read_control_baseline_registry.normalize_registry_path_value(
+        path.expanduser().resolve(),
+        root=repo_root(),
     )
+
+
+def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    benchmark_bundle_source = str(
+        benchmark_bundle.get("source_path")
+        if benchmark_bundle.get("source_path") is not None
+        else ""
+    ).strip()
+    if not benchmark_bundle_source:
+        raise RuntimeError("comparison summary benchmark_bundle.source_path must be a non-empty string")
+    resolved_source_path = read_control_baseline_registry.resolve_registry_path_value(
+        benchmark_bundle_source,
+        root=repo_root(),
+    )
+    return {
+        "name": str(benchmark_bundle["name"]),
+        "version": int(benchmark_bundle["version"]),
+        "source_path": _normalize_registry_path(resolved_source_path),
+        "task_count": int(benchmark_bundle["task_count"]),
+        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
+    }
+
+
+def _resolve_config_path(raw_value: Any) -> Path:
+    return _resolve_config_path_common(raw_value, root=repo_root())
 
 
 def _resolve_baseline_checkpoint(run_dir: Path, *, summary_tab_foundry: Mapping[str, Any]) -> Path:
@@ -170,7 +186,7 @@ def derive_control_baseline_entry(
     manifest_path = (
         None
         if direct_manifest is None
-        else _resolve_config_path_impl(direct_manifest, root_fn=repo_root)
+        else _resolve_config_path(direct_manifest)
     )
     if manifest_path is None:
         resolved_data_surface = resolve_data_surface(data_cfg)
@@ -202,22 +218,7 @@ def derive_control_baseline_entry(
             )
             if _is_repo_local_path_value(benchmark_manifest_value):
                 benchmark_bundle_for_registry["source_path"] = benchmark_manifest_value
-    benchmark_bundle_payload = _benchmark_bundle_payload_from_summary(
-        benchmark_bundle_for_registry,
-        source_context="comparison summary benchmark_bundle.source_path",
-        normalize_path_value_fn=(
-            lambda path: read_control_baseline_registry.normalize_registry_path_value(
-                path,
-                root=repo_root(),
-            )
-        ),
-        resolve_registry_path_value_fn=(
-            lambda value: read_control_baseline_registry.resolve_registry_path_value(
-                value,
-                root=repo_root(),
-            )
-        ),
-    )
+    benchmark_bundle_payload = _benchmark_bundle_payload(benchmark_bundle_for_registry)
     tab_foundry_metrics = _tab_foundry_metrics_from_summary(tab_foundry)
     entry = {
         "baseline_id": str(baseline_id),
@@ -251,17 +252,13 @@ def upsert_control_baseline_entry(
 ) -> Path:
     """Insert or replace one control baseline entry in the registry."""
 
-    return _upsert_registry_entry_common(
-        entry,
-        entry_id_key="baseline_id",
-        validate_entry_fn=read_control_baseline_registry._validate_baseline_entry,
-        registry_path=registry_path,
-        default_path=read_control_baseline_registry.default_control_baseline_registry_path(),
-        load_registry_payload_fn=_load_registry_payload,
-        entries_key="baselines",
-        write_json_fn=write_json,
-        copy_jsonable_fn=_copy_jsonable,
-    )
+    baseline_id = str(entry["baseline_id"])
+    _ = read_control_baseline_registry._validate_baseline_entry(entry, baseline_id=baseline_id)
+    resolved_registry_path, payload = _ensure_registry_payload(registry_path)
+    baselines = cast(dict[str, Any], payload["baselines"])
+    baselines[baseline_id] = _copy_jsonable(entry)
+    write_json(resolved_registry_path, payload)
+    return resolved_registry_path
 
 
 def freeze_control_baseline(

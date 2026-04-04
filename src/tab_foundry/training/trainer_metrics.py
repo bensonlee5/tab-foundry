@@ -130,7 +130,6 @@ def _evaluate_loader(
     accelerator: Accelerator,
     task: str,
     max_batches: int,
-    compute_loss_and_metrics=None,
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
@@ -141,8 +140,6 @@ def _evaluate_loader(
             "Only classification evaluation is supported in this branch; "
             f"got task={task!r}."
         )
-    if compute_loss_and_metrics is None:
-        compute_loss_and_metrics = _compute_loss_and_metrics
     metric_sums: dict[str, float] = {}
     metric_counts: dict[str, int] = {}
 
@@ -158,7 +155,7 @@ def _evaluate_loader(
             batch = move_batch(batch, accelerator.device)
             with accelerator.autocast():
                 output = model(batch)
-                loss, metrics = compute_loss_and_metrics(output, batch, task=task)
+                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
             loss_sum += float(loss.detach().item()) * float(actual_task_count)
             for key, value in metrics.items():
                 metric_sums[key] = metric_sums.get(key, 0.0) + (float(value) * float(actual_task_count))

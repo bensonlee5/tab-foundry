@@ -14,6 +14,8 @@ import tab_foundry.benchmark_registry as registry_module
 import tab_foundry.data.corpus_loading as corpus_loading_module
 import tab_foundry.data.corpus_lookup as corpus_lookup_module
 import tab_foundry.data.corpus_materialization as corpus_materialization_module
+import tab_foundry.data.corpus_materialization_batch as corpus_materialization_batch_module
+import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 import tab_foundry.data.corpus_materialization_recipe_worker as recipe_worker_module
 from tab_foundry.data.corpus_loading import (
     _generator_fingerprint,
@@ -31,6 +33,7 @@ from tab_foundry.data.corpus_materialization import (
     default_materialize_processes,
     default_materialize_worker_threads,
     finalize_staged_corpus_recipe,
+    load_staged_corpus_recipe_preview,
     materialize_corpus_ref,
     materialize_corpus_recipe,
 )
@@ -117,11 +120,11 @@ def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) ->
 
 
 def _patch_dagzoo_generate(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
-    monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_generate", replacement)
+    monkeypatch.setattr(corpus_materialization_invocation_module, "run_dagzoo_generate", replacement)
 
 
 def _patch_dagzoo_filter(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
-    monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_filter", replacement)
+    monkeypatch.setattr(corpus_materialization_invocation_module, "run_dagzoo_filter", replacement)
 
 
 def _write_recipe_registry(repo_root: Path) -> None:
@@ -1028,7 +1031,7 @@ def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess
             )
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_invocation_module,
         "_materialize_invocations_with_subprocess_fanout",
         _fake_subprocess_fanout,
     )
@@ -1059,7 +1062,7 @@ def test_materialize_corpus_recipe_aborts_without_manifest_when_subprocess_fanou
         raise RuntimeError("fanout failed")
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_invocation_module,
         "_materialize_invocations_with_subprocess_fanout",
         _failing_subprocess_fanout,
     )
@@ -1121,7 +1124,7 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         return completed
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_batch_module,
         "_materialize_pending_recipes_with_subprocess_fanout",
         _fake_recipe_worker_fanout,
     )
@@ -1166,7 +1169,7 @@ def test_materialize_corpus_refs_batch_reuses_cached_exact_ref_without_recipe_wo
         raise AssertionError("cached exact refs should not spawn recipe workers")
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_batch_module,
         "_materialize_pending_recipes_with_subprocess_fanout",
         _unexpected_recipe_worker_fanout,
     )
@@ -1225,7 +1228,7 @@ def test_materialize_corpus_refs_batch_rejects_mismatched_pinned_exact_ref_from_
         return []
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_batch_module,
         "_materialize_pending_recipes_with_subprocess_fanout",
         _fake_recipe_worker_fanout,
     )
@@ -1249,7 +1252,7 @@ def test_materialize_corpus_refs_batch_aborts_without_manifest_when_recipe_worke
         raise RuntimeError("recipe worker failed")
 
     monkeypatch.setattr(
-        corpus_materialization_module,
+        corpus_materialization_batch_module,
         "_materialize_pending_recipes_with_subprocess_fanout",
         _failing_recipe_worker_fanout,
     )
@@ -1346,12 +1349,12 @@ def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_a
         )
         active_processes[recipe_id].returncode = 0
 
-    monkeypatch.setattr(corpus_materialization_module.subprocess, "Popen", FakePopen)
-    monkeypatch.setattr(corpus_materialization_module.time, "sleep", _fake_sleep)
+    monkeypatch.setattr(corpus_materialization_batch_module.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(corpus_materialization_batch_module.time, "sleep", _fake_sleep)
 
-    records = corpus_materialization_module._materialize_pending_recipes_with_subprocess_fanout(
+    records = corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
         pending_requests=[
-            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                 recipe_id="adequacy_recipe",
                 dagzoo_root=repo_tmp_path.parent / "dagzoo",
                 force=True,
@@ -1361,7 +1364,7 @@ def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_a
                 sweep_id=None,
                 sweeps_root=None,
             ),
-            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                 recipe_id="current_recipe",
                 dagzoo_root=repo_tmp_path.parent / "dagzoo",
                 force=True,
@@ -1371,7 +1374,7 @@ def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_a
                 sweep_id=None,
                 sweeps_root=None,
             ),
-            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                 recipe_id="size_recipe",
                 dagzoo_root=repo_tmp_path.parent / "dagzoo",
                 force=True,
@@ -1455,11 +1458,11 @@ def test_materialize_pending_recipes_with_subprocess_fanout_forwards_explicit_wo
         def kill(self) -> None:
             self.returncode = -9
 
-    monkeypatch.setattr(corpus_materialization_module.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(corpus_materialization_batch_module.subprocess, "Popen", FakePopen)
 
-    records = corpus_materialization_module._materialize_pending_recipes_with_subprocess_fanout(
+    records = corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
         pending_requests=[
-            corpus_materialization_module._PendingRecipeWorkerMaterialization(
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                 recipe_id="current_recipe",
                 dagzoo_root=repo_tmp_path.parent / "dagzoo",
                 force=True,
@@ -1534,13 +1537,13 @@ def test_materialize_pending_recipes_with_subprocess_fanout_terminates_remaining
         completed_indices[0] += 1
         process_by_recipe_id[recipe_id].returncode = 1
 
-    monkeypatch.setattr(corpus_materialization_module.subprocess, "Popen", FakePopen)
-    monkeypatch.setattr(corpus_materialization_module.time, "sleep", _fake_sleep)
+    monkeypatch.setattr(corpus_materialization_batch_module.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(corpus_materialization_batch_module.time, "sleep", _fake_sleep)
 
     with pytest.raises(RuntimeError, match="recipe materialization subprocess failed"):
-        _ = corpus_materialization_module._materialize_pending_recipes_with_subprocess_fanout(
+        _ = corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
             pending_requests=[
-                corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                     recipe_id="current_recipe",
                     dagzoo_root=repo_tmp_path.parent / "dagzoo",
                     force=True,
@@ -1550,7 +1553,7 @@ def test_materialize_pending_recipes_with_subprocess_fanout_terminates_remaining
                     sweep_id=None,
                     sweeps_root=None,
                 ),
-                corpus_materialization_module._PendingRecipeWorkerMaterialization(
+                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
                     recipe_id="size_recipe",
                     dagzoo_root=repo_tmp_path.parent / "dagzoo",
                     force=True,
@@ -1756,6 +1759,55 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
 
     loaded = load_corpus_record("accepted_only_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
+
+
+def test_load_staged_corpus_recipe_preview_returns_stage_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=1)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
+
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
+    stage_root.mkdir(parents=True, exist_ok=True)
+    corpus_materialization_module.materialize_recipe_invocation(
+        recipe_id="accepted_only_recipe",
+        invocation_id="default",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        corpus_root=stage_root,
+        repo_root=repo_tmp_path,
+    )
+
+    preview = load_staged_corpus_recipe_preview(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        repo_root=repo_tmp_path,
+    )
+
+    assert preview["recipe_id"] == "accepted_only_recipe"
+    assert preview["surface_label"] == "accepted_only_surface"
+    assert preview["stage_root"] == str(stage_root.resolve())
+    invocation = preview["invocations"][0]
+    assert invocation["invocation_id"] == "default"
+    assert invocation["filter"]["target_accepted_datasets"] == 1
+    assert invocation["filter"]["curated_accepted_datasets"] == 1
+    assert invocation["rounds"][0]["round_index"] == 1
+
+
+def test_load_staged_corpus_recipe_preview_errors_when_stage_missing(
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=1)
+
+    with pytest.raises(RuntimeError, match="staged corpus root does not exist"):
+        _ = load_staged_corpus_recipe_preview(
+            recipe_id="accepted_only_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            repo_root=repo_tmp_path,
+        )
 
 
 def test_materialize_corpus_recipe_tops_up_accepted_only_until_target(
@@ -1979,7 +2031,7 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
         )
     cases._write_packed_shard(shard_dir, datasets=datasets)
 
-    next_shard_index, copied_datasets = corpus_materialization_module._copy_curated_round_shards(
+    next_shard_index, copied_datasets = corpus_materialization_invocation_module._copy_curated_round_shards(
         round_curated_dir=round_curated_dir,
         final_curated_dir=final_curated_dir,
         next_shard_index=0,

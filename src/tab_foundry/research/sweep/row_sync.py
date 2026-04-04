@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from .artifacts import ExecutionPaths
-from .materialize import load_system_delta_queue
+from .queue_loading import load_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
 
 

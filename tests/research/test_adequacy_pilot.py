@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 import torch
 
+import tab_foundry.research.adequacy.canary as canary_module
+import tab_foundry.research.adequacy.contract as contract_module
 import tab_foundry.research.adequacy.pilot as pilot_module
+import tab_foundry.research.adequacy.production_control as production_control_module
 from tab_foundry.research.synthetic_adequacy import load_synthetic_adequacy_spec
 from tab_foundry.types import TaskBatch
 
@@ -307,12 +310,12 @@ def test_inspect_corpus_latent_target_contract_accepts_public_catalog_surface(
     }
 
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "_classification_manifest_records",
         lambda path: sample_records,
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "load_manifest_record_catalog",
         lambda path, *, record: _latent_target_catalog_record(
             n_features=int(record["n_features"]),
@@ -398,19 +401,19 @@ def test_inspect_corpus_latent_target_contract_fast_skips_catalog_reads_for_prod
     }
 
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "_classification_manifest_records",
         lambda path: sample_records,
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "load_manifest_record_catalog",
         lambda path, *, record: pytest.fail("fast production contract check should skip catalog loads"),
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "_load_manifest_contract_stats",
-        lambda *, manifest_path, corpus_record: pilot_module._manifest_contract_stats_from_records(
+        lambda *, manifest_path, corpus_record: contract_module._manifest_contract_stats_from_records(
             sample_records
         ),
     )
@@ -580,22 +583,22 @@ def test_run_adequacy_pilot_writes_summary_with_monkeypatched_success(
         _fake_materialize_corpus_refs_batch,
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "inspect_corpus_latent_target_contract",
         _fake_contract_inspection,
     )
     monkeypatch.setattr(
-        pilot_module,
+        canary_module,
         "score_canary_block",
         lambda block, *, corpus_record: _healthy_canary_summary(),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "load_corpus_record",
         lambda corpus_ref, *, repo_root=None: _fake_corpus_record(tmp_path, corpus_ref=corpus_ref),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "run_production_control_pilot",
         _fake_run_production_control_pilot,
     )
@@ -676,7 +679,7 @@ def test_run_adequacy_pilot_fails_fast_and_writes_blocking_summary_when_contract
         _fake_materialize_corpus_refs_batch,
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "inspect_corpus_latent_target_contract",
         lambda *, block, corpus_record, mode: {
             "required": True,
@@ -686,12 +689,12 @@ def test_run_adequacy_pilot_fails_fast_and_writes_blocking_summary_when_contract
         },
     )
     monkeypatch.setattr(
-        pilot_module,
+        canary_module,
         "score_canary_block",
         lambda block, *, corpus_record: _healthy_canary_summary(),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "load_corpus_record",
         lambda corpus_ref, *, repo_root=None: _fake_corpus_record(tmp_path, corpus_ref=corpus_ref),
     )
@@ -737,17 +740,17 @@ def test_finalize_adequacy_pilot_writes_summary_from_existing_artifacts(
         lambda **kwargs: pytest.fail("finalize should not materialize corpora"),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "train",
         lambda cfg: pytest.fail("finalize should not retrain"),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "load_corpus_record",
         lambda corpus_ref, *, repo_root=None: canary_record,
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "_resolve_production_control_corpus",
         lambda **kwargs: {
             "corpus_record": production_record,
@@ -755,7 +758,7 @@ def test_finalize_adequacy_pilot_writes_summary_from_existing_artifacts(
         },
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "inspect_corpus_latent_target_contract",
         lambda *, block, corpus_record, mode: {
             "required": True,
@@ -772,12 +775,12 @@ def test_finalize_adequacy_pilot_writes_summary_from_existing_artifacts(
         },
     )
     monkeypatch.setattr(
-        pilot_module,
+        canary_module,
         "score_canary_block",
         lambda block, *, corpus_record: _healthy_canary_summary(),
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "run_inspect",
         lambda run_dir_arg: {
             "surface_labels": {
@@ -848,12 +851,12 @@ def test_finalize_adequacy_pilot_leaves_existing_summary_untouched_when_run_arti
     (out_root / "production_control_curated_v5" / "train").mkdir(parents=True, exist_ok=True)
 
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "load_corpus_record",
         lambda corpus_ref, *, repo_root=None: canary_record,
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "_resolve_production_control_corpus",
         lambda **kwargs: {
             "corpus_record": production_record,
@@ -861,7 +864,7 @@ def test_finalize_adequacy_pilot_leaves_existing_summary_untouched_when_run_arti
         },
     )
     monkeypatch.setattr(
-        pilot_module,
+        contract_module,
         "inspect_corpus_latent_target_contract",
         lambda *, block, corpus_record, mode: {
             "required": True,
@@ -871,7 +874,7 @@ def test_finalize_adequacy_pilot_leaves_existing_summary_untouched_when_run_arti
         },
     )
     monkeypatch.setattr(
-        pilot_module,
+        canary_module,
         "score_canary_block",
         lambda block, *, corpus_record: _healthy_canary_summary(),
     )
@@ -900,17 +903,17 @@ def test_resolve_production_control_corpus_prefers_existing_finalized_record(
     )
 
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "load_corpus_record",
         lambda corpus_ref, *, repo_root=None: finalized_record,
     )
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "_staged_direct_manifest_record",
         lambda **kwargs: pytest.fail("existing finalized corpora should be preferred"),
     )
 
-    resolved = pilot_module._resolve_production_control_corpus(
+    resolved = production_control_module._resolve_production_control_corpus(
         requested_corpus_ref="tf_rd_010_dagzoo_medium_control_curated_v5",
         pilot_root=tmp_path / "adequacy",
         dagzoo_root=tmp_path / "dagzoo",
@@ -942,14 +945,14 @@ def test_resolve_production_control_corpus_falls_back_to_staged_direct_manifest(
     def _missing_record(corpus_ref: str, *, repo_root: Path | None = None) -> dict[str, object]:
         raise RuntimeError(f"missing corpus {corpus_ref}")
 
-    monkeypatch.setattr(pilot_module, "load_corpus_record", _missing_record)
+    monkeypatch.setattr(production_control_module, "load_corpus_record", _missing_record)
     monkeypatch.setattr(
-        pilot_module,
+        production_control_module,
         "_staged_direct_manifest_record",
         lambda **kwargs: staged_record,
     )
 
-    resolved = pilot_module._resolve_production_control_corpus(
+    resolved = production_control_module._resolve_production_control_corpus(
         requested_corpus_ref="tf_rd_010_dagzoo_medium_control_curated_v5",
         pilot_root=tmp_path / "adequacy",
         dagzoo_root=tmp_path / "dagzoo",

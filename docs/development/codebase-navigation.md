@@ -95,8 +95,11 @@ into the canonical library modules.
   The canonical sweep ownership now lives under
   `src/tab_foundry/research/sweep/`: `catalog.py` owns sweep/index/catalog
   loading, `manage.py` owns sweep creation and metadata inheritance, `materialize.py`
-  owns queue loading/materialization, `matrix.py` owns validation/rendering,
-  `paths_io.py` owns sweep paths plus YAML/text helpers, `validation.py`
+  is the stable public queue-materialization facade, `queue_materialization.py`
+  owns queue shaping/materialization, `queue_loading.py` owns resolved-queue
+  writes plus schema-aware queue loading, `queue_corpora.py` owns sweep corpus
+  materialization, `matrix.py` owns validation/rendering, `paths_io.py` owns
+  sweep paths plus YAML/text helpers, `validation.py`
   owns sweep-shape validation helpers, `anchor.py` owns anchor-context
   derivation, `lane_contract.py` owns training-surface plus comparison-policy
   semantics, `inspection_artifacts.py` owns inspection-time queue metadata plus

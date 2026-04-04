@@ -5,10 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.benchmark_registry import (
-    load_benchmark_run_registry,
-    resolve_registry_path_value,
-)
 from .inspection_artifacts import (
     anchor_has_training_artifacts,
     anchor_run_artifacts,
@@ -21,16 +17,7 @@ from .inspection_artifacts import (
     row_artifacts,
 )
 from .paths_io import _copy_jsonable, default_registry_path
-from .surface_resolution import (
-    anchor_row_payload,
-    inspection_spec_and_record,
-    merge_model_fallback,
-    resolved_surface_payload,
-    resolve_anchor_originating_queue_row,
-    resolve_anchor_model_spec,
-    resolve_anchor_training_surface_record,
-    training_surface_record_model_spec,
-)
+from . import surface_resolution as surface_resolution_module
 
 
 def _anchor_metrics_payload(registry_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -58,7 +45,7 @@ def resolve_row_target(
     training_surface_entry = artifacts.get("training_surface_record_json")
     if isinstance(training_surface_entry, Mapping) and bool(training_surface_entry.get("exists")):
         training_surface_path = Path(str(training_surface_entry["path"]))
-        spec = training_surface_record_model_spec(training_surface_path)
+        spec = surface_resolution_module.training_surface_record_model_spec(training_surface_path)
         training_surface_record = load_json_mapping(
             training_surface_path,
             context=f"row {int(row['order']):02d} training surface record",
@@ -74,7 +61,7 @@ def resolve_row_target(
                 target_id=f"{int(row['order']):02d}_{str(row['delta_id'])}",
             )
         )
-        spec, fallback_training_surface_record = inspection_spec_and_record(
+        spec, fallback_training_surface_record = surface_resolution_module.inspection_spec_and_record(
             row=row,
             run_dir=run_dir,
             training_experiment=str(queue_metadata["training_experiment"]),
@@ -90,7 +77,7 @@ def resolve_row_target(
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
         metrics = row.get("screen_metrics")
-    resolved_payload = resolved_surface_payload(
+    resolved_payload = surface_resolution_module.resolved_surface_payload(
         spec=spec,
         training_surface_record=training_surface_record,
     )
@@ -104,7 +91,7 @@ def resolve_row_target(
             "run_id": None if row.get("run_id") is None else str(row["run_id"]),
         },
         "artifacts": artifacts,
-        "resolved": merge_model_fallback(
+        "resolved": surface_resolution_module.merge_model_fallback(
             resolved=resolved_payload,
             fallback_model=cast(Mapping[str, Any] | None, row.get("model")),
         ),
@@ -121,18 +108,19 @@ def resolve_anchor_target(
 ) -> dict[str, Any]:
     queue_metadata = queue_metadata_payload(queue)
     artifacts, registry_run = anchor_run_artifacts(queue=queue, registry_path=registry_path)
-    anchor_row = anchor_row_payload(queue)
+    anchor_row = surface_resolution_module.anchor_row_payload(queue)
     try:
-        spec, metadata = resolve_anchor_model_spec(
+        spec, metadata = surface_resolution_module.resolve_anchor_model_spec(
             queue=queue,
             registry_path=registry_path,
             index_path=index_path,
             sweeps_root=sweeps_root,
-            load_registry=load_benchmark_run_registry,
-            resolve_registry_path=resolve_registry_path_value,
         )
         if anchor_has_training_artifacts(artifacts):
-            training_surface_record = resolve_anchor_training_surface_record(queue=queue, artifacts=artifacts)
+            training_surface_record = surface_resolution_module.resolve_anchor_training_surface_record(
+                queue=queue,
+                artifacts=artifacts,
+            )
         else:
             source_row: dict[str, Any] | None = None
             source_training_experiment: str | None = None
@@ -140,26 +128,28 @@ def resolve_anchor_target(
                 source_row = queue_anchor_row(queue)
                 source_training_experiment = str(queue_metadata["training_experiment"])
             elif str(metadata["source"]) == "originating_sweep_row":
-                originating_row = resolve_anchor_originating_queue_row(
+                originating_row = surface_resolution_module.resolve_anchor_originating_queue_row(
                     queue=queue,
                     registry_path=registry_path,
                     index_path=index_path,
                     sweeps_root=sweeps_root,
-                    load_registry=load_benchmark_run_registry,
                 )
                 if originating_row is not None:
                     source_row, originating_metadata = originating_row
                     source_training_experiment = str(originating_metadata["training_experiment"])
 
             if source_row is None or source_training_experiment is None:
-                training_surface_record = resolve_anchor_training_surface_record(queue=queue, artifacts=artifacts)
+                training_surface_record = surface_resolution_module.resolve_anchor_training_surface_record(
+                    queue=queue,
+                    artifacts=artifacts,
+                )
             else:
                 run_dir = inspection_run_dir(
                     sweep_id=str(queue_metadata["sweep_id"]),
                     target_kind="anchor",
                     target_id="anchor",
                 )
-                _, training_surface_record = inspection_spec_and_record(
+                _, training_surface_record = surface_resolution_module.inspection_spec_and_record(
                     row=source_row,
                     run_dir=run_dir,
                     training_experiment=source_training_experiment,
@@ -172,7 +162,7 @@ def resolve_anchor_target(
             target_kind="anchor",
             target_id="anchor",
         )
-        spec, training_surface_record = inspection_spec_and_record(
+        spec, training_surface_record = surface_resolution_module.inspection_spec_and_record(
             row=anchor_row,
             run_dir=run_dir,
             training_experiment=str(queue_metadata["training_experiment"]),
@@ -187,7 +177,10 @@ def resolve_anchor_target(
             "source": str(metadata["source"]),
         },
         "artifacts": artifacts,
-        "resolved": resolved_surface_payload(spec=spec, training_surface_record=training_surface_record),
+        "resolved": surface_resolution_module.resolved_surface_payload(
+            spec=spec,
+            training_surface_record=training_surface_record,
+        ),
         "metrics": _anchor_metrics_payload(registry_run),
     }
 

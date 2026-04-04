@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Mapping, cast
+from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 import torch
@@ -24,7 +24,7 @@ from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
 from .configuration import compose_cfg
-from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .queue_loading import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import default_registry_path, repo_root
 
 
@@ -229,10 +229,9 @@ def resolve_anchor_originating_queue_row(
     registry_path: Path | None = None,
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
-    load_registry: Callable[[Path], Mapping[str, Any]] = load_benchmark_run_registry,
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     anchor_run_id = _require_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
-    registry = load_registry(registry_path or default_registry_path())
+    registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = _require_mapping(registry.get("runs"), context="benchmark registry runs")
     raw_run = runs.get(anchor_run_id)
     if not isinstance(raw_run, Mapping):
@@ -306,8 +305,6 @@ def resolve_anchor_model_spec(
     registry_path: Path | None = None,
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
-    load_registry: Callable[[Path], Mapping[str, Any]] = load_benchmark_run_registry,
-    resolve_registry_path: Callable[[str], Path] = resolve_registry_path_value,
 ) -> tuple[ModelBuildSpec, dict[str, Any]]:
     anchor_run_id = _require_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
     training_experiment = resolve_training_surface_context(queue).training_experiment
@@ -324,7 +321,7 @@ def resolve_anchor_model_spec(
                 "delta_id": str(row["delta_id"]),
             }
 
-    registry = load_registry(registry_path or default_registry_path())
+    registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = _require_mapping(registry.get("runs"), context="benchmark registry runs")
     raw_run = runs.get(anchor_run_id)
     if not isinstance(raw_run, Mapping):
@@ -337,7 +334,7 @@ def resolve_anchor_model_spec(
 
     raw_training_surface_path = artifacts.get("training_surface_record_path")
     if isinstance(raw_training_surface_path, str) and raw_training_surface_path.strip():
-        training_surface_path = resolve_registry_path(raw_training_surface_path)
+        training_surface_path = resolve_registry_path_value(raw_training_surface_path)
         if training_surface_path.exists():
             return training_surface_record_model_spec(training_surface_path), {
                 "source": "training_surface_record",
@@ -347,7 +344,7 @@ def resolve_anchor_model_spec(
 
     raw_checkpoint_path = artifacts.get("best_checkpoint_path")
     if isinstance(raw_checkpoint_path, str) and raw_checkpoint_path.strip():
-        checkpoint_path = resolve_registry_path(raw_checkpoint_path)
+        checkpoint_path = resolve_registry_path_value(raw_checkpoint_path)
         if checkpoint_path.exists():
             return _checkpoint_model_spec_from_path(checkpoint_path), {
                 "source": "checkpoint",
@@ -360,7 +357,6 @@ def resolve_anchor_model_spec(
         registry_path=registry_path,
         index_path=index_path,
         sweeps_root=sweeps_root,
-        load_registry=load_registry,
     )
     if originating_row is not None:
         row, metadata = originating_row
