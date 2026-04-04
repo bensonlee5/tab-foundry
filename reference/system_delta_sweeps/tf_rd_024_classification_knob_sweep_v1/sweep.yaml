@@ -17,7 +17,8 @@ upstream_reference:
 anchor_surface:
   notes:
   - This draft follow-on sweep starts only after TF-RD-022 closes on one explicit
-    runtime-policy keep anchor under [#168](https://github.com/bensonlee5/tab-foundry/issues/168)
+    runtime-policy candidate that has already cleared the large-validation gate
+    under [#168](https://github.com/bensonlee5/tab-foundry/issues/168)
     plus child issues [#169](https://github.com/bensonlee5/tab-foundry/issues/169)
     and [#170](https://github.com/bensonlee5/tab-foundry/issues/170).
   - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
@@ -33,7 +34,7 @@ anchor_surface:
     a parallel search program.
   - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`:
     `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`,
-    `trace_activations=false`, `activation_checkpointing=false`,
+    `trace_activations=false`, `activation_checkpointing=true`,
     `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`,
     `optimizer.min_lr=1e-5`, and linear warmup at `lr_max=1e-3`.'
   - The only live architecture knobs in this sweep are `head_hidden_dim`, `sandwich_summary_tokens_per_axis`,

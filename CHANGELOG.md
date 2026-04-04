@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal note: split corpus materialization, sweep queue materialization, and
   adequacy pilot logic into focused owner modules while keeping the public
   facades, CLI surfaces, and persisted payload contracts unchanged.
+- User-facing note: the completed `tf_rd_022_runtime_policy_medium_v1` ladder
+  is now registered in the canonical benchmark registry, with the no-AMP
+  control, bf16, activation-trace, and activation-checkpointing rows all
+  recorded as completed benchmark reads on the closed TF-RD-010 medium
+  contract.
+- User-facing note: the named TF-RD-022 runtime policy surfaces now inherit the
+  measured medium-rung winner, keeping `mixed_precision=bf16` while switching
+  `activation_checkpointing=true`; the blocked TF-RD-024 architecture scaffold
+  now inherits that checkpointed runtime policy too.
 
 ## [0.16.4] - 2026-04-02
 

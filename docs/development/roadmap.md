@@ -600,15 +600,24 @@ Legacy wording note:
     tracing, and activation checkpointing, and the keep bar requires
     non-worse `final_log_loss_at_matched_regime_budget` before runtime or VRAM
     tie-breakers are considered
+  - `tf_rd_022_runtime_policy_medium_v1` is now completed locally from the
+    mirrored CUDA run artifacts: row 4
+    `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`
+    is the medium-rung winner with `final_log_loss=0.6765953232`,
+    `peak_vram_reserved=3321888768`, and
+    `throughput_tokens_per_second=150561.1995`; row 2 bf16 is benchmark-safe
+    but deferred, row 3 trace is benchmark-safe but diagnostic-only, and row 1
+    remains the no-AMP screening control
   - the inherited validation contract is the closed TF-RD-010 medium and large
     classification benchmark package under issues
     [#202](https://github.com/bensonlee5/tab-foundry/issues/202),
     [#203](https://github.com/bensonlee5/tab-foundry/issues/203),
     [#204](https://github.com/bensonlee5/tab-foundry/issues/204), and
     [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
-  - the medium ladder is scaffolded and rendered in-repo, but the measured keep
-    or defer decision is still pending because this workspace does not expose a
-    CUDA device for the actual TF-RD-022 runtime runs
+  - the named TF-RD-022 runtime policy surface now inherits the measured
+    medium winner (`mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`), while the large-rung validator remains
+    the closing gate before TF-RD-022 can be marked complete
 - this epic now follows the closed TF-RD-010 benchmark contract directly; it
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
   dagzoo RD-005, or broader regime-choice work
@@ -669,12 +678,16 @@ Legacy wording note:
   - sweep `tf_rd_024_classification_knob_sweep_v1` is drafted and inherits the
     benchmark-facing runtime policy experiment
     `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+  - the inherited TF-RD-022 medium winner is now the checkpointed bf16 policy
+    (`mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`), but TF-RD-024 stays blocked until that
+    candidate clears the TF-RD-022 large validator
   - the sweep reuses historical TF-RD-021B sandwich delta families where
     possible instead of inventing a new parallel architecture-search path
-  - every drafted row remains blocked on the TF-RD-022 keep anchor so the first
+  - every drafted row remains blocked on the TF-RD-022 large-validation gate so the first
     execution can happen on one explicit inherited runtime surface
 - Required work:
-  - wait for the TF-RD-022 keep anchor, then execute the bounded TF-RD-024
+  - wait for the TF-RD-022 large-validation gate, then execute the bounded TF-RD-024
     sweep on the closed TF-RD-010 medium benchmark contract as the screening
     rung
   - validate any keep-worthy medium signal on the closed TF-RD-010 large rung

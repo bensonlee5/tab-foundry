@@ -5,11 +5,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_022_runtime_poli
 ## Sweep
 
 - Sweep id: `tf_rd_022_runtime_policy_medium_v1`
-- Sweep status: `ready`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `96ea81483fe2b92da15b8cb7aed34f82601ddff5f57f5de0f6671e233e1af54e`
+- Resolved queue inputs fingerprint: `a8032292f2bc04cc145959c1e6362cf621b85703e15e40e448f7a965f114653d`
 
 ## Locked Surface
 
@@ -38,17 +38,17 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_022_cls_runtime_control_noamp_v1` | runtime_policy | no | ready | none | Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing. | Execute first, then use it as the same-bundle benchmark and runtime control for rows 2 through 4. |
-| 2 | `delta_tf_rd_022_cls_runtime_bf16_v1` | runtime_policy | no | ready | none | Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification control recipe. | Execute after row 1 and carry it forward only if bf16 is benchmark-safe on the medium rung. |
-| 3 | `delta_tf_rd_022_cls_runtime_trace_v1` | runtime_policy | no | ready | none | Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022 runtime candidate. | Execute after row 2, then defer it unless benchmark quality remains non-worse and tracing is runtime-competitive. |
-| 4 | `delta_tf_rd_022_cls_runtime_checkpoint_v1` | runtime_policy | no | ready | none | Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate. | Execute after row 2, then defer it unless checkpointing is benchmark-safe and materially better on VRAM or runtime guardrails. |
+| 1 | `delta_tf_rd_022_cls_runtime_control_noamp_v1` | runtime_policy | no | completed | none | Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing. | Keep this row as the same-bundle benchmark-safe screening control while the checkpointing winner advances to the large validator. |
+| 2 | `delta_tf_rd_022_cls_runtime_bf16_v1` | runtime_policy | no | completed | none | Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification control recipe. | Keep this row as the simpler benchmark-safe bf16 reference, but defer it in favor of the lower-VRAM checkpointing winner. |
+| 3 | `delta_tf_rd_022_cls_runtime_trace_v1` | runtime_policy | no | completed | none | Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022 runtime candidate. | Defer this row as a benchmark-safe diagnostic that did not win the runtime tie-breakers against the kept checkpointing candidate. |
+| 4 | `delta_tf_rd_022_cls_runtime_checkpoint_v1` | runtime_policy | no | completed | none | Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate. | Promote this row into `tf_rd_022_runtime_policy_large_validation_v1` on the closed TF-RD-010 large contract before treating it as the closed TF-RD-022 carried runtime policy. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_022_cls_runtime_control_noamp_v1`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Replay the closed TF-RD-010 classification control recipe with no AMP, no activation trace, and no activation checkpointing.
@@ -71,16 +71,19 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
   - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4`.
+  - Recorded the canonical no-AMP control replay for the TF-RD-022 medium runtime ladder. Keep it as the benchmark-safe screening reference only because the checkpointing candidate remained non-worse on matched-budget log loss while materially reducing reserved VRAM.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_022_runtime_policy_medium_v1/delta_tf_rd_022_cls_runtime_control_noamp_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4` with final log loss `0.6849`, delta final log loss `+0.0038`, final Brier score `0.4246`, delta final brier score `+0.0017`, final ROC AUC `0.6044`, delta final roc auc `-0.0050`, final BPC (legacy feature-cell diagnostic) `2.1154`, delta final bpc (legacy feature-cell diagnostic) `+0.0017`, final BPF (legacy feature-cell diagnostic) `2.1154`, delta final bpf (legacy feature-cell diagnostic) `+0.0017`, best ROC AUC `0.6044`, delta final training time `-1498.0s`
 
 ### 2. `delta_tf_rd_022_cls_runtime_bf16_v1`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification control recipe.
@@ -103,16 +106,19 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
   - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1`.
+  - Pure bf16 is benchmark-safe on the TF-RD-022 medium rung and improves over the no-AMP control, but it is not the kept medium winner because bf16 plus activation checkpointing preserved benchmark quality while lowering peak reserved VRAM further.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_022_runtime_policy_medium_v1/delta_tf_rd_022_cls_runtime_bf16_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1` with final log loss `0.6818`, delta final log loss `+0.0007`, final Brier score `0.4226`, delta final brier score `-0.0003`, final ROC AUC `0.6087`, delta final roc auc `-0.0007`, final BPC (legacy feature-cell diagnostic) `2.1103`, delta final bpc (legacy feature-cell diagnostic) `-0.0034`, final BPF (legacy feature-cell diagnostic) `2.1103`, delta final bpf (legacy feature-cell diagnostic) `-0.0034`, best ROC AUC `0.6087`, delta final training time `-1611.3s`
 
 ### 3. `delta_tf_rd_022_cls_runtime_trace_v1`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022 runtime candidate.
@@ -135,16 +141,19 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
   - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2`.
+  - Benchmark-facing activation tracing stayed benchmark-safe on the medium rung, but it did not beat the kept candidate on the runtime tie-breakers: it reserved more VRAM than checkpointing and ran slower than the simpler bf16 row.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_022_runtime_policy_medium_v1/delta_tf_rd_022_cls_runtime_trace_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2` with final log loss `0.6755`, delta final log loss `-0.0057`, final Brier score `0.4192`, delta final brier score `-0.0037`, final ROC AUC `0.6183`, delta final roc auc `+0.0089`, final BPC (legacy feature-cell diagnostic) `2.1165`, delta final bpc (legacy feature-cell diagnostic) `+0.0029`, final BPF (legacy feature-cell diagnostic) `2.1165`, delta final bpf (legacy feature-cell diagnostic) `+0.0029`, best ROC AUC `0.6183`, delta final training time `-1379.7s`
 
 ### 4. `delta_tf_rd_022_cls_runtime_checkpoint_v1`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Enable activation checkpointing on top of the bf16 TF-RD-022 runtime candidate.
@@ -167,8 +176,11 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
   - runtime knobs only; architecture, corpus choice, optimizer family, and schedule family remain frozen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `keep`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`.
+  - bf16 plus activation checkpointing is the TF-RD-022 medium-rung winner: it stayed non-worse than the no-AMP control on matched-budget log loss while delivering the lowest peak reserved VRAM among benchmark-safe rows. Promote this row to the large validation gate before treating it as the closed TF-RD-022 carried policy.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_022_runtime_policy_medium_v1/delta_tf_rd_022_cls_runtime_checkpoint_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2` with final log loss `0.6766`, delta final log loss `-0.0046`, final Brier score `0.4199`, delta final brier score `-0.0030`, final ROC AUC `0.6189`, delta final roc auc `+0.0095`, final BPC (legacy feature-cell diagnostic) `2.1138`, delta final bpc (legacy feature-cell diagnostic) `+0.0001`, final BPF (legacy feature-cell diagnostic) `2.1138`, delta final bpf (legacy feature-cell diagnostic) `+0.0001`, best ROC AUC `0.6189`, delta final training time `-1348.0s`

@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_024_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_024_classification_knob_sweep_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `3b7000f4995e502dc93fb13e5fe21eb62218d0aaa01eb833e7c8f859934c9ab3`
+- Resolved queue inputs fingerprint: `c1bcd1519ad9601232b8464dea255ba9e570fc187d61efe0e4945d06287a0c79`
 
 ## Locked Surface
 
@@ -42,13 +42,13 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_024_cls_sandwich_latents12_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 freezes the runtime policy. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 2 | `delta_tf_rd_024_cls_sandwich_heads2_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the historical head-partition family by reducing `sandwich_heads` from `4` to `2` on the TF-RD-010 multiclass benchmark contract. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 3 | `delta_tf_rd_024_cls_sandwich_ffexp1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-MLP bracket by reducing `sandwich_ff_expansion` from `2` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 4 | `delta_tf_rd_024_cls_sandwich_summarytokens1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower summary-stream bracket by reducing `sandwich_summary_tokens_per_axis` from `3` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 5 | `delta_tf_rd_024_cls_sandwich_selfattn1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower latent-refinement bracket by reducing `sandwich_self_attention_per_cross` from `4` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 6 | `delta_tf_rd_024_cls_sandwich_headhidden64_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower readout-capacity bracket by reducing `head_hidden_dim` from `96` to `64` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
-| 7 | `delta_tf_rd_024_cls_sandwich_headhidden128_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the upper readout-capacity bracket by increasing `head_hidden_dim` from `96` to `128` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 keep anchor, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 1 | `delta_tf_rd_024_cls_sandwich_latents12_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-bracket latent-bank family by reducing `sandwich_latents` from `24` to `12` on the TF-RD-010 multiclass benchmark contract after TF-RD-022 freezes the runtime policy. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 2 | `delta_tf_rd_024_cls_sandwich_heads2_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the historical head-partition family by reducing `sandwich_heads` from `4` to `2` on the TF-RD-010 multiclass benchmark contract. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 3 | `delta_tf_rd_024_cls_sandwich_ffexp1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower-MLP bracket by reducing `sandwich_ff_expansion` from `2` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 4 | `delta_tf_rd_024_cls_sandwich_summarytokens1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower summary-stream bracket by reducing `sandwich_summary_tokens_per_axis` from `3` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 5 | `delta_tf_rd_024_cls_sandwich_selfattn1_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower latent-refinement bracket by reducing `sandwich_self_attention_per_cross` from `4` to `1` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 6 | `delta_tf_rd_024_cls_sandwich_headhidden64_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the lower readout-capacity bracket by reducing `head_hidden_dim` from `96` to `64` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
+| 7 | `delta_tf_rd_024_cls_sandwich_headhidden128_v1` | architecture_followup | no | blocked_on_runtime_policy | none | Reuse the upper readout-capacity bracket by increasing `head_hidden_dim` from `96` to `128` on the inherited multiclass benchmark surface. | Wait for the TF-RD-022 large-validation gate, then screen this row on the TF-RD-010 medium rung and validate any keep signal on the closed large rung. |
 
 ## Detailed Rows
 
@@ -65,11 +65,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_latents` from `24` to `12` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the classification sandwich remains overprovisioned on latent tokens after TF-RD-022, the lower latent bracket should preserve most benchmark quality at lower runtime cost.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `bfe04f631540e543f83d9ccd590ed412accd1a14520685c9f87539f9c18f9160`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `cd65f7e0842b9e5ccee9de374add759971040e0d31830893f734d58206fb92db`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 12, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
-  - Wait for the TF-RD-022 keep anchor, then execute this row on the inherited policy surface without changing optimizer or schedule settings.
+  - Wait for the TF-RD-022 large-validation gate, then execute this row on the inherited policy surface without changing optimizer or schedule settings.
   - Validate any kept medium-screen signal on the closed large-rung TF-RD-010 contract before treating latent count as a persistent follow-on knob.
 - Adequacy knobs to dimension explicitly:
   - closed TF-RD-010 medium contract with curated `tf_rd_010_dagzoo_medium_control_curated_v5`
@@ -96,8 +96,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_heads` from `4` to `2` while holding `d_icl=60`, `sandwich_layers=2`, `sandwich_latents=24`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the retained sandwich is width-limited rather than head-factorization-limited after TF-RD-022, this lower head count should be close on the inherited benchmark contract.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `058dfaa07a8ac5b5f0b70c92d70bec5dae8a844ca4583e3323dd501c194f5aa3`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `a1fcc4fcaefb7a247bc41dc6f6df426c163f73c71056976207a5b35f40a119f8`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 2, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute only after the TF-RD-022 runtime policy is explicit and the anchor is rerun on that surface.
@@ -127,8 +127,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_ff_expansion` from `2` to `1` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the retained sandwich gains are still mostly structural after TF-RD-022, the lower FF expansion should remain competitive on the benchmark contract.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `9cc607f609cfb7cb4617d3ccabbcb79410e08c8b5738fc17aff9e31014ca0b01`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `a5ee2f1e4f87d81d0febda09e7db6c135501807760bccc9dde585f1c8e571346`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute after TF-RD-022 closes and keep the schedule, optimizer, and data front identical to the anchor.
@@ -158,8 +158,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_summary_tokens_per_axis` from `3` to `1` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the retained sandwich mostly benefits from the broader hybrid structure rather than extra summary bandwidth, the lower summary-token bracket should stay competitive after TF-RD-022.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `d3b6309acc3a20f6a607e64a57000b9f0f01df409ec924c92b0173c4b7c13884`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `833b636048d47e35b8798a37cf89e47e5ace3a6ff48e1de928d7a46672b12d05`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute only after the TF-RD-022 runtime policy closes and the anchor is rerun on that surface.
@@ -189,8 +189,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_self_attention_per_cross` from `4` to `1` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If most of the retained gain comes from the hybrid full-cell bypasses rather than repeated latent self-refinement, the lower self-attention bracket should stay near-anchor after TF-RD-022.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `54845e043771f2c3690e1a29fc7f9c8ef6ae37fa49b79a7c39226dde5c539a49`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `ab2b46e7495f1f73c187d3b4056b73b3e9ee4fd51e6df1fce12129ba68472b9e`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 1, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute after the TF-RD-022 runtime policy closes, then compare directly against the inherited benchmark anchor before any broader follow-up.
@@ -220,8 +220,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.head_hidden_dim` from `96` to `64` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the retained sandwich is still trunk-limited rather than head-limited after TF-RD-022, the smaller readout bracket should stay close to anchor quality.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `b154681b33bc77916846ad5c0613f07e44b2f8c3a17aea18e28dd02845faf62a`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `d8df410f909e6452a293af21866283ac07309e993487dc45560a15f3f399804c`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 64, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute after the TF-RD-022 runtime policy closes and compare directly against the inherited benchmark anchor.
@@ -251,8 +251,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.head_hidden_dim` from `96` to `128` while holding `d_icl=60`, `sandwich_layers=2`, the TF-RD-010 benchmark contract, and the inherited TF-RD-022 runtime policy fixed.
 - Expected effect: If the retained sandwich is readout-limited after TF-RD-022, the larger head-hidden bracket should improve the inherited benchmark fit enough to justify a later large-rung validation.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `744de72fd20db626ce100ba09225b16c8f395496f3a4359bd274b4a49926bbeb`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `e7c954d2d67fce21885d05ff40f7ad9ee99253454fb3e1cb4172503f3865347f`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 128, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute after the TF-RD-022 runtime policy closes and compare directly against the inherited benchmark anchor.

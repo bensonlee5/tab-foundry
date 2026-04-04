@@ -317,7 +317,7 @@ sweeps:
     external_benchmarks: []
   tf_rd_022_runtime_policy_medium_v1:
     parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
-    status: ready
+    status: completed
     anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
     complexity_level: classification_md
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet

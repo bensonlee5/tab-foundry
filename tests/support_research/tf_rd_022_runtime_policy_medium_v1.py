@@ -45,7 +45,7 @@ def test_tf_rd_022_runtime_policy_medium_v1_is_registered_but_not_active() -> No
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v4",
-        "status": "ready",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -61,7 +61,7 @@ def test_tf_rd_022_runtime_policy_medium_v1_matches_the_runtime_ladder_plan() ->
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_010_classification_evolution_medium_v4"
-    assert sweep["status"] == "ready"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert_training_surface_semantics(
         sweep,
@@ -92,11 +92,8 @@ def test_tf_rd_022_runtime_policy_medium_v1_matches_the_runtime_ladder_plan() ->
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
-    assert all(row["run_id"] is None for row in rows)
-    assert all(row["decision"] is None for row in rows)
-    assert all(row["benchmark_metrics"] is None for row in rows)
+    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
     assert all(row["execution_policy"] == "benchmark_full" for row in rows)
     assert all(row["benchmark_checkpoint_selection"] == "all" for row in rows)
 
@@ -119,6 +116,18 @@ def test_tf_rd_022_runtime_policy_medium_v1_matches_the_runtime_ladder_plan() ->
     assert checkpoint["training"]["overrides"]["runtime"]["mixed_precision"] == "bf16"
     assert checkpoint["training"]["overrides"]["runtime"]["trace_activations"] is False
     assert checkpoint["training"]["overrides"]["runtime"]["activation_checkpointing"] is True
+    assert checkpoint["decision"] == "keep"
+    assert checkpoint["run_id"] == (
+        "sd_tf_rd_022_runtime_policy_medium_v1_04_"
+        "delta_tf_rd_022_cls_runtime_checkpoint_v1_v2"
+    )
+    assert checkpoint["benchmark_metrics"]["final_log_loss"] == 0.6765953231883223
+
+    assert bf16["decision"] == "defer"
+    assert bf16["run_id"] == (
+        "sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1"
+    )
+    assert bf16["benchmark_metrics"]["peak_vram_reserved"] == 5312086016
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -135,8 +144,8 @@ def test_tf_rd_022_runtime_policy_medium_v1_matches_the_runtime_ladder_plan() ->
 
     for row in materialized["rows"]:
         runtime = row["training"]["overrides"]["runtime"]
-        assert row["status"] == "ready"
-        assert row["interpretation_status"] == "pending"
+        assert row["status"] == "completed"
+        assert row["interpretation_status"] == "completed"
         assert row["training"]["task_batch_size"] == 16
         assert row["training"]["prior_dump_batch_size"] == 64
         assert row["training"]["synthetic_epoch_budget"]["resolved_task_count"] == 159984
@@ -157,11 +166,16 @@ def test_tf_rd_022_runtime_policy_medium_v1_resolved_queue_captures_runtime_surf
 
     assert resolved["schema"] == "tab-foundry-system-delta-resolved-queue-v1"
     assert resolved["sweep_id"] == SWEEP_ID
-    assert resolved["sweep_status"] == "ready"
+    assert resolved["sweep_status"] == "completed"
     assert resolved["anchor_run_id"] == ANCHOR_RUN_ID
-    assert [row["status"] for row in resolved["rows"]] == ["ready"] * len(EXPECTED_ROWS)
-    assert [row["run_id"] for row in resolved["rows"]] == [None] * len(EXPECTED_ROWS)
-    assert [row["decision"] for row in resolved["rows"]] == [None] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in resolved["rows"]] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["run_id"] for row in resolved["rows"]] == [
+        "sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4",
+        "sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1",
+        "sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2",
+        "sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2",
+    ]
+    assert [row["decision"] for row in resolved["rows"]] == ["defer", "defer", "defer", "keep"]
 
     control_runtime = resolved["rows"][0]["resolved_surface"]["runtime"]
     assert control_runtime["mixed_precision"] == "no"
@@ -191,7 +205,7 @@ def test_tf_rd_022_runtime_policy_medium_v1_matrix_records_the_benchmark_first_k
 
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
-    assert "Sweep status: `ready`" in matrix
+    assert "Sweep status: `completed`" in matrix
     assert ANCHOR_RUN_ID in matrix
     assert "PyTorch AMP" in matrix
     assert "classification_runtime_policy" in matrix
@@ -202,3 +216,5 @@ def test_tf_rd_022_runtime_policy_medium_v1_matrix_records_the_benchmark_first_k
     assert "peak_vram_reserved" in matrix
     assert "throughput_tokens_per_second" in matrix
     assert "diagnostic loser unless it is benchmark-safe" in matrix
+    assert "Decision: `keep`" in matrix
+    assert "sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2" in matrix

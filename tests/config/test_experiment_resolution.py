@@ -84,7 +84,7 @@ def test_runtime_tf_rd_022_policy_resolution() -> None:
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
     assert bool(cfg.runtime.trace_activations) is False
-    assert bool(cfg.runtime.activation_checkpointing) is False
+    assert bool(cfg.runtime.activation_checkpointing) is True
     assert int(cfg.runtime.max_steps) == 2500
 
 
@@ -231,7 +231,7 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
     assert bool(cfg.runtime.trace_activations) is False
-    assert bool(cfg.runtime.activation_checkpointing) is False
+    assert bool(cfg.runtime.activation_checkpointing) is True
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 2500

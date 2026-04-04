@@ -65,6 +65,20 @@ This is the canonical long-form evidence note for
   - row 2 isolates bf16
   - row 3 isolates benchmark-facing activation tracing on top of bf16
   - row 4 isolates activation checkpointing on top of bf16
+- the completed medium ladder now records one explicit keep/defer read for each
+  runtime knob:
+  - row 1 control `sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4`
+    is the benchmark-safe no-AMP reference at `final_log_loss=0.6849302248`,
+    `peak_vram_reserved=27084718080`, and `throughput_tokens_per_second=154192.6072`
+  - row 2 bf16 `sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1`
+    is benchmark-safe but deferred at `final_log_loss=0.6818472858`,
+    `peak_vram_reserved=5312086016`, and `throughput_tokens_per_second=157185.8660`
+  - row 3 trace `sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2`
+    is benchmark-safe but diagnostic-only at `final_log_loss=0.6754785052`,
+    `peak_vram_reserved=5398069248`, and `throughput_tokens_per_second=151347.0572`
+  - row 4 checkpointing `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`
+    is the medium-rung winner at `final_log_loss=0.6765953232`,
+    `peak_vram_reserved=3321888768`, and `throughput_tokens_per_second=150561.1995`
 - that sweep uses a benchmark-first keep bar: a row is eligible only if
   `final_log_loss_at_matched_regime_budget` is non-worse than the no-AMP
   control, with `peak_vram_reserved`, `throughput_tokens_per_second`, and
@@ -89,6 +103,9 @@ This is the canonical long-form evidence note for
   `tf_rd_022_runtime_policy_medium_v1`, and any winner from that ladder should
   promote into a two-row large validator rather than directly mutating the
   carried runtime policy
+- the medium ladder is now measured, and row 4 won the in-repo keep bar on the
+  completed CUDA rung; the remaining TF-RD-022 blocker is large-rung
+  validation, not medium execution
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
@@ -103,16 +120,8 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the repo still lacks one explicit keep/defer decision on whether bf16 is
-  benchmark-safe on the carried classification recipe
-- the repo still lacks one explicit keep/defer decision on benchmark-facing
-  activation tracing versus screen-only tracing
-- the repo still lacks one explicit keep/defer decision on activation
-  checkpointing on the inherited classification recipe
-- the repo still lacks the actual `tf_rd_022_runtime_policy_medium_v1`
-  executions because this workspace does not expose a CUDA device; the sweep is
-  scaffolded and rendered, but the measured runtime evidence is still pending a
-  CUDA host
+- the repo still lacks the TF-RD-022 large-rung validator for the kept
+  checkpointing candidate
 - the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
   on the inherited harder-surface classification recipe under an 80 GB A100
   budget

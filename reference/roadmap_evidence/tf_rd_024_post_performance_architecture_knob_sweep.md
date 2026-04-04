@@ -29,10 +29,14 @@ This is the canonical long-form evidence note for
 - sweep `tf_rd_024_classification_knob_sweep_v1` is drafted on the closed
   TF-RD-010 medium benchmark contract and inherits
   `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+- that inherited experiment now carries the measured TF-RD-022 medium winner:
+  `mixed_precision=bf16`, `trace_activations=false`, and
+  `activation_checkpointing=true`
 - the sweep reuses historical TF-RD-021B sandwich delta families rather than
   introducing a separate architecture-search path
-- every drafted row is currently blocked on the TF-RD-022 keep anchor so the
-  first execution can happen on one explicit inherited runtime surface
+- every drafted row is currently blocked on the TF-RD-022 large-validation
+  gate so the first execution can happen on one explicit inherited runtime
+  surface
 
 ## Current Interpretation
 
@@ -46,7 +50,9 @@ This is the canonical long-form evidence note for
   - `sandwich_self_attention_per_cross`
 - the medium benchmark rung is the screening stage; any keep-worthy signal must
   still validate on the closed TF-RD-010 large rung before promotion
-- keep the runtime policy inherited from TF-RD-022 fixed across every row
+- keep the runtime policy inherited from TF-RD-022 fixed across every row:
+  `mixed_precision=bf16`, `trace_activations=false`,
+  `activation_checkpointing=true`
 - keep these dimensions out of scope here:
   - `d_icl`
   - `sandwich_layers`
@@ -57,7 +63,8 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the TF-RD-022 keep anchor is not yet closed, so no TF-RD-024 rows should run
+- the TF-RD-022 large validator is not yet closed, so no TF-RD-024 rows should
+  run yet
   yet
 - the repo does not yet have medium-rung execution results on the bounded knob
   set under the inherited TF-RD-022 policy
