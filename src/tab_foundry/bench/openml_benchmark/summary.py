@@ -178,23 +178,23 @@ def build_comparison_summary(
 ) -> dict[str, Any]:
     """Build a compact JSON summary for the benchmark comparison."""
 
-    def _summary_metrics(records: list[dict[str, Any]]) -> dict[str, float | None]:
+    def _empty_summary_metrics() -> dict[str, float | None]:
+        return {
+            "best_step": 0.0,
+            "best_training_time": 0.0,
+            "final_step": 0.0,
+            "final_training_time": 0.0,
+        }
+
+    def _grouped_metric_frame(
+        records: list[dict[str, Any]],
+    ) -> tuple[str | None, pd.DataFrame, list[str]]:
         if not records:
-            return {
-                "best_step": 0.0,
-                "best_training_time": 0.0,
-                "final_step": 0.0,
-                "final_training_time": 0.0,
-            }
+            return None, pd.DataFrame(), []
         frame = pd.DataFrame(records)
         metric_columns = _metric_columns(frame)
         if not metric_columns:
-            return {
-                "best_step": 0.0,
-                "best_training_time": 0.0,
-                "final_step": 0.0,
-                "final_training_time": 0.0,
-            }
+            return None, pd.DataFrame(), []
         group_key = "step" if "step" in frame.columns else "training_time"
         aggregate_columns = ["training_time", *metric_columns]
         grouped = (
@@ -203,13 +203,12 @@ def build_comparison_summary(
             .reset_index()
             .sort_values(group_key)
         )
-        if grouped.empty:
-            return {
-                "best_step": 0.0,
-                "best_training_time": 0.0,
-                "final_step": 0.0,
-                "final_training_time": 0.0,
-            }
+        return group_key, grouped, metric_columns
+
+    def _summary_metrics(records: list[dict[str, Any]]) -> dict[str, float | None]:
+        group_key, grouped, metric_columns = _grouped_metric_frame(records)
+        if group_key is None or grouped.empty:
+            return _empty_summary_metrics()
         ranking_key, ranking_direction = _curve_ranking_metric(records)
         ranking_series = grouped[ranking_key].astype(float)
         best_index = int(
@@ -232,6 +231,28 @@ def build_comparison_summary(
             summary_metrics[f"best_{metric_key}"] = float(best_metric)
             summary_metrics[f"final_{metric_key}"] = float(final_row[metric_key])
         return summary_metrics
+
+    def _grouped_metric_record(
+        records: list[dict[str, Any]],
+        *,
+        step: float | None,
+        training_time: float | None = None,
+    ) -> dict[str, float] | None:
+        group_key, grouped, _ = _grouped_metric_frame(records)
+        if group_key is None or grouped.empty:
+            return None
+        target_value = training_time if group_key == "training_time" else step
+        if target_value is None:
+            return None
+        matches = grouped[np.isclose(grouped[group_key].astype(float), float(target_value))]
+        if matches.empty:
+            return None
+        row = matches.iloc[0]
+        return {
+            str(column): float(row[column])
+            for column in grouped.columns
+            if pd.notna(row[column])
+        }
 
     def _dataset_summary(
         records: list[dict[str, Any]],
@@ -444,15 +465,25 @@ def build_comparison_summary(
             baseline_summary.update(dict(extra_fields))
         best_step_raw = baseline_summary.get("best_step")
         final_step_raw = baseline_summary.get("final_step")
+        best_training_time_raw = baseline_summary.get("best_training_time")
+        final_training_time_raw = baseline_summary.get("final_training_time")
         best_step = 0.0 if best_step_raw is None else float(best_step_raw)
         final_step = 0.0 if final_step_raw is None else float(final_step_raw)
-        best_record = next(
-            (record for record in records if float(record.get("step", -1.0)) == best_step),
-            None,
+        best_training_time = (
+            None if best_training_time_raw is None else float(best_training_time_raw)
         )
-        final_record = next(
-            (record for record in records if float(record.get("step", -1.0)) == final_step),
-            None,
+        final_training_time = (
+            None if final_training_time_raw is None else float(final_training_time_raw)
+        )
+        best_record = _grouped_metric_record(
+            records,
+            step=best_step,
+            training_time=best_training_time,
+        )
+        final_record = _grouped_metric_record(
+            records,
+            step=final_step,
+            training_time=final_training_time,
         )
         _apply_metric_summaries(
             baseline_summary,

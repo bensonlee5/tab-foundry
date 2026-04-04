@@ -160,10 +160,14 @@ def _iter_doc_snippets(path: Path) -> Iterable[tuple[int, str]]:
 def _build_cli_tree(command: click.Command) -> dict[str, dict[str, dict]]:
     if not isinstance(command, click.Group):
         return {}
-    return {
-        name: _build_cli_tree(child)
-        for name, child in command.commands.items()
-    }
+    ctx = click.Context(command)
+    tree: dict[str, dict[str, dict]] = {}
+    for name in command.list_commands(ctx):
+        child = command.get_command(ctx, name)
+        if child is None or child.hidden:
+            continue
+        tree[name] = _build_cli_tree(child)
+    return tree
 
 
 def live_cli_leaf_commands() -> set[str]:

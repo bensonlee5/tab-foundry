@@ -16,9 +16,19 @@ def _write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
     )
 
 
-def _training_surface_record() -> dict[str, object]:
+def _training_surface_record(
+    *,
+    arch: str = "tabfoundry_staged",
+    stage: str | None = "row_cls_pool",
+    loss_surface: str = "classification",
+) -> dict[str, object]:
+    model: dict[str, object] = {"arch": arch}
+    if stage is not None:
+        model["stage"] = stage
     return {
+        "model": model,
         "training": {
+            "loss_surface": loss_surface,
             "schedule_stages": [
                 {
                     "name": "stage1",
@@ -47,10 +57,23 @@ def _gradient_records(
     clipped_steps: set[int],
     block_base: float,
     block_slope: float,
+    activation_shape: str = "staged",
 ) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for step in range(1, 41):
         block_value = block_base + (block_slope * float(step))
+        activation_norms: dict[str, float] = {
+            "post_feature_encoder": 2.0 + (0.001 * float(step)),
+            "pre_transformer": 3.0 + (0.001 * float(step)),
+        }
+        if activation_shape == "sandwich":
+            activation_norms["post_stage_0_self"] = block_value
+            activation_norms["post_stage_1_self"] = block_value + 0.2
+        else:
+            activation_norms["post_transformer_block_8"] = block_value
+            activation_norms["post_transformer_block_9"] = block_value + 0.2
+            activation_norms["post_transformer_block_10"] = block_value + 0.4
+            activation_norms["post_transformer_block_11"] = block_value + 0.6
         records.append(
             {
                 "step": step,
@@ -60,14 +83,7 @@ def _gradient_records(
                     "feature_encoder": 1.0,
                     "direct_head": 4.0,
                 },
-                "activation_norms": {
-                    "post_feature_encoder": 2.0 + (0.001 * float(step)),
-                    "pre_transformer": 3.0 + (0.001 * float(step)),
-                    "post_transformer_block_8": block_value,
-                    "post_transformer_block_9": block_value + 0.2,
-                    "post_transformer_block_10": block_value + 0.4,
-                    "post_transformer_block_11": block_value + 0.6,
-                },
+                "activation_norms": activation_norms,
             }
         )
     return records
@@ -79,13 +95,15 @@ def _write_run_artifacts(
     history_records: list[dict[str, object]],
     gradient_records: list[dict[str, object]],
     include_telemetry: bool,
+    training_surface_record: dict[str, object] | None = None,
     success: bool = True,
     error: BaseException | None = None,
 ) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     _write_jsonl(run_dir / "train_history.jsonl", history_records)
     _write_jsonl(run_dir / "gradient_history.jsonl", gradient_records)
-    training_surface_record = _training_surface_record()
+    if training_surface_record is None:
+        training_surface_record = _training_surface_record()
     (run_dir / "training_surface_record.json").write_text(
         json.dumps(training_surface_record, indent=2, sort_keys=True),
         encoding="utf-8",
@@ -137,6 +155,34 @@ def test_health_check_reconstructs_telemetry_when_missing(tmp_path: Path) -> Non
 
     assert payload["verdict"] == "ok"
     assert payload["source"] == "reconstructed"
+    assert payload["metrics"]["upper_block_final_to_early_ratio"] is not None
+
+
+def test_health_check_reports_non_null_upper_block_metrics_for_sandwich_runs(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "sandwich_ok_run"
+    _write_run_artifacts(
+        run_dir,
+        history_records=_history_records(initial_loss=1.0, delta=-0.005),
+        gradient_records=_gradient_records(
+            clipped_steps={1},
+            block_base=8.0,
+            block_slope=0.001,
+            activation_shape="sandwich",
+        ),
+        include_telemetry=True,
+        training_surface_record=_training_surface_record(
+            arch="tabfoundry_sandwich",
+            stage=None,
+        ),
+    )
+
+    payload = health_check(run_dir)
+
+    assert payload["verdict"] == "ok"
+    assert payload["source"] == "telemetry"
+    assert payload["metrics"]["upper_block_post_warmup_mean_slope"] is not None
     assert payload["metrics"]["upper_block_final_to_early_ratio"] is not None
 
 
@@ -212,14 +258,24 @@ def test_health_check_reports_warn_for_loss_regression(tmp_path: Path) -> None:
     _write_run_artifacts(
         run_dir,
         history_records=_history_records(initial_loss=1.0, delta=0.004),
-        gradient_records=_gradient_records(clipped_steps={1}, block_base=7.0, block_slope=0.001),
+        gradient_records=_gradient_records(
+            clipped_steps={1},
+            block_base=7.0,
+            block_slope=0.001,
+            activation_shape="sandwich",
+        ),
         include_telemetry=True,
+        training_surface_record=_training_surface_record(
+            arch="tabfoundry_sandwich",
+            stage=None,
+        ),
     )
 
     payload = health_check(run_dir)
 
     assert payload["verdict"] == "warn"
     assert "instability heuristic" in payload["summary"]
+    assert payload["metrics"]["upper_block_final_to_early_ratio"] is not None
 
 
 def test_health_check_reports_fail_for_recorded_error(tmp_path: Path) -> None:
