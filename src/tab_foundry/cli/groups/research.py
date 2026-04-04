@@ -2,52 +2,106 @@
 
 from __future__ import annotations
 
-import click
-
-import tab_foundry.cli.research_adequacy as research_adequacy_cli
-import tab_foundry.cli.research_diff as research_diff_cli
-import tab_foundry.cli.research_execute as research_execute_cli
-import tab_foundry.cli.research_graph as research_graph_cli
-import tab_foundry.cli.research_inspect as research_inspect_cli
-import tab_foundry.cli.research_promote as research_promote_cli
-import tab_foundry.cli.research_summarize as research_summarize_cli
-import tab_foundry.cli.research_sweep_core as research_sweep_core_cli
-from tab_foundry.cli.click_utils import GROUP_KWARGS
+from tab_foundry.cli.click_utils import GROUP_KWARGS, LazyCommandSpec, LazyGroup
 
 
-@click.group(name="research", help="Research workflows", **GROUP_KWARGS)
-def GROUP() -> None:
-    """Research workflows."""
+_ADEQUACY_GROUP = LazyGroup(
+    name="adequacy",
+    help="Synthetic adequacy workflows",
+    lazy_commands={
+        "finalize": LazyCommandSpec(
+            module="tab_foundry.cli.research_adequacy",
+            attr="FINALIZE_COMMAND",
+            help="Finalize the lean synthetic adequacy pilot from existing artifacts",
+        ),
+        "pilot": LazyCommandSpec(
+            module="tab_foundry.cli.research_adequacy",
+            attr="COMMAND",
+            help="Run the lean synthetic adequacy pilot",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
+_SWEEP_GROUP = LazyGroup(
+    name="sweep",
+    help="System-delta sweep workflows",
+    lazy_commands={
+        "create-sweep": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="CREATE_SWEEP_COMMAND",
+            help="Bootstrap a new sweep from the delta catalog",
+        ),
+        "diff": LazyCommandSpec(
+            module="tab_foundry.cli.research_diff",
+            attr="COMMAND",
+            help="Diff one materialized sweep row against the anchor or another row",
+        ),
+        "execute": LazyCommandSpec(
+            module="tab_foundry.cli.research_execute",
+            attr="COMMAND",
+            help="Execute selected system-delta sweep rows",
+        ),
+        "graph": LazyCommandSpec(
+            module="tab_foundry.cli.research_graph",
+            attr="COMMAND",
+            help="Render torchview architecture graphs for sweep targets",
+        ),
+        "inspect": LazyCommandSpec(
+            module="tab_foundry.cli.research_inspect",
+            attr="COMMAND",
+            help="Inspect one materialized sweep row and its resolved surfaces",
+        ),
+        "list": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="LIST_COMMAND",
+            help="List queue rows in order",
+        ),
+        "list-sweeps": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="LIST_SWEEPS_COMMAND",
+            help="List known sweeps",
+        ),
+        "materialize-corpora": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="MATERIALIZE_CORPORA_COMMAND",
+            help="Materialize all unique data.corpus_ref surfaces for the selected sweep",
+        ),
+        "next": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="NEXT_COMMAND",
+            help="Print the next ready row",
+        ),
+        "promote": LazyCommandSpec(
+            module="tab_foundry.cli.research_promote",
+            attr="COMMAND",
+            help="Promote a completed run to the sweep anchor",
+        ),
+        "render": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="RENDER_COMMAND",
+            help="Render the selected sweep matrix",
+        ),
+        "summarize": LazyCommandSpec(
+            module="tab_foundry.cli.research_summarize",
+            attr="COMMAND",
+            help="Summarize local sweep results into one compact table",
+        ),
+        "validate": LazyCommandSpec(
+            module="tab_foundry.cli.research_sweep_core",
+            attr="VALIDATE_COMMAND",
+            help="Validate completed rows for the selected sweep",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
-@click.group(name="adequacy", help="Synthetic adequacy workflows", **GROUP_KWARGS)
-def _adequacy_group() -> None:
-    """Synthetic adequacy workflows."""
-
-
-_adequacy_group.add_command(research_adequacy_cli.COMMAND)
-_adequacy_group.add_command(research_adequacy_cli.FINALIZE_COMMAND)
-
-
-@click.group(name="sweep", help="System-delta sweep workflows", **GROUP_KWARGS)
-def _sweep_group() -> None:
-    """System-delta sweep workflows."""
-
-
-_sweep_group.add_command(research_sweep_core_cli.LIST_SWEEPS_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.LIST_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.NEXT_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.RENDER_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.VALIDATE_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.MATERIALIZE_CORPORA_COMMAND)
-_sweep_group.add_command(research_sweep_core_cli.CREATE_SWEEP_COMMAND)
-_sweep_group.add_command(research_execute_cli.COMMAND)
-_sweep_group.add_command(research_graph_cli.COMMAND)
-_sweep_group.add_command(research_promote_cli.COMMAND)
-_sweep_group.add_command(research_summarize_cli.COMMAND)
-_sweep_group.add_command(research_inspect_cli.COMMAND)
-_sweep_group.add_command(research_diff_cli.COMMAND)
-
-
-GROUP.add_command(_adequacy_group)
-GROUP.add_command(_sweep_group)
+GROUP = LazyGroup(
+    name="research",
+    help="Research workflows",
+    lazy_commands={
+        "adequacy": _ADEQUACY_GROUP,
+        "sweep": _SWEEP_GROUP,
+    },
+    **GROUP_KWARGS,
+)

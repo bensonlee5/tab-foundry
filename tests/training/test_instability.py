@@ -137,6 +137,65 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
     }
 
 
+def test_build_training_telemetry_uses_sandwich_stage_activations_for_upper_blocks(
+    tmp_path: Path,
+) -> None:
+    history_records = [
+        {
+            "step": step,
+            "train_loss": 1.0 - (0.01 * step),
+            "train_loss_delta": None if step == 1 else -0.01,
+        }
+        for step in range(1, 41)
+    ]
+    gradient_records = [
+        {
+            "step": step,
+            "global_grad_norm": 0.2 * step,
+            "grad_clip_triggered": False,
+            "activation_norms": {
+                "post_stage_0_self": 6.0 + (0.02 * step),
+                "post_stage_1_self": 6.5 + (0.02 * step),
+            },
+        }
+        for step in range(1, 41)
+    ]
+    training_surface_record = {
+        "model": {
+            "arch": "tabfoundry_sandwich",
+        },
+        "training": {
+            "loss_surface": "classification",
+            "schedule_stages": [
+                {
+                    "name": "stage1",
+                    "steps": 40,
+                    "lr_max": 8.0e-4,
+                    "warmup_ratio": 0.1,
+                }
+            ],
+        },
+    }
+
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=history_records,
+        gradient_records=gradient_records,
+        training_surface_record=training_surface_record,
+    )
+
+    upper_blocks = telemetry["diagnostics"]["activation_windows"]["upper_transformer_blocks"]
+    assert upper_blocks["block_names"] == [
+        "post_stage_0_self",
+        "post_stage_1_self",
+    ]
+    assert upper_blocks["aggregate"]["final_window_mean"] is not None
+    assert upper_blocks["aggregate"]["post_warmup_mean_slope"] is not None
+
+
 def test_history_loss_summary_weights_losses_by_actual_task_count() -> None:
     summary = history_loss_summary(
         [

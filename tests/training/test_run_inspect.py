@@ -16,19 +16,27 @@ def _write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
     )
 
 
-def _training_surface_record() -> dict[str, object]:
+def _training_surface_record(
+    *,
+    arch: str = "tabfoundry_staged",
+    model_label: str = "row_cls_pool_test",
+    stage: str | None = "row_cls_pool",
+    loss_surface: str = "classification",
+) -> dict[str, object]:
+    model: dict[str, object] = {
+        "arch": arch,
+        "stage_label": model_label,
+    }
+    if stage is not None:
+        model["stage"] = stage
     return {
         "labels": {
-            "model": "row_cls_pool_test",
+            "model": model_label,
             "data": "anchor_manifest_default",
             "preprocessing": "runtime_default",
             "training": "training_default",
         },
-        "model": {
-            "arch": "tabfoundry_staged",
-            "stage": "row_cls_pool",
-            "stage_label": "row_cls_pool_test",
-        },
+        "model": model,
         "data": {
             "surface_label": "anchor_manifest_default",
         },
@@ -36,6 +44,7 @@ def _training_surface_record() -> dict[str, object]:
             "surface_label": "runtime_default",
         },
         "training": {
+            "loss_surface": loss_surface,
             "surface_label": "training_default",
         },
     }
@@ -73,21 +82,25 @@ def _regime_budget() -> dict[str, object]:
     }
 
 
-def _gradient_records() -> list[dict[str, object]]:
+def _gradient_records(*, activation_shape: str = "staged") -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for step in range(1, 21):
         block_value = 4.0 + (0.001 * float(step))
+        activation_norms: dict[str, float] = {}
+        if activation_shape == "sandwich":
+            activation_norms["post_stage_0_self"] = block_value
+            activation_norms["post_stage_1_self"] = block_value + 0.1
+        else:
+            activation_norms["post_transformer_block_8"] = block_value
+            activation_norms["post_transformer_block_9"] = block_value + 0.1
+            activation_norms["post_transformer_block_10"] = block_value + 0.2
+            activation_norms["post_transformer_block_11"] = block_value + 0.3
         records.append(
             {
                 "step": step,
                 "global_grad_norm": 0.4 + (0.01 * float(step)),
                 "grad_clip_triggered": False,
-                "activation_norms": {
-                    "post_transformer_block_8": block_value,
-                    "post_transformer_block_9": block_value + 0.1,
-                    "post_transformer_block_10": block_value + 0.2,
-                    "post_transformer_block_11": block_value + 0.3,
-                },
+                "activation_norms": activation_norms,
             }
         )
     return records
@@ -123,6 +136,7 @@ def _warmup_sensitive_gradient_records() -> list[dict[str, object]]:
 def _warmup_sensitive_training_surface_record() -> dict[str, object]:
     payload = _training_surface_record()
     payload["training"] = {
+        "loss_surface": "classification",
         "surface_label": "benchmark_training_default",
         "schedule_stages": [
             {
@@ -238,6 +252,63 @@ def test_run_inspect_keeps_partial_runs_inspectable_when_health_is_unavailable(t
     assert payload["surface_labels"]["model"] == "row_cls_pool_test"
     assert payload["health"] is None
     assert "health-check requires telemetry.json" in payload["health_error"]
+
+
+def test_run_inspect_reports_summary_markdown_for_smoke_style_train_outputs(tmp_path: Path) -> None:
+    run_dir = tmp_path / "iris_smoke_run" / "train_outputs"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "training_surface_record.json").write_text(
+        json.dumps(_training_surface_record(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (run_dir / "summary.md").write_text("# Iris Smoke Report\n", encoding="utf-8")
+
+    payload = run_inspect(run_dir)
+
+    assert payload["artifacts"]["summary_md"]["exists"] is True
+    assert payload["artifacts"]["summary_md"]["path"] == str((run_dir / "summary.md").resolve())
+
+
+def test_run_inspect_reports_non_null_upper_block_metrics_for_sandwich_runs(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "sandwich_run" / "train"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    history_records = _history_records()
+    gradient_records = _gradient_records(activation_shape="sandwich")
+    _write_jsonl(run_dir / "train_history.jsonl", history_records)
+    _write_jsonl(run_dir / "gradient_history.jsonl", gradient_records)
+    training_surface_record = _training_surface_record(
+        arch="tabfoundry_sandwich",
+        model_label="tabfoundry_sandwich",
+        stage=None,
+    )
+    (run_dir / "training_surface_record.json").write_text(
+        json.dumps(training_surface_record, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    telemetry = build_training_telemetry(
+        run_dir=run_dir,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=history_records,
+        gradient_records=gradient_records,
+        runtime_summary=_runtime_summary(),
+        regime_budget=_regime_budget(),
+        training_surface_record=training_surface_record,
+    )
+    (run_dir / "telemetry.json").write_text(
+        json.dumps(telemetry, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    payload = run_inspect(run_dir)
+
+    assert payload["surface_labels"]["model"] == "tabfoundry_sandwich"
+    assert payload["health"]["verdict"] == "ok"
+    assert payload["health"]["metrics"]["upper_block_post_warmup_mean_slope"] is not None
+    assert payload["health"]["metrics"]["upper_block_final_to_early_ratio"] is not None
 
 
 def test_run_inspect_falls_back_to_benchmark_training_surface_record(tmp_path: Path) -> None:

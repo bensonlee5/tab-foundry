@@ -212,7 +212,15 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
     assert "test_row_cap" not in captured_cfg["eval_cfg"].data
     assert telemetry["config"]["final_num_tasks"] == 128
     assert telemetry["manifest"]["test_records"] == 8
+    assert telemetry["artifacts"]["summary_md"] == str(
+        (tmp_path / "run" / "train_outputs" / "summary.md").resolve()
+    )
+    assert (tmp_path / "run" / "train_outputs" / "summary.md").exists()
     assert (tmp_path / "run" / "summary.md").exists()
+    assert (
+        (tmp_path / "run" / "train_outputs" / "summary.md").read_text(encoding="utf-8")
+        == (tmp_path / "run" / "summary.md").read_text(encoding="utf-8")
+    )
     assert (tmp_path / "run" / "telemetry.json").exists()
 
 

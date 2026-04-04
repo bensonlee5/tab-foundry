@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+import importlib
 import json
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import click
-
-from tab_foundry.data.corpus_materialization import default_materialize_processes
-from tab_foundry.research.sweep import paths_io as sweep_paths
 
 
 GROUP_KWARGS: dict[str, Any] = {
@@ -21,6 +20,75 @@ DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
 _UINT32_MAX = 4_294_967_295
 
 ClickDecorator = Callable[[Any], Any]
+
+
+@dataclass(frozen=True, slots=True)
+class LazyCommandSpec:
+    module: str
+    attr: str
+    help: str
+    short_help: str | None = None
+
+
+def _load_lazy_command(spec: LazyCommandSpec) -> click.Command:
+    module = importlib.import_module(spec.module)
+    command = getattr(module, spec.attr)
+    if not isinstance(command, click.Command):
+        raise RuntimeError(
+            f"{spec.module}.{spec.attr} must resolve to a click.Command, got {type(command).__name__}"
+        )
+    return command
+
+
+class LazyGroup(click.Group):
+    def __init__(
+        self,
+        *args: Any,
+        lazy_commands: Mapping[str, click.Command | LazyCommandSpec] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._lazy_commands: dict[str, LazyCommandSpec] = {}
+        if lazy_commands is not None:
+            for name, command in lazy_commands.items():
+                if isinstance(command, click.Command):
+                    self.add_command(command, name)
+                    continue
+                self.add_lazy_command(name, command)
+
+    def add_lazy_command(self, name: str, spec: LazyCommandSpec) -> None:
+        self._lazy_commands[str(name)] = spec
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        command = self.commands.get(cmd_name)
+        if command is not None:
+            return command
+        spec = self._lazy_commands.get(cmd_name)
+        if spec is None:
+            return None
+        resolved = _load_lazy_command(spec)
+        self.commands[cmd_name] = resolved
+        return resolved
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        return sorted({*self.commands, *self._lazy_commands})
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        rows: list[tuple[str, str]] = []
+        for subcommand in self.list_commands(ctx):
+            command = self.commands.get(subcommand)
+            if command is not None:
+                if command.hidden:
+                    continue
+                rows.append((subcommand, command.get_short_help_str(formatter.width)))
+                continue
+            spec = self._lazy_commands.get(subcommand)
+            if spec is None:
+                continue
+            rows.append((subcommand, spec.short_help or spec.help))
+        if rows:
+            with formatter.section("Commands"):
+                formatter.write_dl(rows)
 
 
 def run_click_command(
@@ -124,6 +192,8 @@ def sweep_id_option(*, help: str = "Sweep id to inspect") -> ClickDecorator:
 
 
 def catalog_path_option(func: Any) -> Any:
+    from tab_foundry.research.sweep import paths_io as sweep_paths
+
     return path_option(
         "catalog-path",
         default=sweep_paths.default_catalog_path(),
@@ -132,6 +202,8 @@ def catalog_path_option(func: Any) -> Any:
 
 
 def index_path_option(func: Any) -> Any:
+    from tab_foundry.research.sweep import paths_io as sweep_paths
+
     return path_option(
         "index-path",
         default=sweep_paths.default_sweep_index_path(),
@@ -140,6 +212,8 @@ def index_path_option(func: Any) -> Any:
 
 
 def sweeps_root_option(func: Any) -> Any:
+    from tab_foundry.research.sweep import paths_io as sweep_paths
+
     return path_option(
         "sweeps-root",
         default=sweep_paths.default_sweeps_root(),
@@ -148,6 +222,8 @@ def sweeps_root_option(func: Any) -> Any:
 
 
 def sweep_registry_path_option(func: Any) -> Any:
+    from tab_foundry.research.sweep import paths_io as sweep_paths
+
     return path_option(
         "registry-path",
         default=sweep_paths.default_registry_path(),
@@ -169,6 +245,8 @@ def sweep_path_options(
 
 
 def materialize_worker_options(*, processes_help: str) -> ClickDecorator:
+    from tab_foundry.data.corpus_materialization import default_materialize_processes
+
     return apply_click_decorators(
         click.option(
             "--materialize-processes",

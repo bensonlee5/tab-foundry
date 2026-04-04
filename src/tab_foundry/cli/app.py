@@ -4,24 +4,51 @@ from __future__ import annotations
 
 from typing import Sequence
 
-import click
-
-from .groups import bench, data, dev, eval_, export, research, train
-from .click_utils import GROUP_KWARGS, run_click_command
+from .click_utils import GROUP_KWARGS, LazyCommandSpec, LazyGroup, run_click_command
 
 
-@click.group(name="tab-foundry", help="tab-foundry tooling", **GROUP_KWARGS)
-def cli() -> None:
-    """Root click command."""
-
-
-cli.add_command(data.GROUP)
-cli.add_command(dev.GROUP)
-cli.add_command(train.GROUP)
-cli.add_command(eval_.GROUP)
-cli.add_command(export.GROUP)
-cli.add_command(bench.GROUP)
-cli.add_command(research.GROUP)
+cli = LazyGroup(
+    name="tab-foundry",
+    help="tab-foundry tooling",
+    lazy_commands={
+        "bench": LazyCommandSpec(
+            module="tab_foundry.cli.groups.bench",
+            attr="GROUP",
+            help="Benchmark workflows",
+        ),
+        "data": LazyCommandSpec(
+            module="tab_foundry.cli.groups.data",
+            attr="GROUP",
+            help="Data workflows",
+        ),
+        "dev": LazyCommandSpec(
+            module="tab_foundry.cli.dev",
+            attr="GROUP",
+            help="Developer-focused inspection tools",
+        ),
+        "eval": LazyCommandSpec(
+            module="tab_foundry.cli.groups.eval_",
+            attr="GROUP",
+            help="Evaluation workflows",
+        ),
+        "export": LazyCommandSpec(
+            module="tab_foundry.cli.groups.export",
+            attr="GROUP",
+            help="Export workflows",
+        ),
+        "research": LazyCommandSpec(
+            module="tab_foundry.cli.groups.research",
+            attr="GROUP",
+            help="Research workflows",
+        ),
+        "train": LazyCommandSpec(
+            module="tab_foundry.cli.groups.train",
+            attr="GROUP",
+            help="Training workflows",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

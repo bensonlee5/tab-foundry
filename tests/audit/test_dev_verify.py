@@ -171,24 +171,28 @@ def test_review_report_warns_about_missing_version_and_changelog() -> None:
     assert "./scripts/dev verify affected --base-ref origin/main" in report
 
 
-def test_verify_affected_plan_covers_each_rule_minimum_checks() -> None:
+@pytest.mark.parametrize(
+    ("rule_name", "sample_path"),
+    [
+        pytest.param("docs", "README.md", id="docs"),
+        pytest.param("audit", "scripts/audit/dev_verify.py", id="audit"),
+        pytest.param("data", "src/tab_foundry/data/manifest.py", id="data"),
+        pytest.param("model", "src/tab_foundry/model/factory.py", id="model"),
+        pytest.param("training", "src/tab_foundry/training/trainer.py", id="training"),
+        pytest.param("export", "src/tab_foundry/export/exporter.py", id="export"),
+        pytest.param("bench", "src/tab_foundry/bench/comparison_runtime.py", id="bench"),
+        pytest.param("research", "src/tab_foundry/research/sweep/execute.py", id="research"),
+        pytest.param("cli-config", "configs/config.yaml", id="cli-config"),
+    ],
+)
+def test_verify_affected_plan_covers_each_rule_minimum_checks(
+    rule_name: str,
+    sample_path: str,
+) -> None:
     index = dev_verify.load_dev_index()
-    sample_paths = {
-        "docs": "README.md",
-        "audit": "scripts/audit/dev_verify.py",
-        "data": "src/tab_foundry/data/manifest.py",
-        "model": "src/tab_foundry/model/factory.py",
-        "training": "src/tab_foundry/training/trainer.py",
-        "export": "src/tab_foundry/export/exporter.py",
-        "bench": "src/tab_foundry/bench/comparison_runtime.py",
-        "research": "src/tab_foundry/research/sweep/execute.py",
-        "cli-config": "configs/config.yaml",
-    }
     rules_by_name = {rule.name: rule for rule in index.path_rules}
-
-    for rule_name, sample_path in sample_paths.items():
-        plan = dev_verify.build_verification_plan([sample_path], index)
-        expected_rule = rules_by_name[rule_name]
+    plan = dev_verify.build_verification_plan([sample_path], index)
+    expected_rule = rules_by_name[rule_name]
 
     assert plan.escalated_to_full is False
     assert set(expected_rule.checks).issubset(plan.check_ids)
