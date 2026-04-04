@@ -594,12 +594,30 @@ Legacy wording note:
   - the repo now has a named runtime policy surface at
     `configs/runtime/tf_rd_022_policy.yaml` plus the inherited benchmark-facing
     experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+  - sweep `tf_rd_022_runtime_policy_medium_v1` is now registered as the
+    benchmark-first TF-RD-022 medium screening ladder: row 1 replays the
+    no-AMP control, rows 2 through 4 isolate bf16, benchmark-facing activation
+    tracing, and activation checkpointing, and the keep bar requires
+    non-worse `final_log_loss_at_matched_regime_budget` before runtime or VRAM
+    tie-breakers are considered
+  - `tf_rd_022_runtime_policy_medium_v1` is now completed locally from the
+    mirrored CUDA run artifacts: row 4
+    `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`
+    is the medium-rung winner with `final_log_loss=0.6765953232`,
+    `peak_vram_reserved=3321888768`, and
+    `throughput_tokens_per_second=150561.1995`; row 2 bf16 is benchmark-safe
+    but deferred, row 3 trace is benchmark-safe but diagnostic-only, and row 1
+    remains the no-AMP screening control
   - the inherited validation contract is the closed TF-RD-010 medium and large
     classification benchmark package under issues
     [#202](https://github.com/bensonlee5/tab-foundry/issues/202),
     [#203](https://github.com/bensonlee5/tab-foundry/issues/203),
     [#204](https://github.com/bensonlee5/tab-foundry/issues/204), and
     [#205](https://github.com/bensonlee5/tab-foundry/issues/205)
+  - the named TF-RD-022 runtime policy surface now inherits the measured
+    medium winner (`mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`), while the large-rung validator remains
+    the closing gate before TF-RD-022 can be marked complete
 - this epic now follows the closed TF-RD-010 benchmark contract directly; it
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
   dagzoo RD-005, or broader regime-choice work
@@ -612,9 +630,11 @@ Legacy wording note:
     [#169](https://github.com/bensonlee5/tab-foundry/issues/169) on one frozen
     classification recipe: treat bf16, benchmark-facing activation-trace
     policy, and activation checkpointing as the first runtime-policy knobs
+    through `tf_rd_022_runtime_policy_medium_v1`
   - use the existing medium benchmark rung as the fast screening stage for that
-    runtime ladder, then validate the kept policy on the closed TF-RD-010
-    medium and large benchmark targets before promotion
+    runtime ladder, then validate the kept policy in
+    `tf_rd_022_runtime_policy_large_validation_v1` on the closed TF-RD-010
+    large target before promotion
   - include any low-level kernel tuning only to the extent needed to make the
     inherited sandwich classification contract reliable and efficient enough
     for scaling
@@ -658,12 +678,16 @@ Legacy wording note:
   - sweep `tf_rd_024_classification_knob_sweep_v1` is drafted and inherits the
     benchmark-facing runtime policy experiment
     `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+  - the inherited TF-RD-022 medium winner is now the checkpointed bf16 policy
+    (`mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`), but TF-RD-024 stays blocked until that
+    candidate clears the TF-RD-022 large validator
   - the sweep reuses historical TF-RD-021B sandwich delta families where
     possible instead of inventing a new parallel architecture-search path
-  - every drafted row remains blocked on the TF-RD-022 keep anchor so the first
+  - every drafted row remains blocked on the TF-RD-022 large-validation gate so the first
     execution can happen on one explicit inherited runtime surface
 - Required work:
-  - wait for the TF-RD-022 keep anchor, then execute the bounded TF-RD-024
+  - wait for the TF-RD-022 large-validation gate, then execute the bounded TF-RD-024
     sweep on the closed TF-RD-010 medium benchmark contract as the screening
     rung
   - validate any keep-worthy medium signal on the closed TF-RD-010 large rung

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 import sys
 from typing import Sequence
 
+import click
 from omegaconf import DictConfig
 
 from tab_foundry.config import compose_config
@@ -15,26 +15,10 @@ from tab_foundry.training.prior_train import (
     DEFAULT_PRIOR_DUMP_PATH,
     train_tabfoundry_simple_prior,
 )
+from tab_foundry.cli.click_utils import run_click_command
 
 
 _STAGED_PRIOR_EXPERIMENT = "experiment=cls_benchmark_staged_prior"
-
-
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--prior-dump",
-        default=str(DEFAULT_PRIOR_DUMP_PATH),
-        help="Path to the nanoTabPFN prior dump (.h5)",
-    )
-    parser.add_argument("overrides", nargs="*", help="Optional Hydra override strings")
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Train a legacy exact-prior tabfoundry classifier on the nanoTabPFN prior dump"
-    )
-    configure_parser(parser)
-    return parser
 
 
 def _resolved_overrides(
@@ -59,11 +43,11 @@ def _compose_prior_cfg(overrides: Sequence[str]) -> DictConfig:
     return compose_config([str(override) for override in overrides])
 
 
-def _run_prior_command(args: argparse.Namespace, *, overrides: Sequence[str]) -> int:
+def _run_prior_command(*, prior_dump: Path, overrides: Sequence[str]) -> int:
     cfg = _compose_prior_cfg(overrides)
     result = train_tabfoundry_simple_prior(
         cfg,
-        prior_dump_path=Path(str(args.prior_dump)),
+        prior_dump_path=prior_dump,
     )
     print(
         "Training complete:",
@@ -75,29 +59,56 @@ def _run_prior_command(args: argparse.Namespace, *, overrides: Sequence[str]) ->
     return 0
 
 
-def run_from_args(args: argparse.Namespace) -> int:
+def _run_simple_command(*, prior_dump: Path, overrides: Sequence[str]) -> int:
     return _run_prior_command(
-        args,
+        prior_dump=prior_dump,
         overrides=_resolved_overrides(
-            args.overrides,
+            overrides,
             default_experiment=DEFAULT_EXPERIMENT,
             append_default_experiment=False,
         ),
     )
 
 
-def run_staged_from_args(args: argparse.Namespace) -> int:
-    staged_args = argparse.Namespace(**vars(args))
-    staged_args.overrides = _resolved_overrides(
-        args.overrides,
-        default_experiment=_STAGED_PRIOR_EXPERIMENT,
-        append_default_experiment=True,
+def _run_staged_command(*, prior_dump: Path, overrides: Sequence[str]) -> int:
+    return _run_prior_command(
+        prior_dump=prior_dump,
+        overrides=_resolved_overrides(
+            overrides,
+            default_experiment=_STAGED_PRIOR_EXPERIMENT,
+            append_default_experiment=True,
+        ),
     )
-    return run_from_args(staged_args)
+
+
+@click.command(name="simple", help="Train the exact-prior simple benchmark family")
+@click.option(
+    "--prior-dump",
+    default=str(DEFAULT_PRIOR_DUMP_PATH),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Path to the nanoTabPFN prior dump (.h5)",
+)
+@click.argument("overrides", nargs=-1, type=str)
+def COMMAND(prior_dump: Path, overrides: tuple[str, ...]) -> int:
+    return _run_simple_command(prior_dump=prior_dump, overrides=overrides)
+
+
+@click.command(name="staged", help="Train the exact-prior staged benchmark family")
+@click.option(
+    "--prior-dump",
+    default=str(DEFAULT_PRIOR_DUMP_PATH),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Path to the nanoTabPFN prior dump (.h5)",
+)
+@click.argument("overrides", nargs=-1, type=str)
+def STAGED_COMMAND(prior_dump: Path, overrides: tuple[str, ...]) -> int:
+    return _run_staged_command(prior_dump=prior_dump, overrides=overrides)
 
 
 def main(argv: list[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry train legacy-prior simple")
 
 
 if __name__ == "__main__":

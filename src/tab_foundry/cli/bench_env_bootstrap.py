@@ -2,41 +2,28 @@
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 import sys
 
+import click
+
 from tab_foundry.bench.envs import BenchmarkEnvConfig, bootstrap_benchmark_envs
+from tab_foundry.cli.click_utils import run_click_command
 
 
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
-    parser.add_argument("--tabpfn-root", default="~/dev/TabPFN", help="Local TabPFN checkout")
-    parser.add_argument("--tabicl-root", default="~/dev/tabicl", help="Local tabicl checkout")
-    parser.add_argument(
-        "--tab-realdata-hub-root",
-        default=None,
-        help="Explicit local tab-realdata-hub checkout used by benchmark helpers",
-    )
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Bootstrap sibling benchmark environments")
-    configure_parser(parser)
-    return parser
-
-
-def run_from_args(args: argparse.Namespace) -> int:
+def _bootstrap_command(
+    *,
+    nanotabpfn_root: Path,
+    tabpfn_root: Path,
+    tabicl_root: Path,
+    tab_realdata_hub_root: Path | None,
+) -> int:
     summary = bootstrap_benchmark_envs(
         BenchmarkEnvConfig(
-            nanotabpfn_root=Path(str(args.nanotabpfn_root)),
-            tabpfn_root=Path(str(args.tabpfn_root)),
-            tabicl_root=Path(str(args.tabicl_root)),
-            tab_realdata_hub_root=(
-                Path(str(args.tab_realdata_hub_root))
-                if args.tab_realdata_hub_root
-                else None
-            ),
+            nanotabpfn_root=nanotabpfn_root,
+            tabpfn_root=tabpfn_root,
+            tabicl_root=tabicl_root,
+            tab_realdata_hub_root=tab_realdata_hub_root,
         )
     )
     print("Benchmark env bootstrap complete:")
@@ -45,8 +32,32 @@ def run_from_args(args: argparse.Namespace) -> int:
     return 0
 
 
+@click.command(name="bootstrap", help="Bootstrap sibling benchmark environments")
+@click.option("--nanotabpfn-root", default="~/dev/nanoTabPFN", show_default=True, type=click.Path(path_type=Path), help="Local nanoTabPFN checkout")
+@click.option("--tabpfn-root", default="~/dev/TabPFN", show_default=True, type=click.Path(path_type=Path), help="Local TabPFN checkout")
+@click.option("--tabicl-root", default="~/dev/tabicl", show_default=True, type=click.Path(path_type=Path), help="Local tabicl checkout")
+@click.option(
+    "--tab-realdata-hub-root",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Explicit local tab-realdata-hub checkout used by benchmark helpers",
+)
+def COMMAND(
+    nanotabpfn_root: Path,
+    tabpfn_root: Path,
+    tabicl_root: Path,
+    tab_realdata_hub_root: Path | None,
+) -> int:
+    return _bootstrap_command(
+        nanotabpfn_root=nanotabpfn_root,
+        tabpfn_root=tabpfn_root,
+        tabicl_root=tabicl_root,
+        tab_realdata_hub_root=tab_realdata_hub_root,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry bench env bootstrap")
 
 
 if __name__ == "__main__":

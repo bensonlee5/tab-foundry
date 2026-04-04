@@ -1749,6 +1749,61 @@ def test_system_delta_queue_validation_detects_completed_metric_mismatch(
     )
 
 
+def test_system_delta_queue_validation_accepts_string_objective_metric(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    result_card = tmp_path / "result_card.md"
+    result_card.write_text("# Result Card\n", encoding="utf-8")
+    training_surface_record = tmp_path / "training_surface_record.json"
+    training_surface_record.write_text("{}", encoding="utf-8")
+    registry = {
+        "runs": {
+            "run_1": {
+                "artifacts": {
+                    "training_surface_record_path": "training_surface_record.json",
+                },
+                "tab_foundry_metrics": {
+                    "final_log_loss": 0.5,
+                },
+                "training_diagnostics": {},
+                "comparisons": {},
+                "regime_budget": {
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                },
+            }
+        }
+    }
+
+    monkeypatch.setattr(matrix_module, "load_benchmark_run_registry", lambda _path: registry)
+    monkeypatch.setattr(matrix_module, "result_card_path", lambda **_: result_card)
+    monkeypatch.setattr(
+        matrix_module,
+        "resolve_registry_path_value",
+        lambda path: training_surface_record if path == "training_surface_record.json" else Path(path),
+    )
+
+    issues = validate_system_delta_queue(
+        {
+            "sweep_id": "validation_test",
+            "rows": [
+                {
+                    "order": 1,
+                    "delta_id": "delta_objective_metric",
+                    "status": "completed",
+                    "run_id": "run_1",
+                    "benchmark_metrics": {
+                        "final_log_loss": 0.5,
+                        "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    },
+                }
+            ],
+        }
+    )
+
+    assert issues == []
+
+
 def test_system_delta_queue_validation_detects_stage_local_metric_mismatch(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

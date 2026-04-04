@@ -43,6 +43,15 @@ def _optional_float(value: Any) -> float | None:
     return float(value)
 
 
+def _queue_metric_matches_expected(*, actual_raw: Any, expected_value: Any) -> bool:
+    if isinstance(expected_value, bool):
+        return actual_raw is expected_value
+    if isinstance(expected_value, (int, float)):
+        actual_value = _optional_float(actual_raw)
+        return actual_value is not None and abs(actual_value - float(expected_value)) <= 1.0e-12
+    return actual_raw == expected_value
+
+
 def _render_locked_benchmark_surface(value: Any) -> tuple[str, str]:
     benchmark_surface_path = str(value)
     if benchmark_surface_path.endswith(".json"):
@@ -317,8 +326,10 @@ def validate_system_delta_queue(
             if metric_key not in benchmark_metrics:
                 continue
             actual_raw = benchmark_metrics.get(metric_key)
-            actual_value = _optional_float(actual_raw)
-            if actual_value is None or abs(actual_value - expected_value) > 1.0e-12:
+            if not _queue_metric_matches_expected(
+                actual_raw=actual_raw,
+                expected_value=expected_value,
+            ):
                 issues.append(
                     f"{delta_id}: benchmark_metrics.{metric_key} mismatch "
                     f"(queue={actual_raw!r}, registry={expected_value!r})"

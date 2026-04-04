@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+import click
+
+from tab_foundry.cli.click_utils import emit_payload, json_output_option, run_click_command
 from tab_foundry.config_inspection import resolve_config_payload
 from tab_realdata_hub.manifest import inspect_manifest
 
@@ -262,41 +264,48 @@ def render_manifest_inspect_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _run_manifest_inspect(args: argparse.Namespace) -> int:
+def _manifest_inspect_command(
+    *,
+    manifest: Path,
+    experiment: str | None,
+    overrides: Sequence[str],
+    json_mode: bool,
+) -> int:
     payload = manifest_inspect_payload(
-        Path(str(args.manifest)),
-        experiment=None if args.experiment is None else str(args.experiment),
-        overrides=[str(value) for value in args.override],
+        manifest,
+        experiment=experiment,
+        overrides=overrides,
     )
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_manifest_inspect_text(payload))
+    emit_payload(payload, json_mode=json_mode, render_text=render_manifest_inspect_text)
     return 0
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Manifest inspection")
-    configure_parser(parser)
-    return parser
-
-
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--manifest", required=True, help="Manifest parquet path to inspect")
-    parser.add_argument("--experiment", default=None, help="Optional experiment name for compatibility preflight")
-    parser.add_argument(
-        "--override",
-        action="append",
-        default=[],
-        help="Optional Hydra override applied on top of --experiment or repo defaults",
+@click.command(
+    name="manifest-inspect",
+    help="Inspect one manifest parquet and optionally preflight compatibility",
+)
+@click.option("--manifest", required=True, type=click.Path(path_type=Path), help="Manifest parquet path to inspect")
+@click.option("--experiment", default=None, help="Optional experiment name for compatibility preflight")
+@click.option(
+    "--override",
+    "override_",
+    multiple=True,
+    help="Optional Hydra override applied on top of --experiment or repo defaults",
+)
+@json_output_option
+def COMMAND(
+    manifest: Path,
+    experiment: str | None,
+    override_: tuple[str, ...],
+    json_mode: bool,
+) -> int:
+    return _manifest_inspect_command(
+        manifest=manifest,
+        experiment=experiment,
+        overrides=override_,
+        json_mode=json_mode,
     )
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    parser.set_defaults(func=run_from_args)
-
-
-def run_from_args(args: argparse.Namespace) -> int:
-    return _run_manifest_inspect(args)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry data manifest-inspect")

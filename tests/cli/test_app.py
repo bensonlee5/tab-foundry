@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+from click.testing import CliRunner
 import pytest
 
 import tab_foundry.bench.bounce_diagnosis as bounce_diagnosis_library_module
@@ -111,7 +112,7 @@ DISPATCH_CASES = (
                 "/tmp/tab-realdata-hub",
             ),
             module=compare_cli_module,
-            attribute="run_from_args",
+            attribute="_compare_command",
             fields={
                 "tab_foundry_run_dir": _path_attr("tab_foundry_run_dir"),
                 "tab_realdata_hub_root": _path_attr("tab_realdata_hub_root"),
@@ -134,7 +135,7 @@ DISPATCH_CASES = (
                 "7",
             ),
             module=tune_cli_module,
-            attribute="run_from_args",
+            attribute="_tune_command",
             fields={
                 "manifest_path": _path_attr("manifest_path"),
                 "seed": _int_attr("seed"),
@@ -157,7 +158,7 @@ DISPATCH_CASES = (
                 "/tmp/tab-realdata-hub",
             ),
             module=env_bootstrap_cli_module,
-            attribute="run_from_args",
+            attribute="_bootstrap_command",
             fields={
                 "nanotabpfn_root": _path_attr("nanotabpfn_root"),
                 "tabicl_root": _path_attr("tabicl_root"),
@@ -187,7 +188,7 @@ DISPATCH_CASES = (
                 "binary_expanded_v1",
             ),
             module=bundle_cli_module,
-            attribute="run_from_args",
+            attribute="_build_openml_bundle_command",
             fields={
                 "bundle_name": _str_attr("bundle_name"),
                 "task_source": _str_attr("task_source"),
@@ -200,7 +201,7 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("bench", "smoke", "iris", "--device", "cpu", "--checkpoint-every", "5"),
             module=iris_smoke_cli_module,
-            attribute="run_from_args",
+            attribute="_iris_smoke_command",
             fields={
                 "device": _str_attr("device"),
                 "checkpoint_every": _int_attr("checkpoint_every"),
@@ -221,7 +222,7 @@ DISPATCH_CASES = (
                 "16",
             ),
             module=dagzoo_smoke_cli_module,
-            attribute="run_from_args",
+            attribute="_dagzoo_smoke_command",
             fields={
                 "dagzoo_root": _path_attr("dagzoo_root"),
                 "num_datasets": _int_attr("num_datasets"),
@@ -242,7 +243,7 @@ DISPATCH_CASES = (
                 "64",
             ),
             module=bounce_diagnosis_cli_module,
-            attribute="run_from_args",
+            attribute="_bounce_diagnosis_command",
             fields={
                 "run_dir": _path_attr("run_dir"),
                 "bootstrap_samples": _int_attr("bootstrap_samples"),
@@ -275,7 +276,7 @@ DISPATCH_CASES = (
                 "/tmp/registry.json",
             ),
             module=run_registration_cli_module,
-            attribute="run_from_args",
+            attribute="_register_run_command",
             fields={
                 "run_id": _str_attr("run_id"),
                 "registry_path": _path_attr("registry_path"),
@@ -300,7 +301,7 @@ DISPATCH_CASES = (
                 "/tmp/control_baselines.json",
             ),
             module=control_baseline_freeze_cli_module,
-            attribute="run_from_args",
+            attribute="_freeze_baseline_command",
             fields={
                 "baseline_id": _str_attr("baseline_id"),
                 "registry_path": _path_attr("registry_path"),
@@ -323,7 +324,7 @@ DISPATCH_CASES = (
                 "runtime.max_steps=1",
             ),
             module=train_prior_cli_module,
-            attribute="run_from_args",
+            attribute="_run_simple_command",
             fields={
                 "prior_dump": _path_attr("prior_dump"),
                 "overrides": _list_attr("overrides"),
@@ -346,17 +347,14 @@ DISPATCH_CASES = (
                 "runtime.max_steps=1",
             ),
             module=train_prior_cli_module,
-            attribute="run_from_args",
+            attribute="_run_staged_command",
             fields={
                 "prior_dump": _path_attr("prior_dump"),
                 "overrides": _list_attr("overrides"),
             },
             expected={
                 "prior_dump": "/tmp/prior.h5",
-                "overrides": [
-                    "runtime.max_steps=1",
-                    "experiment=cls_benchmark_staged_prior",
-                ],
+                "overrides": ["runtime.max_steps=1"],
             },
         ),
         id="train-legacy-prior-staged",
@@ -454,7 +452,7 @@ DISPATCH_CASES = (
                 "materialize_processes": _int_attr("materialize_processes"),
                 "materialize_worker_threads": _int_attr("materialize_worker_threads"),
                 "force": _bool_attr("force"),
-                "json": _bool_attr("json"),
+                "json_mode": _bool_attr("json_mode"),
             },
             expected={
                 "sweep_id": "binary_md_v1",
@@ -462,7 +460,7 @@ DISPATCH_CASES = (
                 "materialize_processes": 3,
                 "materialize_worker_threads": 2,
                 "force": True,
-                "json": True,
+                "json_mode": True,
             },
         ),
         id="research-sweep-materialize-corpora",
@@ -471,7 +469,7 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("research", "sweep", "graph", "--sweep-id", "binary_md_v1", "--anchor", "--order", "7"),
             module=research_graph_cli_module,
-            attribute="run_from_args",
+            attribute="_graph_command",
             fields={
                 "sweep_id": _str_attr("sweep_id"),
                 "anchor": _bool_attr("anchor"),
@@ -485,7 +483,7 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("research", "sweep", "execute", "--sweep-id", "binary_md_v1", "--include-completed"),
             module=research_execute_cli_module,
-            attribute="run_from_args",
+            attribute="_execute_command",
             fields={
                 "sweep_id": _optional_str_attr("sweep_id"),
                 "include_completed": _bool_attr("include_completed"),
@@ -498,7 +496,7 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("research", "sweep", "promote", "--sweep-id", "binary_md_v1", "--run-id", "run_001"),
             module=research_promote_cli_module,
-            attribute="run_from_args",
+            attribute="_promote_command",
             fields={
                 "sweep_id": _str_attr("sweep_id"),
                 "run_id": _str_attr("run_id"),
@@ -511,12 +509,12 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("research", "sweep", "summarize", "--sweep-id", "cuda_stack_scale_followup", "--json"),
             module=research_summarize_cli_module,
-            attribute="run_from_args",
+            attribute="_summarize_command",
             fields={
                 "sweep_id": _optional_str_attr("sweep_id"),
-                "json": _bool_attr("json"),
+                "json_mode": _bool_attr("json_mode"),
             },
-            expected={"sweep_id": "cuda_stack_scale_followup", "json": True},
+            expected={"sweep_id": "cuda_stack_scale_followup", "json_mode": True},
         ),
         id="research-sweep-summarize",
     ),
@@ -524,13 +522,13 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=("research", "sweep", "inspect", "--sweep-id", "binary_md_v1", "--order", "6", "--json"),
             module=research_inspect_cli_module,
-            attribute="run_from_args",
+            attribute="_inspect_command",
             fields={
                 "sweep_id": _str_attr("sweep_id"),
                 "order": _int_attr("order"),
-                "json": _bool_attr("json"),
+                "json_mode": _bool_attr("json_mode"),
             },
-            expected={"sweep_id": "binary_md_v1", "order": 6, "json": True},
+            expected={"sweep_id": "binary_md_v1", "order": 6, "json_mode": True},
         ),
         id="research-sweep-inspect",
     ),
@@ -548,7 +546,7 @@ DISPATCH_CASES = (
                 "6",
             ),
             module=research_diff_cli_module,
-            attribute="run_from_args",
+            attribute="_diff_command",
             fields={
                 "sweep_id": _str_attr("sweep_id"),
                 "order": _int_attr("order"),
@@ -581,7 +579,7 @@ DISPATCH_CASES = (
                 "/tmp/adequacy",
             ),
             module=research_adequacy_cli_module,
-            attribute="run_from_args",
+            attribute="_pilot_command",
             fields={
                 "adequacy_id": _str_attr("adequacy_id"),
                 "dagzoo_root": _path_attr("dagzoo_root"),
@@ -621,7 +619,7 @@ DISPATCH_CASES = (
                 "/tmp/adequacy",
             ),
             module=research_adequacy_cli_module,
-            attribute="run_finalize_from_args",
+            attribute="_finalize_command",
             fields={
                 "adequacy_id": _str_attr("adequacy_id"),
                 "dagzoo_root": _path_attr("dagzoo_root"),
@@ -643,10 +641,10 @@ DISPATCH_CASES = (
             module=dev_module,
             attribute="_run_resolve_config",
             fields={
-                "json": _bool_attr("json"),
+                "json_mode": _bool_attr("json_mode"),
                 "overrides": _list_attr("overrides"),
             },
-            expected={"json": True, "overrides": ["experiment=cls_smoke"]},
+            expected={"json_mode": True, "overrides": ["experiment=cls_smoke"]},
         ),
         id="dev-resolve-config",
     ),
@@ -680,9 +678,9 @@ DISPATCH_CASES = (
             attribute="_run_export_check",
             fields={
                 "checkpoint": _path_attr("checkpoint"),
-                "json": _bool_attr("json"),
+                "json_mode": _bool_attr("json_mode"),
             },
-            expected={"checkpoint": "/tmp/checkpoint.pt", "json": True},
+            expected={"checkpoint": "/tmp/checkpoint.pt", "json_mode": True},
         ),
         id="dev-export-check",
     ),
@@ -850,18 +848,18 @@ DISPATCH_CASES = (
                 "--json",
             ),
             module=data_inspect_module,
-            attribute="run_from_args",
+            attribute="_manifest_inspect_command",
             fields={
                 "manifest": _path_attr("manifest"),
                 "experiment": _str_attr("experiment"),
-                "overrides": lambda args: list(args.override),
-                "json": _bool_attr("json"),
+                "overrides": _list_attr("overrides"),
+                "json_mode": _bool_attr("json_mode"),
             },
             expected={
                 "manifest": "/tmp/manifest.parquet",
                 "experiment": "cls_smoke",
                 "overrides": ["data.manifest_path=/tmp/manifest.parquet"],
-                "json": True,
+                "json_mode": True,
             },
         ),
         id="data-manifest-inspect",
@@ -881,9 +879,9 @@ def test_nested_cli_dispatches_to_handler(
         capture_handler(captured, case.fields),
     )
 
-    exit_code = cli_module.main(list(case.argv))
+    result = CliRunner().invoke(cli_module.cli, list(case.argv))
 
-    assert exit_code == 0
+    assert result.exit_code == 0, result.output
     assert captured == case.expected
 
 
@@ -901,18 +899,17 @@ def test_bench_compare_run_from_args_forwards_tab_realdata_hub_root(
         or {"dataset_count": 0, "tab_foundry": {}, "artifacts": {}},
     )
 
-    exit_code = compare_cli_module.run_from_args(
-        compare_cli_module.build_parser().parse_args(
-            [
-                "--tab-foundry-run-dir",
-                str(tmp_path / "run"),
-                "--tab-realdata-hub-root",
-                str(hub_root),
-            ]
-        )
+    result = CliRunner().invoke(
+        compare_cli_module.COMMAND,
+        [
+            "--tab-foundry-run-dir",
+            str(tmp_path / "run"),
+            "--tab-realdata-hub-root",
+            str(hub_root),
+        ],
     )
 
-    assert exit_code == 0
+    assert result.exit_code == 0, result.output
     assert captured["config"].tab_realdata_hub_root == hub_root
 
 
@@ -929,16 +926,15 @@ def test_bench_env_bootstrap_run_from_args_forwards_tab_realdata_hub_root(
         lambda config: captured.update({"config": config}) or {"tabicl_python": "/tmp/python"},
     )
 
-    exit_code = env_bootstrap_cli_module.run_from_args(
-        env_bootstrap_cli_module.build_parser().parse_args(
-            [
-                "--tab-realdata-hub-root",
-                str(hub_root),
-            ]
-        )
+    result = CliRunner().invoke(
+        env_bootstrap_cli_module.COMMAND,
+        [
+            "--tab-realdata-hub-root",
+            str(hub_root),
+        ],
     )
 
-    assert exit_code == 0
+    assert result.exit_code == 0, result.output
     assert captured["config"].tab_realdata_hub_root == hub_root
 
 
@@ -999,13 +995,11 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
 
 
 def test_nested_cli_research_sweep_create_alias_is_rejected(
-    capsys: pytest.CaptureFixture[str],
 ) -> None:
-    with pytest.raises(SystemExit) as exc_info:
-        _ = cli_module.main(["research", "sweep", "create"])
+    result = CliRunner().invoke(cli_module.cli, ["research", "sweep", "create"])
 
-    assert exc_info.value.code == 2
-    assert "invalid choice: 'create'" in capsys.readouterr().err
+    assert result.exit_code == 2
+    assert "No such command 'create'" in result.output
 
 
 @pytest.mark.parametrize(
@@ -1063,9 +1057,10 @@ def test_nested_cli_data_commands_reject_invalid_split_ratios(
 
     monkeypatch.setattr(data_group, attribute, _fake_handler)
 
-    with pytest.raises(SystemExit, match="invalid split ratios"):
-        _ = cli_module.main(argv)
+    result = CliRunner().invoke(cli_module.cli, argv)
 
+    assert result.exit_code != 0
+    assert "invalid split ratios" in result.output
     assert called is False
 
 
@@ -1101,8 +1096,9 @@ def test_nested_cli_data_commands_reject_invalid_split_ratios(
     ],
 )
 def test_nested_cli_dev_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
-    with pytest.raises(SystemExit):
-        _ = cli_module.build_parser().parse_args(argv)
+    result = CliRunner().invoke(cli_module.cli, argv)
+
+    assert result.exit_code == 2
 
 
 @pytest.mark.parametrize(
@@ -1144,8 +1140,9 @@ def test_nested_cli_dev_data_commands_reject_non_finite_split_ratios(argv: list[
     ],
 )
 def test_materialize_processes_rejects_non_positive_values(argv: list[str]) -> None:
-    with pytest.raises(SystemExit):
-        _ = cli_module.build_parser().parse_args(argv)
+    result = CliRunner().invoke(cli_module.cli, argv)
+
+    assert result.exit_code == 2
 
 
 @pytest.mark.parametrize(
@@ -1187,24 +1184,25 @@ def test_materialize_processes_rejects_non_positive_values(argv: list[str]) -> N
     ],
 )
 def test_materialize_worker_threads_rejects_non_positive_values(argv: list[str]) -> None:
-    with pytest.raises(SystemExit):
-        _ = cli_module.build_parser().parse_args(argv)
+    result = CliRunner().invoke(cli_module.cli, argv)
+
+    assert result.exit_code == 2
 
 
-def test_nested_cli_rejects_unexpected_extra_arguments(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as exc_info:
-        _ = cli_module.main(
-            [
-                "data",
-                "manifest-inspect",
-                "--manifest",
-                "/tmp/manifest.parquet",
-                "--unexpected",
-            ]
-        )
+def test_nested_cli_rejects_unexpected_extra_arguments() -> None:
+    result = CliRunner().invoke(
+        cli_module.cli,
+        [
+            "data",
+            "manifest-inspect",
+            "--manifest",
+            "/tmp/manifest.parquet",
+            "--unexpected",
+        ],
+    )
 
-    assert exc_info.value.code == 2
-    assert "unrecognized arguments: --unexpected" in capsys.readouterr().err
+    assert result.exit_code == 2
+    assert "No such option: --unexpected" in result.output
 
 
 def test_nested_cli_dev_data_generate_manifest_returns_subprocess_exit_code(

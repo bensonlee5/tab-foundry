@@ -1,0 +1,75 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_022_runtime_policy_medium_v1
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+status: completed
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_v1
+surface_role: classification_runtime_policy
+comparison_policy: anchor_only
+upstream_reference:
+  name: PyTorch AMP
+  model_source: https://pytorch.org/docs/stable/amp.html
+anchor_surface:
+  notes:
+  - This sweep owns TF-RD-022 child issue [#169](https://github.com/bensonlee5/tab-foundry/issues/169)
+    on the closed TF-RD-010 classification benchmark contract.
+  - Row 1 is the same-bundle no-AMP control replay. Rows 2 through 4 vary only `mixed_precision`,
+    `trace_activations`, and `activation_checkpointing`.
+  - 'Keep the inherited TF-RD-010 training surface fixed: `task_batch_size=16`, `prior_dump_batch_size=64`,
+    `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`, linear warmup at `lr_max=1e-3`,
+    and `optimizer.min_lr=1e-5`.'
+  - Rank rows first by `final_log_loss_at_matched_regime_budget`, interpreted explicitly
+    as label-target log loss per test cell. Runtime and VRAM metrics only break ties
+    among benchmark-safe rows.
+  - A medium row is eligible for large validation only if its `final_log_loss_at_matched_regime_budget`
+    is non-worse than row 1.
+  - Among eligible rows, prefer lower `peak_vram_reserved`, then higher `throughput_tokens_per_second`,
+    then lower `non_train_overhead_seconds`.
+  - Treat activation tracing and activation checkpointing as diagnostic losers unless
+    they are benchmark-safe and also beat the simpler bf16 row on the runtime tie-breakers.
+  - If no runtime row is benchmark-safe on medium, stop after this sweep and record
+    TF-RD-022 as a measured defer for `#169`.
+  dimension_table:
+  - dimension: precision policy
+    upstream: PyTorch AMP guidance treats bf16 as a low-risk accelerator-side runtime
+      knob on supported CUDA hardware.
+    anchor: The closed TF-RD-010 contract was recorded with `mixed_precision='no'`.
+    interpretation: Precision may change runtime and memory, but it only survives
+      TF-RD-022 if benchmark quality is non-worse.
+  - dimension: activation tracing
+    upstream: Activation tracing is a repo-local observability surface rather than
+      a benchmark objective.
+    anchor: The control row keeps `trace_activations=false`.
+    interpretation: Benchmark-facing activation tracing should stay off unless it
+      is effectively free on the carried classification recipe.
+  - dimension: activation checkpointing
+    upstream: Activation checkpointing is a standard memory-speed tradeoff, not a
+      model change.
+    anchor: The control row keeps `activation_checkpointing=false`.
+    interpretation: Checkpointing only survives if it is benchmark-safe and materially
+      better on runtime or VRAM guardrails.
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Closed TF-RD-010 medium contract on `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`.
+    interpretation: Medium is the screening rung only; any keep-worthy row still needs
+      large-rung validation before it becomes the TF-RD-022 carried policy.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

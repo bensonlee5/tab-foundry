@@ -1,0 +1,1460 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_022_runtime_policy_medium_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/matrix.md
+sweep_id: tf_rd_022_runtime_policy_medium_v1
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+sweep_status: completed
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_v1
+surface_role: classification_runtime_policy
+comparison_policy: anchor_only
+upstream_reference:
+  name: PyTorch AMP
+  model_source: https://pytorch.org/docs/stable/amp.html
+anchor_surface:
+  notes:
+  - This sweep owns TF-RD-022 child issue [#169](https://github.com/bensonlee5/tab-foundry/issues/169)
+    on the closed TF-RD-010 classification benchmark contract.
+  - Row 1 is the same-bundle no-AMP control replay. Rows 2 through 4 vary only `mixed_precision`,
+    `trace_activations`, and `activation_checkpointing`.
+  - 'Keep the inherited TF-RD-010 training surface fixed: `task_batch_size=16`, `prior_dump_batch_size=64`,
+    `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`, linear warmup at `lr_max=1e-3`,
+    and `optimizer.min_lr=1e-5`.'
+  - Rank rows first by `final_log_loss_at_matched_regime_budget`, interpreted explicitly
+    as label-target log loss per test cell. Runtime and VRAM metrics only break ties
+    among benchmark-safe rows.
+  - A medium row is eligible for large validation only if its `final_log_loss_at_matched_regime_budget`
+    is non-worse than row 1.
+  - Among eligible rows, prefer lower `peak_vram_reserved`, then higher `throughput_tokens_per_second`,
+    then lower `non_train_overhead_seconds`.
+  - Treat activation tracing and activation checkpointing as diagnostic losers unless
+    they are benchmark-safe and also beat the simpler bf16 row on the runtime tie-breakers.
+  - If no runtime row is benchmark-safe on medium, stop after this sweep and record
+    TF-RD-022 as a measured defer for `#169`.
+  dimension_table:
+  - dimension: precision policy
+    upstream: PyTorch AMP guidance treats bf16 as a low-risk accelerator-side runtime
+      knob on supported CUDA hardware.
+    anchor: The closed TF-RD-010 contract was recorded with `mixed_precision='no'`.
+    interpretation: Precision may change runtime and memory, but it only survives
+      TF-RD-022 if benchmark quality is non-worse.
+  - dimension: activation tracing
+    upstream: Activation tracing is a repo-local observability surface rather than
+      a benchmark objective.
+    anchor: The control row keeps `trace_activations=false`.
+    interpretation: Benchmark-facing activation tracing should stay off unless it
+      is effectively free on the carried classification recipe.
+  - dimension: activation checkpointing
+    upstream: Activation checkpointing is a standard memory-speed tradeoff, not a
+      model change.
+    anchor: The control row keeps `activation_checkpointing=false`.
+    interpretation: Checkpointing only survives if it is benchmark-safe and materially
+      better on runtime or VRAM guardrails.
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Closed TF-RD-010 medium contract on `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`.
+    interpretation: Medium is the screening rung only; any keep-worthy row still needs
+      large-rung validation before it becomes the TF-RD-022 carried policy.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_022_cls_runtime_control_noamp_v1
+  status: completed
+  rationale: Establish the same-bundle no-AMP control replay before reading any TF-RD-022
+    runtime-policy change.
+  hypothesis: The closed TF-RD-010 classification recipe should remain the benchmark-safe
+    reference point when rerun without AMP, activation tracing, or activation checkpointing.
+  anchor_delta: Re-run the closed TF-RD-010 classification control recipe with `mixed_precision='no'`,
+    `trace_activations=false`, and `activation_checkpointing=false` on the medium
+    benchmark contract.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+      resolved_task_count: 159984
+      resolved_max_steps: 2500
+      resolution_source: local_corpus_record
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: 'no'
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Run this row first as the no-AMP control replay for the TF-RD-022 runtime ladder.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` baseline before
+    interpreting any runtime-policy result as a keep or defer.
+  - Rank rows first by `final_log_loss_at_matched_regime_budget`, then inspect runtime
+    and VRAM only as guardrails and tie-breakers.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this row as the same-bundle benchmark-safe screening control while
+    the checkpointing winner advances to the large validator.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4`.
+  - Recorded the canonical no-AMP control replay for the TF-RD-022 medium runtime
+    ladder. Keep it as the benchmark-safe screening reference only because the checkpointing
+    candidate remained non-worse on matched-budget log loss while materially reducing
+    reserved VRAM.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2350
+    max_grad_norm: 3.652202401122577
+    clipped_step_fraction: 0.0
+    peak_vram_allocated: 20255756288
+    peak_vram_reserved: 27084718080
+    throughput_examples_per_second: 25.88413755564958
+    throughput_tokens_per_second: 154192.60718334196
+    non_train_overhead_seconds: 17.292344942688942
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6849302231234825
+    final_log_loss: 0.6849302248265139
+    best_brier_score: 0.4246158927642243
+    final_brier_score: 0.4246158940693043
+    best_roc_auc: 0.6044496666559585
+    final_roc_auc: 0.60444944254663
+    best_bpc: 2.1153887494693584
+    final_bpc: 2.115388753016838
+    best_bpf: 2.115368601685998
+    final_bpf: 2.115368603057359
+    final_minus_best_bpc: 3.547479643373208e-09
+    final_minus_best_bpf: 1.3713608026932889e-09
+    final_minus_best_log_loss: 1.7030313825827648e-09
+    final_minus_best_brier_score: 1.305079988522806e-09
+    final_minus_best_roc_auc: -2.2410932842831244e-07
+    drift: 1.7030313825827648e-09
+    delta_final_log_loss: 0.0037574847488879293
+    delta_final_brier_score: 0.0017108237922007774
+    delta_final_roc_auc: -0.004955437011028407
+    delta_final_bpc: 0.001746610564987705
+    delta_final_bpf: 0.0017495666703495338
+  parent_delta_ref: null
+  dimension_family: training
+  family: runtime_policy
+  binary_applicable: false
+  description: Replay the closed TF-RD-010 classification control recipe with no AMP,
+    no activation trace, and no activation checkpointing.
+  upstream_delta: Not applicable; this is the no-AMP runtime-policy control for TF-RD-022
+    on the closed classification benchmark contract.
+  entangled_legacy_stage: none
+  expected_effect: Establish the benchmark-safe runtime and VRAM baseline before any
+    low-risk runtime knob is considered.
+  adequacy_knobs:
+  - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`,
+    `grad_clip=0.0`, `max_steps=2500`
+  - runtime knobs only; architecture, corpus choice, optimizer family, and schedule
+    family remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute this row first as the same-bundle control replay for the TF-RD-022 runtime
+      ladder.
+    - Use `final_log_loss_at_matched_regime_budget` as the primary ranking key, then
+      inspect runtime and VRAM only as guardrails and tie-breakers.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 72b828ff3f0ff3295d3758e4a4d194a152569d0f83f8b1bec2d1da70d39be60e
+- order: 2
+  delta_id: delta_tf_rd_022_cls_runtime_bf16_v1
+  status: completed
+  rationale: Test whether bf16 alone is a benchmark-safe runtime and VRAM improvement
+    on the carried classification recipe.
+  hypothesis: Switching only `mixed_precision` to `bf16` should preserve `final_log_loss_at_matched_regime_budget`
+    while reducing runtime or reserved VRAM versus the no-AMP control.
+  anchor_delta: Starting from row 1, switch only `runtime.mixed_precision` from `"no"`
+    to `bf16`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+      resolved_task_count: 159984
+      resolved_max_steps: 2500
+      resolution_source: local_corpus_record
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row 1 on `final_log_loss_at_matched_regime_budget`.
+  - Promote to the large validator only if this row is non-worse on benchmark quality.
+  - Use lower `peak_vram_reserved`, then higher `throughput_tokens_per_second`, then
+    lower `non_train_overhead_seconds` only as tie-breakers among benchmark-safe rows.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this row as the simpler benchmark-safe bf16 reference, but defer
+    it in favor of the lower-VRAM checkpointing winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1`.
+  - Pure bf16 is benchmark-safe on the TF-RD-022 medium rung and improves over the
+    no-AMP control, but it is not the kept medium winner because bf16 plus activation
+    checkpointing preserved benchmark quality while lowering peak reserved VRAM further.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2400
+    max_grad_norm: 3.796681041264765
+    clipped_step_fraction: 0.0
+    peak_vram_allocated: 3144940032
+    peak_vram_reserved: 5312086016
+    throughput_examples_per_second: 26.38661251483992
+    throughput_tokens_per_second: 157185.86604063743
+    non_train_overhead_seconds: 16.786906253546476
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6818472866301696
+    final_log_loss: 0.6818472857594081
+    best_brier_score: 0.4225774978020349
+    final_brier_score: 0.4225774971459671
+    best_roc_auc: 0.6087231434149127
+    final_roc_auc: 0.6087235566380531
+    best_bpc: 2.1102839468028867
+    final_bpc: 2.1102839497404084
+    best_bpf: 2.110263941821669
+    final_bpf: 2.110263935063997
+    final_minus_best_bpc: 2.9375217813765175e-09
+    final_minus_best_bpf: -6.757671755508454e-09
+    final_minus_best_log_loss: -8.707614629344107e-10
+    final_minus_best_brier_score: -6.560678111888762e-10
+    final_minus_best_roc_auc: 4.132231403719544e-07
+    drift: -8.707614629344107e-10
+    delta_final_log_loss: 0.0006745456817821571
+    delta_final_brier_score: -0.00032757313113640496
+    delta_final_roc_auc: -0.0006813229196053205
+    delta_final_bpc: -0.0033581927114418875
+    delta_final_bpf: -0.0033551013230121995
+  parent_delta_ref: null
+  dimension_family: training
+  family: runtime_policy
+  binary_applicable: false
+  description: Switch only `mixed_precision` to `bf16` on the closed TF-RD-010 classification
+    control recipe.
+  upstream_delta: Not applicable; this is the first low-risk AMP candidate for TF-RD-022
+    on the closed classification benchmark contract.
+  entangled_legacy_stage: none
+  expected_effect: If AMP is benchmark-safe on the carried sandwich recipe, bf16 should
+    preserve log loss while reducing runtime or VRAM cost versus the no-AMP control.
+  adequacy_knobs:
+  - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`,
+    `grad_clip=0.0`, `max_steps=2500`
+  - runtime knobs only; architecture, corpus choice, optimizer family, and schedule
+    family remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare directly against the no-AMP control row on `final_log_loss_at_matched_regime_budget`.
+    - Treat lower peak reserved VRAM, then higher token throughput, then lower non-train
+      overhead as tie-breakers only if benchmark quality is non-worse.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 1bc54c4bf8e6287193c1fe9cb4cf8dbb6e9f20b3b1968971892ed82889740fb8
+- order: 3
+  delta_id: delta_tf_rd_022_cls_runtime_trace_v1
+  status: completed
+  rationale: Measure the benchmark-facing activation-trace overhead on top of the
+    simpler bf16 runtime candidate.
+  hypothesis: Activation tracing should stay a diagnostic-only cost on the carried
+    classification recipe unless it is effectively free on both benchmark quality
+    and runtime guardrails.
+  anchor_delta: Starting from row 2, switch only `runtime.trace_activations` from
+    `false` to `true`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+      resolved_task_count: 159984
+      resolved_max_steps: 2500
+      resolution_source: local_corpus_record
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: true
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare this row against the simpler bf16 row first, not only against row 1.
+  - Treat it as a diagnostic loser unless it is benchmark-safe and also beats the
+    simpler bf16 row on the runtime tie-breakers.
+  - Do not carry this row forward to large validation unless it wins the medium ladder
+    under the benchmark-first keep bar.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Defer this row as a benchmark-safe diagnostic that did not win the
+    runtime tie-breakers against the kept checkpointing candidate.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2`.
+  - 'Benchmark-facing activation tracing stayed benchmark-safe on the medium rung,
+    but it did not beat the kept candidate on the runtime tie-breakers: it reserved
+    more VRAM than checkpointing and ran slower than the simpler bf16 row.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2375
+    max_grad_norm: 4.477627317187895
+    clipped_step_fraction: 0.0
+    peak_vram_allocated: 3148036608
+    peak_vram_reserved: 5398069248
+    throughput_examples_per_second: 25.386715129049016
+    throughput_tokens_per_second: 151347.05724930324
+    non_train_overhead_seconds: 18.393765339627862
+    tokens_per_step: 367472.1792
+    tokens_seen: 918680448
+    token_budget: 918680448
+    unique_task_budget: 144018
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6754785029819
+    final_log_loss: 0.6754785051755787
+    best_brier_score: 0.41923845499064333
+    final_brier_score: 0.4192384566200573
+    best_roc_auc: 0.6182736910011394
+    final_roc_auc: 0.6182734450349844
+    best_bpc: 2.116526984158116
+    final_bpc: 2.116526987585224
+    best_bpf: 2.116503578494674
+    final_bpf: 2.116503580246051
+    final_minus_best_bpc: 3.427108374864929e-09
+    final_minus_best_bpf: 1.7513768213461844e-09
+    final_minus_best_log_loss: 2.193678683148903e-09
+    final_minus_best_brier_score: 1.6294139926209539e-09
+    final_minus_best_roc_auc: -2.459661549991665e-07
+    drift: 2.193678683148903e-09
+    delta_final_log_loss: -0.005694234902047235
+    delta_final_brier_score: -0.0036666136570461805
+    delta_final_roc_auc: 0.008868565477325951
+    delta_final_bpc: 0.0028848451333738367
+    delta_final_bpf: 0.0028845438590416883
+  parent_delta_ref: null
+  dimension_family: training
+  family: runtime_policy
+  binary_applicable: false
+  description: Enable benchmark-facing activation tracing on top of the bf16 TF-RD-022
+    runtime candidate.
+  upstream_delta: Not applicable; this is the bounded activation-trace diagnostic
+    for TF-RD-022 on the closed classification benchmark contract.
+  entangled_legacy_stage: none
+  expected_effect: Benchmark-facing activation tracing should remain a measurable
+    overhead unless it is effectively free on the carried classification recipe.
+  adequacy_knobs:
+  - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`,
+    `grad_clip=0.0`, `max_steps=2500`
+  - runtime knobs only; architecture, corpus choice, optimizer family, and schedule
+    family remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare this row against the simpler bf16 row first, not only against the no-AMP
+      control.
+    - Treat this row as a diagnostic loser unless it is benchmark-safe and also beats
+      the simpler bf16 row on the runtime tie-breakers.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: true
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: f083a4b5790d74b1635f3cfb3db6fa2d69ff75d68a7ba032c36fe1cee427971f
+- order: 4
+  delta_id: delta_tf_rd_022_cls_runtime_checkpoint_v1
+  status: completed
+  rationale: Measure the activation-checkpointing tradeoff on top of the simpler bf16
+    runtime candidate.
+  hypothesis: Activation checkpointing may reduce reserved VRAM, but it should stay
+    deferred unless that reduction is benchmark-safe and beats the simpler bf16 row
+    on the runtime tie-breakers.
+  anchor_delta: Starting from row 2, switch only `runtime.activation_checkpointing`
+    from `false` to `true`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    synthetic_epoch_budget:
+      epochs: 1
+      budget_unit: corpus_manifest_records
+      prior_dump_batch_size: 64
+      allow_partial_final_batch: true
+      resolved_task_count: 159984
+      resolved_max_steps: 2500
+      resolution_source: local_corpus_record
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare this row against the simpler bf16 row first, not only against row 1.
+  - Treat it as a diagnostic loser unless it is benchmark-safe and also beats the
+    simpler bf16 row on the runtime tie-breakers.
+  - Do not carry this row forward to large validation unless it wins the medium ladder
+    under the benchmark-first keep bar.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Promote this row into `tf_rd_022_runtime_policy_large_validation_v1`
+    on the closed TF-RD-010 large contract before treating it as the closed TF-RD-022
+    carried runtime policy.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`.
+  - 'bf16 plus activation checkpointing is the TF-RD-022 medium-rung winner: it stayed
+    non-worse than the no-AMP control on matched-budget log loss while delivering
+    the lowest peak reserved VRAM among benchmark-safe rows. Promote this row to the
+    large validation gate before treating it as the closed TF-RD-022 carried policy.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 4.494276363744024
+    clipped_step_fraction: 0.0
+    peak_vram_allocated: 1883309568
+    peak_vram_reserved: 3321888768
+    throughput_examples_per_second: 25.254896592446165
+    throughput_tokens_per_second: 150561.19946879335
+    non_train_overhead_seconds: 14.76630144380033
+    tokens_per_step: 367472.1792
+    tokens_seen: 918680448
+    token_budget: 918680448
+    unique_task_budget: 144018
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6765953231883223
+    final_log_loss: 0.6765953231883223
+    best_brier_score: 0.4198876406310138
+    final_brier_score: 0.4198876406310138
+    best_roc_auc: 0.6189327961797302
+    final_roc_auc: 0.6189327961797302
+    best_bpc: 2.11378503614991
+    final_bpc: 2.11378503614991
+    best_bpf: 2.11376171994358
+    final_bpf: 2.11376171994358
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    delta_final_log_loss: -0.004577416889303687
+    delta_final_brier_score: -0.0030174296460896977
+    delta_final_roc_auc: 0.009527916622071753
+    delta_final_bpc: 0.00014289369805986496
+    delta_final_bpf: 0.00014268355657076626
+  parent_delta_ref: null
+  dimension_family: training
+  family: runtime_policy
+  binary_applicable: false
+  description: Enable activation checkpointing on top of the bf16 TF-RD-022 runtime
+    candidate.
+  upstream_delta: Not applicable; this is the bounded activation-checkpointing diagnostic
+    for TF-RD-022 on the closed classification benchmark contract.
+  entangled_legacy_stage: none
+  expected_effect: Activation checkpointing may reduce reserved VRAM at the cost of
+    runtime; it should stay deferred unless that trade remains benchmark-safe and
+    materially useful.
+  adequacy_knobs:
+  - closed TF-RD-010 medium benchmark contract on `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - fixed `task_batch_size=16`, `prior_dump_batch_size=64`, `grad_accum_steps=4`,
+    `grad_clip=0.0`, `max_steps=2500`
+  - runtime knobs only; architecture, corpus choice, optimizer family, and schedule
+    family remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare this row against the simpler bf16 row first, not only against the no-AMP
+      control.
+    - Treat this row as a diagnostic loser unless it is benchmark-safe and also beats
+      the simpler bf16 row on the runtime tie-breakers.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 6df38c53aecd3b035440f141ec27669759bdd7bc68a8558606a1cfa965a34378
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/resolved_queue.yaml
+inputs_fingerprint: a8032292f2bc04cc145959c1e6362cf621b85703e15e40e448f7a965f114653d

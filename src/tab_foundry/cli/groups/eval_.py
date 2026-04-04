@@ -2,31 +2,46 @@
 
 from __future__ import annotations
 
-import argparse
+import click
 
 from tab_foundry.config import compose_config
 from tab_foundry.training.evaluate import evaluate_checkpoint
+from tab_foundry.cli.click_utils import GROUP_KWARGS
 
 
-def _run_checkpoint(args: argparse.Namespace) -> int:
-    overrides = list(args.overrides)
-    if args.checkpoint is not None:
-        overrides.append(f"eval.checkpoint={args.checkpoint}")
-    if args.split is not None:
-        overrides.append(f"eval.split={args.split}")
+def _run_checkpoint(
+    *,
+    checkpoint: str | None,
+    split: str | None,
+    overrides: tuple[str, ...],
+) -> int:
+    resolved_overrides = list(overrides)
+    if checkpoint is not None:
+        resolved_overrides.append(f"eval.checkpoint={checkpoint}")
+    if split is not None:
+        resolved_overrides.append(f"eval.split={split}")
 
-    cfg = compose_config(overrides)
+    cfg = compose_config(resolved_overrides)
     result = evaluate_checkpoint(cfg)
     print("Evaluation complete:", f"checkpoint={result.checkpoint}", f"metrics={result.metrics}")
     return 0
 
 
-def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    parser = subparsers.add_parser("eval", help="Evaluation workflows")
-    nested = parser.add_subparsers(dest="eval_command", required=True)
+@click.group(name="eval", help="Evaluation workflows", **GROUP_KWARGS)
+def GROUP() -> None:
+    """Evaluation workflows."""
 
-    checkpoint_parser = nested.add_parser("checkpoint", help="Evaluate checkpoint")
-    checkpoint_parser.add_argument("--checkpoint", default=None, help="Checkpoint override")
-    checkpoint_parser.add_argument("--split", default=None, help="Eval split override")
-    checkpoint_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
-    checkpoint_parser.set_defaults(func=_run_checkpoint)
+
+@click.command(name="checkpoint", help="Evaluate checkpoint")
+@click.option("--checkpoint", default=None, help="Checkpoint override")
+@click.option("--split", default=None, help="Eval split override")
+@click.argument("overrides", nargs=-1, type=str)
+def CHECKPOINT_COMMAND(
+    checkpoint: str | None,
+    split: str | None,
+    overrides: tuple[str, ...],
+) -> int:
+    return _run_checkpoint(checkpoint=checkpoint, split=split, overrides=overrides)
+
+
+GROUP.add_command(CHECKPOINT_COMMAND)

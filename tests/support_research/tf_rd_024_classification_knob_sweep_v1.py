@@ -130,7 +130,7 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
         assert row["training"]["prior_dump_batch_size"] == 64
         assert runtime["mixed_precision"] == "bf16"
         assert runtime["trace_activations"] is False
-        assert runtime["activation_checkpointing"] is False
+        assert runtime["activation_checkpointing"] is True
         assert runtime["grad_accum_steps"] == 4
         assert row["model"]["d_icl"] == 60
         assert row["model"]["sandwich_layers"] == 2
@@ -148,6 +148,7 @@ def test_tf_rd_024_classification_knob_sweep_v1_matrix_records_the_runtime_polic
     assert "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1" in matrix
     assert "delta_tf_rd_024_cls_sandwich_headhidden128_v1" in matrix
     assert "mixed_precision': 'bf16'" in matrix
+    assert "activation_checkpointing': True" in matrix
     assert "TF-RD-010 medium contract screens rows first; any keep must then validate on the closed TF-RD-010 large contract." in matrix
     assert "`d_icl`" in matrix
     assert "`sandwich_layers`" in matrix

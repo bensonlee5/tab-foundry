@@ -58,6 +58,32 @@ This is the canonical long-form evidence note for
 - the repo now has a named runtime policy surface at
   `configs/runtime/tf_rd_022_policy.yaml` plus the inherited benchmark-facing
   experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+- sweep `tf_rd_022_runtime_policy_medium_v1` now records the intended
+  benchmark-first medium runtime ladder on the closed TF-RD-010 control
+  contract:
+  - row 1 replays the no-AMP control
+  - row 2 isolates bf16
+  - row 3 isolates benchmark-facing activation tracing on top of bf16
+  - row 4 isolates activation checkpointing on top of bf16
+- the completed medium ladder now records one explicit keep/defer read for each
+  runtime knob:
+  - row 1 control `sd_tf_rd_022_runtime_policy_medium_v1_01_delta_tf_rd_022_cls_runtime_control_noamp_v1_v4`
+    is the benchmark-safe no-AMP reference at `final_log_loss=0.6849302248`,
+    `peak_vram_reserved=27084718080`, and `throughput_tokens_per_second=154192.6072`
+  - row 2 bf16 `sd_tf_rd_022_runtime_policy_medium_v1_02_delta_tf_rd_022_cls_runtime_bf16_v1_v1`
+    is benchmark-safe but deferred at `final_log_loss=0.6818472858`,
+    `peak_vram_reserved=5312086016`, and `throughput_tokens_per_second=157185.8660`
+  - row 3 trace `sd_tf_rd_022_runtime_policy_medium_v1_03_delta_tf_rd_022_cls_runtime_trace_v1_v2`
+    is benchmark-safe but diagnostic-only at `final_log_loss=0.6754785052`,
+    `peak_vram_reserved=5398069248`, and `throughput_tokens_per_second=151347.0572`
+  - row 4 checkpointing `sd_tf_rd_022_runtime_policy_medium_v1_04_delta_tf_rd_022_cls_runtime_checkpoint_v1_v2`
+    is the medium-rung winner at `final_log_loss=0.6765953232`,
+    `peak_vram_reserved=3321888768`, and `throughput_tokens_per_second=150561.1995`
+- that sweep uses a benchmark-first keep bar: a row is eligible only if
+  `final_log_loss_at_matched_regime_budget` is non-worse than the no-AMP
+  control, with `peak_vram_reserved`, `throughput_tokens_per_second`, and
+  `non_train_overhead_seconds` used only as tie-breakers among benchmark-safe
+  rows
 - issue [#233](https://github.com/bensonlee5/tab-foundry/issues/233) is the
   downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 policy
 
@@ -73,6 +99,13 @@ This is the canonical long-form evidence note for
 - the runtime ladder should stay classification-only and should inherit one
   frozen recipe rather than reopening sandwich-parent selection, synthetic
   surface expansion, or law design
+- the concrete medium screening surface is now
+  `tf_rd_022_runtime_policy_medium_v1`, and any winner from that ladder should
+  promote into a two-row large validator rather than directly mutating the
+  carried runtime policy
+- the medium ladder is now measured, and row 4 won the in-repo keep bar on the
+  completed CUDA rung; the remaining TF-RD-022 blocker is large-rung
+  validation, not medium execution
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
@@ -87,12 +120,8 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the repo still lacks one explicit keep/defer decision on whether bf16 is
-  benchmark-safe on the carried classification recipe
-- the repo still lacks one explicit keep/defer decision on benchmark-facing
-  activation tracing versus screen-only tracing
-- the repo still lacks one explicit keep/defer decision on activation
-  checkpointing on the inherited classification recipe
+- the repo still lacks the TF-RD-022 large-rung validator for the kept
+  checkpointing candidate
 - the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
   on the inherited harder-surface classification recipe under an 80 GB A100
   budget

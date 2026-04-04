@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
-import argparse
 import sys
 from pathlib import Path
 
-from tab_foundry.data.corpus_materialization import default_materialize_processes
+import click
+
+from tab_foundry.cli.click_utils import (
+    dagzoo_root_option,
+    device_option,
+    materialize_worker_options,
+    run_click_command,
+)
 from tab_foundry.research.adequacy.pilot import (
     finalize_adequacy_pilot,
     run_adequacy_pilot,
@@ -15,114 +21,26 @@ from tab_foundry.research.adequacy.pilot import (
 _CONTRACT_CHECK_CHOICES = ("fast", "full")
 
 
-def _positive_int(raw: str) -> int:
-    value = int(raw)
-    if value <= 0:
-        raise argparse.ArgumentTypeError(f"Expected a positive integer, got {raw}.")
-    return value
-
-
-def _positive_int_or_auto(raw: str) -> int | None:
-    if str(raw).strip().lower() == "auto":
-        return None
-    return _positive_int(raw)
-
-
-def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument(
-        "--adequacy-id",
-        required=True,
-        help="Synthetic adequacy spec id to execute",
-    )
-    parser.add_argument(
-        "--dagzoo-root",
-        required=True,
-        help="Path to the sibling dagzoo checkout used for corpus materialization",
-    )
-    parser.add_argument(
-        "--device",
-        choices=("cpu",),
-        default="cpu",
-        help="Pilot execution device. The lean adequacy pilot supports CPU only.",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force corpus rematerialization and overwrite pilot-local outputs",
-    )
-    parser.add_argument(
-        "--out-root",
-        default=None,
-        help="Optional output root override for pilot artifacts",
-    )
-    parser.add_argument(
-        "--materialize-processes",
-        type=_positive_int,
-        default=default_materialize_processes(),
-        help="Maximum concurrent invocation subprocesses to use while materializing pilot corpora",
-    )
-    parser.add_argument(
-        "--materialize-worker-threads",
-        type=_positive_int_or_auto,
-        default=None,
-        help="Per-dagzoo subprocess CPU thread budget. Use 'auto' for the balanced default.",
-    )
-    parser.add_argument(
-        "--contract-check",
-        choices=_CONTRACT_CHECK_CHOICES,
-        default="fast",
-        help="Latent-target contract verification level",
-    )
-    return parser
-
-
-def configure_finalize_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument(
-        "--adequacy-id",
-        required=True,
-        help="Synthetic adequacy spec id to finalize",
-    )
-    parser.add_argument(
-        "--dagzoo-root",
-        required=True,
-        help="Path to the sibling dagzoo checkout used to resolve staged corpus previews",
-    )
-    parser.add_argument(
-        "--out-root",
-        default=None,
-        help="Optional output root override for pilot artifacts",
-    )
-    parser.add_argument(
-        "--contract-check",
-        choices=_CONTRACT_CHECK_CHOICES,
-        default="fast",
-        help="Latent-target contract verification level",
-    )
-    return parser
-
-
-def build_parser() -> argparse.ArgumentParser:
-    return configure_parser(argparse.ArgumentParser(description="Run the lean synthetic adequacy pilot"))
-
-
-def run_from_args(args: argparse.Namespace) -> int:
+def _pilot_command(
+    *,
+    adequacy_id: str,
+    dagzoo_root: Path,
+    device: str,
+    force: bool,
+    out_root: Path | None,
+    materialize_processes: int,
+    materialize_worker_threads: int | None,
+    contract_check: str,
+) -> int:
     summary = run_adequacy_pilot(
-        adequacy_id=str(args.adequacy_id),
-        dagzoo_root=Path(str(args.dagzoo_root)).expanduser().resolve(),
-        device=str(args.device),
-        force=bool(args.force),
-        out_root=(
-            None
-            if args.out_root is None
-            else Path(str(args.out_root)).expanduser().resolve()
-        ),
-        materialize_processes=int(args.materialize_processes),
-        materialize_worker_threads=(
-            None
-            if args.materialize_worker_threads is None
-            else int(args.materialize_worker_threads)
-        ),
-        contract_check=str(args.contract_check),
+        adequacy_id=adequacy_id,
+        dagzoo_root=dagzoo_root.expanduser().resolve(),
+        device=device,
+        force=force,
+        out_root=None if out_root is None else out_root.expanduser().resolve(),
+        materialize_processes=materialize_processes,
+        materialize_worker_threads=materialize_worker_threads,
+        contract_check=contract_check,
     )
     summary_paths = summary.get("summary_paths", {})
     print(
@@ -135,16 +53,18 @@ def run_from_args(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_finalize_from_args(args: argparse.Namespace) -> int:
+def _finalize_command(
+    *,
+    adequacy_id: str,
+    dagzoo_root: Path,
+    out_root: Path | None,
+    contract_check: str,
+) -> int:
     summary = finalize_adequacy_pilot(
-        adequacy_id=str(args.adequacy_id),
-        dagzoo_root=Path(str(args.dagzoo_root)).expanduser().resolve(),
-        out_root=(
-            None
-            if args.out_root is None
-            else Path(str(args.out_root)).expanduser().resolve()
-        ),
-        contract_check=str(args.contract_check),
+        adequacy_id=adequacy_id,
+        dagzoo_root=dagzoo_root.expanduser().resolve(),
+        out_root=None if out_root is None else out_root.expanduser().resolve(),
+        contract_check=contract_check,
     )
     summary_paths = summary.get("summary_paths", {})
     print(
@@ -158,7 +78,77 @@ def run_finalize_from_args(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return run_from_args(build_parser().parse_args(argv))
+    return run_click_command(COMMAND, argv, prog_name="tab-foundry research adequacy pilot")
+
+
+@click.command(name="pilot", help="Run the lean synthetic adequacy pilot")
+@click.option("--adequacy-id", required=True, help="Synthetic adequacy spec id to execute")
+@dagzoo_root_option(help="Path to the sibling dagzoo checkout used for corpus materialization")
+@device_option(
+    default="cpu",
+    choices=("cpu",),
+    help="Pilot execution device. The lean adequacy pilot supports CPU only.",
+)
+@click.option("--force", is_flag=True, help="Force corpus rematerialization and overwrite pilot-local outputs")
+@click.option("--out-root", default=None, type=click.Path(path_type=Path), help="Optional output root override for pilot artifacts")
+@materialize_worker_options(
+    processes_help="Maximum concurrent invocation subprocesses to use while materializing pilot corpora",
+)
+@click.option(
+    "--contract-check",
+    default="fast",
+    show_default=True,
+    type=click.Choice(_CONTRACT_CHECK_CHOICES),
+    help="Latent-target contract verification level",
+)
+def COMMAND(
+    adequacy_id: str,
+    dagzoo_root: Path,
+    device: str,
+    force: bool,
+    out_root: Path | None,
+    materialize_processes: int,
+    materialize_worker_threads: int | None,
+    contract_check: str,
+) -> int:
+    return _pilot_command(
+        adequacy_id=adequacy_id,
+        dagzoo_root=dagzoo_root,
+        device=device,
+        force=force,
+        out_root=out_root,
+        materialize_processes=materialize_processes,
+        materialize_worker_threads=materialize_worker_threads,
+        contract_check=contract_check,
+    )
+
+
+@click.command(
+    name="finalize",
+    help="Finalize the lean synthetic adequacy pilot from existing artifacts",
+)
+@click.option("--adequacy-id", required=True, help="Synthetic adequacy spec id to finalize")
+@dagzoo_root_option(help="Path to the sibling dagzoo checkout used to resolve staged corpus previews")
+@click.option("--out-root", default=None, type=click.Path(path_type=Path), help="Optional output root override for pilot artifacts")
+@click.option(
+    "--contract-check",
+    default="fast",
+    show_default=True,
+    type=click.Choice(_CONTRACT_CHECK_CHOICES),
+    help="Latent-target contract verification level",
+)
+def FINALIZE_COMMAND(
+    adequacy_id: str,
+    dagzoo_root: Path,
+    out_root: Path | None,
+    contract_check: str,
+) -> int:
+    return _finalize_command(
+        adequacy_id=adequacy_id,
+        dagzoo_root=dagzoo_root,
+        out_root=out_root,
+        contract_check=contract_check,
+    )
 
 
 if __name__ == "__main__":

@@ -545,7 +545,9 @@ def _explicit_pytest_paths(paths: Sequence[str]) -> tuple[str, ...]:
     return tuple(
         path
         for path in _ordered_unique(sorted(path.strip() for path in paths if path.strip()))
-        if path.startswith("tests/") and path.endswith(".py")
+        if path.startswith("tests/")
+        and path.endswith(".py")
+        and Path(path).name.startswith("test_")
     )
 
 
