@@ -11,6 +11,7 @@ import torch
 
 import tab_foundry.cli.research_graph as research_graph_cli_module
 import tab_foundry.research.sweep.graph as graph_module
+import tab_foundry.research.sweep.surface_resolution as surface_resolution_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.research.sweep.graph import GraphPaths
@@ -117,8 +118,8 @@ def test_resolve_anchor_model_spec_uses_training_surface_record_when_queue_row_m
         }
     }
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(graph_module, "load_benchmark_run_registry", lambda _path: registry_payload)
-    monkeypatch.setattr(graph_module, "resolve_registry_path_value", lambda value: Path(value))
+    monkeypatch.setattr(surface_resolution_module, "load_benchmark_run_registry", lambda _path: registry_payload)
+    monkeypatch.setattr(surface_resolution_module, "resolve_registry_path_value", lambda value: Path(value))
     try:
         resolved_spec, metadata = graph_module.resolve_anchor_model_spec(
             queue={"anchor_run_id": "anchor_from_record", "rows": []},
@@ -163,8 +164,8 @@ def test_resolve_anchor_model_spec_falls_back_to_checkpoint(tmp_path: Path) -> N
         }
     }
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(graph_module, "load_benchmark_run_registry", lambda _path: registry_payload)
-    monkeypatch.setattr(graph_module, "resolve_registry_path_value", lambda value: Path(value))
+    monkeypatch.setattr(surface_resolution_module, "load_benchmark_run_registry", lambda _path: registry_payload)
+    monkeypatch.setattr(surface_resolution_module, "resolve_registry_path_value", lambda value: Path(value))
     try:
         resolved_spec, metadata = graph_module.resolve_anchor_model_spec(
             queue={"anchor_run_id": "anchor_from_checkpoint", "rows": []},
@@ -189,8 +190,8 @@ def test_resolve_anchor_model_spec_errors_when_all_sources_are_missing(tmp_path:
         }
     }
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(graph_module, "load_benchmark_run_registry", lambda _path: registry_payload)
-    monkeypatch.setattr(graph_module, "resolve_registry_path_value", lambda value: Path(value))
+    monkeypatch.setattr(surface_resolution_module, "load_benchmark_run_registry", lambda _path: registry_payload)
+    monkeypatch.setattr(surface_resolution_module, "resolve_registry_path_value", lambda value: Path(value))
     try:
         with pytest.raises(RuntimeError, match="unable to resolve anchor model spec"):
             _ = graph_module.resolve_anchor_model_spec(

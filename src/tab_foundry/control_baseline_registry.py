@@ -12,7 +12,7 @@ from tab_foundry.registry.paths import (  # noqa: F401 - re-exported
     normalize_registry_path_value,
     resolve_registry_path_value,
 )
-from tab_foundry.registry.storage import load_versioned_registry_payload
+from tab_foundry.registry.storage import load_json_object_payload
 from tab_foundry.repo_paths import repo_root
 
 
@@ -110,19 +110,41 @@ def load_control_baseline_registry(path: Path | None = None) -> dict[str, Any]:
     """Load and minimally validate the control-baseline registry."""
 
     registry_path = (path or default_control_baseline_registry_path()).expanduser().resolve()
-    payload = load_versioned_registry_payload(
+    payload = load_json_object_payload(
         registry_path,
         allow_missing=False,
         empty_payload=_empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="baselines",
-        registry_label="control baseline registry",
-        validate_entry_fn=_validate_baseline_entry,
-        entry_label="baseline_id",
+        payload_label="control baseline registry",
     )
-    return cast(dict[str, Any], payload)
+    actual_keys = set(payload.keys())
+    if actual_keys != _TOP_LEVEL_KEYS:
+        raise RuntimeError(
+            "control baseline registry keys mismatch: "
+            f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
+            f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
+        )
+    if payload["schema"] != REGISTRY_SCHEMA:
+        raise RuntimeError(
+            "control baseline registry schema mismatch: "
+            f"expected={REGISTRY_SCHEMA!r}, actual={payload['schema']!r}"
+        )
+    if int(payload["version"]) != REGISTRY_VERSION:
+        raise RuntimeError(
+            "control baseline registry version mismatch: "
+            f"expected={REGISTRY_VERSION}, actual={payload['version']}"
+        )
+    baselines = payload["baselines"]
+    if not isinstance(baselines, dict):
+        raise RuntimeError("control baseline registry baselines must be an object")
+    for baseline_id, entry in baselines.items():
+        if not isinstance(baseline_id, str) or not baseline_id.strip():
+            raise RuntimeError("control baseline registry baseline_id ids must be non-empty strings")
+        _validate_baseline_entry(entry, baseline_id=str(baseline_id))
+    return {
+        "schema": REGISTRY_SCHEMA,
+        "version": REGISTRY_VERSION,
+        "baselines": {str(key): value for key, value in cast(dict[str, Any], baselines).items()},
+    }
 
 
 def load_control_baseline_entry(

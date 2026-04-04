@@ -8,45 +8,43 @@ import tab_foundry.research.sweep.curve_reuse as curve_reuse_module
 import tab_foundry.research.sweep.device_policy as device_policy_module
 
 
-def test_resolve_sweep_execution_device_prefers_cuda_for_auto() -> None:
-    resolved = device_policy_module.resolve_sweep_execution_device(
-        'auto',
-        auto_resolve_fn=lambda _device: 'cuda',
-        strict_resolve_torch_device_fn=lambda _device: 'cuda',
-    )
+def test_resolve_sweep_execution_device_prefers_cuda_for_auto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(device_policy_module, "_resolve_device", lambda _device: "cuda")
+    monkeypatch.setattr(device_policy_module, "_resolve_torch_device", lambda _device: "cuda")
+    resolved = device_policy_module.resolve_sweep_execution_device("auto")
 
     assert resolved == 'cuda'
 
 
-def test_resolve_sweep_execution_device_falls_back_to_cpu_for_auto() -> None:
-    resolved = device_policy_module.resolve_sweep_execution_device(
-        'auto',
-        auto_resolve_fn=lambda _device: 'cpu',
-        strict_resolve_torch_device_fn=lambda _device: 'cpu',
-    )
+def test_resolve_sweep_execution_device_falls_back_to_cpu_for_auto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(device_policy_module, "_resolve_device", lambda _device: "cpu")
+    resolved = device_policy_module.resolve_sweep_execution_device("auto")
 
     assert resolved == 'cpu'
 
 
-def test_resolve_sweep_execution_device_never_uses_mps_for_auto() -> None:
-    resolved = device_policy_module.resolve_sweep_execution_device(
-        'auto',
-        auto_resolve_fn=lambda _device: 'mps',
-        strict_resolve_torch_device_fn=lambda _device: 'cpu',
-    )
+def test_resolve_sweep_execution_device_never_uses_mps_for_auto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(device_policy_module, "_resolve_device", lambda _device: "mps")
+    resolved = device_policy_module.resolve_sweep_execution_device("auto")
 
     assert resolved == 'cpu'
 
 
-def test_resolve_sweep_execution_device_validates_explicit_cuda() -> None:
+def test_resolve_sweep_execution_device_validates_explicit_cuda(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _raise_unavailable(_device: str) -> None:
         raise RuntimeError('requested --device cuda, but CUDA is not available')
 
+    monkeypatch.setattr(device_policy_module, "_resolve_torch_device", _raise_unavailable)
     with pytest.raises(RuntimeError, match='requested --device cuda, but CUDA is not available'):
-        _ = device_policy_module.resolve_sweep_execution_device(
-            'cuda',
-            strict_resolve_torch_device_fn=_raise_unavailable,
-        )
+        _ = device_policy_module.resolve_sweep_execution_device("cuda")
 
 
 def test_resolved_nanotabpfn_signature_remaps_auto_mps_to_cpu(
@@ -60,7 +58,7 @@ def test_resolved_nanotabpfn_signature_remaps_auto_mps_to_cpu(
     prior_dump.parent.mkdir(parents=True, exist_ok=True)
     prior_dump.write_bytes(b'prior')
 
-    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'mps')
+    monkeypatch.setattr(device_policy_module, "_resolve_device", lambda _device: "mps")
     monkeypatch.setattr(
         curve_reuse_module,
         'benchmark_host_fingerprint',

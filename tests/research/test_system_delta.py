@@ -11,7 +11,7 @@ import pytest
 
 import tab_foundry.research.sweep.configuration as configuration_module
 import tab_foundry.research.sweep.matrix as matrix_module
-import tab_foundry.research.sweep.materialize as materialize_module
+import tab_foundry.research.sweep.queue_corpora as queue_corpora_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_LANE,
@@ -124,7 +124,7 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "load_system_delta_queue",
         lambda **_kwargs: {
             "sweep_id": "tf_rd_local",
@@ -184,7 +184,7 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         return records
 
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "materialize_corpus_refs_batch",
         _fake_materialize_corpus_refs_batch,
     )
@@ -251,7 +251,7 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "load_system_delta_queue",
         lambda **_kwargs: {
             "sweep_id": "tf_rd_local",
@@ -289,7 +289,7 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
         return records
 
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "materialize_corpus_refs_batch",
         _fake_materialize_corpus_refs_batch,
     )
@@ -313,7 +313,7 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "load_system_delta_queue",
         lambda **_kwargs: {
             "sweep_id": "tf_rd_local",
@@ -352,7 +352,7 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
         return records
 
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "materialize_corpus_refs_batch",
         _fake_materialize_corpus_refs_batch,
     )
@@ -379,7 +379,7 @@ def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_mate
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "load_system_delta_queue",
         lambda **_kwargs: {
             "sweep_id": "tf_rd_local",
@@ -412,7 +412,7 @@ def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_mate
         return records
 
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "materialize_corpus_refs_batch",
         _fake_materialize_corpus_refs_batch,
     )
@@ -437,7 +437,7 @@ def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "load_system_delta_queue",
         lambda **_kwargs: {
             "sweep_id": "tf_rd_local",
@@ -458,7 +458,7 @@ def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref
         )
 
     monkeypatch.setattr(
-        materialize_module,
+        queue_corpora_module,
         "materialize_corpus_refs_batch",
         _failing_materialize_corpus_refs_batch,
     )

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from tab_foundry.bench.comparison_contract import BenchmarkComparisonConfig
 
@@ -157,34 +157,6 @@ def nanotabpfn_execution_metadata(
         "curve_source_mode": "reused" if reuse_curve_path is not None else "fresh",
         "reused_curve_path": None if reuse_curve_path is None else str(reuse_curve_path.expanduser().resolve()),
     }
-
-
-def fresh_nanotabpfn_execution_metadata(
-    *,
-    config: BenchmarkComparisonConfig,
-    nanotabpfn_root: Path,
-    nanotabpfn_python_path: Path,
-    prior_dump: Path,
-    reuse_curve_path: Path | None,
-    resolve_device_fn: Callable[[str], str],
-    benchmark_host_fingerprint_fn: Callable[[], str],
-) -> dict[str, Any]:
-    requested_device = str(config.device).strip()
-    return nanotabpfn_execution_metadata(
-        requested_device=requested_device,
-        resolved_device=resolve_device_fn(requested_device),
-        host_fingerprint=benchmark_host_fingerprint_fn(),
-        nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python_path=nanotabpfn_python_path,
-        prior_dump=prior_dump,
-        tab_realdata_hub_root=resolved_tab_realdata_hub_root(config),
-        steps=int(config.nanotabpfn_steps),
-        eval_every=int(config.nanotabpfn_eval_every),
-        seeds=int(config.nanotabpfn_seeds),
-        batch_size=int(config.nanotabpfn_batch_size),
-        lr=float(config.nanotabpfn_lr),
-        reuse_curve_path=reuse_curve_path,
-    )
 
 
 def tabiclv2_helper_command(

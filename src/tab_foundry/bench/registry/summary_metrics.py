@@ -43,26 +43,6 @@ def ensure_mapping(value: Any, *, context: str) -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
-def benchmark_bundle_payload_from_summary(
-    benchmark_bundle: Mapping[str, Any],
-    *,
-    source_context: str,
-    normalize_path_value_fn: Any,
-    resolve_registry_path_value_fn: Any,
-) -> dict[str, Any]:
-    benchmark_bundle_source = ensure_non_empty_string(
-        benchmark_bundle.get("source_path"),
-        context=source_context,
-    )
-    return {
-        "name": str(benchmark_bundle["name"]),
-        "version": int(benchmark_bundle["version"]),
-        "source_path": normalize_path_value_fn(resolve_registry_path_value_fn(benchmark_bundle_source)),
-        "task_count": int(benchmark_bundle["task_count"]),
-        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
-    }
-
-
 def tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, float | None]:
     return {
         "best_step": float(tab_foundry["best_step"]),

@@ -48,8 +48,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.input_normalization`, `tab_foundry.likelihoods`, and
   `tab_foundry.types`.
 - `tab_foundry.preprocessing` depends on `tab_foundry.feature_types`.
-- `tab_foundry.registry` depends on `tab_foundry.repo_paths` and
-  `tab_foundry.timestamps`.
+- `tab_foundry.registry` depends on `tab_foundry.repo_paths`.
 - `tab_foundry.research` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,

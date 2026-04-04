@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.5] - 2026-04-03
+
+### Changed
+
+- Internal note: refactored benchmark, registry, training, and prior-training
+  ownership so the concrete runtime modules import their real collaborators
+  directly instead of threading callback-heavy orchestration seams through
+  wrapper modules.
+- Internal note: split corpus materialization, sweep queue materialization, and
+  adequacy pilot logic into focused owner modules while keeping the public
+  facades, CLI surfaces, and persisted payload contracts unchanged.
+
 ## [0.16.4] - 2026-04-02
 
 ### Added

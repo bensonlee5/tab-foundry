@@ -10,17 +10,13 @@ from typing import Any, Mapping, Sequence, cast
 
 import torch
 
-from tab_foundry.benchmark_registry import (
-    load_benchmark_run_registry,
-    resolve_registry_path_value,
-)
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import synthetic_forward_batch
 from tab_foundry.model.spec import ModelBuildSpec
 
 from tab_foundry.research.lane_contract import resolve_training_surface_context
 
-from .materialize import (
+from .queue_loading import (
     load_system_delta_queue,
     ordered_rows,
 )
@@ -32,11 +28,7 @@ from .paths_io import (
     repo_root,
     write_text,
 )
-from .surface_resolution import (
-    resolve_anchor_model_spec as _resolve_anchor_model_spec,
-    resolve_anchor_originating_queue_row as _resolve_anchor_originating_queue_row,
-    resolve_queue_row_model_spec as _resolve_queue_row_model_spec,
-)
+from . import surface_resolution as surface_resolution_module
 
 
 _SAFE_FILENAME_CHARS_RE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -116,7 +108,7 @@ def resolve_queue_row_model_spec(
     *,
     training_experiment: str,
 ) -> ModelBuildSpec:
-    return _resolve_queue_row_model_spec(
+    return surface_resolution_module.resolve_queue_row_model_spec(
         queue_row,
         training_experiment=training_experiment,
     )
@@ -129,12 +121,11 @@ def resolve_anchor_originating_queue_row(
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
-    return _resolve_anchor_originating_queue_row(
+    return surface_resolution_module.resolve_anchor_originating_queue_row(
         queue=queue,
         registry_path=registry_path,
         index_path=index_path,
         sweeps_root=sweeps_root,
-        load_registry=load_benchmark_run_registry,
     )
 
 
@@ -145,13 +136,11 @@ def resolve_anchor_model_spec(
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[ModelBuildSpec, dict[str, Any]]:
-    return _resolve_anchor_model_spec(
+    return surface_resolution_module.resolve_anchor_model_spec(
         queue=queue,
         registry_path=registry_path,
         index_path=index_path,
         sweeps_root=sweeps_root,
-        load_registry=load_benchmark_run_registry,
-        resolve_registry_path=resolve_registry_path_value,
     )
 
 

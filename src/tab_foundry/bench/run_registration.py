@@ -10,7 +10,6 @@ import torch
 import tab_foundry.benchmark_registry as read_benchmark_registry
 from tab_foundry.bench.artifacts import load_history, write_json
 from tab_foundry.bench.openml_benchmark import resolve_tab_foundry_run_artifact_paths
-from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
     _load_training_telemetry,
@@ -24,7 +23,6 @@ from tab_foundry.bench.registry.record_helpers import (
 from tab_foundry.bench.registry.schema import (
     _BenchmarkRunEntryPayload,
     _BenchmarkRunRecordPayload,
-    _TOP_LEVEL_KEYS,
     _validate_payload_model,
     ALLOWED_DECISIONS,
     DEFAULT_BUDGET_CLASS,
@@ -32,7 +30,6 @@ from tab_foundry.bench.registry.schema import (
     REGISTRY_VERSION,
 )
 from tab_foundry.bench.registry.summary_metrics import (
-    benchmark_bundle_payload_from_summary,
     ensure_mapping,
     ensure_non_empty_string,
     ensure_optional_finite_number,
@@ -42,10 +39,9 @@ from tab_foundry.bench.registry.summary_metrics import (
 )
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
-from tab_foundry.registry.common import load_comparison_summary
-from tab_foundry.registry.storage import load_versioned_registry_payload
-from tab_foundry.registry.storage import utc_now as _utc_now_common
+from tab_foundry.registry.common import load_comparison_summary, resolve_config_path as _resolve_config_path_common
 from tab_foundry.repo_paths import repo_root
+from tab_foundry.timestamps import utc_now as _utc_now_common
 
 __all__ = [
     "ALLOWED_DECISIONS",
@@ -117,21 +113,6 @@ def validate_run_entry(entry: Any, *, run_id: str) -> None:
 
 
 def load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return load_versioned_registry_payload(
-        path,
-        allow_missing=allow_missing,
-        empty_payload=empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="runs",
-        registry_label="benchmark run registry",
-        validate_entry_fn=validate_run_entry,
-        entry_label="run_id",
-    )
-
-
-def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
     resolved_path = path.expanduser().resolve()
     if allow_missing and not resolved_path.exists():
         return empty_registry()
@@ -142,7 +123,7 @@ def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, 
     registry_path = (
         path or read_benchmark_registry.default_benchmark_run_registry_path()
     ).expanduser().resolve()
-    payload = _load_registry_payload(registry_path, allow_missing=True)
+    payload = load_registry_payload(registry_path, allow_missing=True)
     return registry_path, payload
 
 
@@ -161,7 +142,25 @@ def _resolve_registry_path_value(value: str) -> Path:
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
-    return _resolve_config_path_impl(raw_value, root_fn=repo_root)
+    return _resolve_config_path_common(raw_value, root=repo_root())
+
+
+def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
+    benchmark_bundle_source = ensure_non_empty_string(
+        benchmark_bundle.get("source_path"),
+        context="comparison_summary.benchmark_bundle.source_path",
+    )
+    resolved_source_path = read_benchmark_registry.resolve_registry_path_value(
+        benchmark_bundle_source,
+        root=repo_root(),
+    )
+    return {
+        "name": str(benchmark_bundle["name"]),
+        "version": int(benchmark_bundle["version"]),
+        "source_path": _normalize_registry_path(resolved_source_path),
+        "task_count": int(benchmark_bundle["task_count"]),
+        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
+    }
 
 
 def comparison_delta(
@@ -304,12 +303,7 @@ def derive_benchmark_run_record(
             state_dict=raw_state_dict,
             summary_tab_foundry=tab_foundry,
         ),
-        "benchmark_bundle": benchmark_bundle_payload_from_summary(
-            benchmark_bundle,
-            source_context="comparison_summary.benchmark_bundle.source_path",
-            normalize_path_value_fn=_normalize_registry_path,
-            resolve_registry_path_value_fn=_resolve_registry_path_value,
-        ),
+        "benchmark_bundle": _benchmark_bundle_payload(benchmark_bundle),
         "artifacts": {
             "run_dir": _normalize_registry_path(resolved_run_dir),
             "benchmark_dir": _normalize_registry_path(resolved_summary_path.parent),

@@ -5,12 +5,29 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
+from tab_foundry.bench.artifacts import load_history, write_json, write_jsonl
 from tab_foundry.bench.bounce.config import (
     BenchmarkBounceDiagnosisConfig,
     DIAGNOSIS_SCHEMA,
     resolve_positive_int,
     resolve_probability,
 )
+from tab_foundry.bench.bounce.rerun import run_dense_checkpoint_rerun
+from tab_foundry.bench.bounce.signals import (
+    checkpoint_aliasing_signal,
+    classify_causes,
+    shared_bundle_analysis,
+    task_tradeoff_signal,
+    training_signal,
+)
+from tab_foundry.bench.openml_benchmark import (
+    curve_summary,
+    default_benchmark_manifest_path,
+    evaluate_tab_foundry_run,
+    load_benchmark_manifest_datasets,
+    summarize_checkpoint_curve,
+)
+from tab_foundry.timestamps import utc_now
 
 
 def evaluate_one_bundle(
@@ -21,17 +38,12 @@ def evaluate_one_bundle(
     out_path: Path,
     bootstrap_samples: int,
     bootstrap_confidence: float,
-    load_benchmark_manifest_datasets_fn: Any,
-    evaluate_tab_foundry_run_fn: Any,
-    summarize_checkpoint_curve_fn: Any,
-    curve_summary_fn: Any,
-    write_jsonl_fn: Any,
 ) -> dict[str, Any]:
-    datasets, benchmark_tasks, benchmark_surface = load_benchmark_manifest_datasets_fn(
+    datasets, benchmark_tasks, benchmark_surface = load_benchmark_manifest_datasets(
         benchmark_manifest_path=manifest_path,
     )
     allow_missing_values = bool(benchmark_surface["allow_missing_values"])
-    raw_records = evaluate_tab_foundry_run_fn(
+    raw_records = evaluate_tab_foundry_run(
         run_dir,
         datasets=datasets,
         task_type=str(benchmark_surface["task_type"]),
@@ -39,14 +51,14 @@ def evaluate_one_bundle(
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,
     )
-    diagnostics = summarize_checkpoint_curve_fn(
+    diagnostics = summarize_checkpoint_curve(
         raw_records,
         bootstrap_samples=int(bootstrap_samples),
         bootstrap_confidence=float(bootstrap_confidence),
     )
     records = cast(list[dict[str, Any]], diagnostics["successful_records"])
     failed_records = cast(list[dict[str, Any]], diagnostics["failed_records"])
-    write_jsonl_fn(
+    write_jsonl(
         out_path,
         cast(list[dict[str, Any]], diagnostics["records"]),
     )
@@ -56,7 +68,7 @@ def evaluate_one_bundle(
         "benchmark_tasks": benchmark_tasks,
         "records": records,
         "records_path": str(out_path.resolve()),
-        "summary": curve_summary_fn(records),
+        "summary": curve_summary(records),
         "failure_count": int(len(failed_records)),
         "failed_checkpoints": failed_records,
     }
@@ -64,18 +76,6 @@ def evaluate_one_bundle(
 
 def run_benchmark_bounce_diagnosis(
     config: BenchmarkBounceDiagnosisConfig,
-    *,
-    default_benchmark_manifest_path_fn: Any,
-    evaluate_one_bundle_fn: Any,
-    run_dense_checkpoint_rerun_fn: Any,
-    load_history_fn: Any,
-    shared_bundle_analysis_fn: Any,
-    training_signal_fn: Any,
-    task_tradeoff_signal_fn: Any,
-    checkpoint_aliasing_signal_fn: Any,
-    classify_causes_fn: Any,
-    utc_now_fn: Any,
-    write_json_fn: Any,
 ) -> dict[str, Any]:
     """Benchmark one run on multiple bundles and classify likely bounce causes."""
 
@@ -91,12 +91,12 @@ def run_benchmark_bounce_diagnosis(
         raise RuntimeError(f"run_dir does not exist: {run_dir}")
 
     benchmark_manifest_path = (
-        default_benchmark_manifest_path_fn()
+        default_benchmark_manifest_path()
         if config.benchmark_manifest_path is None
         else config.benchmark_manifest_path.expanduser().resolve()
     )
 
-    primary = evaluate_one_bundle_fn(
+    primary = evaluate_one_bundle(
         run_dir=run_dir,
         manifest_path=benchmark_manifest_path,
         device=config.device,
@@ -106,7 +106,7 @@ def run_benchmark_bounce_diagnosis(
     )
     confirmation: dict[str, Any] | None = None
     if config.confirmation_benchmark_manifest_path is not None:
-        confirmation = evaluate_one_bundle_fn(
+        confirmation = evaluate_one_bundle(
             run_dir=run_dir,
             manifest_path=config.confirmation_benchmark_manifest_path.expanduser().resolve(),
             device=config.device,
@@ -120,14 +120,14 @@ def run_benchmark_bounce_diagnosis(
     if config.dense_run_dir is not None:
         dense_run_dir = config.dense_run_dir.expanduser().resolve()
     elif config.dense_checkpoint_every is not None:
-        dense_run_dir = run_dense_checkpoint_rerun_fn(config)
+        dense_run_dir = run_dense_checkpoint_rerun(config)
     if dense_run_dir is not None:
         dense_manifest_path = (
             benchmark_manifest_path
             if confirmation is None
             else Path(str(cast(dict[str, Any], confirmation["benchmark_manifest"])["manifest_path"]))
         )
-        dense_confirmation = evaluate_one_bundle_fn(
+        dense_confirmation = evaluate_one_bundle(
             run_dir=dense_run_dir,
             manifest_path=dense_manifest_path,
             device=config.device,
@@ -136,7 +136,7 @@ def run_benchmark_bounce_diagnosis(
             bootstrap_confidence=bootstrap_confidence,
         )
 
-    history = load_history_fn(
+    history = load_history(
         run_dir / "train_history.jsonl"
         if (run_dir / "train_history.jsonl").exists()
         else run_dir / "train_outputs" / "train_history.jsonl"
@@ -146,16 +146,16 @@ def run_benchmark_bounce_diagnosis(
         if confirmation is None
         else cast(list[dict[str, Any]], confirmation["records"])
     )
-    bundle_analysis = shared_bundle_analysis_fn(
+    bundle_analysis = shared_bundle_analysis(
         cast(list[dict[str, Any]], primary["records"]),
         None if confirmation is None else cast(list[dict[str, Any]], confirmation["records"]),
     )
-    training_signal = training_signal_fn(
+    training_signal_payload = training_signal(
         history=history,
         curve_records=signal_records,
     )
-    task_tradeoff_signal = task_tradeoff_signal_fn(signal_records)
-    checkpoint_aliasing_signal = checkpoint_aliasing_signal_fn(
+    task_tradeoff_signal_payload = task_tradeoff_signal(signal_records)
+    checkpoint_aliasing_signal_payload = checkpoint_aliasing_signal(
         coarse_records=signal_records,
         dense_records=None if dense_confirmation is None else cast(list[dict[str, Any]], dense_confirmation["records"]),
     )
@@ -167,17 +167,17 @@ def run_benchmark_bounce_diagnosis(
         if confirmation is None
         else list(confirmation.get("failed_checkpoints", [])),
     }
-    classification = classify_causes_fn(
+    classification = classify_causes(
         bundle_analysis=bundle_analysis,
-        training_signal=training_signal,
-        task_tradeoff_signal=task_tradeoff_signal,
-        checkpoint_aliasing_signal=checkpoint_aliasing_signal,
+        training_signal=training_signal_payload,
+        task_tradeoff_signal=task_tradeoff_signal_payload,
+        checkpoint_aliasing_signal=checkpoint_aliasing_signal_payload,
         evaluation_failures=evaluation_failures,
     )
 
     summary = {
         "schema": DIAGNOSIS_SCHEMA,
-        "generated_at_utc": utc_now_fn(),
+        "generated_at_utc": utc_now(),
         "run_id": config.run_id,
         "run_dir": str(run_dir),
         "artifacts": {
@@ -204,9 +204,9 @@ def run_benchmark_bounce_diagnosis(
             },
         },
         "bundle_analysis": bundle_analysis,
-        "training_signal": training_signal,
-        "task_tradeoff_signal": task_tradeoff_signal,
-        "checkpoint_aliasing_signal": checkpoint_aliasing_signal,
+        "training_signal": training_signal_payload,
+        "task_tradeoff_signal": task_tradeoff_signal_payload,
+        "checkpoint_aliasing_signal": checkpoint_aliasing_signal_payload,
         "evaluation_failures": evaluation_failures,
         "classification": classification,
     }
@@ -217,5 +217,5 @@ def run_benchmark_bounce_diagnosis(
             if config.dense_checkpoint_every is not None
             else None,
         }
-    write_json_fn(out_root / "benchmark_bounce_diagnosis.json", summary)
+    write_json(out_root / "benchmark_bounce_diagnosis.json", summary)
     return summary

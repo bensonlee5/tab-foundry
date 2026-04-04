@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+import tab_foundry.bench.bounce.execution as execution_module
 import tab_foundry.bench.bounce_diagnosis as diagnosis_module
 
 
@@ -147,10 +148,10 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
             },
         ]
 
-    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
-    monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
+    monkeypatch.setattr(execution_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
+    monkeypatch.setattr(execution_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
     monkeypatch.setattr(
-        diagnosis_module,
+        execution_module,
         "load_history",
         lambda _path: [
             {"step": 25, "train_loss": 0.5, "grad_norm": 1.0},
@@ -261,10 +262,10 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
             },
         ]
 
-    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
-    monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
+    monkeypatch.setattr(execution_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
+    monkeypatch.setattr(execution_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
     monkeypatch.setattr(
-        diagnosis_module,
+        execution_module,
         "load_history",
         lambda _path: [
             {"step": 25, "train_loss": 0.5, "grad_norm": 1.0},

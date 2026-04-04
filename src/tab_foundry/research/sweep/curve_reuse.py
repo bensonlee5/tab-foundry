@@ -17,10 +17,10 @@ from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS,
 )
-from tab_foundry.bench.openml_benchmark import benchmark_host_fingerprint, resolve_device
+from tab_foundry.bench.openml_benchmark import benchmark_host_fingerprint
 
 from .artifacts import ExecutionPaths
-from .device_policy import resolve_sweep_metadata_device
+from . import device_policy as device_policy_module
 from .runtime_env import planned_nanotabpfn_python_path
 
 
@@ -86,9 +86,8 @@ def _resolved_nanotabpfn_signature(
     prior_dump: Path | None,
     requested_device: str,
 ) -> dict[str, Any]:
-    normalized_requested_device, resolved_device = resolve_sweep_metadata_device(
-        requested_device,
-        auto_resolve_fn=resolve_device,
+    normalized_requested_device, resolved_device = device_policy_module.resolve_sweep_metadata_device(
+        requested_device
     )
     return {
         "benchmark_manifest_path": _normalized_manifest_path(benchmark_manifest_path),

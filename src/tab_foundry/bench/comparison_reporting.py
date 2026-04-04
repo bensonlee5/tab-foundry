@@ -1,17 +1,8 @@
-"""Summary shaping and artifact publishing for benchmark comparison runs."""
+"""Summary shaping helpers for benchmark comparison runs."""
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence, cast
-
-from tab_foundry.external_benchmarks import (
-    EXTERNAL_BENCHMARK_NANOTABPFN,
-    EXTERNAL_BENCHMARK_TABICLV2,
-)
-from tab_foundry.training.instability import gradient_history_path, telemetry_path
-
-from .artifacts import write_json
+from typing import Any, Mapping, cast
 
 _BENCHMARK_METRIC_KEYS = (
     "best_step",
@@ -107,84 +98,3 @@ def benchmark_wandb_summary_payload(summary: Mapping[str, Any]) -> dict[str, Any
         if tabiclv2_payload:
             benchmark_payload["benchmark"]["tabiclv2"] = tabiclv2_payload
     return benchmark_payload if benchmark_payload["benchmark"] else {}
-
-
-def finalize_benchmark_summary(
-    *,
-    summary: dict[str, Any],
-    requested_external_benchmarks: Sequence[str],
-    primary_external_benchmark: str | None,
-    nanotabpfn_records: Sequence[Mapping[str, Any]],
-    tabiclv2_records: Sequence[Mapping[str, Any]],
-    benchmark_tasks_path: Path,
-    tab_foundry_curve_path: Path,
-    nanotabpfn_curve_path: Path,
-    tabiclv2_curve_path: Path,
-    comparison_curve_path: Path,
-    benchmark_manifest_path: Path,
-    comparison_summary_path: Path,
-    benchmark_run_record_path: Path,
-    training_surface_record_path: Path,
-    tab_foundry_run_dir: Path,
-    derive_benchmark_run_record_fn: Callable[..., dict[str, Any]],
-    posthoc_update_wandb_summary_fn: Callable[..., Any],
-) -> dict[str, Any]:
-    summary["external_benchmarks"] = list(requested_external_benchmarks)
-    if primary_external_benchmark is not None:
-        summary["primary_external_benchmark"] = primary_external_benchmark
-    gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
-    telemetry_json = telemetry_path(tab_foundry_run_dir)
-    primary_external_curve_jsonl: str | None
-    if primary_external_benchmark == EXTERNAL_BENCHMARK_NANOTABPFN and nanotabpfn_records:
-        primary_external_curve_jsonl = str(nanotabpfn_curve_path)
-    elif primary_external_benchmark == EXTERNAL_BENCHMARK_TABICLV2 and tabiclv2_records:
-        primary_external_curve_jsonl = str(tabiclv2_curve_path)
-    else:
-        primary_external_curve_jsonl = None
-    summary["artifacts"] = {
-        "benchmark_tasks_json": str(benchmark_tasks_path),
-        "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
-        "primary_external_curve_jsonl": primary_external_curve_jsonl,
-        "nanotabpfn_curve_jsonl": (
-            str(nanotabpfn_curve_path)
-            if EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and nanotabpfn_records
-            else None
-        ),
-        "tabiclv2_curve_jsonl": (
-            str(tabiclv2_curve_path)
-            if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks and tabiclv2_records
-            else None
-        ),
-        "comparison_curve_png": str(comparison_curve_path),
-        "benchmark_manifest": str(benchmark_manifest_path),
-        "gradient_history_jsonl": (
-            str(gradient_history_jsonl.resolve()) if gradient_history_jsonl.exists() else None
-        ),
-        "telemetry_json": str(telemetry_json.resolve()) if telemetry_json.exists() else None,
-        "benchmark_run_record_json": str(benchmark_run_record_path),
-        "training_surface_record_json": str(training_surface_record_path),
-    }
-    write_json(comparison_summary_path, summary)
-    benchmark_run_record = derive_benchmark_run_record_fn(
-        run_dir=tab_foundry_run_dir,
-        comparison_summary_path=comparison_summary_path,
-        benchmark_run_record_path=benchmark_run_record_path,
-    )
-    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
-    tab_foundry_summary["manifest_path"] = str(benchmark_run_record["manifest_path"])
-    tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])
-    tab_foundry_summary["training_diagnostics"] = dict(benchmark_run_record["training_diagnostics"])
-    tab_foundry_summary["model_size"] = dict(benchmark_run_record["model_size"])
-    summary["artifacts"]["training_surface_record_json"] = cast(
-        dict[str, Any],
-        benchmark_run_record["artifacts"],
-    ).get("training_surface_record_path")
-    if benchmark_run_record.get("surface_labels") is not None:
-        tab_foundry_summary["surface_labels"] = dict(benchmark_run_record["surface_labels"])
-    write_json(comparison_summary_path, summary)
-    write_json(benchmark_run_record_path, benchmark_run_record)
-    _ = posthoc_update_wandb_summary_fn(
-        telemetry_path=telemetry_json,
-        payload=benchmark_wandb_summary_payload(summary),
-    )
-    return summary

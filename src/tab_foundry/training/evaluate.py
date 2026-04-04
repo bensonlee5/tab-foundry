@@ -21,7 +21,7 @@ from tab_foundry.types import EvalResult
 
 from .runtime import build_accelerator_from_runtime
 from .task_batching_validation import validate_task_batching_support
-from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader
+from .trainer_metrics import _evaluate_loader
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
@@ -224,7 +224,6 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
             accelerator=accelerator,
             task=task,
             max_batches=max_batches,
-            compute_loss_and_metrics=_compute_loss_and_metrics,
         )
         result_metrics = {
             "loss": float(eval_metrics["val_loss"]),

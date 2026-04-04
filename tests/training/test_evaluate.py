@@ -612,12 +612,10 @@ def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surfa
         accelerator: object,
         task: str,
         max_batches: int,
-        compute_loss_and_metrics: object = None,
     ) -> dict[str, float]:
         captured["accelerator"] = accelerator
         captured["task"] = task
         captured["max_batches"] = max_batches
-        captured["compute_loss_and_metrics"] = compute_loss_and_metrics
         return {"val_loss": 1.25, "acc": 0.75}
 
     monkeypatch.setattr(evaluate_module, "_evaluate_loader", _fake_evaluate_loader)

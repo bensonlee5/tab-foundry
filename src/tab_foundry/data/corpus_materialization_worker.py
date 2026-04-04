@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .corpus_materialization import materialize_recipe_invocation
+from .corpus_materialization_invocation import materialize_recipe_invocation
 
 
 def build_parser() -> argparse.ArgumentParser:
