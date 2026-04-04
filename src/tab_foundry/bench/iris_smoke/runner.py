@@ -56,7 +56,8 @@ def run_iris_smoke(
     history_path = train_output_dir / "train_history.jsonl"
     loss_curve_path = train_output_dir / "loss_curve.png"
     telemetry_path = out_root / "telemetry.json"
-    summary_path = out_root / "summary.md"
+    summary_path = train_output_dir / "summary.md"
+    compatibility_summary_path = out_root / "summary.md"
 
     timings_seconds: dict[str, float] = {}
     attempted_task_counts: list[int] = []
@@ -195,6 +196,11 @@ def run_iris_smoke(
             }
         )
         write_summary_markdown(summary_path, telemetry)
+        if compatibility_summary_path != summary_path:
+            compatibility_summary_path.write_text(
+                summary_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
         return telemetry
     except Exception as exc:
         telemetry["error"] = f"{type(exc).__name__}: {exc}"

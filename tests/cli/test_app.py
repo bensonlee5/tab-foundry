@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+import click
 from click.testing import CliRunner
 import pytest
 
@@ -98,6 +99,10 @@ def _path_attr(name: str) -> Reader:
 
 def _str_attr(name: str) -> Reader:
     return lambda args: str(getattr(args, name))
+
+
+def _command_names(command: click.Group) -> list[str]:
+    return list(command.list_commands(click.Context(command)))
 
 
 DISPATCH_CASES = (
@@ -938,28 +943,65 @@ def test_bench_env_bootstrap_run_from_args_forwards_tab_realdata_hub_root(
     assert captured["config"].tab_realdata_hub_root == hub_root
 
 
-def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
-    assert bench_group.compare_cli.__name__ == "tab_foundry.cli.bench_compare"
-    assert bench_group.tune_cli.__name__ == "tab_foundry.cli.bench_tune"
-    assert bench_group.env_bootstrap_cli.__name__ == "tab_foundry.cli.bench_env_bootstrap"
-    assert bench_group.bundle_openml_cli.__name__ == "tab_foundry.cli.bench_bundle_openml"
-    assert bench_group.iris_smoke_cli.__name__ == "tab_foundry.cli.bench_smoke_iris"
-    assert bench_group.dagzoo_smoke_cli.__name__ == "tab_foundry.cli.bench_smoke_dagzoo"
-    assert bench_group.bounce_diagnosis_cli.__name__ == "tab_foundry.cli.bench_bounce_diagnosis"
-    assert bench_group.run_registration_cli.__name__ == "tab_foundry.cli.bench_run_registration"
-    assert (
-        bench_group.control_baseline_freeze_cli.__name__
-        == "tab_foundry.cli.bench_control_baseline_freeze"
-    )
-    assert train_group.train_prior_cli.__name__ == "tab_foundry.cli.train_prior"
-    assert research_group.research_sweep_core_cli.__name__ == "tab_foundry.cli.research_sweep_core"
-    assert research_group.research_adequacy_cli.__name__ == "tab_foundry.cli.research_adequacy"
-    assert research_group.research_graph_cli.__name__ == "tab_foundry.cli.research_graph"
-    assert research_group.research_execute_cli.__name__ == "tab_foundry.cli.research_execute"
-    assert research_group.research_inspect_cli.__name__ == "tab_foundry.cli.research_inspect"
-    assert research_group.research_diff_cli.__name__ == "tab_foundry.cli.research_diff"
-    assert research_group.research_promote_cli.__name__ == "tab_foundry.cli.research_promote"
-    assert research_group.research_summarize_cli.__name__ == "tab_foundry.cli.research_summarize"
+def test_cli_groups_register_expected_commands() -> None:
+    assert _command_names(bench_group.GROUP) == [
+        "bundle",
+        "compare",
+        "diagnose",
+        "env",
+        "materialize-openml-bundle",
+        "registry",
+        "smoke",
+        "tune",
+    ]
+    bench_ctx = click.Context(bench_group.GROUP)
+    smoke_group = bench_group.GROUP.get_command(bench_ctx, "smoke")
+    assert isinstance(smoke_group, click.Group)
+    assert _command_names(smoke_group) == ["dagzoo", "iris"]
+    registry_group = bench_group.GROUP.get_command(bench_ctx, "registry")
+    assert isinstance(registry_group, click.Group)
+    assert _command_names(registry_group) == ["freeze-baseline", "register-run"]
+    diagnose_group = bench_group.GROUP.get_command(bench_ctx, "diagnose")
+    assert isinstance(diagnose_group, click.Group)
+    assert _command_names(diagnose_group) == ["bounce"]
+
+    assert _command_names(research_group.GROUP) == ["adequacy", "sweep"]
+    research_ctx = click.Context(research_group.GROUP)
+    adequacy_group = research_group.GROUP.get_command(research_ctx, "adequacy")
+    assert isinstance(adequacy_group, click.Group)
+    assert _command_names(adequacy_group) == ["finalize", "pilot"]
+    sweep_group = research_group.GROUP.get_command(research_ctx, "sweep")
+    assert isinstance(sweep_group, click.Group)
+    assert _command_names(sweep_group) == [
+        "create-sweep",
+        "diff",
+        "execute",
+        "graph",
+        "inspect",
+        "list",
+        "list-sweeps",
+        "materialize-corpora",
+        "next",
+        "promote",
+        "render",
+        "summarize",
+        "validate",
+    ]
+
+    assert _command_names(train_group.GROUP) == ["legacy-prior", "run"]
+
+    data_ctx = click.Context(data_group.GROUP)
+    corpus_group = data_group.GROUP.get_command(data_ctx, "corpus")
+    assert isinstance(corpus_group, click.Group)
+    assert _command_names(corpus_group) == [
+        "compare",
+        "finalize-staged",
+        "inspect",
+        "list-recipes",
+        "materialize",
+        "results",
+    ]
+
     for library_module in (
         comparison_contract_library_module,
         tune_library_module,

@@ -2,73 +2,108 @@
 
 from __future__ import annotations
 
-import click
-
-import tab_foundry.cli.bench_bounce_diagnosis as bounce_diagnosis_cli
-import tab_foundry.cli.bench_bundle_openml as bundle_openml_cli
-import tab_foundry.cli.bench_compare as compare_cli
-import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_cli
-import tab_foundry.cli.bench_env_bootstrap as env_bootstrap_cli
-import tab_foundry.cli.bench_materialize_openml_bundle as materialize_openml_cli
-import tab_foundry.cli.bench_run_registration as run_registration_cli
-import tab_foundry.cli.bench_smoke_dagzoo as dagzoo_smoke_cli
-import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli
-import tab_foundry.cli.bench_tune as tune_cli
-from tab_foundry.cli.click_utils import GROUP_KWARGS
+from tab_foundry.cli.click_utils import GROUP_KWARGS, LazyCommandSpec, LazyGroup
 
 
-@click.group(name="bench", help="Benchmark workflows", **GROUP_KWARGS)
-def GROUP() -> None:
-    """Benchmark workflows."""
+_SMOKE_GROUP = LazyGroup(
+    name="smoke",
+    help="Smoke harnesses",
+    lazy_commands={
+        "dagzoo": LazyCommandSpec(
+            module="tab_foundry.cli.bench_smoke_dagzoo",
+            attr="COMMAND",
+            help="Run the dagzoo smoke harness",
+        ),
+        "iris": LazyCommandSpec(
+            module="tab_foundry.cli.bench_smoke_iris",
+            attr="COMMAND",
+            help="Run the Iris smoke harness",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
+_ENV_GROUP = LazyGroup(
+    name="env",
+    help="Benchmark environment helpers",
+    lazy_commands={
+        "bootstrap": LazyCommandSpec(
+            module="tab_foundry.cli.bench_env_bootstrap",
+            attr="COMMAND",
+            help="Bootstrap sibling benchmark environments",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
-@click.group(name="smoke", help="Smoke harnesses", **GROUP_KWARGS)
-def _smoke_group() -> None:
-    """Smoke harnesses."""
+_BUNDLE_GROUP = LazyGroup(
+    name="bundle",
+    help="Benchmark bundle workflows",
+    lazy_commands={
+        "build-openml": LazyCommandSpec(
+            module="tab_foundry.cli.bench_bundle_openml",
+            attr="COMMAND",
+            help="Build an OpenML benchmark bundle",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
+_REGISTRY_GROUP = LazyGroup(
+    name="registry",
+    help="Benchmark registry workflows",
+    lazy_commands={
+        "freeze-baseline": LazyCommandSpec(
+            module="tab_foundry.cli.bench_control_baseline_freeze",
+            attr="COMMAND",
+            help="Freeze a control baseline",
+        ),
+        "register-run": LazyCommandSpec(
+            module="tab_foundry.cli.bench_run_registration",
+            attr="COMMAND",
+            help="Register a benchmark run",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
-_smoke_group.add_command(iris_smoke_cli.COMMAND)
-_smoke_group.add_command(dagzoo_smoke_cli.COMMAND)
+_DIAGNOSE_GROUP = LazyGroup(
+    name="diagnose",
+    help="Benchmark diagnosis flows",
+    lazy_commands={
+        "bounce": LazyCommandSpec(
+            module="tab_foundry.cli.bench_bounce_diagnosis",
+            attr="COMMAND",
+            help="Run the benchmark bounce diagnosis flow",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 
-
-@click.group(name="env", help="Benchmark environment helpers", **GROUP_KWARGS)
-def _env_group() -> None:
-    """Benchmark environment helpers."""
-
-
-_env_group.add_command(env_bootstrap_cli.COMMAND)
-
-
-@click.group(name="bundle", help="Benchmark bundle workflows", **GROUP_KWARGS)
-def _bundle_group() -> None:
-    """Benchmark bundle workflows."""
-
-
-_bundle_group.add_command(bundle_openml_cli.COMMAND)
-
-
-@click.group(name="registry", help="Benchmark registry workflows", **GROUP_KWARGS)
-def _registry_group() -> None:
-    """Benchmark registry workflows."""
-
-
-_registry_group.add_command(run_registration_cli.COMMAND)
-_registry_group.add_command(control_baseline_freeze_cli.COMMAND)
-
-
-@click.group(name="diagnose", help="Benchmark diagnosis flows", **GROUP_KWARGS)
-def _diagnose_group() -> None:
-    """Benchmark diagnosis flows."""
-
-
-_diagnose_group.add_command(bounce_diagnosis_cli.COMMAND)
-
-
-GROUP.add_command(_smoke_group)
-GROUP.add_command(tune_cli.COMMAND)
-GROUP.add_command(compare_cli.COMMAND)
-GROUP.add_command(materialize_openml_cli.COMMAND)
-GROUP.add_command(_env_group)
-GROUP.add_command(_bundle_group)
-GROUP.add_command(_registry_group)
-GROUP.add_command(_diagnose_group)
+GROUP = LazyGroup(
+    name="bench",
+    help="Benchmark workflows",
+    lazy_commands={
+        "bundle": _BUNDLE_GROUP,
+        "compare": LazyCommandSpec(
+            module="tab_foundry.cli.bench_compare",
+            attr="COMMAND",
+            help="Run the benchmark comparison against external baselines",
+        ),
+        "diagnose": _DIAGNOSE_GROUP,
+        "env": _ENV_GROUP,
+        "materialize-openml-bundle": LazyCommandSpec(
+            module="tab_foundry.cli.bench_materialize_openml_bundle",
+            attr="COMMAND",
+            help="Materialize an OpenML bundle into a manifest-backed benchmark surface",
+        ),
+        "registry": _REGISTRY_GROUP,
+        "smoke": _SMOKE_GROUP,
+        "tune": LazyCommandSpec(
+            module="tab_foundry.cli.bench_tune",
+            attr="COMMAND",
+            help="Run the internal benchmark tuning sweep",
+        ),
+    },
+    **GROUP_KWARGS,
+)
