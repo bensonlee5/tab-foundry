@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v3`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v4/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `c6105ebc2f301daec039c52533625c4e3c0815c7497504fc7130bc98155c6789`
+- Resolved queue inputs fingerprint: `9f45260bd9fb08efcff977ed6f85eb3fc87e54b073f05effac538f5d567d3794`
 
 ## Locked Surface
 
@@ -58,7 +58,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and benchmark the completed control pilot trained on `tf_rd_010_dagzoo_medium_control_curated_v5` against the hub-owned medium classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `72b828ff3f0ff3295d3758e4a4d194a152569d0f83f8b1bec2d1da70d39be60e`
+- Resolved surface fingerprint: `394478a0caecf39fc5bd1c4c43408da965828364f1858875c701bc0e9c352a36`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5'}`
 - Reuse train artifact: `outputs/research/adequacy/tf_rd_010_synthetic_adequacy_v3/pilot/production_control_curated_v5/train`
@@ -111,7 +111,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v3`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `60f35937e0c9701505f061f4c886e3ee2027c5376fcb492fb32c097b15b73fa7`
+- Resolved surface fingerprint: `8dbda299cdcddd54071e752385c5d8a67e5bdb36852c6db831ba58580e68ac3d`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v3'}`
 - Parameter adequacy plan:
@@ -155,7 +155,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v3`.
 - Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `71fd6c814bcd7c0a1799c31746551df915b0915a752da53124df3be6f1f128ee`
+- Resolved surface fingerprint: `27cd3fa969886663bca6164763b43a5c69c7f565df7134017f8708d976478b7e`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v3'}`
 - Parameter adequacy plan:
@@ -199,7 +199,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v3`.
 - Expected effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `5c2fe334e601ae78d310357633456e020bc186c4a8fffcb117ce9b048bd674f9`
+- Resolved surface fingerprint: `5bcaf39d504c2510886ab803bda718a2888a5f42d0620e1cf3c23c32b214034a`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v3'}`
 - Parameter adequacy plan:

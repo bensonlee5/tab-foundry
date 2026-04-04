@@ -275,6 +275,8 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
         "feature_type_encoding": "film",
         "floating_likelihood": "single_gaussian",
         "integer_likelihood": "hybrid_mixture",
+        "sandwich_activation": "gelu",
+        "sandwich_block_norm": "layernorm",
         "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
         "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
         "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
@@ -308,6 +310,8 @@ def test_build_training_surface_record_omits_cross_arch_sandwich_build_spec_fiel
                 "sandwich_pre_row_attention_layers": 1,
                 "sandwich_pre_column_attention_layers": 1,
                 "sandwich_pre_column_inducing_tokens": 16,
+                "sandwich_activation": "rational",
+                "sandwich_block_norm": "none",
                 "tficl_n_heads": 4,
                 "tficl_n_layers": 3,
             },
@@ -324,6 +328,8 @@ def test_build_training_surface_record_omits_cross_arch_sandwich_build_spec_fiel
     assert build_spec["arch"] == "tabfoundry_sandwich"
     assert build_spec["sandwich_summary_tokens_per_axis"] == 3
     assert build_spec["sandwich_pre_column_inducing_tokens"] == 16
+    assert build_spec["sandwich_activation"] == "rational"
+    assert build_spec["sandwich_block_norm"] == "none"
     assert build_spec["feature_type_conditioning"] == "film"
     for unsupported_key in (
         "stage",

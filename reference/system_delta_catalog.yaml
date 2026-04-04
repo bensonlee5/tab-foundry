@@ -2347,6 +2347,158 @@ deltas:
     default_next_action: Wait for the TF-RD-022 keep anchor, then run this row as part of the first TF-RD-024 architecture-knob sweep.
     applicability_guards: []
 
+  delta_model_sandwich_block_norm_none_v1:
+    dimension_family: model
+    family: activation_followup
+    binary_applicable: false
+    description: Disable the internal sandwich block pre-norm modules while keeping the global `norm_type=layernorm` contract fixed on the TF-RD-010 multiclass benchmark surface.
+    upstream_delta: This is a repo-local norm-free sandwich screen that uses the new `sandwich_block_norm=none` surface without reopening the rest of the benchmark contract.
+    expected_effect: Removing the internal block norms may improve the sandwich family's core FF routing on this surface, but it also risks a training-stability regression.
+    adequacy_knobs:
+      - fixed TF-RD-010 medium benchmark contract on curated `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - CPU no-AMP screening surface inherited from the TF-RD-022 runtime-policy contract
+      - internal sandwich block norm only; activation family, width, depth, optimizer, and corpus remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this as the norm-free GELU control row before interpreting any rational-activation result.
+        - Compare directly against the carried TF-RD-010 anchor on stability, runtime, and final validation metrics before deciding whether norm-free sandwich is worth carrying forward.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: none
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: "no"
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: false
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Run as the norm-free GELU control row in TF-RD-025 before interpreting the rational row.
+    applicability_guards: []
+
+  delta_model_sandwich_activation_rational_v1:
+    dimension_family: model
+    family: activation_followup
+    binary_applicable: false
+    description: Starting from the norm-free sandwich control surface, replace GELU with the local version-A `5/4` GELU-initialized rational activation.
+    upstream_delta: Reuses the repo-local rational activation module on the current TF-RD-010 multiclass sandwich contract rather than adding a separate dependency or reopening the wider architecture ladder.
+    expected_effect: The rational activation may preserve more useful curvature than GELU on the norm-free sandwich surface, with the main risk being optimizer or stability regressions.
+    adequacy_knobs:
+      - fixed TF-RD-010 medium benchmark contract on curated `tf_rd_010_dagzoo_medium_control_curated_v5`
+      - CPU no-AMP screening surface inherited from the TF-RD-022 runtime-policy contract
+      - activation family only on top of `sandwich_block_norm=none`; width, depth, optimizer, and corpus remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this row only after the norm-free GELU control is defined so the rational swap can be read as the incremental change.
+        - Compare directly against both the norm-free GELU row and the carried anchor before deciding whether the rational path earns a benchmark rerun.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_activation: rational
+        sandwich_block_norm: none
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: "no"
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: false
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Run after the norm-free GELU control row and carry forward only if it wins the CPU screen clearly enough to justify a benchmark rerun.
+    applicability_guards: []
+
   delta_tf_rd_024_cls_sandwich_heads2_v1:
     dimension_family: model
     family: architecture_followup

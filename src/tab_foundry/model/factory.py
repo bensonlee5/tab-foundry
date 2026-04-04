@@ -92,6 +92,8 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             sandwich_layers=int(spec.sandwich_layers),
             sandwich_heads=int(spec.sandwich_heads),
             sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
+            sandwich_activation=str(spec.sandwich_activation),
+            sandwich_block_norm=str(spec.sandwich_block_norm),
             sandwich_summary_tokens_per_axis=int(spec.sandwich_summary_tokens_per_axis),
             sandwich_self_attention_per_cross=int(spec.sandwich_self_attention_per_cross),
             sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),

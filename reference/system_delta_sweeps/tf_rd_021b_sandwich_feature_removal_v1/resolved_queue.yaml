@@ -271,6 +271,8 @@ rows:
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 4
         sandwich_self_attention_per_cross: 0
         sandwich_pre_row_attention_layers: 1
@@ -295,6 +297,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -369,7 +373,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: de22492d7f4e07652d6b74ca6573478f9d6b0b11f4bee8a20ebd350afb69361e
+  resolved_surface_fingerprint: aa16be8d9dd4a825d8df6523009dba244089c7d0ec568b4c7480d367ab781953
 - order: 2
   delta_id: delta_tf_rd_021b_sandwich_ffexp1_v1
   status: completed
@@ -523,6 +527,8 @@ rows:
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 1
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 4
         sandwich_self_attention_per_cross: 4
         sandwich_pre_row_attention_layers: 1
@@ -547,6 +553,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -621,7 +629,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 949abfb08ac10554a2f602e947d4898261f375607db8b17f99d5abd83deb6fc9
+  resolved_surface_fingerprint: 41a7e0cc2b521e50cd37d345e2afb5bb04728fae91106f19e002a02d71d378e5
 - order: 3
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
   status: completed
@@ -780,6 +788,8 @@ rows:
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 1
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 4
         sandwich_self_attention_per_cross: 0
         sandwich_pre_row_attention_layers: 1
@@ -804,6 +814,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -878,7 +890,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 74dd7c9436b4e1913080123a7dacb346dece0f732cf586a84ae27c9405fd989a
+  resolved_surface_fingerprint: b66e91ca949d8754b6b90fd966d438a10da22120f6ae57547c58b1f11ef2d8d8
 - order: 4
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
   status: completed
@@ -1040,6 +1052,8 @@ rows:
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 1
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 1
         sandwich_self_attention_per_cross: 0
         sandwich_pre_row_attention_layers: 1
@@ -1064,6 +1078,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -1138,6 +1154,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: b39b2c9cb050ee5d77977ddcf6ac2d4a04e9c2c1d121d4bd836dc98c2f790434
+  resolved_surface_fingerprint: d54ab1a505ea3c5cc4ee5e87081545e601b954b2a150b9afc9100aaaa32df490
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
-inputs_fingerprint: b47671ab2bc880030a3fa426a7dae67242d24e4e9f1803a9c613b04bab2fe2f0
+inputs_fingerprint: 1902da7ec41714a3e821c13b54349f490e3c9f15a4c1a2e76e02fe17fe323360

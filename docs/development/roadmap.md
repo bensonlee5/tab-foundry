@@ -682,6 +682,12 @@ Legacy wording note:
     (`mixed_precision=bf16`, `trace_activations=false`,
     `activation_checkpointing=true`), but TF-RD-024 stays blocked until that
     candidate clears the TF-RD-022 large validator
+  - completed sweep `tf_rd_025_sandwich_rational_activation_screen_v1` now
+    records the sandwich-only CPU train screen for `sandwich_block_norm=none`
+    and local rational activation on the same TF-RD-010 medium contract; the
+    rational row stayed trainable but did not beat the norm-free GELU control
+    and ran materially slower, so this sidecar does not earn a benchmark rerun
+    or change the active TF-RD-024 knob set
   - the sweep reuses historical TF-RD-021B sandwich delta families where
     possible instead of inventing a new parallel architecture-search path
   - every drafted row remains blocked on the TF-RD-022 large-validation gate so the first

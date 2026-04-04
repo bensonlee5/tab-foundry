@@ -102,6 +102,8 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.sandwich_pre_row_attention_layers == 1
     assert spec.sandwich_pre_column_attention_layers == 1
     assert spec.sandwich_pre_column_inducing_tokens == 16
+    assert spec.sandwich_activation == "gelu"
+    assert spec.sandwich_block_norm == "layernorm"
     assert spec.feature_type_conditioning == "film"
     assert spec.floating_likelihood == "single_gaussian"
     assert spec.integer_likelihood == "hybrid_mixture"
@@ -115,6 +117,8 @@ def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
             "sandwich_latents": 16,
             "sandwich_layers": 2,
             "sandwich_heads": 4,
+            "sandwich_activation": "rational",
+            "sandwich_block_norm": "none",
         },
         fallback={
             "tficl_n_heads": 4,
@@ -130,6 +134,8 @@ def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
     assert payload["sandwich_latents"] == 16
     assert payload["sandwich_layers"] == 2
     assert payload["sandwich_heads"] == 4
+    assert payload["sandwich_activation"] == "rational"
+    assert payload["sandwich_block_norm"] == "none"
     for unsupported_key in (
         "stage",
         "stage_label",
@@ -226,6 +232,24 @@ def test_sandwich_model_spec_rejects_legacy_dual_bank_fields() -> None:
                 "arch": "tabfoundry_sandwich",
                 "sandwich_col_latents": 16,
             },
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value"),
+    (
+        ("sandwich_activation", "swish"),
+        ("sandwich_block_norm", "rmsnorm"),
+    ),
+)
+def test_sandwich_model_spec_rejects_unsupported_activation_and_block_norm_fields(
+    field_name: str,
+    field_value: str,
+) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "tabfoundry_sandwich", field_name: field_value},
         )
 
 

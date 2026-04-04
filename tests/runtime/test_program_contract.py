@@ -323,6 +323,8 @@ def test_model_architecture_doc_covers_current_sandwich_surface() -> None:
         "`sandwich_layers`",
         "`sandwich_heads`",
         "`sandwich_ff_expansion`",
+        "`sandwich_activation`",
+        "`sandwich_block_norm`",
         "`sandwich_summary_tokens_per_axis`",
         "`sandwich_self_attention_per_cross`",
         "`sandwich_pre_row_attention_layers`",

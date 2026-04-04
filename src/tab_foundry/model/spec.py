@@ -21,6 +21,8 @@ SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 SUPPORTED_FEATURE_TYPE_CONDITIONING = ("film", "additive_embedding")
 SUPPORTED_FLOATING_LIKELIHOODS = ("single_gaussian",)
 SUPPORTED_INTEGER_LIKELIHOODS = ("hybrid_mixture", "discrete")
+SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
+SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -216,6 +218,8 @@ class _SandwichModelParams(_SpecModel):
     sandwich_layers: int = Field(default=2, gt=0)
     sandwich_heads: int = Field(default=4, gt=0)
     sandwich_ff_expansion: int = Field(default=2, gt=0)
+    sandwich_activation: str = "gelu"
+    sandwich_block_norm: str = "layernorm"
     sandwich_summary_tokens_per_axis: int = Field(default=4, gt=0)
     sandwich_self_attention_per_cross: int = Field(default=4, ge=0)
     sandwich_pre_row_attention_layers: int = Field(default=1, ge=0)
@@ -243,6 +247,28 @@ class _SandwichModelParams(_SpecModel):
             raise ValueError(
                 "feature_type_conditioning must be one of "
                 f"{SUPPORTED_FEATURE_TYPE_CONDITIONING}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("sandwich_activation", mode="before")
+    @classmethod
+    def _validate_sandwich_activation(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_SANDWICH_ACTIVATIONS:
+            raise ValueError(
+                "sandwich_activation must be one of "
+                f"{SUPPORTED_SANDWICH_ACTIVATIONS}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("sandwich_block_norm", mode="before")
+    @classmethod
+    def _validate_sandwich_block_norm(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_SANDWICH_BLOCK_NORMS:
+            raise ValueError(
+                "sandwich_block_norm must be one of "
+                f"{SUPPORTED_SANDWICH_BLOCK_NORMS}, got {value!r}"
             )
         return normalized
 

@@ -135,6 +135,8 @@ did not yet serialize every reconstruction field.
 | `sandwich_layers` | `int` | `2` | sandwich | Number of repeated Perceiver stages in `tabfoundry_sandwich`. |
 | `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich full-cell read, summary-query, latent-write, latent, and dual-readout blocks. |
 | `sandwich_ff_expansion` | `int` | `2` | sandwich | Feedforward expansion factor used inside the sandwich cross-attention and self-attention blocks. |
+| `sandwich_activation` | `str` | `"gelu"` | sandwich | Feedforward activation used inside the sandwich core cross-attention and self-attention blocks. `rational` selects the local version-A `5/4` GELU-initialized rational activation. |
+| `sandwich_block_norm` | `str` | `"layernorm"` | sandwich | Internal pre-norm module used inside sandwich core blocks. `none` disables the block-local norms; the global sandwich `norm_type` contract remains `layernorm`. |
 | `feature_type_conditioning` | `str` | `"film"` | sandwich | Feature-type conditioning path for sandwich cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
 | `floating_likelihood` | `str` | `"single_gaussian"` | sandwich | Floating-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. Active classification benchmarks use `training.loss_surface=classification` instead. |
 | `integer_likelihood` | `str` | `"hybrid_mixture"` | sandwich | Integer-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. `hybrid_mixture` combines dynamic-support discrete likelihood with a single-Gaussian branch. Active classification benchmarks use `training.loss_surface=classification` instead. |
@@ -164,6 +166,8 @@ row representation width and the final QASS transformer width.
 - `sandwich_layers`
 - `sandwich_heads`
 - `sandwich_ff_expansion`
+- `sandwich_activation`
+- `sandwich_block_norm`
 - `sandwich_summary_tokens_per_axis`
 - `sandwich_self_attention_per_cross`
 - `sandwich_pre_row_attention_layers`
@@ -175,7 +179,11 @@ They control fixed latent-memory size, latent depth, and block capacity after
 stage `0` reads the hybrid full-cell-plus-summary stream and later stages reuse
 the compact `K * (R + C)` summary stream, while the pre-Perceiver axial mixer
 controls how much row-wise feature attention and column-wise ISAB row mixing
-the raw cell grid receives before flattening.
+the raw cell grid receives before flattening. `sandwich_activation` only changes
+the sandwich core FF blocks; the auxiliary heads remain on GELU for the first
+trial. `sandwich_block_norm` only changes the internal sandwich block pre-norm
+modules; `norm_type` still stays globally fixed to `layernorm` for the sandwich
+family.
 
 ### Tokenization And Preprocessing
 
@@ -232,7 +240,8 @@ removed legacy family.
   - `norm_type=layernorm`
   - `2 <= num_classes <= many_class_base`
     Its main public tuning knobs are `sandwich_latents`, `sandwich_layers`,
-    `sandwich_heads`, `sandwich_ff_expansion`,
+    `sandwich_heads`, `sandwich_ff_expansion`, `sandwich_activation`,
+    `sandwich_block_norm`,
     `sandwich_summary_tokens_per_axis`, `sandwich_self_attention_per_cross`,
     `sandwich_pre_row_attention_layers`,
     `sandwich_pre_column_attention_layers`,
@@ -302,8 +311,8 @@ removed legacy family.
   attributable without replacing the public stage ladder.
 - The low-level numeric tuning surface for `tabfoundry_sandwich` is mainly
   `sandwich_latents`, `sandwich_layers`, `sandwich_heads`,
-  `sandwich_ff_expansion`, `d_icl`, `head_hidden_dim`,
-  `input_normalization`, and `pre_encoder_clip`.
+  `sandwich_ff_expansion`, `sandwich_activation`, `sandwich_block_norm`,
+  `d_icl`, `head_hidden_dim`, `input_normalization`, and `pre_encoder_clip`.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
   This knob does not apply to the current sandwich architecture.

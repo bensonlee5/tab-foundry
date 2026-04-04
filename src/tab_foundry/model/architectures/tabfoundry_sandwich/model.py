@@ -54,6 +54,8 @@ class TabFoundrySandwichClassifier(nn.Module):
         sandwich_layers: int = _D["sandwich_layers"],
         sandwich_heads: int = _D["sandwich_heads"],
         sandwich_ff_expansion: int = _D["sandwich_ff_expansion"],
+        sandwich_activation: str = _D["sandwich_activation"],
+        sandwich_block_norm: str = _D["sandwich_block_norm"],
         sandwich_summary_tokens_per_axis: int = _D["sandwich_summary_tokens_per_axis"],
         sandwich_self_attention_per_cross: int = _D["sandwich_self_attention_per_cross"],
         sandwich_pre_row_attention_layers: int = _D["sandwich_pre_row_attention_layers"],
@@ -77,6 +79,8 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_layers=sandwich_layers,
             sandwich_heads=sandwich_heads,
             sandwich_ff_expansion=sandwich_ff_expansion,
+            sandwich_activation=sandwich_activation,
+            sandwich_block_norm=sandwich_block_norm,
             sandwich_summary_tokens_per_axis=sandwich_summary_tokens_per_axis,
             sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
             sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
@@ -98,6 +102,8 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.sandwich_layers = int(self.model_spec.sandwich_layers)
         self.sandwich_heads = int(self.model_spec.sandwich_heads)
         self.sandwich_ff_expansion = int(self.model_spec.sandwich_ff_expansion)
+        self.sandwich_activation = str(self.model_spec.sandwich_activation).strip().lower()
+        self.sandwich_block_norm = str(self.model_spec.sandwich_block_norm).strip().lower()
         self.summary_tokens_per_axis = int(self.model_spec.sandwich_summary_tokens_per_axis)
         self.self_attention_per_cross = int(self.model_spec.sandwich_self_attention_per_cross)
         self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
@@ -137,13 +143,15 @@ class TabFoundrySandwichClassifier(nn.Module):
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
-            norm_type=self.norm_type,
+            activation=self.sandwich_activation,
+            block_norm=self.sandwich_block_norm,
         )
         self.column_summary_builder = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
-            norm_type=self.norm_type,
+            activation=self.sandwich_activation,
+            block_norm=self.sandwich_block_norm,
         )
         self.pre_row_attention_blocks = nn.ModuleList(
             [
@@ -151,7 +159,8 @@ class TabFoundrySandwichClassifier(nn.Module):
                     embedding_size=self.d_icl,
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
-                    norm_type=self.norm_type,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
                 )
                 for _ in range(self.pre_row_attention_layers)
             ]
@@ -162,7 +171,8 @@ class TabFoundrySandwichClassifier(nn.Module):
                     embedding_size=self.d_icl,
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
-                    norm_type=self.norm_type,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
                     num_inducing=self.pre_column_inducing_tokens,
                 )
                 for _ in range(self.pre_column_attention_layers)
@@ -179,7 +189,8 @@ class TabFoundrySandwichClassifier(nn.Module):
                     embedding_size=self.d_icl,
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
-                    norm_type=self.norm_type,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
                     self_attention_per_cross=self.self_attention_per_cross,
                 )
                 for _ in range(self.sandwich_layers)
@@ -189,19 +200,22 @@ class TabFoundrySandwichClassifier(nn.Module):
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
-            norm_type=self.norm_type,
+            activation=self.sandwich_activation,
+            block_norm=self.sandwich_block_norm,
         )
         self.cell_readout = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
-            norm_type=self.norm_type,
+            activation=self.sandwich_activation,
+            block_norm=self.sandwich_block_norm,
         )
         self.test_row_pool = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
-            norm_type=self.norm_type,
+            activation=self.sandwich_activation,
+            block_norm=self.sandwich_block_norm,
         )
         self.direct_head = DirectMulticlassHead(
             self.d_icl,
@@ -215,7 +229,8 @@ class TabFoundrySandwichClassifier(nn.Module):
                     embedding_size=self.d_icl,
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
-                    norm_type=self.norm_type,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
                 )
                 for _ in range(self.sandwich_layers)
             ]

@@ -1,0 +1,198 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_025_sandwich_rational_activation_screen_v1
+rows:
+- order: 1
+  delta_ref: delta_model_sandwich_block_norm_none_v1
+  status: screened
+  rationale: Establish the norm-free GELU control row on the manifest-backed sandwich
+    benchmark surface before interpreting any rational-activation change.
+  hypothesis: If internal sandwich block norms are partly limiting this family, removing
+    them while keeping GELU should remain trainable enough on the TF-RD-010 medium
+    contract to serve as the rational screen control.
+  anchor_delta: Starting from the carried TF-RD-010 anchor, switch only the sandwich-internal
+    block norm from `layernorm` to `none` on the CPU no-AMP screening surface.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_activation: gelu
+    sandwich_block_norm: none
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: 'no'
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Run this row first as the norm-free control for the activation screen.
+  - Compare directly against the carried anchor on stability, runtime, and final validation
+    metrics before giving the rational row any credit.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_025_sandwich_rational_activation_screen_v1_01_delta_model_sandwich_block_norm_none_v1_v2
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: screened
+  confounders: []
+  next_action: Execute first, then use it as the norm-free GELU control for row `02`.
+  notes:
+  - Train-only screen recorded as `sd_tf_rd_025_sandwich_rational_activation_screen_v1_01_delta_model_sandwich_block_norm_none_v1_v2`.
+  - Recovered from the completed norm-free GELU control training artifacts after correcting
+    TF-RD-025 to `screen_only`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics:
+    upper_block_names: []
+    upper_block_final_window_mean: null
+    upper_block_post_warmup_mean_slope: null
+    clipped_step_fraction: 0.0
+    final_train_loss_ema: 1.422772447782945
+    upper_blocks: {}
+    throughput_examples_per_second: 24.334875942268162
+    throughput_tokens_per_second: 144963.60788356766
+    non_train_overhead_seconds: 13.618390741292387
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_model_sandwich_activation_rational_v1
+  status: screened
+  rationale: Replace GELU with the local version-A rational activation only after
+    the norm-free sandwich control is defined on the same CPU screening surface.
+  hypothesis: If the rational activation is a real win for sandwich core FF blocks,
+    row `02` should match or beat the norm-free GELU control on final validation metrics
+    without introducing optimizer or stability failures.
+  anchor_delta: Starting from row `01`, switch only `model.sandwich_activation` from
+    `gelu` to `rational` while keeping `sandwich_block_norm=none`, the curated dagzoo
+    corpus, and the CPU no-AMP runtime fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_activation: rational
+    sandwich_block_norm: none
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: 'no'
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after row `01` defines the norm-free GELU control on the same surface.
+  - Compare directly against both row `01` and the carried anchor, and only recommend
+    a later benchmark rerun if the rational row is clearly non-worse on quality while
+    remaining stable.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_025_sandwich_rational_activation_screen_v1_02_delta_model_sandwich_activation_rational_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: screened
+  confounders: []
+  next_action: Execute after row `01`, then decide whether the rational row earns
+    a benchmark-facing rerun.
+  notes:
+  - Train-only screen recorded as `sd_tf_rd_025_sandwich_rational_activation_screen_v1_02_delta_model_sandwich_activation_rational_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics:
+    upper_block_names: []
+    upper_block_final_window_mean: null
+    upper_block_post_warmup_mean_slope: null
+    clipped_step_fraction: 0.0
+    final_train_loss_ema: 1.432599046233432
+    upper_blocks: {}
+    throughput_examples_per_second: 13.796005024937024
+    throughput_tokens_per_second: 82183.22820051717
+    non_train_overhead_seconds: 14.769404747989029
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+  benchmark_metrics: null
+  parent_delta_ref: delta_model_sandwich_block_norm_none_v1

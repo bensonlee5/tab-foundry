@@ -1,0 +1,58 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_025_sandwich_rational_activation_screen_v1
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+status: ready
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+surface_role: classification_activation_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: Rational-activation transformer theory
+  model_source: https://arxiv.org/abs/2602.12390
+anchor_surface:
+  notes:
+  - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
+    on the TF-RD-010 medium classification contract with curated corpus `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - This sweep is a bounded CPU-only screening lane for the sandwich family. It does not reopen `legacy_prior`, and it does not promote directly from CPU evidence.
+  - Freeze the inherited sandwich benchmark surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+    except for `sandwich_block_norm` and `sandwich_activation`, and force the runtime to `mixed_precision="no"` because sweep execution is CPU-only.
+  - Keep the global `norm_type=layernorm` contract unchanged; only the sandwich-internal `sandwich_block_norm` switch is live here.
+  - Row `01` is the norm-free GELU control and row `02` adds the rational activation on top of that control.
+  - Read this as a screen, not a promotion sweep. If the rational row wins, rerun it later on the benchmark-facing runtime before any anchor or roadmap decision.
+  dimension_table:
+  - dimension: internal block normalization
+    upstream: The theory paper does not prescribe this repo-local sandwich block-norm split directly.
+    anchor: The carried TF-RD-010 medium anchor keeps sandwich internal block norms enabled through `sandwich_block_norm=layernorm`.
+    interpretation: Row `01` isolates whether removing the internal sandwich block norms is a viable control surface before the rational swap is read.
+  - dimension: activation family
+    upstream: The paper argues trainable rational activations can improve transformer optimization and expressivity.
+    anchor: The carried TF-RD-010 medium anchor uses GELU throughout the sandwich core FF blocks.
+    interpretation: Row `02` reads the local version-A `5/4` rational activation only after the norm-free GELU control is defined.
+  - dimension: corpus and validation contract
+    upstream: Not applicable.
+    anchor: Keep the manifest-backed dagzoo control corpus `tf_rd_010_dagzoo_medium_control_curated_v5` and the medium classification validation manifest fixed.
+    interpretation: This sweep does not reopen corpus choice, missingness, or the real-data benchmark bundle.
+  - dimension: runtime surface
+    upstream: The paper does not define this repo's prior-dump runtime policy.
+    anchor: Inherit the TF-RD-022 sandwich benchmark training surface, but force CPU execution with `mixed_precision="no"` for this screen.
+    interpretation: This lane answers whether the activation change is promising enough to earn a later benchmark-rerun, not whether CPU is the final runtime policy.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

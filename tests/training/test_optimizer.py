@@ -9,6 +9,7 @@ import pytest
 import torch
 from torch import nn
 
+from tab_foundry.model.components.rational import RationalActivation, rational_parameter_ids
 from tab_foundry.training.optimizer import (
     _build_muon_params,
     _muon_lr_for_param,
@@ -397,3 +398,106 @@ def test_schedulefree_optimizer_selection(monkeypatch: pytest.MonkeyPatch) -> No
     assert sel.resolved_name == "schedulefree_adamw"
     assert sel.fallback_reason is None
     assert sel.optimizers[0][0] == "schedulefree_adamw"
+
+
+def test_adamw_optimizer_groups_rational_params_without_weight_decay() -> None:
+    class _ToyRational(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear_in = nn.Linear(4, 4)
+            self.activation = RationalActivation()
+            self.linear_out = nn.Linear(4, 2)
+
+    model = _ToyRational()
+    selection = build_optimizer(
+        model,
+        name="adamw",
+        lr=1e-3,
+        weight_decay=0.1,
+        extra_kwargs={},
+        require_requested=True,
+    )
+
+    optimizer = selection.optimizers[0][1]
+    rational_ids = rational_parameter_ids(model)
+
+    assert len(optimizer.param_groups) == 2
+    assert any(group["weight_decay"] == pytest.approx(0.1) for group in optimizer.param_groups)
+    zero_decay_group = next(
+        group
+        for group in optimizer.param_groups
+        if group["weight_decay"] == pytest.approx(0.0)
+    )
+    assert {id(param) for param in zero_decay_group["params"]} == rational_ids
+
+
+def test_adamw_optimizer_keeps_single_param_group_without_rational_params() -> None:
+    selection = build_optimizer(
+        nn.Linear(4, 2),
+        name="adamw",
+        lr=1e-3,
+        weight_decay=0.1,
+        extra_kwargs={},
+        require_requested=True,
+    )
+
+    assert len(selection.optimizers[0][1].param_groups) == 1
+
+
+def test_schedulefree_optimizer_groups_rational_params_without_weight_decay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeScheduleFreeAdamW:
+        def __init__(self, params, lr: float, weight_decay: float, betas: tuple[float, float]) -> None:
+            del betas
+            self.param_groups: list[dict[str, object]] = []
+            raw_params = list(params)
+            if raw_params and isinstance(raw_params[0], dict):
+                for raw_group in raw_params:
+                    group = dict(raw_group)
+                    group["params"] = list(group["params"])
+                    group.setdefault("lr", lr)
+                    group.setdefault("weight_decay", weight_decay)
+                    self.param_groups.append(group)
+            else:
+                self.param_groups.append(
+                    {
+                        "params": list(raw_params),
+                        "lr": lr,
+                        "weight_decay": weight_decay,
+                    }
+                )
+
+    class _ToyRational(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear_in = nn.Linear(4, 4)
+            self.activation = RationalActivation()
+            self.linear_out = nn.Linear(4, 2)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "schedulefree",
+        SimpleNamespace(AdamWScheduleFree=_FakeScheduleFreeAdamW),
+    )
+
+    model = _ToyRational()
+    selection = build_optimizer(
+        model,
+        name="schedulefree_adamw",
+        lr=1e-3,
+        weight_decay=0.1,
+        extra_kwargs={"betas": (0.9, 0.95)},
+        require_requested=True,
+    )
+
+    optimizer = selection.optimizers[0][1]
+    rational_ids = rational_parameter_ids(model)
+
+    assert len(optimizer.param_groups) == 2
+    zero_decay_group = next(
+        group
+        for group in optimizer.param_groups
+        if group["weight_decay"] == pytest.approx(0.0)
+    )
+    assert {id(param) for param in zero_decay_group["params"]} == rational_ids

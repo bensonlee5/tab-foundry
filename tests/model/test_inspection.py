@@ -107,6 +107,8 @@ def test_parameter_counts_and_surface_payload_include_sandwich_metadata() -> Non
         "feature_type_encoding": "film",
         "floating_likelihood": "single_gaussian",
         "integer_likelihood": "hybrid_mixture",
+        "sandwich_activation": "gelu",
+        "sandwich_block_norm": "layernorm",
         "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
         "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
         "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",

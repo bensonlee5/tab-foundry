@@ -98,6 +98,8 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     sandwich_layers: StrictInt | None = None
     sandwich_heads: StrictInt | None = None
     sandwich_ff_expansion: StrictInt | None = None
+    sandwich_activation: StrictStr | None = None
+    sandwich_block_norm: StrictStr | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -322,6 +324,8 @@ class ExportModelSpec:
     sandwich_layers: int
     sandwich_heads: int
     sandwich_ff_expansion: int
+    sandwich_activation: str
+    sandwich_block_norm: str
 
     @classmethod
     def from_build_spec(
@@ -363,6 +367,8 @@ class ExportModelSpec:
             sandwich_layers=int(spec.sandwich_layers),
             sandwich_heads=int(spec.sandwich_heads),
             sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
+            sandwich_activation=str(spec.sandwich_activation),
+            sandwich_block_norm=str(spec.sandwich_block_norm),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -401,6 +407,8 @@ class ExportModelSpec:
                 "sandwich_layers": self.sandwich_layers,
                 "sandwich_heads": self.sandwich_heads,
                 "sandwich_ff_expansion": self.sandwich_ff_expansion,
+                "sandwich_activation": self.sandwich_activation,
+                "sandwich_block_norm": self.sandwich_block_norm,
             },
         )
 
@@ -422,6 +430,8 @@ class ExportModelSpec:
                 "sandwich_layers",
                 "sandwich_heads",
                 "sandwich_ff_expansion",
+                "sandwich_activation",
+                "sandwich_block_norm",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -434,6 +444,8 @@ class ExportModelSpec:
                 "sandwich_layers",
                 "sandwich_heads",
                 "sandwich_ff_expansion",
+                "sandwich_activation",
+                "sandwich_block_norm",
             ):
                 payload.pop(field_name, None)
             return payload

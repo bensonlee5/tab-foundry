@@ -1,0 +1,15 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+  - _self_
+
+model:
+  sandwich_activation: rational
+  sandwich_block_norm: none
+
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_rational_v1
+
+logging:
+  run_name: cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-rational-v1
