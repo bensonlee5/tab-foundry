@@ -9,7 +9,7 @@ from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
 from .inspection_artifacts import queue_metadata_payload
-from .materialize import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
+from .queue_loading import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
 from .objective_metrics import (
     display_metric_label,
     first_present_metric_key,

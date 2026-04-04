@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .queue_loading import load_system_delta_queue_for_inspection, ordered_rows
 from .objective_metrics import (
     is_classification_objective_metric,
     objective_metric_from_queue_metrics,

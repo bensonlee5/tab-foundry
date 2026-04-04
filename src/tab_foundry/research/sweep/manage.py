@@ -18,7 +18,7 @@ from .catalog import (
     load_system_delta_index_payload,
     load_system_delta_sweep_payload,
 )
-from .materialize import guarded_initial_state
+from .queue_materialization import guarded_initial_state
 from .matrix import render_and_write_system_delta_matrix
 from .models import (
     DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,

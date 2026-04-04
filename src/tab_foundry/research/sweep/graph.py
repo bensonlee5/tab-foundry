@@ -16,7 +16,7 @@ from tab_foundry.model.spec import ModelBuildSpec
 
 from tab_foundry.research.lane_contract import resolve_training_surface_context
 
-from .materialize import (
+from .queue_loading import (
     load_system_delta_queue,
     ordered_rows,
 )

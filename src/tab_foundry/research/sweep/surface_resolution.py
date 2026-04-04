@@ -24,7 +24,7 @@ from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
 from .configuration import compose_cfg
-from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .queue_loading import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import default_registry_path, repo_root
 
 

@@ -12,7 +12,7 @@ from tab_foundry.benchmark_registry import (
 )
 from tab_foundry.research.lane_contract import resolve_sweep_semantics
 
-from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .queue_loading import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import repo_root
 
 

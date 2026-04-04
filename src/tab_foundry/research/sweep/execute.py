@@ -11,7 +11,7 @@ from tab_foundry.benchmark_registry import load_benchmark_run_registry
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from .catalog import load_system_delta_sweep
 from .device_policy import resolve_sweep_execution_device
-from .materialize import write_resolved_system_delta_queue
+from .queue_loading import write_resolved_system_delta_queue
 from .paths_io import sweep_queue_path
 from .promote import promote_anchor
 from .queue_state import recover_completed_queue_row_from_registry_run
