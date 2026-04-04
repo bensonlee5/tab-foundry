@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from dataclasses import dataclass
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 from sklearn.metrics import log_loss, roc_auc_score
@@ -27,6 +28,29 @@ _CLASSIFICATION_SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 _REGRESSION_KF = KFold(n_splits=5, shuffle=True, random_state=0)
 
 
+@dataclass(slots=True)
+class BenchmarkClassificationFold:
+    """One benchmark classification fold prepared for evaluation."""
+
+    fold_id: int
+    dataset_name: str
+    x_train: np.ndarray
+    y_train: np.ndarray
+    x_test: np.ndarray
+    y_test: np.ndarray
+    labels: np.ndarray
+    feature_types: list[str] | None
+
+
+@dataclass(slots=True)
+class BenchmarkClassificationFoldResult:
+    """One benchmark classification fold result."""
+
+    probabilities: np.ndarray
+    classifier_labels: np.ndarray | None = None
+    cell_likelihood_metrics: dict[str, float] | None = None
+
+
 def evaluate_classifier(
     classifier: Any,
     datasets: Mapping[str, BenchmarkDataset],
@@ -40,56 +64,82 @@ def evaluate_classifier(
     metrics: dict[str, float] = {}
     dataset_bpc_values: list[tuple[float, float]] = []
     dataset_bpf_values: list[tuple[float, float]] = []
+    fold_groups: list[tuple[str, np.ndarray, list[BenchmarkClassificationFold]]] = []
+    all_folds: list[BenchmarkClassificationFold] = []
+    next_fold_id = 0
     for dataset_name, dataset in datasets.items():
         try:
             x, y, feature_types = unpack_benchmark_dataset(dataset_name, dataset)
+            all_labels = np.asarray(sorted(int(label) for label in np.unique(y)), dtype=np.int64)
+            dataset_folds: list[BenchmarkClassificationFold] = []
+            for train_idx, test_idx in _CLASSIFICATION_SKF.split(x, y):
+                dataset_folds.append(
+                    BenchmarkClassificationFold(
+                        fold_id=next_fold_id,
+                        dataset_name=str(dataset_name),
+                        x_train=np.asarray(x[train_idx], dtype=np.float32),
+                        y_train=np.asarray(y[train_idx], dtype=np.int64),
+                        x_test=np.asarray(x[test_idx], dtype=np.float32),
+                        y_test=np.asarray(y[test_idx], dtype=np.int64),
+                        labels=all_labels,
+                        feature_types=None if feature_types is None else list(feature_types),
+                    )
+                )
+                next_fold_id += 1
+            fold_groups.append((str(dataset_name), all_labels, dataset_folds))
+            all_folds.extend(dataset_folds)
+        except Exception as exc:
+            raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
+
+    fold_results = _evaluate_classifier_folds(classifier, all_folds)
+    result_by_fold_id = {
+        int(fold.fold_id): result
+        for fold, result in zip(all_folds, fold_results, strict=True)
+    }
+
+    for dataset_name, all_labels, dataset_folds in fold_groups:
+        try:
             targets: list[np.ndarray] = []
             probability_matrices: list[np.ndarray] = []
             bpc_fold_values: list[tuple[float, float]] = []
             bpf_fold_values: list[tuple[float, float]] = []
-            all_labels = np.asarray(sorted(int(label) for label in np.unique(y)), dtype=np.int64)
-            set_benchmark_feature_types = getattr(classifier, "set_benchmark_feature_types", None)
-            if callable(set_benchmark_feature_types):
-                set_benchmark_feature_types(feature_types)
-            for train_idx, test_idx in _CLASSIFICATION_SKF.split(x, y):
-                x_train, x_test = x[train_idx], x[test_idx]
-                y_train, y_test = y[train_idx], y[test_idx]
-                targets.append(y_test)
-                classifier.fit(x_train, y_train)
+            for fold in dataset_folds:
+                fold_result = result_by_fold_id[int(fold.fold_id)]
+                targets.append(fold.y_test)
                 probability_matrices.append(
-                    _aligned_classification_probabilities(
-                        classifier,
-                        classifier.predict_proba(x_test),
+                    _aligned_classification_probabilities_from_labels(
+                        fold_result.probabilities,
                         labels=all_labels,
+                        classifier_labels=fold_result.classifier_labels,
                     )
                 )
-                cell_likelihood_metrics = getattr(classifier, "cell_likelihood_metrics", None)
-                if callable(cell_likelihood_metrics):
-                    fold_metrics = cell_likelihood_metrics(x_test)
-                    raw_bpc = fold_metrics.get("bpc")
-                    raw_bpf = fold_metrics.get("bpf")
-                    if raw_bpc is not None:
-                        bpc_fold_values.append(
-                            (
-                                _resolve_cell_likelihood_weight(
-                                    fold_metrics,
-                                    key="bpc_cell_count",
-                                    fallback=float(x_test.shape[0] * x_test.shape[1]),
-                                ),
-                                float(raw_bpc),
-                            )
+                fold_metrics = fold_result.cell_likelihood_metrics
+                if fold_metrics is None:
+                    continue
+                raw_bpc = fold_metrics.get("bpc")
+                raw_bpf = fold_metrics.get("bpf")
+                if raw_bpc is not None:
+                    bpc_fold_values.append(
+                        (
+                            _resolve_cell_likelihood_weight(
+                                fold_metrics,
+                                key="bpc_cell_count",
+                                fallback=float(fold.x_test.shape[0] * fold.x_test.shape[1]),
+                            ),
+                            float(raw_bpc),
                         )
-                    if raw_bpf is not None:
-                        bpf_fold_values.append(
-                            (
-                                _resolve_cell_likelihood_weight(
-                                    fold_metrics,
-                                    key="bpf_feature_count",
-                                    fallback=float(x_test.shape[1]),
-                                ),
-                                float(raw_bpf),
-                            )
+                    )
+                if raw_bpf is not None:
+                    bpf_fold_values.append(
+                        (
+                            _resolve_cell_likelihood_weight(
+                                fold_metrics,
+                                key="bpf_feature_count",
+                                fallback=float(fold.x_test.shape[1]),
+                            ),
+                            float(raw_bpf),
                         )
+                    )
 
             target_array = np.concatenate(targets, axis=0)
             probability_matrix = np.concatenate(probability_matrices, axis=0)
@@ -132,7 +182,7 @@ def evaluate_classifier(
                 metrics[f"{dataset_name}/BPF"] = dataset_bpf
                 dataset_bpf_values.append((float(dataset_bpf_weight), dataset_bpf))
         except Exception as exc:
-            raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
+            raise BenchmarkDatasetEvaluationError(dataset_name, exc) from exc
 
     roc_auc_values = [value for key, value in metrics.items() if key.endswith("/ROC AUC")]
     log_loss_values = [value for key, value in metrics.items() if key.endswith("/Log Loss")]
@@ -151,6 +201,96 @@ def evaluate_classifier(
             sum(weight * value for weight, value in dataset_bpf_values) / max(total_weight, 1.0)
         )
     return metrics
+
+
+def _benchmark_fold_signature(
+    fold: BenchmarkClassificationFold,
+) -> tuple[int, int, int, int, tuple[str, ...] | None]:
+    return (
+        int(fold.x_train.shape[0]),
+        int(fold.x_test.shape[0]),
+        int(fold.x_train.shape[1]),
+        int(fold.labels.size),
+        None if fold.feature_types is None else tuple(fold.feature_types),
+    )
+
+
+def _evaluate_classifier_folds(
+    classifier: Any,
+    folds: Sequence[BenchmarkClassificationFold],
+) -> list[BenchmarkClassificationFoldResult]:
+    if not folds:
+        return []
+    evaluate_benchmark_folds_batched = getattr(classifier, "evaluate_benchmark_folds_batched", None)
+    if not callable(evaluate_benchmark_folds_batched):
+        return [
+            _evaluate_classifier_fold_serial_with_dataset_context(classifier, fold) for fold in folds
+        ]
+
+    grouped_folds: dict[tuple[int, int, int, int, tuple[str, ...] | None], list[BenchmarkClassificationFold]] = {}
+    for fold in folds:
+        grouped_folds.setdefault(_benchmark_fold_signature(fold), []).append(fold)
+
+    results_by_fold_id: dict[int, BenchmarkClassificationFoldResult] = {}
+    for compatible_folds in grouped_folds.values():
+        if len(compatible_folds) == 1:
+            fold = compatible_folds[0]
+            results_by_fold_id[int(fold.fold_id)] = _evaluate_classifier_fold_serial_with_dataset_context(
+                classifier,
+                fold,
+            )
+            continue
+        try:
+            batched_results = list(evaluate_benchmark_folds_batched(compatible_folds))
+            if len(batched_results) != len(compatible_folds):
+                raise RuntimeError(
+                    "evaluate_benchmark_folds_batched must return one result per input fold"
+                )
+            for fold, fold_result in zip(compatible_folds, batched_results, strict=True):
+                if not isinstance(fold_result, BenchmarkClassificationFoldResult):
+                    raise RuntimeError(
+                        "evaluate_benchmark_folds_batched must return "
+                        "BenchmarkClassificationFoldResult items"
+                    )
+                results_by_fold_id[int(fold.fold_id)] = fold_result
+        except Exception:
+            for fold in compatible_folds:
+                results_by_fold_id[int(fold.fold_id)] = _evaluate_classifier_fold_serial_with_dataset_context(
+                    classifier,
+                    fold,
+                )
+
+    return [results_by_fold_id[int(fold.fold_id)] for fold in folds]
+
+
+def _evaluate_classifier_fold_serial_with_dataset_context(
+    classifier: Any,
+    fold: BenchmarkClassificationFold,
+) -> BenchmarkClassificationFoldResult:
+    try:
+        return _evaluate_classifier_fold_serial(classifier, fold)
+    except BenchmarkDatasetEvaluationError:
+        raise
+    except Exception as exc:
+        raise BenchmarkDatasetEvaluationError(fold.dataset_name, exc) from exc
+
+
+def _evaluate_classifier_fold_serial(
+    classifier: Any,
+    fold: BenchmarkClassificationFold,
+) -> BenchmarkClassificationFoldResult:
+    set_benchmark_feature_types = getattr(classifier, "set_benchmark_feature_types", None)
+    if callable(set_benchmark_feature_types):
+        set_benchmark_feature_types(fold.feature_types)
+    classifier.fit(fold.x_train, fold.y_train)
+    raw_probabilities = classifier.predict_proba(fold.x_test)
+    cell_likelihood_metrics = getattr(classifier, "cell_likelihood_metrics", None)
+    metrics = None if not callable(cell_likelihood_metrics) else dict(cell_likelihood_metrics(fold.x_test))
+    return BenchmarkClassificationFoldResult(
+        probabilities=np.asarray(raw_probabilities, dtype=np.float64),
+        classifier_labels=_classifier_classes(classifier),
+        cell_likelihood_metrics=metrics,
+    )
 
 
 def _resolve_cell_likelihood_weight(
@@ -275,22 +415,34 @@ def _aligned_classification_probabilities(
     *,
     labels: np.ndarray,
 ) -> np.ndarray:
+    return _aligned_classification_probabilities_from_labels(
+        probabilities,
+        labels=labels,
+        classifier_labels=_classifier_classes(classifier),
+    )
+
+
+def _aligned_classification_probabilities_from_labels(
+    probabilities: np.ndarray,
+    *,
+    labels: np.ndarray,
+    classifier_labels: np.ndarray | None,
+) -> np.ndarray:
     normalized = _normalize_classification_probabilities(probabilities)
-    classifier_classes = _classifier_classes(classifier)
-    if classifier_classes is None:
+    if classifier_labels is None:
         if normalized.shape[1] == labels.size:
             return normalized
         raise RuntimeError(
             "predict_proba output could not be aligned to benchmark labels; "
             "expose classes_/_classes or return the full probability matrix"
         )
-    if normalized.shape[1] != classifier_classes.size:
+    if normalized.shape[1] != classifier_labels.size:
         raise RuntimeError("predict_proba output width does not match classifier classes metadata")
-    if normalized.shape[1] == labels.size and np.array_equal(classifier_classes, labels):
+    if normalized.shape[1] == labels.size and np.array_equal(classifier_labels, labels):
         return normalized
     label_to_index = {int(label): index for index, label in enumerate(labels.tolist())}
     aligned = np.zeros((normalized.shape[0], labels.size), dtype=np.float64)
-    for source_index, raw_label in enumerate(classifier_classes.tolist()):
+    for source_index, raw_label in enumerate(classifier_labels.tolist()):
         label = int(raw_label)
         if label not in label_to_index:
             raise RuntimeError(

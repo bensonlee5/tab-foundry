@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Sequence, cast
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 import torch
 import torch.nn.functional as F
 
+from tab_foundry.bench.openml_benchmark.metrics import (
+    BenchmarkClassificationFold,
+    BenchmarkClassificationFoldResult,
+)
 from tab_foundry.input_normalization import (
     InputNormalizationMode,
     normalize_train_test_arrays,
@@ -32,6 +36,7 @@ from tab_foundry.preprocessing import (
     fit_fitted_preprocessor,
     resolve_preprocessing_surface,
 )
+from tab_foundry.task_batching import collate_task_batch, move_batch
 from tab_foundry.types import TaskBatch
 
 
@@ -173,6 +178,8 @@ class TabFoundryClassifier:
         self._preprocessor_state: FittedPreprocessorState | None = None
         self._raw_x_train: np.ndarray | None = None
         self._raw_y_train: np.ndarray | None = None
+        if str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH:
+            self.evaluate_benchmark_folds_batched = self._evaluate_benchmark_folds_batched_impl
 
     def set_benchmark_feature_types(self, feature_types: list[str] | None) -> None:
         if feature_types is None:
@@ -279,18 +286,197 @@ class TabFoundryClassifier:
         x_test: np.ndarray,
         feature_types: list[str],
         num_classes: int,
+        device: torch.device | None = None,
     ) -> TaskBatch:
+        resolved_device = self.device if device is None else device
         return TaskBatch(
-            x_train=torch.tensor(x_train, dtype=torch.float32, device=self.device),
-            y_train=torch.tensor(y_train, dtype=torch.int64, device=self.device),
-            x_test=torch.tensor(x_test, dtype=torch.float32, device=self.device),
-            y_test=torch.zeros((x_test.shape[0],), dtype=torch.int64, device=self.device),
+            x_train=torch.tensor(x_train, dtype=torch.float32, device=resolved_device),
+            y_train=torch.tensor(y_train, dtype=torch.int64, device=resolved_device),
+            x_test=torch.tensor(x_test, dtype=torch.float32, device=resolved_device),
+            y_test=torch.zeros((x_test.shape[0],), dtype=torch.int64, device=resolved_device),
             metadata={
                 "dataset": "external_benchmark",
                 "feature_types": feature_types,
             },
             num_classes=num_classes,
         )
+
+    def _prepare_benchmark_fold(
+        self,
+        *,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        x_test: np.ndarray,
+        feature_types: list[str] | None,
+    ) -> tuple[np.ndarray, FittedPreprocessorState, Any, np.ndarray, np.ndarray, int]:
+        raw_x_train = np.asarray(x_train, dtype=np.float32)
+        raw_y_train = np.asarray(y_train, dtype=np.int64)
+        classes = np.unique(raw_y_train)
+        if classes.size < 2:
+            raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
+        if (
+            str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH
+            and feature_types is None
+        ):
+            raise RuntimeError(
+                "tabfoundry_sandwich benchmark evaluation requires explicit "
+                "feature_types for each dataset"
+            )
+        preprocessor_state = fit_fitted_preprocessor(
+            task="classification",
+            x_train=raw_x_train,
+            y_train=raw_y_train,
+            all_nan_fill=float(self.preprocessing_surface.all_nan_fill),
+            label_mapping=str(self.preprocessing_surface.label_mapping),
+            unseen_test_label_policy=str(self.preprocessing_surface.unseen_test_label_policy),
+            feature_types=feature_types,
+        )
+        processed = apply_fitted_preprocessor(
+            task="classification",
+            state=preprocessor_state,
+            x_train=raw_x_train,
+            y_train=raw_y_train,
+            x_test=np.asarray(x_test, dtype=np.float32),
+            y_test=None,
+            impute_missing=bool(
+                self.preprocessing_surface.impute_missing and not self._preserve_non_finite_inputs
+            ),
+        )
+        x_train_norm, x_test_norm = self._normalize_benchmark_inputs(processed=processed)
+        num_classes = int(processed.num_classes or classes.size)
+        return classes, preprocessor_state, processed, x_train_norm, x_test_norm, num_classes
+
+    def _cell_likelihood_metrics_from_per_cell_bits(
+        self,
+        per_cell_bits: torch.Tensor,
+    ) -> dict[str, float]:
+        finite_cell_mask = torch.isfinite(per_cell_bits)
+        bpc_cell_count = int(finite_cell_mask.sum().item())
+        if bpc_cell_count <= 0:
+            raise RuntimeError(
+                "checkpoint cell-likelihood output must include at least one finite cell"
+            )
+        feature_counts = finite_cell_mask.sum(dim=0)
+        feature_sums = torch.where(
+            finite_cell_mask,
+            per_cell_bits,
+            torch.zeros_like(per_cell_bits),
+        ).sum(dim=0)
+        valid_feature_mask = feature_counts > 0
+        bpf_feature_count = int(valid_feature_mask.sum().item())
+        if bpf_feature_count <= 0:
+            raise RuntimeError(
+                "checkpoint cell-likelihood output must include at least one valid feature"
+            )
+        feature_mean_bits = torch.full_like(feature_sums, float("nan"))
+        feature_mean_bits[valid_feature_mask] = (
+            feature_sums[valid_feature_mask]
+            / feature_counts[valid_feature_mask].to(dtype=feature_sums.dtype)
+        )
+        bpc = torch.where(
+            finite_cell_mask,
+            per_cell_bits,
+            torch.zeros_like(per_cell_bits),
+        ).sum() / finite_cell_mask.sum().to(dtype=per_cell_bits.dtype)
+        bpf = torch.where(
+            valid_feature_mask,
+            feature_mean_bits,
+            torch.zeros_like(feature_mean_bits),
+        ).sum() / valid_feature_mask.sum().to(dtype=feature_mean_bits.dtype)
+        return {
+            "bpc": float(bpc.detach().item()),
+            "bpf": float(bpf.detach().item()),
+            "bpc_cell_count": float(bpc_cell_count),
+            "bpf_feature_count": float(bpf_feature_count),
+        }
+
+    def _evaluate_benchmark_folds_batched_impl(
+        self,
+        folds: Sequence[BenchmarkClassificationFold],
+    ) -> list[BenchmarkClassificationFoldResult]:
+        if not folds:
+            return []
+
+        prepared: list[tuple[np.ndarray, TaskBatch, int, int]] = []
+        for fold in folds:
+            classes, preprocessor_state, processed, x_train_norm, x_test_norm, num_classes = (
+                self._prepare_benchmark_fold(
+                    x_train=fold.x_train,
+                    y_train=fold.y_train,
+                    x_test=fold.x_test,
+                    feature_types=fold.feature_types,
+                )
+            )
+            batch = self._benchmark_task_batch(
+                x_train=x_train_norm,
+                y_train=processed.y_train,
+                x_test=x_test_norm,
+                feature_types=list(preprocessor_state.feature_types),
+                num_classes=num_classes,
+                device=torch.device("cpu"),
+            )
+            prepared.append((classes, batch, int(batch.x_test.shape[0]), int(batch.x_test.shape[1])))
+
+        batched_batch = collate_task_batch(
+            [batch for _classes, batch, _n_test, _n_features in prepared],
+            requested_task_batch_size=len(prepared),
+        )
+        batched_batch.metadata["feature_types"] = list(
+            cast(list[str], prepared[0][1].metadata["feature_types"])
+        )
+        batched_batch = move_batch(batched_batch, self.device)
+
+        with torch.no_grad():
+            output = self.model(batched_batch)
+            if not isinstance(output, ClassificationOutput):
+                raise RuntimeError("checkpoint output does not expose classification probabilities")
+            first_num_classes = int(prepared[0][1].num_classes or prepared[0][0].size)
+            total_rows = int(batched_batch.y_test.reshape(-1).shape[0])
+            resolved_num_classes = validate_classification_output_contract(
+                output,
+                expected_rows=total_rows,
+                expected_num_classes=first_num_classes,
+                context="checkpoint classifier batched benchmark",
+            )
+            if output.logits is not None:
+                logits = output.logits[:, :resolved_num_classes]
+                batched_probabilities = F.softmax(logits, dim=-1)
+            elif output.class_probs is not None:
+                batched_probabilities = output.class_probs
+            else:
+                raise RuntimeError(
+                    "checkpoint output does not expose logits or class probabilities"
+                )
+
+            forward_cell_likelihood = getattr(self.model, "forward_cell_likelihood", None)
+            batched_likelihood_output = (
+                None if not callable(forward_cell_likelihood) else forward_cell_likelihood(batched_batch)
+            )
+
+        probabilities_by_fold = batched_probabilities.reshape(
+            len(prepared),
+            prepared[0][2],
+            resolved_num_classes,
+        )
+
+        results: list[BenchmarkClassificationFoldResult] = []
+        for task_index, (classes, batch, _n_test, _n_features) in enumerate(prepared):
+            cell_metrics = None
+            if batched_likelihood_output is not None:
+                task_cell_bits = batched_likelihood_output.per_cell_bits[task_index]
+                cell_metrics = self._cell_likelihood_metrics_from_per_cell_bits(task_cell_bits)
+                x_all = torch.cat([batch.x_train, batch.x_test], dim=0)
+                cell_metrics["excluded_non_finite_cell_count"] = float(
+                    (~torch.isfinite(x_all)).sum().item()
+                )
+            results.append(
+                BenchmarkClassificationFoldResult(
+                    probabilities=probabilities_by_fold[task_index].cpu().numpy(),
+                    classifier_labels=np.asarray(classes, dtype=np.int64),
+                    cell_likelihood_metrics=cell_metrics,
+                )
+            )
+        return results
 
     def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
         classes, preprocessor_state, processed = self._preprocess_benchmark_inputs(x_test)
