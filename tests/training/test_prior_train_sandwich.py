@@ -188,6 +188,97 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert training_surface["model"]["architecture"]["feature_type_encoding"] == "film"
     assert training_surface["model"]["architecture"]["floating_likelihood"] == "single_gaussian"
     assert training_surface["model"]["architecture"]["integer_likelihood"] == "hybrid_mixture"
+    assert training_surface["model"]["architecture"]["sandwich_activation"] == "gelu"
+    assert training_surface["model"]["architecture"]["sandwich_block_norm"] == "layernorm"
+
+
+def test_train_tabfoundry_sandwich_prior_smoke_rational_norm_free(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_sandwich_rational.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 0],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+        feature_types=np.asarray(
+            [
+                ["floating", "integer"],
+                ["bool", "string_binary"],
+            ],
+            dtype=object,
+        ),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 32,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "head_hidden_dim": 64,
+                "sandwich_latents": 12,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+                "sandwich_activation": "rational",
+                "sandwich_block_norm": "none",
+            },
+            "runtime": {
+                "seed": 1,
+                "output_dir": str(tmp_path / "train_out_rational"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.01,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(
+                    tmp_path / "train_out_rational" / "train_history.jsonl"
+                ),
+            },
+        }
+    )
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    assert result.global_step == 1
+    assert (tmp_path / "train_out_rational" / "checkpoints" / "latest.pt").exists()
+    training_surface = json.loads(
+        (
+            tmp_path / "train_out_rational" / "training_surface_record.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert training_surface["model"]["architecture"]["sandwich_activation"] == "rational"
+    assert training_surface["model"]["architecture"]["sandwich_block_norm"] == "none"
 
 
 def test_train_tabfoundry_sandwich_prior_rejects_prior_dump_without_feature_types(

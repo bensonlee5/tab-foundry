@@ -7,6 +7,11 @@ from torch import nn
 
 from tab_foundry.model.components.attention import multihead_attention_sdpa
 from tab_foundry.model.components.normalization import build_norm
+from tab_foundry.model.components.rational import RationalActivation
+
+
+SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
+SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
 
 
 def _init_truncated_normal_(
@@ -31,17 +36,18 @@ class _CrossAttentionBlock(nn.Module):
         embedding_size: int,
         n_heads: int,
         ff_expansion: int,
-        norm_type: str,
+        activation: str,
+        block_norm: str,
     ) -> None:
         super().__init__()
-        self.query_norm = build_norm(norm_type, embedding_size)
-        self.kv_norm = build_norm(norm_type, embedding_size)
-        self.ff_norm = build_norm(norm_type, embedding_size)
+        self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.kv_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.attn = nn.MultiheadAttention(embedding_size, n_heads, batch_first=True)
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
             nn.Linear(embedding_size, ff_hidden),
-            nn.GELU(),
+            _build_sandwich_activation(activation),
             nn.Linear(ff_hidden, embedding_size),
         )
 
@@ -66,16 +72,17 @@ class _SelfAttentionBlock(nn.Module):
         embedding_size: int,
         n_heads: int,
         ff_expansion: int,
-        norm_type: str,
+        activation: str,
+        block_norm: str,
     ) -> None:
         super().__init__()
-        self.attn_norm = build_norm(norm_type, embedding_size)
-        self.ff_norm = build_norm(norm_type, embedding_size)
+        self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.attn = nn.MultiheadAttention(embedding_size, n_heads, batch_first=True)
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
             nn.Linear(embedding_size, ff_hidden),
-            nn.GELU(),
+            _build_sandwich_activation(activation),
             nn.Linear(ff_hidden, embedding_size),
         )
 
@@ -105,7 +112,8 @@ class _PerceiverStage(nn.Module):
         embedding_size: int,
         n_heads: int,
         ff_expansion: int,
-        norm_type: str,
+        activation: str,
+        block_norm: str,
         self_attention_per_cross: int,
     ) -> None:
         super().__init__()
@@ -113,7 +121,8 @@ class _PerceiverStage(nn.Module):
             embedding_size=embedding_size,
             n_heads=n_heads,
             ff_expansion=ff_expansion,
-            norm_type=norm_type,
+            activation=activation,
+            block_norm=block_norm,
         )
         self.self_blocks = nn.ModuleList(
             [
@@ -121,7 +130,8 @@ class _PerceiverStage(nn.Module):
                     embedding_size=embedding_size,
                     n_heads=n_heads,
                     ff_expansion=ff_expansion,
-                    norm_type=norm_type,
+                    activation=activation,
+                    block_norm=block_norm,
                 )
                 for _ in range(self_attention_per_cross)
             ]
@@ -137,7 +147,8 @@ class _InducedSetAttentionBlock(nn.Module):
         embedding_size: int,
         n_heads: int,
         ff_expansion: int,
-        norm_type: str,
+        activation: str,
+        block_norm: str,
         num_inducing: int,
     ) -> None:
         super().__init__()
@@ -147,17 +158,44 @@ class _InducedSetAttentionBlock(nn.Module):
             embedding_size=embedding_size,
             n_heads=n_heads,
             ff_expansion=ff_expansion,
-            norm_type=norm_type,
+            activation=activation,
+            block_norm=block_norm,
         )
         self.inducing_self = _SelfAttentionBlock(
             embedding_size=embedding_size,
             n_heads=n_heads,
             ff_expansion=ff_expansion,
-            norm_type=norm_type,
+            activation=activation,
+            block_norm=block_norm,
         )
         self.rows_from_inducing = _CrossAttentionBlock(
             embedding_size=embedding_size,
             n_heads=n_heads,
             ff_expansion=ff_expansion,
-            norm_type=norm_type,
+            activation=activation,
+            block_norm=block_norm,
         )
+
+
+def _build_sandwich_activation(activation: str) -> nn.Module:
+    normalized = str(activation).strip().lower()
+    if normalized == "gelu":
+        return nn.GELU()
+    if normalized == "rational":
+        return RationalActivation(version="A", degrees=(5, 4), approx_func="gelu")
+    raise ValueError(
+        "sandwich_activation must be one of "
+        f"{SUPPORTED_SANDWICH_ACTIVATIONS}, got {activation!r}"
+    )
+
+
+def _build_sandwich_block_norm(block_norm: str, embedding_size: int) -> nn.Module:
+    normalized = str(block_norm).strip().lower()
+    if normalized == "none":
+        return nn.Identity()
+    if normalized == "layernorm":
+        return build_norm("layernorm", embedding_size)
+    raise ValueError(
+        "sandwich_block_norm must be one of "
+        f"{SUPPORTED_SANDWICH_BLOCK_NORMS}, got {block_norm!r}"
+    )

@@ -1,3 +1,5 @@
 """Reusable model components."""
 
-__all__: list[str] = []
+from .rational import RationalActivation
+
+__all__ = ["RationalActivation"]

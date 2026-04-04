@@ -1,0 +1,723 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_025_sandwich_rational_activation_screen_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/matrix.md
+sweep_id: tf_rd_025_sandwich_rational_activation_screen_v1
+parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
+sweep_status: ready
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+surface_role: classification_activation_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: Rational-activation transformer theory
+  model_source: https://arxiv.org/abs/2602.12390
+anchor_surface:
+  notes:
+  - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
+    on the TF-RD-010 medium classification contract with curated corpus `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - This sweep is a bounded CPU-only screening lane for the sandwich family. It does
+    not reopen `legacy_prior`, and it does not promote directly from CPU evidence.
+  - Freeze the inherited sandwich benchmark surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
+    except for `sandwich_block_norm` and `sandwich_activation`, and force the runtime
+    to `mixed_precision="no"` because sweep execution is CPU-only.
+  - Keep the global `norm_type=layernorm` contract unchanged; only the sandwich-internal
+    `sandwich_block_norm` switch is live here.
+  - Row `01` is the norm-free GELU control and row `02` adds the rational activation
+    on top of that control.
+  - Read this as a screen, not a promotion sweep. If the rational row wins, rerun
+    it later on the benchmark-facing runtime before any anchor or roadmap decision.
+  dimension_table:
+  - dimension: internal block normalization
+    upstream: The theory paper does not prescribe this repo-local sandwich block-norm
+      split directly.
+    anchor: The carried TF-RD-010 medium anchor keeps sandwich internal block norms
+      enabled through `sandwich_block_norm=layernorm`.
+    interpretation: Row `01` isolates whether removing the internal sandwich block
+      norms is a viable control surface before the rational swap is read.
+  - dimension: activation family
+    upstream: The paper argues trainable rational activations can improve transformer
+      optimization and expressivity.
+    anchor: The carried TF-RD-010 medium anchor uses GELU throughout the sandwich
+      core FF blocks.
+    interpretation: Row `02` reads the local version-A `5/4` rational activation only
+      after the norm-free GELU control is defined.
+  - dimension: corpus and validation contract
+    upstream: Not applicable.
+    anchor: Keep the manifest-backed dagzoo control corpus `tf_rd_010_dagzoo_medium_control_curated_v5`
+      and the medium classification validation manifest fixed.
+    interpretation: This sweep does not reopen corpus choice, missingness, or the
+      real-data benchmark bundle.
+  - dimension: runtime surface
+    upstream: The paper does not define this repo's prior-dump runtime policy.
+    anchor: Inherit the TF-RD-022 sandwich benchmark training surface, but force CPU
+      execution with `mixed_precision="no"` for this screen.
+    interpretation: This lane answers whether the activation change is promising enough
+      to earn a later benchmark-rerun, not whether CPU is the final runtime policy.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_model_sandwich_block_norm_none_v1
+  status: screened
+  rationale: Establish the norm-free GELU control row on the manifest-backed sandwich
+    benchmark surface before interpreting any rational-activation change.
+  hypothesis: If internal sandwich block norms are partly limiting this family, removing
+    them while keeping GELU should remain trainable enough on the TF-RD-010 medium
+    contract to serve as the rational screen control.
+  anchor_delta: Starting from the carried TF-RD-010 anchor, switch only the sandwich-internal
+    block norm from `layernorm` to `none` on the CPU no-AMP screening surface.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_activation: gelu
+    sandwich_block_norm: none
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: 'no'
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Run this row first as the norm-free control for the activation screen.
+  - Compare directly against the carried anchor on stability, runtime, and final validation
+    metrics before giving the rational row any credit.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_025_sandwich_rational_activation_screen_v1_01_delta_model_sandwich_block_norm_none_v1_v2
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: screened
+  confounders: []
+  next_action: Execute first, then use it as the norm-free GELU control for row `02`.
+  notes:
+  - Train-only screen recorded as `sd_tf_rd_025_sandwich_rational_activation_screen_v1_01_delta_model_sandwich_block_norm_none_v1_v2`.
+  - Recovered from the completed norm-free GELU control training artifacts after correcting
+    TF-RD-025 to `screen_only`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics:
+    upper_block_names: []
+    upper_block_final_window_mean: null
+    upper_block_post_warmup_mean_slope: null
+    clipped_step_fraction: 0.0
+    final_train_loss_ema: 1.422772447782945
+    upper_blocks: {}
+    throughput_examples_per_second: 24.334875942268162
+    throughput_tokens_per_second: 144963.60788356766
+    non_train_overhead_seconds: 13.618390741292387
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: activation_followup
+  binary_applicable: false
+  description: Disable the internal sandwich block pre-norm modules while keeping
+    the global `norm_type=layernorm` contract fixed on the TF-RD-010 multiclass benchmark
+    surface.
+  upstream_delta: This is a repo-local norm-free sandwich screen that uses the new
+    `sandwich_block_norm=none` surface without reopening the rest of the benchmark
+    contract.
+  entangled_legacy_stage: none
+  expected_effect: Removing the internal block norms may improve the sandwich family's
+    core FF routing on this surface, but it also risks a training-stability regression.
+  adequacy_knobs:
+  - fixed TF-RD-010 medium benchmark contract on curated `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - CPU no-AMP screening surface inherited from the TF-RD-022 runtime-policy contract
+  - internal sandwich block norm only; activation family, width, depth, optimizer,
+    and corpus remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Run this as the norm-free GELU control row before interpreting any rational-activation
+      result.
+    - Compare directly against the carried TF-RD-010 anchor on stability, runtime,
+      and final validation metrics before deciding whether norm-free sandwich is worth
+      carrying forward.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: none
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: none
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 8fb948eb06bd89aba8a8a04193958397df2247d16a894e4e8537cc76bc2ac24a
+- order: 2
+  delta_id: delta_model_sandwich_activation_rational_v1
+  status: screened
+  rationale: Replace GELU with the local version-A rational activation only after
+    the norm-free sandwich control is defined on the same CPU screening surface.
+  hypothesis: If the rational activation is a real win for sandwich core FF blocks,
+    row `02` should match or beat the norm-free GELU control on final validation metrics
+    without introducing optimizer or stability failures.
+  anchor_delta: Starting from row `01`, switch only `model.sandwich_activation` from
+    `gelu` to `rational` while keeping `sandwich_block_norm=none`, the curated dagzoo
+    corpus, and the CPU no-AMP runtime fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_activation: rational
+    sandwich_block_norm: none
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: 'no'
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after row `01` defines the norm-free GELU control on the same surface.
+  - Compare directly against both row `01` and the carried anchor, and only recommend
+    a later benchmark rerun if the rational row is clearly non-worse on quality while
+    remaining stable.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_025_sandwich_rational_activation_screen_v1_02_delta_model_sandwich_activation_rational_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: screened
+  confounders: []
+  next_action: Execute after row `01`, then decide whether the rational row earns
+    a benchmark-facing rerun.
+  notes:
+  - Train-only screen recorded as `sd_tf_rd_025_sandwich_rational_activation_screen_v1_02_delta_model_sandwich_activation_rational_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics:
+    upper_block_names: []
+    upper_block_final_window_mean: null
+    upper_block_post_warmup_mean_slope: null
+    clipped_step_fraction: 0.0
+    final_train_loss_ema: 1.432599046233432
+    upper_blocks: {}
+    throughput_examples_per_second: 13.796005024937024
+    throughput_tokens_per_second: 82183.22820051717
+    non_train_overhead_seconds: 14.769404747989029
+    tokens_per_step: 367086.5408
+    tokens_seen: 917716352
+    token_budget: 917716352
+    unique_task_budget: 143976
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+  benchmark_metrics: null
+  parent_delta_ref: delta_model_sandwich_block_norm_none_v1
+  dimension_family: model
+  family: activation_followup
+  binary_applicable: false
+  description: Starting from the norm-free sandwich control surface, replace GELU
+    with the local version-A `5/4` GELU-initialized rational activation.
+  upstream_delta: Reuses the repo-local rational activation module on the current
+    TF-RD-010 multiclass sandwich contract rather than adding a separate dependency
+    or reopening the wider architecture ladder.
+  entangled_legacy_stage: none
+  expected_effect: The rational activation may preserve more useful curvature than
+    GELU on the norm-free sandwich surface, with the main risk being optimizer or
+    stability regressions.
+  adequacy_knobs:
+  - fixed TF-RD-010 medium benchmark contract on curated `tf_rd_010_dagzoo_medium_control_curated_v5`
+  - CPU no-AMP screening surface inherited from the TF-RD-022 runtime-policy contract
+  - activation family only on top of `sandwich_block_norm=none`; width, depth, optimizer,
+    and corpus remain frozen
+  parameter_adequacy_policy:
+    default_plan:
+    - Run this row only after the norm-free GELU control is defined so the rational
+      swap can be read as the incremental change.
+    - Compare directly against both the norm-free GELU row and the carried anchor
+      before deciding whether the rational path earns a benchmark rerun.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_activation: rational
+        sandwich_block_norm: none
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: rational
+        sandwich_block_norm: none
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: null
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: 'no'
+      num_workers: 0
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      trace_activations: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: b417dc6fc74643f7f3a1406c389d7c9cdf1fb31744a89feeebcd253d907332e1
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/resolved_queue.yaml
+inputs_fingerprint: a34833d94b2c0a5857a7d70dce493d664515fdef284e0f4aef1fb310cfa6cd82

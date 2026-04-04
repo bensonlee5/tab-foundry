@@ -28,6 +28,8 @@ sandwich_latents: 24
 sandwich_layers: 2
 sandwich_heads: 4
 sandwich_ff_expansion: 2
+sandwich_activation: gelu
+sandwich_block_norm: layernorm
 sandwich_summary_tokens_per_axis: 4
 sandwich_self_attention_per_cross: 4
 sandwich_pre_row_attention_layers: 1

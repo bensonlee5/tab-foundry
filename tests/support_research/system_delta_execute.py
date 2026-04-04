@@ -1038,6 +1038,59 @@ def test_execute_sweep_preserves_external_completed_rows_when_syncing_queue(
     assert recovered_queue['rows'][1]['benchmark_metrics']['final_log_loss'] == pytest.approx(0.39)
 
 
+def test_execute_sweep_preserves_screened_rows_when_syncing_queue(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][0]['execution_policy'] = 'screen_only'
+    queue['rows'][1]['status'] = 'completed'
+    queue['rows'][1]['run_id'] = 'historical_row_2_v1'
+    _write_yaml(queue_path, queue)
+
+    def fake_run_row(**kwargs: Any) -> str:
+        queue_row = kwargs['queue_row']
+        queue_row['status'] = 'screened'
+        queue_row['run_id'] = 'screen_row_1_v1'
+        queue_row['decision'] = 'defer'
+        queue_row['interpretation_status'] = 'screened'
+        queue_row['screen_metrics'] = {
+            'upper_block_final_window_mean': 42.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        }
+        queue_row['benchmark_metrics'] = None
+        queue_row['notes'] = ['Train-only screen recorded as `screen_row_1_v1`.']
+        return 'screen_row_1_v1'
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cpu')
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        orders=[1],
+        paths=paths,
+    )
+
+    assert executed == ['screen_row_1_v1']
+    recovered_queue = _load_yaml(queue_path)
+    assert recovered_queue['rows'][0]['status'] == 'screened'
+    assert recovered_queue['rows'][0]['run_id'] == 'screen_row_1_v1'
+    assert recovered_queue['rows'][0]['decision'] == 'defer'
+    assert recovered_queue['rows'][0]['interpretation_status'] == 'screened'
+    assert recovered_queue['rows'][0]['benchmark_metrics'] is None
+    assert recovered_queue['rows'][0]['screen_metrics']['upper_block_final_window_mean'] == pytest.approx(42.0)
+    assert recovered_queue['rows'][0]['notes'] == ['Train-only screen recorded as `screen_row_1_v1`.']
+
+
 def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
     queue = _load_yaml(queue_path)

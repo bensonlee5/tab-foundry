@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.6] - 2026-04-03
+
+### Added
+
+- User-facing note: `tabfoundry_sandwich` now supports `model.sandwich_activation`
+  with `gelu` and local version-A rational `5/4` GELU-initialized activations
+  for the sandwich core feed-forward blocks.
+- User-facing note: added
+  `experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_rational_v1`
+  as an explicit benchmark config for the sandwich rational-activation trial.
+- User-facing note: added `tf_rd_025_sandwich_rational_activation_screen_v1`
+  as the canonical sandwich-only train-screen sweep that compares the
+  norm-free GELU control against the local rational activation on the
+  manifest-backed TF-RD-010 medium contract.
+
+### Changed
+
+- User-facing note: `tabfoundry_sandwich` now supports
+  `model.sandwich_block_norm` with `layernorm` and `none`, while the global
+  sandwich `model.norm_type` contract remains `layernorm`.
+- User-facing note: sandwich rational activation coefficients now get a
+  dedicated zero-weight-decay optimizer param group under AdamW-compatible
+  optimizers.
+- User-facing note: `tab-foundry research sweep execute` now preserves
+  `screened` queue rows when it synchronizes completed train-only runs back
+  into `queue.yaml`, so dependent screen-only rows can resume without requiring
+  benchmark-registry entries.
+- User-facing note: TF-RD-025 now records its CPU-only sandwich activation
+  experiments as `screen_only` rows with persisted `screen_metrics` instead of
+  attempting benchmark registration on the screening lane.
+
 ## [0.16.5] - 2026-04-03
 
 ### Changed

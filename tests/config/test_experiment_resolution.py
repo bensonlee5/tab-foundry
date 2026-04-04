@@ -492,3 +492,22 @@ def test_cls_benchmark_staged_prior_cuda_scale_explore_resolution() -> None:
         str(cfg.logging.history_jsonl_path)
         == "outputs/cls_benchmark_staged_prior_cuda_scale_explore/train_history.jsonl"
     )
+
+
+def test_cls_benchmark_sandwich_tf_rd_022_policy_rational_resolution() -> None:
+    cfg = _compose(
+        "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_rational_v1"
+    )
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert str(cfg.model.sandwich_activation) == "rational"
+    assert str(cfg.model.sandwich_block_norm) == "none"
+    assert str(cfg.model.norm_type) == "layernorm"
+    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-rational-v1"
+    )
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_rational_v1"
+    )

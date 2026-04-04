@@ -245,6 +245,8 @@ Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
 | `sandwich_layers` | `2` | repeated Perceiver cross-read stages |
 | `sandwich_heads` | `4` | attention heads across sandwich blocks |
 | `sandwich_ff_expansion` | `2` | FFN expansion factor across sandwich blocks |
+| `sandwich_activation` | `gelu` | sandwich core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
+| `sandwich_block_norm` | `layernorm` | sandwich core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
 | `sandwich_summary_tokens_per_axis` | `4` | learned row summaries per row and column summaries per column |
 | `sandwich_self_attention_per_cross` | `4` | latent self-attention blocks after each cross-read |
 | `sandwich_pre_row_attention_layers` | `1` | pre-Perceiver row-wise feature self-attention blocks |
@@ -307,7 +309,9 @@ staged family.
     `y_train [B,N_tr]`
 - train rows: at least one training row is required
 - labels: at least one training label is required
-- norm family: only `layernorm` is accepted
+- global norm family: only `layernorm` is accepted through `norm_type`
+- sandwich core block norm: `sandwich_block_norm` may be `layernorm` or `none`
+- sandwich core FF activation: `sandwich_activation` may be `gelu` or `rational`
 - activation checkpointing: supported and opt-in
 - activation tracing: supported and opt-in
 

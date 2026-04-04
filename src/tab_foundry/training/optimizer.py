@@ -11,6 +11,8 @@ from typing import Any
 import torch
 from torch import nn
 
+from tab_foundry.model.components.rational import rational_parameter_ids
+
 
 @dataclass(slots=True)
 class OptimizerSelection:
@@ -66,6 +68,48 @@ def _partition_muon_params(
     muon_ids = {id(p) for p in muon_params}
     adamw_params = [p for p in params if id(p) not in muon_ids]
     return muon_params, adamw_params
+
+
+def _partition_rational_params(
+    model: nn.Module,
+    params: list[nn.Parameter],
+) -> tuple[list[nn.Parameter], list[nn.Parameter]]:
+    rational_ids = rational_parameter_ids(model)
+    if not rational_ids:
+        return params, []
+    rational_params = [param for param in params if id(param) in rational_ids]
+    rational_param_ids_set = {id(param) for param in rational_params}
+    base_params = [param for param in params if id(param) not in rational_param_ids_set]
+    return base_params, rational_params
+
+
+def _build_adamw_param_groups(
+    model: nn.Module,
+    params: list[nn.Parameter],
+    *,
+    lr: float,
+    weight_decay: float,
+) -> list[nn.Parameter] | list[dict[str, Any]]:
+    base_params, rational_params = _partition_rational_params(model, params)
+    if not rational_params:
+        return params
+    param_groups: list[dict[str, Any]] = []
+    if base_params:
+        param_groups.append(
+            {
+                "params": base_params,
+                "lr": lr,
+                "weight_decay": weight_decay,
+            }
+        )
+    param_groups.append(
+        {
+            "params": rational_params,
+            "lr": lr,
+            "weight_decay": 0.0,
+        }
+    )
+    return param_groups
 
 
 def _wrap_step_to_ignore_unused_closure(
@@ -153,10 +197,11 @@ def build_optimizer(
 
     extra_kwargs = extra_kwargs or {}
     params = [p for p in model.parameters() if p.requires_grad]
+    adamw_params = _build_adamw_param_groups(model, params, lr=lr, weight_decay=weight_decay)
     requested = name.strip().lower()
 
     if requested == "adamw":
-        opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+        opt = torch.optim.AdamW(adamw_params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
         return OptimizerSelection(
             optimizers=[("adamw", opt)],
             requested_name=requested,
@@ -174,7 +219,12 @@ def build_optimizer(
                     "optimizer.require_requested=true."
                 ) from exc
             fallback_reason = "schedulefree_unavailable"
-            opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+            opt = torch.optim.AdamW(
+                adamw_params,
+                lr=lr,
+                weight_decay=weight_decay,
+                **extra_kwargs,
+            )
             return OptimizerSelection(
                 optimizers=[("adamw", opt)],
                 requested_name=requested,
@@ -186,7 +236,7 @@ def build_optimizer(
         optimizer_sig = inspect.signature(optimizer_cls)
         allowed_keys = set(optimizer_sig.parameters.keys())
         allowed_kwargs = {key: value for key, value in extra_kwargs.items() if key in allowed_keys}
-        opt = optimizer_cls(params, lr=lr, weight_decay=weight_decay, **allowed_kwargs)
+        opt = optimizer_cls(adamw_params, lr=lr, weight_decay=weight_decay, **allowed_kwargs)
         return OptimizerSelection(
             optimizers=[("schedulefree_adamw", opt)],
             requested_name=requested,
@@ -203,7 +253,12 @@ def build_optimizer(
                     "Requested optimizer 'muon' is unavailable and optimizer.require_requested=true."
                 ) from exc
             fallback_reason = "muon_unavailable"
-            opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+            opt = torch.optim.AdamW(
+                adamw_params,
+                lr=lr,
+                weight_decay=weight_decay,
+                **extra_kwargs,
+            )
             return OptimizerSelection(
                 optimizers=[("adamw", opt)],
                 requested_name=requested,
@@ -221,7 +276,12 @@ def build_optimizer(
             muon_source_params, adamw_tail_params = _partition_muon_params(model, params)
         if not muon_source_params:
             fallback_reason = "muon_no_eligible_params"
-            opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+            opt = torch.optim.AdamW(
+                adamw_params,
+                lr=lr,
+                weight_decay=weight_decay,
+                **extra_kwargs,
+            )
             return OptimizerSelection(
                 optimizers=[("adamw", opt)],
                 requested_name=requested,
@@ -240,7 +300,12 @@ def build_optimizer(
                         "process group is initialized."
                     )
                 fallback_reason = "muon_single_device_unavailable"
-                opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+                opt = torch.optim.AdamW(
+                    adamw_params,
+                    lr=lr,
+                    weight_decay=weight_decay,
+                    **extra_kwargs,
+                )
                 return OptimizerSelection(
                     optimizers=[("adamw", opt)],
                     requested_name=requested,
@@ -266,8 +331,14 @@ def build_optimizer(
         muon_opt = _wrap_muon_step(muon_opt)
         optimizers.append(("muon", muon_opt))
         if adamw_tail_params:
-            adamw_tail = torch.optim.AdamW(
+            adamw_tail_groups = _build_adamw_param_groups(
+                model,
                 adamw_tail_params,
+                lr=lr,
+                weight_decay=weight_decay,
+            )
+            adamw_tail = torch.optim.AdamW(
+                adamw_tail_groups,
                 lr=lr,
                 weight_decay=weight_decay,
                 **extra_kwargs,

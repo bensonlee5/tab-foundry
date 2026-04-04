@@ -9,6 +9,7 @@ from tab_foundry.model.architectures.tabfoundry_sandwich import cell_likelihood 
 from tab_foundry.model.architectures.tabfoundry_sandwich import classification_flow as sandwich_classification_flow
 from tab_foundry.model.architectures.tabfoundry_sandwich import feature_flow as sandwich_feature_flow
 from tab_foundry.model.architectures.tabfoundry_sandwich import model as sandwich_model
+from tab_foundry.model.components.rational import RationalActivation
 from tab_foundry.model.outputs import (
     CellLikelihoodOutput,
     validate_cell_likelihood_output_contract,
@@ -123,6 +124,8 @@ def _model(
     *,
     many_class_base: int = 4,
     sandwich_ff_expansion: int = 2,
+    sandwich_activation: str = "gelu",
+    sandwich_block_norm: str = "layernorm",
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
     feature_type_conditioning: str = "film",
@@ -137,6 +140,8 @@ def _model(
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=sandwich_ff_expansion,
+        sandwich_activation=sandwich_activation,
+        sandwich_block_norm=sandwich_block_norm,
         sandwich_summary_tokens_per_axis=sandwich_summary_tokens_per_axis,
         sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
         sandwich_pre_row_attention_layers=1,
@@ -167,43 +172,66 @@ def _raw_state(
     )
 
 
-def _cross_block_state_dict_keys(prefix: str) -> list[str]:
-    return [
+def _cross_block_state_dict_keys(
+    prefix: str,
+    *,
+    activation: str = "gelu",
+    block_norm: str = "layernorm",
+) -> list[str]:
+    keys = [
         f"{prefix}.attn.in_proj_bias",
         f"{prefix}.attn.in_proj_weight",
         f"{prefix}.attn.out_proj.bias",
         f"{prefix}.attn.out_proj.weight",
         f"{prefix}.ff.0.bias",
         f"{prefix}.ff.0.weight",
-        f"{prefix}.ff.2.bias",
-        f"{prefix}.ff.2.weight",
-        f"{prefix}.ff_norm.bias",
-        f"{prefix}.ff_norm.weight",
-        f"{prefix}.kv_norm.bias",
-        f"{prefix}.kv_norm.weight",
-        f"{prefix}.query_norm.bias",
-        f"{prefix}.query_norm.weight",
     ]
+    if activation == "rational":
+        keys.extend([f"{prefix}.ff.1.denominator", f"{prefix}.ff.1.numerator"])
+    keys.extend([f"{prefix}.ff.2.bias", f"{prefix}.ff.2.weight"])
+    if block_norm == "layernorm":
+        keys.extend(
+            [
+                f"{prefix}.ff_norm.bias",
+                f"{prefix}.ff_norm.weight",
+                f"{prefix}.kv_norm.bias",
+                f"{prefix}.kv_norm.weight",
+                f"{prefix}.query_norm.bias",
+                f"{prefix}.query_norm.weight",
+            ]
+        )
+    return keys
 
 
-def _self_block_state_dict_keys(prefix: str) -> list[str]:
-    return [
+def _self_block_state_dict_keys(
+    prefix: str,
+    *,
+    activation: str = "gelu",
+    block_norm: str = "layernorm",
+) -> list[str]:
+    keys = [
         f"{prefix}.attn.in_proj_bias",
         f"{prefix}.attn.in_proj_weight",
         f"{prefix}.attn.out_proj.bias",
         f"{prefix}.attn.out_proj.weight",
-        f"{prefix}.attn_norm.bias",
-        f"{prefix}.attn_norm.weight",
         f"{prefix}.ff.0.bias",
         f"{prefix}.ff.0.weight",
-        f"{prefix}.ff.2.bias",
-        f"{prefix}.ff.2.weight",
-        f"{prefix}.ff_norm.bias",
-        f"{prefix}.ff_norm.weight",
     ]
+    if block_norm == "layernorm":
+        keys.extend([f"{prefix}.attn_norm.bias", f"{prefix}.attn_norm.weight"])
+    if activation == "rational":
+        keys.extend([f"{prefix}.ff.1.denominator", f"{prefix}.ff.1.numerator"])
+    keys.extend([f"{prefix}.ff.2.bias", f"{prefix}.ff.2.weight"])
+    if block_norm == "layernorm":
+        keys.extend([f"{prefix}.ff_norm.bias", f"{prefix}.ff_norm.weight"])
+    return keys
 
 
-def _expected_sandwich_state_dict_keys() -> list[str]:
+def _expected_sandwich_state_dict_keys(
+    *,
+    activation: str = "gelu",
+    block_norm: str = "layernorm",
+) -> list[str]:
     expected = [
         "cell_bos",
         "column_summary_query",
@@ -235,25 +263,83 @@ def _expected_sandwich_state_dict_keys() -> list[str]:
         "y_role_embedding.weight",
     ]
     for index in range(2):
-        expected.extend(_self_block_state_dict_keys(f"cell_decoder_blocks.{index}"))
-        expected.extend(_cross_block_state_dict_keys(f"perceiver_stages.{index}.input_read"))
+        expected.extend(
+            _self_block_state_dict_keys(
+                f"cell_decoder_blocks.{index}",
+                activation=activation,
+                block_norm=block_norm,
+            )
+        )
+        expected.extend(
+            _cross_block_state_dict_keys(
+                f"perceiver_stages.{index}.input_read",
+                activation=activation,
+                block_norm=block_norm,
+            )
+        )
         for self_index in range(4):
             expected.extend(
-                _self_block_state_dict_keys(f"perceiver_stages.{index}.self_blocks.{self_index}")
+                _self_block_state_dict_keys(
+                    f"perceiver_stages.{index}.self_blocks.{self_index}",
+                    activation=activation,
+                    block_norm=block_norm,
+                )
             )
-    expected.extend(_cross_block_state_dict_keys("cell_readout"))
-    expected.extend(_cross_block_state_dict_keys("column_summary_builder"))
-    expected.extend(_cross_block_state_dict_keys("latent_readout"))
-    expected.extend(_self_block_state_dict_keys("pre_column_attention_blocks.0.inducing_self"))
     expected.extend(
-        _cross_block_state_dict_keys("pre_column_attention_blocks.0.rows_from_inducing")
+        _cross_block_state_dict_keys("cell_readout", activation=activation, block_norm=block_norm)
     )
     expected.extend(
-        _cross_block_state_dict_keys("pre_column_attention_blocks.0.rows_to_inducing")
+        _cross_block_state_dict_keys(
+            "column_summary_builder",
+            activation=activation,
+            block_norm=block_norm,
+        )
     )
-    expected.extend(_self_block_state_dict_keys("pre_row_attention_blocks.0"))
-    expected.extend(_cross_block_state_dict_keys("row_summary_builder"))
-    expected.extend(_cross_block_state_dict_keys("test_row_pool"))
+    expected.extend(
+        _cross_block_state_dict_keys(
+            "latent_readout",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _self_block_state_dict_keys(
+            "pre_column_attention_blocks.0.inducing_self",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _cross_block_state_dict_keys(
+            "pre_column_attention_blocks.0.rows_from_inducing",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _cross_block_state_dict_keys(
+            "pre_column_attention_blocks.0.rows_to_inducing",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _self_block_state_dict_keys(
+            "pre_row_attention_blocks.0",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _cross_block_state_dict_keys(
+            "row_summary_builder",
+            activation=activation,
+            block_norm=block_norm,
+        )
+    )
+    expected.extend(
+        _cross_block_state_dict_keys("test_row_pool", activation=activation, block_norm=block_norm)
+    )
     return sorted(expected)
 
 
@@ -524,6 +610,26 @@ def test_tabfoundry_sandwich_preserves_representative_state_dict_keys_and_strict
     assert sorted(checkpointed.state_dict().keys()) == expected_keys
 
 
+def test_tabfoundry_sandwich_rational_norm_free_wiring_and_state_dict_keys() -> None:
+    model = _model(sandwich_activation="rational", sandwich_block_norm="none")
+
+    assert isinstance(model.pre_row_attention_blocks[0].ff[1], RationalActivation)
+    assert isinstance(model.row_summary_builder.query_norm, torch.nn.Identity)
+    assert isinstance(model.pre_column_attention_blocks[0].inducing_self.attn_norm, torch.nn.Identity)
+    assert sorted(model.state_dict().keys()) == _expected_sandwich_state_dict_keys(
+        activation="rational",
+        block_norm="none",
+    )
+
+
+def test_tabfoundry_sandwich_rational_norm_free_forward_shapes() -> None:
+    output = _model(sandwich_activation="rational", sandwich_block_norm="none")(_batch())
+
+    assert output.logits is not None
+    assert tuple(output.logits.shape) == (2, 4)
+    assert torch.isfinite(output.logits).all()
+
+
 def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
     model = _model()
     order: list[str] = []
@@ -630,6 +736,20 @@ def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
     assert "post_stage_0_self" in trace
     assert "post_latent_readout" in trace
     assert "post_test_readout" in trace
+    assert "post_test_row_pool" in trace
+
+
+def test_tabfoundry_sandwich_rational_norm_free_exposes_activation_trace_hooks() -> None:
+    model = _model(sandwich_activation="rational", sandwich_block_norm="none")
+    model.enable_activation_trace()
+
+    _ = model(_batch())
+    trace = model.flush_activation_trace_stats()
+
+    assert trace is not None
+    assert "post_pre_row_attention_0" in trace
+    assert "post_pre_column_attention_0" in trace
+    assert "post_stage_0_cross" in trace
     assert "post_test_row_pool" in trace
 
 

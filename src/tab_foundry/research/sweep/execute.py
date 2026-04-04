@@ -51,7 +51,7 @@ def _registry_run_for_run_id(
     return runs.get(run_id)
 
 
-def _sync_completed_queue_row(
+def _sync_terminal_queue_row(
     *,
     sweep_id: str,
     queue_path: Path,
@@ -83,6 +83,7 @@ def _sync_completed_queue_row(
             f"expected {expected_delta_ref!r}"
         )
 
+    local_status = str(local_queue_row.get("status", "")).strip().lower()
     run = _registry_run_for_run_id(run_id=run_id, paths=paths)
     if run is not None:
         recover_completed_queue_row_from_registry_run(
@@ -91,21 +92,28 @@ def _sync_completed_queue_row(
             run=run,
         )
         source = "benchmark_registry"
+    elif local_status in {"completed", "screened"}:
+        recovered_queue_row = cast(dict[str, Any], deepcopy(local_queue_row))
+        recovered_queue_row["run_id"] = run_id
+        queue_row.clear()
+        queue_row.update(recovered_queue_row)
+        source = "in_memory_queue"
     else:
         recovered_queue_row = cast(dict[str, Any], deepcopy(local_queue_row))
         recovered_queue_row["status"] = "completed"
         recovered_queue_row["run_id"] = run_id
         queue_row.clear()
         queue_row.update(recovered_queue_row)
-        source = "in_memory_queue"
+        source = "in_memory_queue_fallback"
 
     write_yaml(queue_path, queue)
     _row_sync.sync_sweep_matrix(sweep_id=sweep_id, paths=paths)
     print(
-        "Synchronized completed queue row.",
+        "Synchronized terminal queue row.",
         f"sweep_id={sweep_id}",
         f"order={order}",
         f"run_id={run_id}",
+        f"status={queue_row.get('status')}",
         f"source={source}",
         flush=True,
     )
@@ -320,7 +328,7 @@ def execute_sweep(
                 index_path=resolved_paths.index_path,
                 sweeps_root=resolved_paths.sweeps_root,
             )
-        queue = _sync_completed_queue_row(
+        queue = _sync_terminal_queue_row(
             sweep_id=resolved_sweep_id,
             queue_path=queue_path,
             local_queue=queue,
