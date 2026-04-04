@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_classifier
+import tab_foundry.bench.openml_benchmark.metrics as benchmark_metrics_module
 from tab_foundry.bench.openml_benchmark import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.outputs import CellLikelihoodOutput, ClassificationOutput
@@ -67,6 +68,86 @@ class _CapturingSandwichClassifier(nn.Module):
                 "bpc_cell_count": float(max(batch.x_test.shape[0] * batch.x_test.shape[1] - 1, 1)),
                 "bpf_feature_count": float(batch.x_test.shape[1]),
                 "excluded_non_finite_cell_count": 1.0,
+            },
+        )
+
+
+class _BatchedSandwichClassifier(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.forward_batches: list[TaskBatch] = []
+        self.cell_likelihood_batches: list[TaskBatch] = []
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        self.forward_batches.append(batch)
+        if batch.x_test.ndim == 2:
+            labels = batch.x_test[:, 0].to(torch.int64)
+            logits = torch.full(
+                (int(labels.shape[0]), 2),
+                -6.0,
+                dtype=batch.x_test.dtype,
+                device=batch.x_test.device,
+            )
+            logits[torch.arange(int(labels.shape[0]), device=labels.device), labels] = 6.0
+            return ClassificationOutput(logits=logits, num_classes=2)
+
+        labels = batch.x_test[:, :, 0].to(torch.int64)
+        logits = torch.full(
+            (int(labels.shape[0]), int(labels.shape[1]), 2),
+            -6.0,
+            dtype=batch.x_test.dtype,
+            device=batch.x_test.device,
+        )
+        task_index = torch.arange(int(labels.shape[0]), device=labels.device).unsqueeze(1)
+        row_index = torch.arange(int(labels.shape[1]), device=labels.device).unsqueeze(0)
+        logits[task_index, row_index, labels] = 6.0
+        return ClassificationOutput(
+            logits=logits.reshape(int(labels.shape[0]) * int(labels.shape[1]), 2),
+            num_classes=2,
+        )
+
+    def forward_cell_likelihood(self, batch: TaskBatch) -> CellLikelihoodOutput:
+        self.cell_likelihood_batches.append(batch)
+        if batch.x_test.ndim == 2:
+            x_all = torch.cat([batch.x_train, batch.x_test], dim=0).unsqueeze(0)
+        else:
+            x_all = torch.cat([batch.x_train, batch.x_test], dim=1)
+        per_cell_bits = torch.where(
+            torch.isfinite(x_all),
+            torch.full_like(x_all, 0.5),
+            torch.full_like(x_all, float("nan")),
+        )
+        finite_cell_mask = torch.isfinite(per_cell_bits)
+        feature_counts = finite_cell_mask.sum(dim=1)
+        feature_sums = torch.where(
+            finite_cell_mask,
+            per_cell_bits,
+            torch.zeros_like(per_cell_bits),
+        ).sum(dim=1)
+        feature_mean_bits = torch.full_like(feature_sums, float("nan"))
+        valid_feature_mask = feature_counts > 0
+        feature_mean_bits[valid_feature_mask] = (
+            feature_sums[valid_feature_mask]
+            / feature_counts[valid_feature_mask].to(dtype=feature_sums.dtype)
+        )
+        bpc = torch.where(
+            finite_cell_mask,
+            per_cell_bits,
+            torch.zeros_like(per_cell_bits),
+        ).sum() / finite_cell_mask.sum().to(dtype=per_cell_bits.dtype)
+        bpf = torch.where(
+            valid_feature_mask,
+            feature_mean_bits,
+            torch.zeros_like(feature_mean_bits),
+        ).sum() / valid_feature_mask.sum().to(dtype=feature_mean_bits.dtype)
+        return CellLikelihoodOutput(
+            per_cell_bits=per_cell_bits,
+            bpc=bpc,
+            bpf=bpf,
+            aux_metrics={
+                "bpc_cell_count": float(finite_cell_mask.sum().item()),
+                "bpf_feature_count": float(valid_feature_mask.sum().item()),
+                "excluded_non_finite_cell_count": float((~torch.isfinite(x_all)).sum().item()),
             },
         )
 
@@ -606,6 +687,123 @@ def test_tab_foundry_classifier_cell_likelihood_metrics_propagates_valid_counts(
     assert metrics["bpc_cell_count"] == pytest.approx(3.0)
     assert metrics["bpf_feature_count"] == pytest.approx(2.0)
     assert metrics["excluded_non_finite_cell_count"] == pytest.approx(1.0)
+
+
+def test_tab_foundry_classifier_batched_hook_matches_serial_fold_results(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _BatchedSandwichClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_sandwich",
+        input_normalization="none",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "sandwich_batched_metrics.pt"
+    torch.save(
+        {"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    folds = [
+        benchmark_metrics_module.BenchmarkClassificationFold(
+            fold_id=index,
+            dataset_name="toy",
+            x_train=np.asarray([[0.0, 0.0], [1.0, 1.0], [0.0, 0.0], [1.0, 1.0]], dtype=np.float32),
+            y_train=np.asarray([0, 1, 0, 1], dtype=np.int64),
+            x_test=np.asarray([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32),
+            y_test=np.asarray([0, 1], dtype=np.int64),
+            labels=np.asarray([0, 1], dtype=np.int64),
+            feature_types=["floating", "floating"],
+        )
+        for index in range(2)
+    ]
+
+    serial_results = [
+        benchmark_metrics_module._evaluate_classifier_fold_serial(classifier, fold) for fold in folds
+    ]
+    model.forward_batches.clear()
+    model.cell_likelihood_batches.clear()
+
+    batched_results = classifier.evaluate_benchmark_folds_batched(folds)
+
+    assert len(model.forward_batches) == 1
+    assert len(model.cell_likelihood_batches) == 1
+    assert model.forward_batches[0].x_test.ndim == 3
+    assert model.forward_batches[0].x_test.shape[0] == 2
+    for observed, expected in zip(batched_results, serial_results, strict=True):
+        assert observed.classifier_labels is not None
+        assert expected.classifier_labels is not None
+        assert np.array_equal(observed.classifier_labels, expected.classifier_labels)
+        assert np.allclose(observed.probabilities, expected.probabilities, atol=1.0e-12)
+        assert observed.cell_likelihood_metrics == pytest.approx(
+            expected.cell_likelihood_metrics,
+            abs=1.0e-12,
+            rel=1.0e-12,
+        )
+
+
+def test_tab_foundry_classifier_batched_hook_falls_back_to_serial_for_incompatible_folds(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _BatchedSandwichClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_sandwich",
+        input_normalization="none",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "sandwich_batched_fallback.pt"
+    torch.save(
+        {"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    folds = [
+        benchmark_metrics_module.BenchmarkClassificationFold(
+            fold_id=0,
+            dataset_name="wide2",
+            x_train=np.asarray([[0.0, 0.0], [1.0, 1.0], [0.0, 0.0], [1.0, 1.0]], dtype=np.float32),
+            y_train=np.asarray([0, 1, 0, 1], dtype=np.int64),
+            x_test=np.asarray([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32),
+            y_test=np.asarray([0, 1], dtype=np.int64),
+            labels=np.asarray([0, 1], dtype=np.int64),
+            feature_types=["floating", "floating"],
+        ),
+        benchmark_metrics_module.BenchmarkClassificationFold(
+            fold_id=1,
+            dataset_name="wide3",
+            x_train=np.asarray(
+                [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                dtype=np.float32,
+            ),
+            y_train=np.asarray([0, 1, 0, 1], dtype=np.int64),
+            x_test=np.asarray([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=np.float32),
+            y_test=np.asarray([0, 1], dtype=np.int64),
+            labels=np.asarray([0, 1], dtype=np.int64),
+            feature_types=["floating", "floating", "floating"],
+        ),
+    ]
+
+    _ = benchmark_metrics_module._evaluate_classifier_folds(classifier, folds)
+
+    assert len(model.forward_batches) == 2
+    assert len(model.cell_likelihood_batches) == 2
+    assert all(batch.x_test.ndim == 2 for batch in model.forward_batches)
 
 
 def test_tab_foundry_classifier_sandwich_benchmark_paths_honor_checkpoint_input_normalization(

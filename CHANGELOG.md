@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.8] - 2026-04-04
+
+### Changed
+
+- User-facing note: `tab-foundry` checkpoint benchmark evaluation now batches
+  compatible `tabfoundry_sandwich` classification folds during the internal
+  OpenML replay path, materially reducing benchmark wall-clock without changing
+  benchmark outputs or artifact schemas.
+- User-facing note: `tab-foundry bench env bootstrap` now links a local
+  `tab-realdata-hub/src` checkout explicitly into the TabICLv2 helper
+  environment on Python 3.13 sibling setups, so local benchmark compare runs do
+  not fail on missing helper imports when the repo root is available.
+
+## [0.16.7] - 2026-04-04
+
+### Changed
+
+- User-facing note: `tab-foundry --help` and the heavy `bench` / `research`
+  help surfaces now lazy-load their command trees, reducing CLI startup work
+  without changing command names or flags.
+- User-facing note: `tab-foundry dev run-inspect` and the underlying health
+  heuristics now populate the existing `upper_block_*` sandwich metrics from
+  sandwich stage activations instead of leaving them null on the active
+  `tabfoundry_sandwich` classification path.
+- User-facing note: Iris smoke now treats `train_outputs/summary.md` as the
+  canonical run summary artifact while preserving the smoke-root `summary.md`
+  as a compatibility copy, so `tab-foundry dev run-inspect --run-dir .../train_outputs`
+  can discover the summary directly.
+- User-facing note: multi-seed external benchmark summaries now report scalar
+  `best_*` / `final_*` metrics from the same seed-averaged curve used to choose
+  `best_step` and `final_step`, preventing nanoTabPFN and TabICLv2 summary
+  values from disagreeing with their averaged per-dataset metrics.
+
 ## [0.16.6] - 2026-04-03
 
 ### Added

@@ -10,9 +10,8 @@ from typing import Any, Mapping, cast
 from tab_foundry.repo_paths import resolve_repo_relative_path
 
 from .instability import (
-    _UPPER_BLOCK_END,
-    _UPPER_BLOCK_START,
     _mean_or_none,
+    _upper_block_activation_names,
     _warmup_end_step,
     _windowed_gradient_records,
     build_training_telemetry,
@@ -103,10 +102,12 @@ def _upper_block_final_to_early_ratio(
     windows = _windowed_gradient_records(gradient_records, warmup_end_step=warmup_end_step)
     early_records = windows["early_1_25"]
     final_records = windows["final_10pct"]
-    block_names = [
-        f"post_transformer_block_{block_index}"
-        for block_index in range(_UPPER_BLOCK_START, _UPPER_BLOCK_END + 1)
-    ]
+    block_names = _upper_block_activation_names(
+        gradient_records,
+        training_surface_record=training_surface_record,
+    )
+    if not block_names:
+        return None
     early_values: list[float] = []
     final_values: list[float] = []
     for record in early_records:

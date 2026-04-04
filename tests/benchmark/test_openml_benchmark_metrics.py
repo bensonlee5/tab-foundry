@@ -142,6 +142,120 @@ class _CountAwareCellLikelihoodClassifier:
         }
 
 
+class _BatchCapablePerfectClassifier:
+    def __init__(self) -> None:
+        self.fit_calls = 0
+        self.batched_group_sizes: list[int] = []
+
+    def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_BatchCapablePerfectClassifier":
+        _ = x_train
+        self.fit_calls += 1
+        self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
+        return self
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        labels = np.asarray(x_test[:, 0], dtype=np.int64)
+        probabilities = np.zeros((labels.shape[0], int(self.classes_.size)), dtype=np.float64)
+        class_to_index = {int(label): index for index, label in enumerate(self.classes_.tolist())}
+        for row_index, label in enumerate(labels.tolist()):
+            probabilities[row_index, class_to_index[int(label)]] = 1.0
+        return probabilities
+
+    def evaluate_benchmark_folds_batched(
+        self,
+        folds: list[benchmark_metrics_module.BenchmarkClassificationFold],
+    ) -> list[benchmark_metrics_module.BenchmarkClassificationFoldResult]:
+        self.batched_group_sizes.append(len(folds))
+        results: list[benchmark_metrics_module.BenchmarkClassificationFoldResult] = []
+        for fold in folds:
+            fold_labels = np.asarray(fold.x_test[:, 0], dtype=np.int64)
+            classifier_labels = np.unique(np.asarray(fold.y_train, dtype=np.int64))
+            probabilities = np.zeros(
+                (fold_labels.shape[0], int(classifier_labels.size)),
+                dtype=np.float64,
+            )
+            class_to_index = {
+                int(label): index for index, label in enumerate(classifier_labels.tolist())
+            }
+            for row_index, label in enumerate(fold_labels.tolist()):
+                probabilities[row_index, class_to_index[int(label)]] = 1.0
+            results.append(
+                benchmark_metrics_module.BenchmarkClassificationFoldResult(
+                    probabilities=probabilities,
+                    classifier_labels=classifier_labels,
+                )
+            )
+        return results
+
+
+class _BatchCapableCountAwareClassifier:
+    def __init__(self) -> None:
+        self.fit_calls = 0
+        self.batched_group_sizes: list[int] = []
+
+    def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_BatchCapableCountAwareClassifier":
+        _ = x_train
+        self.fit_calls += 1
+        self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
+        return self
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        _ = x_test
+        if int(self.classes_.size) != 2:
+            raise RuntimeError("test helper expects a binary dataset")
+        return np.repeat(
+            np.asarray([[0.5, 0.5]], dtype=np.float64),
+            repeats=x_test.shape[0],
+            axis=0,
+        )
+
+    def evaluate_benchmark_folds_batched(
+        self,
+        folds: list[benchmark_metrics_module.BenchmarkClassificationFold],
+    ) -> list[benchmark_metrics_module.BenchmarkClassificationFoldResult]:
+        self.batched_group_sizes.append(len(folds))
+        return [
+            benchmark_metrics_module.BenchmarkClassificationFoldResult(
+                probabilities=np.repeat(
+                    np.asarray([[0.5, 0.5]], dtype=np.float64),
+                    repeats=fold.x_test.shape[0],
+                    axis=0,
+                ),
+                classifier_labels=np.asarray([0, 1], dtype=np.int64),
+                cell_likelihood_metrics=_CountAwareCellLikelihoodClassifier().cell_likelihood_metrics(
+                    fold.x_test
+                ),
+            )
+            for fold in folds
+        ]
+
+
+class _BatchCapableEventuallyFailingClassifier:
+    def fit(
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+    ) -> "_BatchCapableEventuallyFailingClassifier":
+        _ = y_train
+        if bool(np.any(np.asarray(x_train[:, 0], dtype=np.float32) >= 2.0)):
+            raise RuntimeError("bad dataset")
+        self.classes_ = np.asarray([0, 1], dtype=np.int64)
+        return self
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        labels = np.asarray(x_test[:, 0], dtype=np.int64)
+        probabilities = np.zeros((labels.shape[0], 2), dtype=np.float64)
+        probabilities[np.arange(labels.shape[0]), labels] = 1.0
+        return probabilities
+
+    def evaluate_benchmark_folds_batched(
+        self,
+        folds: list[benchmark_metrics_module.BenchmarkClassificationFold],
+    ) -> list[benchmark_metrics_module.BenchmarkClassificationFoldResult]:
+        _ = folds
+        raise RuntimeError("force serial fallback")
+
+
 class _PerfectRegressor:
     def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_PerfectRegressor":
         _ = (x_train, y_train)
@@ -296,6 +410,137 @@ def test_evaluate_classifier_weights_bpc_and_bpf_by_returned_valid_counts() -> N
     assert metrics["sparse/BPF"] == pytest.approx(8.0)
     assert metrics["dense/BPF"] == pytest.approx(0.0)
     assert metrics["BPF"] == pytest.approx(8.0 / 3.0)
+
+
+def test_evaluate_classifier_batched_hook_matches_serial_metrics() -> None:
+    datasets = {
+        "binary": (
+            np.asarray(
+                [[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+        ),
+        "multi": (
+            np.asarray(
+                [
+                    [0.0],
+                    [1.0],
+                    [2.0],
+                    [0.0],
+                    [1.0],
+                    [2.0],
+                    [0.0],
+                    [1.0],
+                    [2.0],
+                    [0.0],
+                    [1.0],
+                    [2.0],
+                    [0.0],
+                    [1.0],
+                    [2.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 2] * 5, dtype=np.int64),
+        ),
+    }
+
+    expected = benchmark_module.evaluate_classifier(_PerfectClassifier(), datasets)
+    classifier = _BatchCapablePerfectClassifier()
+    observed = benchmark_module.evaluate_classifier(classifier, datasets)
+
+    assert classifier.fit_calls == 0
+    assert classifier.batched_group_sizes == [5, 5]
+    assert observed.keys() == expected.keys()
+    for key, value in expected.items():
+        assert observed[key] == pytest.approx(value, abs=1.0e-12, rel=1.0e-12)
+
+
+def test_evaluate_classifier_batched_hook_matches_serial_bpc_and_bpf() -> None:
+    datasets = {
+        "sparse": (
+            np.asarray(
+                [
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+            ["floating", "floating"],
+        ),
+        "dense": (
+            np.asarray(
+                [
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+            ["floating", "floating"],
+        ),
+    }
+
+    expected = benchmark_module.evaluate_classifier(
+        _CountAwareCellLikelihoodClassifier(),
+        datasets,
+        allow_missing_values=True,
+    )
+    classifier = _BatchCapableCountAwareClassifier()
+    observed = benchmark_module.evaluate_classifier(
+        classifier,
+        datasets,
+        allow_missing_values=True,
+    )
+
+    assert classifier.fit_calls == 0
+    assert classifier.batched_group_sizes == [10]
+    assert observed.keys() == expected.keys()
+    for key, value in expected.items():
+        assert observed[key] == pytest.approx(value, abs=1.0e-12, rel=1.0e-12)
+
+
+def test_evaluate_classifier_batched_fallback_preserves_dataset_scoped_errors() -> None:
+    datasets = {
+        "good": (
+            np.asarray(
+                [[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+        ),
+        "bad": (
+            np.asarray(
+                [[2.0], [3.0], [2.0], [3.0], [2.0], [3.0], [2.0], [3.0], [2.0], [3.0]],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+        ),
+    }
+
+    with pytest.raises(benchmark_module.BenchmarkDatasetEvaluationError, match="'bad'") as exc_info:
+        _ = benchmark_module.evaluate_classifier(_BatchCapableEventuallyFailingClassifier(), datasets)
+
+    assert exc_info.value.dataset_name == "bad"
+    assert exc_info.value.error_type == "RuntimeError"
 
 
 def test_classification_brier_score_matches_expected_binary_value() -> None:

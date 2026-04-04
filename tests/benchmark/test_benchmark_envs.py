@@ -26,6 +26,9 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     synced: list[Path] = []
     installed: list[tuple[Path, str]] = []
     validated: list[tuple[Path, str]] = []
+    linked_src_roots: list[tuple[Path, Path, str]] = []
+    linked_src_roots: list[tuple[Path, Path, str]] = []
+    linked_src_roots: list[tuple[Path, Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda root: synced.append(root))
     monkeypatch.setattr(env_module, "_python_version_info", lambda _python_path: (3, 14))
@@ -38,6 +41,27 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
         env_module,
         "_validate_import",
         lambda python_path, module_name: validated.append((python_path, module_name)),
+    )
+    monkeypatch.setattr(
+        env_module,
+        "_install_explicit_src_root_path",
+        lambda python_path, *, src_root, module_name: linked_src_roots.append(
+            (python_path, src_root, module_name)
+        ),
+    )
+    monkeypatch.setattr(
+        env_module,
+        "_install_explicit_src_root_path",
+        lambda python_path, *, src_root, module_name: linked_src_roots.append(
+            (python_path, src_root, module_name)
+        ),
+    )
+    monkeypatch.setattr(
+        env_module,
+        "_install_explicit_src_root_path",
+        lambda python_path, *, src_root, module_name: linked_src_roots.append(
+            (python_path, src_root, module_name)
+        ),
     )
 
     summary = env_module.bootstrap_benchmark_envs(

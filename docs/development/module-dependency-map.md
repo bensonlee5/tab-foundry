@@ -18,7 +18,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.benchmark_registry`,
   `tab_foundry.input_normalization`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.registry`,
-  `tab_foundry.repo_paths`,
+  `tab_foundry.repo_paths`, `tab_foundry.task_batching`,
   `tab_foundry.timestamps`, `tab_foundry.training`, and
   `tab_foundry.types`.
 - `tab_foundry.benchmark_registry` depends on `tab_foundry.registry` and

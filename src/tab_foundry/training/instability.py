@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -94,6 +95,7 @@ _SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = (
     "cell_decoder_blocks",
 )
 _GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
+_SANDWICH_STAGE_SELF_RE = re.compile(r"post_stage_(\d+)_self\Z")
 
 
 def _utc_now() -> str:
@@ -629,6 +631,7 @@ def _activation_summary(
     records: Sequence[Mapping[str, Any]],
     *,
     warmup_end_step: int,
+    training_surface_record: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     windows = _windowed_gradient_records(records, warmup_end_step=warmup_end_step)
     tracked: dict[str, Any] = {}
@@ -669,33 +672,88 @@ def _activation_summary(
         "upper_transformer_blocks": _upper_transformer_block_summary(
             records,
             warmup_end_step=warmup_end_step,
+            training_surface_record=training_surface_record,
         ),
     }
 
 
-def _upper_transformer_block_summary(
+def _training_surface_model_arch(training_surface_record: Mapping[str, Any] | None) -> str:
+    if not isinstance(training_surface_record, Mapping):
+        return ""
+    raw_model = training_surface_record.get("model")
+    if not isinstance(raw_model, Mapping):
+        return ""
+    raw_arch = raw_model.get("arch")
+    return "" if raw_arch is None else str(raw_arch).strip().lower()
+
+
+def _training_surface_loss_surface(training_surface_record: Mapping[str, Any] | None) -> str:
+    if not isinstance(training_surface_record, Mapping):
+        return ""
+    raw_training = training_surface_record.get("training")
+    if not isinstance(raw_training, Mapping):
+        return ""
+    raw_loss_surface = raw_training.get("loss_surface")
+    return "" if raw_loss_surface is None else str(raw_loss_surface).strip().lower()
+
+
+def _is_sandwich_classification_surface(training_surface_record: Mapping[str, Any] | None) -> bool:
+    return _training_surface_model_arch(training_surface_record) == "tabfoundry_sandwich" and (
+        _training_surface_loss_surface(training_surface_record) != "cell_bpc"
+    )
+
+
+def _upper_block_activation_names(
     records: Sequence[Mapping[str, Any]],
     *,
-    warmup_end_step: int,
-) -> dict[str, Any]:
+    training_surface_record: Mapping[str, Any] | None = None,
+) -> list[str]:
     ordered = _sorted_records(records)
-    windows = _windowed_gradient_records(ordered, warmup_end_step=warmup_end_step)
     activation_history = _mapping_value_history(ordered, key="activation_norms")
     transformer_block_names = [
         activation_name
         for activation_name in activation_history
         if activation_name.startswith("post_transformer_block_")
     ]
-    selected_names = [
-        activation_name
-        for activation_name in sorted(
-            transformer_block_names,
-            key=lambda name: int(name.removeprefix("post_transformer_block_")),
-        )
-        if _UPPER_BLOCK_START
-        <= int(activation_name.removeprefix("post_transformer_block_"))
-        <= _UPPER_BLOCK_END
-    ]
+    if transformer_block_names:
+        return [
+            activation_name
+            for activation_name in sorted(
+                transformer_block_names,
+                key=lambda name: int(name.removeprefix("post_transformer_block_")),
+            )
+            if _UPPER_BLOCK_START
+            <= int(activation_name.removeprefix("post_transformer_block_"))
+            <= _UPPER_BLOCK_END
+        ]
+
+    sandwich_stage_names: list[tuple[int, str]] = []
+    for activation_name in activation_history:
+        match = _SANDWICH_STAGE_SELF_RE.fullmatch(activation_name)
+        if match is None:
+            continue
+        sandwich_stage_names.append((int(match.group(1)), activation_name))
+    if not sandwich_stage_names:
+        return []
+    if training_surface_record is not None and not _is_sandwich_classification_surface(
+        training_surface_record
+    ):
+        return []
+    return [activation_name for _index, activation_name in sorted(sandwich_stage_names)]
+
+
+def _upper_transformer_block_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+    training_surface_record: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    ordered = _sorted_records(records)
+    windows = _windowed_gradient_records(ordered, warmup_end_step=warmup_end_step)
+    selected_names = _upper_block_activation_names(
+        ordered,
+        training_surface_record=training_surface_record,
+    )
     if not selected_names:
         return {
             "block_names": [],
@@ -800,6 +858,7 @@ def diagnostics_summary(
         "activation_windows": _activation_summary(
             ordered,
             warmup_end_step=warmup_end_step,
+            training_surface_record=training_surface_record,
         ),
     }
 
