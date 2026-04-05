@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 from typing import Any
@@ -17,6 +18,7 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 import tab_foundry.data.corpus_materialization_batch as corpus_materialization_batch_module
 import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 import tab_foundry.data.corpus_materialization_recipe_worker as recipe_worker_module
+import tab_foundry.data.corpus_materialization_shared as corpus_materialization_shared_module
 from tab_foundry.data.corpus_loading import (
     _generator_fingerprint,
     build_dagzoo_provenance_summary,
@@ -2056,6 +2058,63 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
     assert len(catalog_lines) == 1
     assert set(train_dataset_indices) == {0}
     assert set(test_dataset_indices) == {0}
+
+
+def test_copy_curated_round_shards_uses_snapshot_links_for_full_shards(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    round_curated_dir = tmp_path / "round_curated"
+    final_curated_dir = tmp_path / "final_curated"
+    shard_dir = round_curated_dir / "shard_00000"
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    datasets: list[dict[str, Any]] = []
+    for dataset_index, seed in enumerate((1101, 1102), start=0):
+        x_train, y_train, x_test, y_test = cases._classification_arrays(seed=seed)
+        metadata = cases._classification_metadata(
+            n_features=x_train.shape[1],
+            seed=seed,
+            filter_status="accepted",
+            filter_accepted=True,
+        )
+        metadata["dataset_id"] = f"{seed:032x}"
+        datasets.append(
+            {
+                "dataset_index": dataset_index,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "feature_types": ["floating"] * x_train.shape[1],
+                "metadata": metadata,
+            }
+        )
+    cases._write_packed_shard(shard_dir, datasets=datasets)
+
+    recorded_links: list[tuple[Path, Path]] = []
+    real_link = os.link
+
+    def _record_link(src: str | os.PathLike[str], dst: str | os.PathLike[str], *args, **kwargs) -> None:
+        source_path = Path(src)
+        destination_path = Path(dst)
+        recorded_links.append((source_path, destination_path))
+        real_link(source_path, destination_path, *args, **kwargs)
+
+    monkeypatch.setattr(corpus_materialization_shared_module.os, "link", _record_link)
+
+    next_shard_index, copied_datasets = corpus_materialization_invocation_module._copy_curated_round_shards(
+        round_curated_dir=round_curated_dir,
+        final_curated_dir=final_curated_dir,
+        next_shard_index=0,
+        max_datasets=None,
+    )
+
+    destination_shard = final_curated_dir / "shard_00000"
+    assert next_shard_index == 1
+    assert copied_datasets == 2
+    assert recorded_links
+    assert (destination_shard / "train.parquet").stat().st_ino == (shard_dir / "train.parquet").stat().st_ino
+    assert (destination_shard / "test.parquet").stat().st_ino == (shard_dir / "test.parquet").stat().st_ino
 
 
 def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(

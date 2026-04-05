@@ -10,7 +10,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
-import shutil
 import subprocess
 import sys
 import time
@@ -45,6 +44,7 @@ from .corpus_materialization_shared import (
     _read_json_mapping,
     _resolve_materialize_processes,
     _resolve_materialize_worker_threads,
+    _snapshot_tree,
 )
 from .dagzoo_workflow import (
     DagzooFilterConfig,
@@ -446,7 +446,7 @@ def _copy_curated_round_shards(
         if not catalog_lines:
             continue
         if remaining_datasets is None or len(catalog_lines) <= remaining_datasets:
-            shutil.copytree(resolved_shard_dir, destination)
+            _snapshot_tree(resolved_shard_dir, destination)
             copied_in_shard = len(catalog_lines)
         else:
             selected_lines = catalog_lines[:remaining_datasets]

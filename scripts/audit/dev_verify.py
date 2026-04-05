@@ -107,6 +107,7 @@ CHECK_SPECS: dict[str, CheckSpec] = {
             (str(VENV_PYTHON), "scripts/audit/check_repo_paths.py"),
             (str(VENV_PYTHON), "scripts/audit/check_markdown_links.py"),
             (str(VENV_PYTHON), "scripts/audit/check_docs_consistency.py"),
+            (str(VENV_PYTHON), "scripts/audit/check_roadmap_issue_sync.py"),
             (str(VENV_PYTHON), "scripts/audit/module_graph.py", "--fail-on-doc-drift"),
         ),
     ),

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.11] - 2026-04-05
+
+### Changed
+
+- Internal note: accepted-only corpus materialization now snapshots full
+  curated shards during invocation promotion instead of always duplicating
+  them, reducing repo-local materialization copy overhead without changing
+  manifests, curated counts, or dataset artifacts.
+- Internal note: docs-site validation now requires generated Hugo inputs to be
+  synced before source-link checks, and repo-local audit verification now fails
+  if open GitHub issues drift out of `docs/development/roadmap.md`.
+
 ## [0.16.10] - 2026-04-05
 
 ### Changed

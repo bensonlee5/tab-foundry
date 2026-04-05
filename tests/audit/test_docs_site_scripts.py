@@ -283,6 +283,48 @@ def test_check_links_reports_invalid_relref_shortcode_target(tmp_path: Path) -> 
     ]
 
 
+def test_check_links_reports_missing_generated_scan_root_with_sync_hint(tmp_path: Path) -> None:
+    (tmp_path / "site" / "content" / "docs").mkdir(parents=True)
+    (tmp_path / "site" / "hugo.yaml").write_text(
+        "baseURL: https://example.com/tab-foundry/\n",
+        encoding="utf-8",
+    )
+
+    errors = check_links.scan_links(tmp_path, ["site/content", "site/.generated/content"])
+
+    assert errors == [
+        (
+            tmp_path / "site" / ".generated" / "content",
+            0,
+            "missing scan root (run `.venv/bin/python scripts/docs/sync_hugo_content.py` first)",
+        )
+    ]
+
+
+def test_check_links_reports_generated_docs_route_with_sync_hint(tmp_path: Path) -> None:
+    (tmp_path / "site" / "content" / "docs").mkdir(parents=True)
+    (tmp_path / "site" / ".generated" / "content").mkdir(parents=True)
+    (tmp_path / "site" / "hugo.yaml").write_text(
+        "baseURL: https://example.com/tab-foundry/\n",
+        encoding="utf-8",
+    )
+    page = tmp_path / "site" / "content" / "docs" / "page.md"
+    page.write_text(
+        '[bad]({{< relref "/docs/getting-started/repo-overview.md" >}})\n',
+        encoding="utf-8",
+    )
+
+    errors = check_links.scan_links(tmp_path, ["site/content", "site/.generated/content"])
+
+    assert errors == [
+        (
+            page,
+            1,
+            "/docs/getting-started/repo-overview.md (generated docs route unresolved; run `.venv/bin/python scripts/docs/sync_hugo_content.py` first)",
+        )
+    ]
+
+
 def test_check_built_output_links_reports_missing_routes_and_generated_source_links(tmp_path: Path) -> None:
     (tmp_path / "site" / "public").mkdir(parents=True)
     (tmp_path / "site" / "hugo.yaml").write_text(

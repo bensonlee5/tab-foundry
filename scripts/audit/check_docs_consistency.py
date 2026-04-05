@@ -128,6 +128,7 @@ README_CLI_TREE_ERROR = (
     "README must not duplicate a hand-maintained CLI tree; use "
     "packaged CLI `--help` for live commands and `docs/workflows.md` for examples"
 )
+AUDIT_ARTIFACT_RE = re.compile(r"^docs/development/.*audit.*\.md$")
 
 
 def _iter_markdown_files(root: Path) -> Iterable[Path]:
@@ -298,6 +299,10 @@ def _validate_agents_doc_contract(path: Path, lines: list[str]) -> list[tuple[in
     return errors
 
 
+def _is_audit_artifact(path_rel: str) -> bool:
+    return AUDIT_ARTIFACT_RE.match(path_rel) is not None
+
+
 def scan_docs_consistency(
     repo_root: Path = REPO_ROOT,
     roots: Iterable[str] = DEFAULT_ROOTS,
@@ -315,6 +320,8 @@ def scan_docs_consistency(
             lines = path.read_text(encoding="utf-8").splitlines()
             if path_rel == "AGENTS.md":
                 errors.extend((path, lineno, message) for lineno, message in _validate_agents_doc_contract(path, lines))
+                continue
+            if _is_audit_artifact(path_rel):
                 continue
             readme_cli_tree_error = _find_disallowed_readme_cli_tree(path, lines)
             if readme_cli_tree_error is not None:

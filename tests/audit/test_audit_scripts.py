@@ -40,6 +40,10 @@ check_version_bump = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "check_version_bump.py",
     "check_version_bump_script",
 )
+check_roadmap_issue_sync = _load_script_module(
+    REPO_ROOT / "scripts" / "audit" / "check_roadmap_issue_sync.py",
+    "check_roadmap_issue_sync_script",
+)
 bump_version = _load_script_module(
     REPO_ROOT / "scripts" / "bump_version.py",
     "bump_version_script",
@@ -136,6 +140,68 @@ def test_docs_consistency_audit_passes_on_repo_docs() -> None:
     errors = check_docs_consistency.scan_docs_consistency(
         REPO_ROOT,
         check_docs_consistency.DEFAULT_ROOTS,
+    )
+
+    assert errors == []
+
+
+def test_check_roadmap_issue_sync_groups_missing_open_issues_by_family() -> None:
+    linked_issue_numbers = {168, 233}
+    open_issues = (
+        check_roadmap_issue_sync.OpenIssue(
+            168,
+            "[TF-RD-022] Performance optimization on the settled sandwich runtime surface before classification scaling",
+        ),
+        check_roadmap_issue_sync.OpenIssue(
+            221,
+            "[TF-RD-023] Simplify non-model infrastructure around W&B and repo-minimal contracts",
+        ),
+        check_roadmap_issue_sync.OpenIssue(
+            229,
+            "[TF-RD-009] Write the classification-first scaling-law design note for the carried sandwich target",
+        ),
+    )
+
+    missing = check_roadmap_issue_sync.group_missing_open_issues(
+        linked_issue_numbers=linked_issue_numbers,
+        open_issues=open_issues,
+    )
+
+    assert missing == {
+        "TF-RD-009": (open_issues[2],),
+        "TF-RD-023": (open_issues[1],),
+    }
+
+
+def test_check_roadmap_issue_sync_parses_github_remote_urls() -> None:
+    assert check_roadmap_issue_sync._parse_repo_slug("git@github.com:bensonlee5/tab-foundry.git") == (
+        "bensonlee5",
+        "tab-foundry",
+    )
+    assert check_roadmap_issue_sync._parse_repo_slug("https://github.com/bensonlee5/tab-foundry") == (
+        "bensonlee5",
+        "tab-foundry",
+    )
+
+
+def test_docs_consistency_ignores_audit_artifacts(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "development").mkdir(parents=True)
+    (tmp_path / "docs" / "development" / "docs-issues-audit-demo.md").write_text(
+        "\n".join(
+            [
+                "# Audit",
+                "",
+                "- `tab-foundry dev --help`",
+                ".venv/bin/python scripts/docs/check_links.py",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(
+        tmp_path,
+        ["docs/development"],
     )
 
     assert errors == []

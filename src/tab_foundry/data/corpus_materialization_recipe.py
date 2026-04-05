@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
 import shutil
 from typing import Any, cast
@@ -35,6 +34,7 @@ from .corpus_materialization_shared import (
     _git_info,
     _int_or_none,
     _read_json_mapping,
+    _snapshot_tree,
 )
 from .manifest_characteristics import inspect_manifest_summary
 from . import corpus_materialization_invocation as invocation_module
@@ -296,27 +296,6 @@ def build_staged_corpus_manifest(
         dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
     )
     return resolved_out_manifest_path
-
-
-def _snapshot_file(source_path: Path, destination_path: Path) -> None:
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-    if source_path.is_symlink():
-        destination_path.symlink_to(os.readlink(source_path))
-        return
-    try:
-        os.link(source_path, destination_path)
-    except OSError:
-        shutil.copy2(source_path, destination_path)
-
-
-def _snapshot_tree(source_root: Path, destination_root: Path) -> None:
-    destination_root.mkdir(parents=True, exist_ok=True)
-    for source_path in sorted(source_root.iterdir(), key=lambda path: path.name):
-        destination_path = destination_root / source_path.name
-        if source_path.is_dir() and not source_path.is_symlink():
-            _snapshot_tree(source_path, destination_path)
-            continue
-        _snapshot_file(source_path, destination_path)
 
 
 def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:

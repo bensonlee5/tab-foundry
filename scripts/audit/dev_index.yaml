@@ -18,6 +18,8 @@ path_rules:
     globs:
       - scripts/dev
       - scripts/audit/**
+      - scripts/docs/**
+      - site/**
       - tests/audit/**
       - docs/development/module-dependency-map.md
     checks:

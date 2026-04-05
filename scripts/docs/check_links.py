@@ -46,6 +46,7 @@ SKIP_PREFIXES = (
     "data:",
     "//",
 )
+_SYNC_COMMAND = ".venv/bin/python scripts/docs/sync_hugo_content.py"
 
 
 def _read_text(path: Path) -> str:
@@ -164,6 +165,22 @@ def _is_authored_site_content(repo_root: Path, path: Path) -> bool:
         return False
 
 
+def _generated_docs_route_hint(repo_root: Path, path: Path, target: str, base_path: str) -> str | None:
+    if not _is_authored_site_content(repo_root, path):
+        return None
+    normalized = target
+    if target.startswith("/"):
+        stripped = _strip_base_path(target, base_path)
+        if stripped is not None:
+            normalized = stripped
+    route = normalized.lstrip("/")
+    if "\\" in route:
+        return None
+    if not route.startswith("docs/"):
+        return None
+    return f"{target} (generated docs route unresolved; run `{_SYNC_COMMAND}` first)"
+
+
 def _root_absolute_policy_violation(repo_root: Path, path: Path, target: str, base_path: str) -> bool:
     if not _is_authored_site_content(repo_root, path):
         return False
@@ -204,7 +221,10 @@ def scan_links(repo_root: Path = REPO_ROOT, roots: Iterable[str] = DEFAULT_ROOTS
     for root_rel in roots:
         root = repo_root / root_rel
         if not root.exists():
-            errors.append((root, 0, "missing scan root"))
+            if root_rel == "site/.generated/content":
+                errors.append((root, 0, f"missing scan root (run `{_SYNC_COMMAND}` first)"))
+            else:
+                errors.append((root, 0, "missing scan root"))
             continue
         for path in _iter_doc_files(root):
             suffix = path.suffix.lower()
@@ -237,7 +257,13 @@ def scan_links(repo_root: Path = REPO_ROOT, roots: Iterable[str] = DEFAULT_ROOTS
                         )
                         continue
                     if not _exists_target(repo_root, path, target_path, base_path):
-                        errors.append((path, lineno, target))
+                        hinted_target = _generated_docs_route_hint(
+                            repo_root,
+                            path,
+                            target,
+                            base_path,
+                        )
+                        errors.append((path, lineno, hinted_target or target))
     return errors
 
 
