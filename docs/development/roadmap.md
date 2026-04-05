@@ -138,14 +138,13 @@ summarized later instead of occupying the active queue.
 
 | Rank | Roadmap ID | Item | Status | Milestone |
 | ---- | ---------- | ---- | ------ | --------- |
-| 1 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | partial | Next |
-| 2 | TF-RD-024 | Post-performance architecture-knob sweep on the classification-first sandwich target | planned | Next |
-| 3 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
-| 4 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
-| 5 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Later |
-| 6 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | research | Later |
-| 7 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
-| 8 | TF-RD-012 | Inference handoff and later modalities | research | Later |
+| 1 | TF-RD-024 | Post-performance architecture-knob sweep on the classification-first sandwich target | planned | Next |
+| 2 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 3 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
+| 4 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Later |
+| 5 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | research | Later |
+| 6 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
+| 7 | TF-RD-012 | Inference handoff and later modalities | research | Later |
 
 ## Dependency Graph
 
@@ -190,7 +189,7 @@ flowchart TD
     class DZ002,DZ005,RD021,RD012,RD015,RD017 later;
 ```
 
-Current path: **TF-RD-022 → TF-RD-024 → TF-RD-009** on the closed TF-RD-010 benchmark contract.
+Current path: **TF-RD-024 → TF-RD-009** on the closed TF-RD-010 benchmark contract with TF-RD-022 closed as the inherited runtime and materialization gate.
 
 - TF-RD-016 is now completed historical context: issue
   [#178](https://github.com/bensonlee5/tab-foundry/issues/178) closes on the
@@ -235,9 +234,10 @@ Current path: **TF-RD-022 → TF-RD-024 → TF-RD-009** on the closed TF-RD-010 
   stability remain guardrails on the active CE-based path.
 - TF-RD-021, dagzoo RD-002, and dagzoo RD-005 are now sidecar synthetic-data
   work rather than blockers on the main `tab-foundry` architecture path.
-- TF-RD-022 is the next hard pre-scaling gate after TF-RD-010: it must hand
-  back one measured kernel/runtime policy on the closed medium/large benchmark
-  contract before broader scaling fits open.
+- TF-RD-022 is now completed as the hard pre-scaling gate after TF-RD-010: it
+  hands back one measured kernel/runtime policy on the closed medium/large
+  benchmark contract plus explicit training, benchmark, and materialization
+  performance outcomes before broader scaling fits open.
 - TF-RD-024 then runs one bounded post-performance architecture-knob sweep on
   that inherited TF-RD-022 runtime policy, using medium as the screening rung
   and the closed large benchmark as the validation rung for any keep signal.
@@ -263,7 +263,7 @@ Parallel/later lanes are intentionally off that main path:
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, and the prior-trained PFN-facing benchmark lane are all stable | Keep that lane clearly separate from the architecture target | `TF-RD-001` |
 | Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, TF-RD-020 settled harder-front winners that can seed the sandwich benchmark program, and dagzoo epics [#249](https://github.com/bensonlee5/dagzoo/issues/249) and [#247](https://github.com/bensonlee5/dagzoo/issues/247) define later surface-expansion work | Keep TF-RD-021 and dagzoo RD-002/RD-005 as sidecar synthetic-data context while TF-RD-022 and TF-RD-024 execute on the closed TF-RD-010 benchmark contract | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
-| Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, `tab-foundry dev run-inspect` now exposes compact runtime and regime-budget summaries, sweep summaries now carry compact runtime columns, and the repo already has bf16/checkpointing-capable runtime plumbing plus a named TF-RD-022 runtime-policy surface | TF-RD-022 still needs to turn those read surfaces into one explicit 80 GB A100-safe kernel/runtime policy on the closed TF-RD-010 classification benchmark contract | `TF-RD-022` |
+| Runtime, VRAM, and materialization timing are measurable | `implemented` | Training and registry artifacts preserve runtime-summary and regime-budget fields, `tab-foundry dev run-inspect` exposes compact runtime and regime-budget summaries, sweep summaries carry compact runtime columns, the repo now has a named TF-RD-022 runtime-policy surface, and corpus records now preserve invocation and recipe-level materialization timing attribution | Use the closed TF-RD-022 runtime and materialization record as the inherited surface for TF-RD-024 and TF-RD-009 rather than reopening runtime-policy selection | `TF-RD-022`, `TF-RD-024`, `TF-RD-009` |
 | Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, `medium_v5` now records the sorted-control replay, and `large_v2` now records the local large-rung replay | `implemented` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` now records the completed sorted-order control replay under [#202](https://github.com/bensonlee5/tab-foundry/issues/202) at `0.6849303354`, and `large_v2` now records the completed local all-rows benchmark-only large replay under [#203](https://github.com/bensonlee5/tab-foundry/issues/203) with control `0.8974410961`, `mcar=0.9155278224`, `mar=0.9418792099`, and `mnar=0.9411754209` | TF-RD-010 now explicitly keeps the original `medium_v4` control (`0.6811727401`) over the worse sorted-order `medium_v5` replay (`0.6849303354`), and the completed `large_v2` replay preserves the same ordering with control best on the harder rung. Later lanes inherit that closed benchmark contract and the no-missingness-promotion read, while the canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-022`, `TF-RD-024`, `TF-RD-014`, `TF-RD-017` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains the next follow-on missingness lane after the first scaling pass, while TF-RD-017 still needs an explicit later imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
@@ -564,8 +564,8 @@ Legacy wording note:
 
 ### TF-RD-022: Performance Optimization On The Settled Sandwich Runtime Surface Before Classification Scaling
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `completed`
+- Milestone: `Completed`
 - Goal: close the bounded training, benchmark, and materialization performance
   questions that remain after runtime-policy selection, so later scaling work
   inherits one settled runtime surface and explicit keep or defer reads on the
@@ -581,9 +581,10 @@ Legacy wording note:
   - epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now
     tracks performance optimization on the settled runtime surface, with
     completed training-throughput child
-    [#239](https://github.com/bensonlee5/tab-foundry/issues/239) and open
-    benchmark/materialization children
-    [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
+    [#239](https://github.com/bensonlee5/tab-foundry/issues/239), completed
+    benchmark-throughput child
+    [#240](https://github.com/bensonlee5/tab-foundry/issues/240), and
+    completed corpus-materialization child
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
   - the sandwich architecture lane still lives under issue
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178), with issue
@@ -641,17 +642,29 @@ Legacy wording note:
     benchmark-safe across the tracked metrics, so `#239` closes as a
     decomposition-backed defer and the carried runtime policy remains
     unchanged
+  - issue [#240](https://github.com/bensonlee5/tab-foundry/issues/240) is now
+    completed: the serial medium benchmark evaluator was replaced with the
+    kept batched sandwich checkpoint path, closing the bounded benchmark-speed
+    lane on the inherited TF-RD-022 runtime surface
+  - issue [#241](https://github.com/bensonlee5/tab-foundry/issues/241) is now
+    completed: invocation summaries and corpus records preserve generate,
+    filter, copy, manifest-build, promotion, and aggregate local-versus-upstream
+    timing reads for representative same-host attribution, while a same-host
+    microbenchmark on a completed accepted-only baseline invocation showed the
+    full-shard promotion step drop from `0.0463s` mean to `0.0224s` mean
+    across five repetitions (`2.06x` faster) with hardlinks confirmed and
+    copied dataset counts unchanged
+  - that measured full-shard promotion win is now kept as the bounded
+    repo-local materialization optimization, while the new materialization
+    timing surfaces let later runs attribute remaining wall time between local
+    orchestration and upstream dagzoo generate/filter work without reopening
+    TF-RD-022
 - this epic now follows the closed TF-RD-010 benchmark contract directly; it
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
   dagzoo RD-005, or broader regime-choice work
-- Required work:
-  - close the benchmark-throughput lane under issue
-    [#240](https://github.com/bensonlee5/tab-foundry/issues/240) with one
-    explicit keep or defer decision on the serial medium benchmark evaluator
-  - close the corpus-materialization-throughput lane under issue
-    [#241](https://github.com/bensonlee5/tab-foundry/issues/241) with one
-    explicit keep or defer decision plus local-versus-upstream bottleneck
-    attribution
+- Closeout:
+  - later TF-RD-024 and TF-RD-009 work now inherit the closed TF-RD-022
+    runtime policy and materialization timing surfaces directly
   - keep sandwich architecture ownership under historical implementation issue
     [#174](https://github.com/bensonlee5/tab-foundry/issues/174), active
     umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),

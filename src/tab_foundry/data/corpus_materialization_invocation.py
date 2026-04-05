@@ -10,7 +10,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
-import shutil
 import subprocess
 import sys
 import time
@@ -45,6 +44,7 @@ from .corpus_materialization_shared import (
     _read_json_mapping,
     _resolve_materialize_processes,
     _resolve_materialize_worker_threads,
+    _snapshot_tree,
 )
 from .dagzoo_workflow import (
     DagzooFilterConfig,
@@ -394,6 +394,44 @@ def _aggregate_handoff_provenance(
     return payload or None
 
 
+def _elapsed_seconds_since(start_time: float) -> float:
+    return max(0.0, float(time.perf_counter() - start_time))
+
+
+def _sum_elapsed_seconds(*values: float | None) -> float | None:
+    resolved = [
+        float(value)
+        for value in values
+        if value is not None and math.isfinite(float(value))
+    ]
+    if not resolved:
+        return None
+    return float(sum(resolved))
+
+
+def _datasets_per_minute(
+    *,
+    dataset_count: int | None,
+    elapsed_seconds: float | None,
+) -> float | None:
+    if dataset_count is None or elapsed_seconds is None or float(elapsed_seconds) <= 0.0:
+        return None
+    return float(dataset_count) / float(elapsed_seconds) * 60.0
+
+
+def _generated_datasets_from_handoff(
+    handoff: DagzooHandoffInfo,
+    *,
+    fallback: int,
+) -> int:
+    summary = handoff.to_summary_dict()
+    if isinstance(summary, Mapping):
+        resolved = _int_or_none(summary.get("generated_datasets"))
+        if resolved is not None and resolved >= 0:
+            return int(resolved)
+    return int(fallback)
+
+
 def _copy_curated_round_shards(
     *,
     round_curated_dir: Path,
@@ -446,7 +484,7 @@ def _copy_curated_round_shards(
         if not catalog_lines:
             continue
         if remaining_datasets is None or len(catalog_lines) <= remaining_datasets:
-            shutil.copytree(resolved_shard_dir, destination)
+            _snapshot_tree(resolved_shard_dir, destination)
             copied_in_shard = len(catalog_lines)
         else:
             selected_lines = catalog_lines[:remaining_datasets]
@@ -574,6 +612,7 @@ def _materialize_accepted_only_invocation(
     materialize_worker_threads: int | None = None,
     initial_expected_acceptance_rate: float | None = None,
 ) -> None:
+    invocation_start_time = time.perf_counter()
     invocation_root, _handoff_manifest_path = _invocation_paths(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
@@ -603,6 +642,7 @@ def _materialize_accepted_only_invocation(
         curated_accepted_datasets < accepted_target
         and total_generated_datasets < generated_budget_cap
     ):
+        round_start_time = time.perf_counter()
         remaining_generated_budget = generated_budget_cap - total_generated_datasets
         remaining_accepted_datasets = accepted_target - curated_accepted_datasets
         requested_generated_datasets = remaining_accepted_datasets
@@ -651,7 +691,9 @@ def _materialize_accepted_only_invocation(
             num_datasets=requested_generated_datasets,
             worker_threads=materialize_worker_threads,
         )
+        generate_start_time = time.perf_counter()
         handoff = run_dagzoo_generate(generate_config)
+        generate_elapsed_seconds = _elapsed_seconds_since(generate_start_time)
         filter_config = DagzooFilterConfig(
             dagzoo_root=dagzoo_root,
             input_dir=handoff.generated_dir,
@@ -659,7 +701,14 @@ def _materialize_accepted_only_invocation(
             curated_out_dir=round_root / "curated",
             worker_threads=materialize_worker_threads,
         )
+        filter_start_time = time.perf_counter()
         filter_result = run_dagzoo_filter(filter_config)
+        measured_filter_elapsed_seconds = _elapsed_seconds_since(filter_start_time)
+        filter_elapsed_seconds = (
+            float(filter_result.elapsed_seconds)
+            if filter_result.elapsed_seconds is not None
+            else float(measured_filter_elapsed_seconds)
+        )
         if filter_result.curated_out_dir is None:
             raise RuntimeError(
                 "dagzoo filter did not produce a curated output directory for accepted_only"
@@ -668,18 +717,31 @@ def _materialize_accepted_only_invocation(
         total_generated_datasets += int(filter_result.total_datasets)
         accepted_datasets += int(filter_result.accepted_datasets)
         rejected_datasets += int(filter_result.rejected_datasets)
+        copy_start_time = time.perf_counter()
         next_shard_index, committed_curated_datasets = _copy_curated_round_shards(
             round_curated_dir=filter_result.curated_out_dir,
             final_curated_dir=final_curated_root,
             next_shard_index=next_shard_index,
             max_datasets=accepted_target - curated_accepted_datasets,
         )
+        copy_elapsed_seconds = _elapsed_seconds_since(copy_start_time)
         curated_accepted_datasets += int(committed_curated_datasets)
         handoff_provenance = getattr(handoff, "provenance", None)
         if isinstance(handoff_provenance, Mapping):
             handoff_provenances.append(
                 {str(key): value for key, value in handoff_provenance.items()}
             )
+        round_elapsed_seconds = _elapsed_seconds_since(round_start_time)
+        upstream_elapsed_seconds = _sum_elapsed_seconds(
+            generate_elapsed_seconds,
+            filter_elapsed_seconds,
+        )
+        local_overhead_elapsed_seconds = max(
+            0.0,
+            float(round_elapsed_seconds)
+            - float(upstream_elapsed_seconds or 0.0)
+            - float(copy_elapsed_seconds),
+        )
         round_payloads.append(
             {
                 "round_index": round_index,
@@ -687,9 +749,17 @@ def _materialize_accepted_only_invocation(
                 "generated_datasets": int(filter_result.total_datasets),
                 "accepted_datasets": int(filter_result.accepted_datasets),
                 "rejected_datasets": int(filter_result.rejected_datasets),
+                "filter_curated_accepted_datasets": int(filter_result.curated_accepted_datasets),
                 "curated_accepted_datasets": int(committed_curated_datasets),
                 "filter_manifest_path": str(filter_result.manifest_path),
                 "filter_summary_path": str(filter_result.summary_path),
+                "generate_elapsed_seconds": float(generate_elapsed_seconds),
+                "filter_elapsed_seconds": float(filter_elapsed_seconds),
+                "filter_datasets_per_minute": filter_result.datasets_per_minute,
+                "copy_elapsed_seconds": float(copy_elapsed_seconds),
+                "upstream_elapsed_seconds": upstream_elapsed_seconds,
+                "local_overhead_elapsed_seconds": float(local_overhead_elapsed_seconds),
+                "round_elapsed_seconds": float(round_elapsed_seconds),
             }
         )
         if curated_accepted_datasets >= accepted_target:
@@ -723,6 +793,35 @@ def _materialize_accepted_only_invocation(
         materialize_worker_threads=materialize_worker_threads,
     )
 
+    total_generate_elapsed_seconds = _sum_elapsed_seconds(
+        *[
+            _float_or_none(round_payload.get("generate_elapsed_seconds"))
+            for round_payload in round_payloads
+        ]
+    )
+    total_filter_elapsed_seconds = _sum_elapsed_seconds(
+        *[
+            _float_or_none(round_payload.get("filter_elapsed_seconds"))
+            for round_payload in round_payloads
+        ]
+    )
+    total_copy_elapsed_seconds = _sum_elapsed_seconds(
+        *[
+            _float_or_none(round_payload.get("copy_elapsed_seconds"))
+            for round_payload in round_payloads
+        ]
+    )
+    invocation_elapsed_seconds = _elapsed_seconds_since(invocation_start_time)
+    upstream_elapsed_seconds = _sum_elapsed_seconds(
+        total_generate_elapsed_seconds,
+        total_filter_elapsed_seconds,
+    )
+    local_overhead_elapsed_seconds = max(
+        0.0,
+        float(invocation_elapsed_seconds)
+        - float(upstream_elapsed_seconds or 0.0)
+        - float(total_copy_elapsed_seconds or 0.0),
+    )
     materialization_summary_path = _invocation_materialization_summary_path(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
@@ -747,6 +846,12 @@ def _materialize_accepted_only_invocation(
                     if materialize_worker_threads is None
                     else int(materialize_worker_threads)
                 ),
+                "generate_elapsed_seconds": total_generate_elapsed_seconds,
+                "filter_elapsed_seconds": total_filter_elapsed_seconds,
+                "copy_elapsed_seconds": total_copy_elapsed_seconds,
+                "upstream_elapsed_seconds": upstream_elapsed_seconds,
+                "local_overhead_elapsed_seconds": float(local_overhead_elapsed_seconds),
+                "invocation_elapsed_seconds": float(invocation_elapsed_seconds),
                 "initial_expected_acceptance_rate": (
                     None
                     if initial_expected_acceptance_rate is None
@@ -761,8 +866,30 @@ def _materialize_accepted_only_invocation(
                         "generated_datasets": int(round_payload["generated_datasets"]),
                         "accepted_datasets": int(round_payload["accepted_datasets"]),
                         "rejected_datasets": int(round_payload["rejected_datasets"]),
+                        "filter_curated_accepted_datasets": int(
+                            round_payload["filter_curated_accepted_datasets"]
+                        ),
                         "curated_accepted_datasets": int(
                             round_payload["curated_accepted_datasets"]
+                        ),
+                        "generate_elapsed_seconds": round_payload.get(
+                            "generate_elapsed_seconds"
+                        ),
+                        "filter_elapsed_seconds": round_payload.get(
+                            "filter_elapsed_seconds"
+                        ),
+                        "filter_datasets_per_minute": round_payload.get(
+                            "filter_datasets_per_minute"
+                        ),
+                        "copy_elapsed_seconds": round_payload.get("copy_elapsed_seconds"),
+                        "upstream_elapsed_seconds": round_payload.get(
+                            "upstream_elapsed_seconds"
+                        ),
+                        "local_overhead_elapsed_seconds": round_payload.get(
+                            "local_overhead_elapsed_seconds"
+                        ),
+                        "round_elapsed_seconds": round_payload.get(
+                            "round_elapsed_seconds"
                         ),
                     }
                     for round_payload in round_payloads
@@ -800,7 +927,9 @@ def _materialize_invocation(
         invocation_id=spec.invocation_id,
     )
     invocation_root.mkdir(parents=True, exist_ok=True)
-    run_dagzoo_generate(
+    invocation_start_time = time.perf_counter()
+    generate_start_time = time.perf_counter()
+    handoff = run_dagzoo_generate(
         _dagzoo_generate_config(
             dagzoo_root=dagzoo_root,
             corpus_root=corpus_root,
@@ -808,6 +937,47 @@ def _materialize_invocation(
             write_rendered_config=True,
             worker_threads=materialize_worker_threads,
         )
+    )
+    generate_elapsed_seconds = _elapsed_seconds_since(generate_start_time)
+    invocation_elapsed_seconds = _elapsed_seconds_since(invocation_start_time)
+    handoff_provenance = getattr(handoff, "provenance", None)
+    materialization_summary_path = _invocation_materialization_summary_path(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    materialization_summary_path.write_text(
+        json.dumps(
+            {
+                "filter_policy": str(filter_policy).strip(),
+                "generated_datasets": _generated_datasets_from_handoff(
+                    handoff,
+                    fallback=int(spec.num_datasets),
+                ),
+                "materialize_worker_threads": (
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
+                ),
+                "generate_elapsed_seconds": float(generate_elapsed_seconds),
+                "upstream_elapsed_seconds": float(generate_elapsed_seconds),
+                "local_overhead_elapsed_seconds": max(
+                    0.0,
+                    float(invocation_elapsed_seconds) - float(generate_elapsed_seconds),
+                ),
+                "invocation_elapsed_seconds": float(invocation_elapsed_seconds),
+                "handoff_provenance": (
+                    None
+                    if not isinstance(handoff_provenance, Mapping)
+                    else _drop_none_values(
+                        {str(key): value for key, value in handoff_provenance.items()}
+                    )
+                ),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -1115,11 +1285,45 @@ def _invocation_record_payload(
         "resolved_config_path": str(resolved_config_path),
         "invocation_root": str(invocation_root.resolve()),
     }
+    summary_payload: dict[str, Any] | None = None
     if materialization_summary_path.exists():
         summary_payload = _read_json_mapping(
             materialization_summary_path,
             context=f"materialization summary for invocation {spec.invocation_id!r}",
         )
+        timing_payload = _drop_none_values(
+            {
+                "generated_datasets": _int_or_none(summary_payload.get("generated_datasets")),
+                "generate_elapsed_seconds": _float_or_none(
+                    summary_payload.get("generate_elapsed_seconds")
+                ),
+                "filter_elapsed_seconds": _float_or_none(
+                    summary_payload.get("filter_elapsed_seconds")
+                ),
+                "copy_elapsed_seconds": _float_or_none(
+                    summary_payload.get("copy_elapsed_seconds")
+                ),
+                "upstream_elapsed_seconds": _float_or_none(
+                    summary_payload.get("upstream_elapsed_seconds")
+                ),
+                "local_overhead_elapsed_seconds": _float_or_none(
+                    summary_payload.get("local_overhead_elapsed_seconds")
+                ),
+                "invocation_elapsed_seconds": _float_or_none(
+                    summary_payload.get("invocation_elapsed_seconds")
+                ),
+                "materialize_worker_threads": _int_or_none(
+                    summary_payload.get("materialize_worker_threads")
+                ),
+                "round_count": _int_or_none(summary_payload.get("round_count")),
+            }
+        )
+        if timing_payload:
+            payload["materialization_timing"] = timing_payload
+    if (
+        summary_payload is not None
+        and str(summary_payload.get("filter_policy")).strip() == "accepted_only"
+    ):
         materialize_worker_threads = _int_or_none(
             summary_payload.get("materialize_worker_threads")
         )
@@ -1171,6 +1375,12 @@ def _invocation_record_payload(
                 "generated_datasets": int(normalized_round_payload["generated_datasets"]),
                 "accepted_datasets": int(normalized_round_payload["accepted_datasets"]),
                 "rejected_datasets": int(normalized_round_payload["rejected_datasets"]),
+                "filter_curated_accepted_datasets": int(
+                    normalized_round_payload.get(
+                        "filter_curated_accepted_datasets",
+                        normalized_round_payload["curated_accepted_datasets"],
+                    )
+                ),
                 "curated_accepted_datasets": int(
                     normalized_round_payload["curated_accepted_datasets"]
                 ),
@@ -1183,6 +1393,33 @@ def _invocation_record_payload(
                 round_entry["handoff_provenance"] = _drop_none_values(
                     {str(key): value for key, value in round_handoff_provenance.items()}
                 )
+            round_timing_payload = _drop_none_values(
+                {
+                    "generate_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("generate_elapsed_seconds")
+                    ),
+                    "filter_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("filter_elapsed_seconds")
+                    ),
+                    "filter_datasets_per_minute": _float_or_none(
+                        normalized_round_payload.get("filter_datasets_per_minute")
+                    ),
+                    "copy_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("copy_elapsed_seconds")
+                    ),
+                    "upstream_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("upstream_elapsed_seconds")
+                    ),
+                    "local_overhead_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("local_overhead_elapsed_seconds")
+                    ),
+                    "round_elapsed_seconds": _float_or_none(
+                        normalized_round_payload.get("round_elapsed_seconds")
+                    ),
+                }
+            )
+            if round_timing_payload:
+                round_entry["materialization_timing"] = round_timing_payload
             rounds_payload.append(round_entry)
         payload.update(
             {
@@ -1245,7 +1482,11 @@ def _invocation_record_payload(
                 "handoff": handoff.to_summary_dict(),
             }
         )
-        handoff_provenance = getattr(handoff, "provenance", None)
+        handoff_provenance = (
+            summary_payload.get("handoff_provenance")
+            if isinstance(summary_payload, Mapping)
+            else getattr(handoff, "provenance", None)
+        )
         if isinstance(handoff_provenance, Mapping):
             payload["handoff_provenance"] = _drop_none_values(
                 {str(key): value for key, value in handoff_provenance.items()}
