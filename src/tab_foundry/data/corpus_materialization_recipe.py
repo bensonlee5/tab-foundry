@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
 import shutil
+import time
 from typing import Any, cast
 
 from tab_realdata_hub.dagzoo_handoff import load_dagzoo_handoff_info
@@ -35,6 +35,7 @@ from .corpus_materialization_shared import (
     _git_info,
     _int_or_none,
     _read_json_mapping,
+    _snapshot_tree,
 )
 from .manifest_characteristics import inspect_manifest_summary
 from . import corpus_materialization_invocation as invocation_module
@@ -50,6 +51,10 @@ class _PendingCorpusMaterialization:
     stage_root: Path
     sweep_id: str | None
     sweeps_root: Path | None
+
+
+def _elapsed_seconds_since(start_time: float) -> float:
+    return max(0.0, float(time.perf_counter() - start_time))
 
 
 def _load_reusable_recipe_record(
@@ -298,27 +303,6 @@ def build_staged_corpus_manifest(
     return resolved_out_manifest_path
 
 
-def _snapshot_file(source_path: Path, destination_path: Path) -> None:
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-    if source_path.is_symlink():
-        destination_path.symlink_to(os.readlink(source_path))
-        return
-    try:
-        os.link(source_path, destination_path)
-    except OSError:
-        shutil.copy2(source_path, destination_path)
-
-
-def _snapshot_tree(source_root: Path, destination_root: Path) -> None:
-    destination_root.mkdir(parents=True, exist_ok=True)
-    for source_path in sorted(source_root.iterdir(), key=lambda path: path.name):
-        destination_path = destination_root / source_path.name
-        if source_path.is_dir() and not source_path.is_symlink():
-            _snapshot_tree(source_path, destination_path)
-            continue
-        _snapshot_file(source_path, destination_path)
-
-
 def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:
     return corpus_root / "manifest_characteristics.json"
 
@@ -327,7 +311,10 @@ def _promote_materialized_recipe(
     pending: _PendingCorpusMaterialization,
     *,
     force: bool,
+    materialization_timing: dict[str, Any] | None = None,
+    recipe_start_time: float | None = None,
 ) -> dict[str, Any]:
+    promotion_start_time = time.perf_counter()
     recipe = pending.recipe
     storage = pending.storage
     resolved_repo_root = pending.repo_root
@@ -383,12 +370,25 @@ def _promote_materialized_recipe(
         )
         for spec in recipe.invocations
     ]
+    resolved_materialization_timing = (
+        {}
+        if materialization_timing is None
+        else {str(key): value for key, value in materialization_timing.items()}
+    )
+    resolved_materialization_timing["promotion_elapsed_seconds"] = _elapsed_seconds_since(
+        promotion_start_time
+    )
+    if recipe_start_time is not None:
+        resolved_materialization_timing["recipe_elapsed_seconds"] = _elapsed_seconds_since(
+            recipe_start_time
+        )
     dagzoo_provenance_summary = build_dagzoo_provenance_summary(
         recipe=recipe,
         corpus_ref=corpus_ref,
         corpus_id=corpus_id,
         provenance={
             "invocations": invocation_payloads,
+            "materialization_timing": resolved_materialization_timing,
         },
     )
     invocation_filter_payloads = invocation_module._invocation_filter_payloads(invocation_payloads)
@@ -447,6 +447,7 @@ def _promote_materialized_recipe(
             "target_relevant_feature_fraction_range": dagzoo_provenance_summary.get(
                 "target_relevant_feature_fraction_range"
             ),
+            "materialization_timing": dagzoo_provenance_summary.get("materialization_timing"),
         }
     )
     manifest_inspection = inspect_manifest_summary(resolved_manifest_path)
@@ -514,9 +515,25 @@ def _finalize_materialized_recipe(
     pending: _PendingCorpusMaterialization,
     *,
     force: bool,
+    materialization_timing: dict[str, Any] | None = None,
+    recipe_start_time: float | None = None,
 ) -> dict[str, Any]:
+    resolved_materialization_timing = (
+        {}
+        if materialization_timing is None
+        else {str(key): value for key, value in materialization_timing.items()}
+    )
+    manifest_build_start_time = time.perf_counter()
     _ = _build_staged_manifest(pending)
-    return _promote_materialized_recipe(pending, force=force)
+    resolved_materialization_timing["manifest_build_elapsed_seconds"] = (
+        _elapsed_seconds_since(manifest_build_start_time)
+    )
+    return _promote_materialized_recipe(
+        pending,
+        force=force,
+        materialization_timing=resolved_materialization_timing,
+        recipe_start_time=recipe_start_time,
+    )
 
 
 def _verify_staged_materialization(
@@ -682,6 +699,7 @@ def finalize_staged_corpus_recipe(
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
+    recipe_start_time = time.perf_counter()
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
     pending = _pending_recipe_materialization_from_existing_stage(
@@ -696,8 +714,11 @@ def finalize_staged_corpus_recipe(
         pending,
         verify=verify,
     )
-    _ = _build_staged_manifest(pending)
-    record = _promote_materialized_recipe(pending, force=force)
+    record = _finalize_materialized_recipe(
+        pending,
+        force=force,
+        recipe_start_time=recipe_start_time,
+    )
     return {
         "record": record,
         "verification": verification,
@@ -750,6 +771,7 @@ def materialize_corpus_recipe(
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
+    recipe_start_time = time.perf_counter()
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
     prepared = _prepare_recipe_materialization(
@@ -764,6 +786,7 @@ def materialize_corpus_recipe(
         return prepared
 
     try:
+        invocation_fanout_start_time = time.perf_counter()
         invocation_module._materialize_invocations_with_subprocess_fanout(
             recipe_id=prepared.recipe.recipe_id,
             invocations=prepared.recipe.invocations,
@@ -775,7 +798,16 @@ def materialize_corpus_recipe(
             materialize_processes=materialize_processes,
             materialize_worker_threads=materialize_worker_threads,
         )
-        return _finalize_materialized_recipe(prepared, force=force)
+        return _finalize_materialized_recipe(
+            prepared,
+            force=force,
+            materialization_timing={
+                "invocation_fanout_elapsed_seconds": _elapsed_seconds_since(
+                    invocation_fanout_start_time
+                ),
+            },
+            recipe_start_time=recipe_start_time,
+        )
     finally:
         if prepared.stage_root.exists():
             shutil.rmtree(prepared.stage_root)

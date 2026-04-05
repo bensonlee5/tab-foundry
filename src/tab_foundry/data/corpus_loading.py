@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import importlib
 import json
 from pathlib import Path
-from typing import Any, Callable, Mapping, cast
+from typing import Any, Callable, Mapping, Sequence, cast
 
 import yaml
 
@@ -449,6 +449,93 @@ def build_dagzoo_provenance_summary(
         and (accepted_datasets + rejected_datasets) > 0
     ):
         acceptance_rate = float(accepted_datasets) / float(accepted_datasets + rejected_datasets)
+    top_level_materialization_timing = (
+        _optional_mapping(raw_provenance.get("materialization_timing")) or {}
+    )
+    invocation_materialization_timings = [
+        timing_payload
+        for invocation in cast(list[Any], raw_provenance.get("invocations", []))
+        for timing_payload in (
+            _optional_mapping(
+                invocation.get("materialization_timing")
+                if isinstance(invocation, Mapping)
+                else None
+            ),
+        )
+        if timing_payload is not None
+    ]
+
+    def _sum_optional_float(items: Sequence[Mapping[str, Any]], key: str) -> float | None:
+        resolved = [
+            value
+            for value in (_optional_float(item.get(key)) for item in items)
+            if value is not None
+        ]
+        if not resolved:
+            return None
+        return float(sum(resolved))
+
+    def _sum_optional_int(items: Sequence[Mapping[str, Any]], key: str) -> int | None:
+        resolved = [
+            value
+            for value in (_optional_int(item.get(key)) for item in items)
+            if value is not None
+        ]
+        if not resolved:
+            return None
+        return int(sum(resolved))
+
+    materialization_timing = _drop_none_values(
+        {
+            "recipe_elapsed_seconds": _optional_float(
+                top_level_materialization_timing.get("recipe_elapsed_seconds")
+            ),
+            "invocation_fanout_elapsed_seconds": _optional_float(
+                top_level_materialization_timing.get("invocation_fanout_elapsed_seconds")
+            ),
+            "manifest_build_elapsed_seconds": _optional_float(
+                top_level_materialization_timing.get("manifest_build_elapsed_seconds")
+            ),
+            "promotion_elapsed_seconds": _optional_float(
+                top_level_materialization_timing.get("promotion_elapsed_seconds")
+            ),
+            "timed_invocation_count": len(invocation_materialization_timings)
+            if invocation_materialization_timings
+            else None,
+            "cumulative_round_count": _sum_optional_int(
+                invocation_materialization_timings,
+                "round_count",
+            ),
+            "cumulative_generated_datasets": _sum_optional_int(
+                invocation_materialization_timings,
+                "generated_datasets",
+            ),
+            "cumulative_generate_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "generate_elapsed_seconds",
+            ),
+            "cumulative_filter_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "filter_elapsed_seconds",
+            ),
+            "cumulative_copy_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "copy_elapsed_seconds",
+            ),
+            "cumulative_upstream_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "upstream_elapsed_seconds",
+            ),
+            "cumulative_local_overhead_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "local_overhead_elapsed_seconds",
+            ),
+            "cumulative_invocation_elapsed_seconds": _sum_optional_float(
+                invocation_materialization_timings,
+                "invocation_elapsed_seconds",
+            ),
+        }
+    )
     posterior_predictive_factorizations = _first_non_empty_group(
         [
             _string_candidates(
@@ -774,6 +861,9 @@ def build_dagzoo_provenance_summary(
             "rejected_datasets": rejected_datasets,
             "curated_accepted_datasets": curated_accepted_datasets,
             "acceptance_rate": acceptance_rate,
+            "materialization_timing": (
+                _copy_jsonable(materialization_timing) if materialization_timing else None
+            ),
             "posterior_predictive_factorization": (
                 posterior_predictive_factorizations[0]
                 if len(posterior_predictive_factorizations) == 1

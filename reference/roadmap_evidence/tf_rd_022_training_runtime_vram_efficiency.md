@@ -3,8 +3,8 @@
 This is the canonical long-form evidence note for
 [TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-performance-optimization-on-the-settled-sandwich-runtime-surface-before-classification-scaling).
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `completed`
+- Milestone: `Completed`
 - Dependency position: runs after the closed TF-RD-010 classification
   benchmark contract is explicit, and before
   [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md) and
@@ -36,7 +36,8 @@ This is the canonical long-form evidence note for
   performance optimization on the settled runtime surface end to end, with
   child issues [#239](https://github.com/bensonlee5/tab-foundry/issues/239),
   [#240](https://github.com/bensonlee5/tab-foundry/issues/240), and
-  [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
+  [#241](https://github.com/bensonlee5/tab-foundry/issues/241) now all
+  completed
 - sandwich architecture ownership now lives under the historical
   implementation record [#174](https://github.com/bensonlee5/tab-foundry/issues/174),
   umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),
@@ -145,10 +146,21 @@ This is the canonical long-form evidence note for
   `src/tab_foundry/training/runtime.py` remain conservative rather than
   aggressively overlapped, but `#239` has already closed the low-risk
   training-throughput lane as a measured defer on that surface
-- corpus materialization throughput remains worth a measured pass because the
-  workflow is slow in practice and the local orchestration path in
-  `src/tab_foundry/data/corpus_materialization_shared.py` still starts from a
-  fixed process cap that may or may not be the dominant bottleneck
+- `#240` is now completed: the kept batched sandwich checkpoint evaluator
+  closes the bounded benchmark-throughput lane on the inherited TF-RD-022
+  runtime surface
+- `#241` is now completed:
+  - invocation summaries and corpus records preserve generate, filter, copy,
+    manifest-build, promotion, and aggregate recipe timing for representative
+    same-host local-versus-upstream attribution
+  - same-host `#241` microbenchmarking on a completed accepted-only baseline
+    invocation showed the full-shard promotion step drop from `0.0463s` mean
+    to `0.0224s` mean across `5` repetitions (`2.06x` faster), with hardlinks
+    confirmed and copied dataset counts unchanged
+  - TF-RD-022 therefore keeps the hardlink-backed full-shard promotion path as
+    the bounded repo-local materialization win and closes the remaining
+    materialization lane by persisting the attribution surfaces needed to show
+    whether future wall time is local or upstream
 - issue [#233](https://github.com/bensonlee5/tab-foundry/issues/233) is the
   downstream TF-RD-024 consumer that will inherit the kept TF-RD-022 runtime
   policy after TF-RD-022 closes its performance follow-up work
@@ -162,32 +174,20 @@ This is the canonical long-form evidence note for
 - runtime-policy selection is complete enough for downstream planning: the
   carried TF-RD-022 surface is `bf16` with activation tracing off and
   activation checkpointing on
-- the remaining TF-RD-022 work is bounded speed optimization on top of that
-  settled runtime surface rather than more runtime-policy selection
-- benchmark execution is the highest-priority remaining lane because the medium
-  benchmark runtime is already operationally expensive and the current
-  evaluation path is serial
+- TF-RD-022 is now closed: the bounded speed follow-up work is complete on top
+  of the settled runtime surface rather than remaining open as an adjacent
+  runtime-policy task
 - training speed now has one explicit measured defer on the low-risk
   overlap-and-transfer path, including the completed CUDA decomposition of the
   combined candidate into `workers`, `loader_overlap`, and `transfer`
   variants, so no further training-throughput work remains in TF-RD-022 unless
   a later lane uncovers a new, narrower hypothesis
-- corpus materialization remains in scope because it is slow in practice, but
-  the first question there is bottleneck attribution between local
-  orchestration and upstream `tab-realdata-hub` or dagzoo work
+- corpus materialization now has both a bounded local keep on the accepted-only
+  full-shard promotion step and the persisted timing attribution needed to
+  separate local orchestration from upstream `tab-realdata-hub` or dagzoo work
 - TF-RD-022 should not reopen sandwich-parent selection, larger architecture
   changes, law-design work, or harder-surface batching while those three speed
-  lanes are still unresolved
-
-## Open Evidence Gaps
-
-- the repo still lacks one explicit measured keep/defer decision for medium
-  benchmark execution speed under issue
-  [#240](https://github.com/bensonlee5/tab-foundry/issues/240)
-- the repo still lacks one explicit measured keep/defer decision for corpus
-  materialization throughput, including local-versus-upstream bottleneck
-  attribution, under issue
-  [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
+  lanes are closed
 
 ## Exit Signals
 

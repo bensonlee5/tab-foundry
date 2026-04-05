@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 from typing import Any
@@ -17,6 +18,7 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 import tab_foundry.data.corpus_materialization_batch as corpus_materialization_batch_module
 import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 import tab_foundry.data.corpus_materialization_recipe_worker as recipe_worker_module
+import tab_foundry.data.corpus_materialization_shared as corpus_materialization_shared_module
 from tab_foundry.data.corpus_loading import (
     _generator_fingerprint,
     build_dagzoo_provenance_summary,
@@ -112,6 +114,64 @@ def test_build_dagzoo_provenance_summary_falls_back_to_recipe_metadata_without_h
     assert summary["target_derivation"] == "tabiclv2_latent_node"
     assert summary.get("target_relevant_feature_count_range") is None
     assert summary.get("target_relevant_feature_fraction_range") is None
+
+
+def test_build_dagzoo_provenance_summary_aggregates_materialization_timing() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v4", repo_root=REPO_ROOT)
+
+    summary = build_dagzoo_provenance_summary(
+        recipe=recipe,
+        corpus_ref="tf_rd_010_dagzoo_medium_control_v4/abc123",
+        corpus_id="abc123",
+        provenance={
+            "materialization_timing": {
+                "recipe_elapsed_seconds": 30.0,
+                "invocation_fanout_elapsed_seconds": 20.0,
+                "manifest_build_elapsed_seconds": 4.0,
+                "promotion_elapsed_seconds": 3.0,
+            },
+            "invocations": [
+                {
+                    "materialization_timing": {
+                        "generated_datasets": 8,
+                        "round_count": 1,
+                        "generate_elapsed_seconds": 5.0,
+                        "filter_elapsed_seconds": 2.0,
+                        "copy_elapsed_seconds": 1.0,
+                        "upstream_elapsed_seconds": 7.0,
+                        "local_overhead_elapsed_seconds": 0.5,
+                        "invocation_elapsed_seconds": 8.5,
+                    }
+                },
+                {
+                    "materialization_timing": {
+                        "generated_datasets": 6,
+                        "round_count": 2,
+                        "generate_elapsed_seconds": 4.0,
+                        "upstream_elapsed_seconds": 4.0,
+                        "local_overhead_elapsed_seconds": 0.25,
+                        "invocation_elapsed_seconds": 4.25,
+                    }
+                },
+            ],
+        },
+    )
+
+    assert summary["materialization_timing"] == {
+        "recipe_elapsed_seconds": 30.0,
+        "invocation_fanout_elapsed_seconds": 20.0,
+        "manifest_build_elapsed_seconds": 4.0,
+        "promotion_elapsed_seconds": 3.0,
+        "timed_invocation_count": 2,
+        "cumulative_round_count": 3,
+        "cumulative_generated_datasets": 14,
+        "cumulative_generate_elapsed_seconds": 9.0,
+        "cumulative_filter_elapsed_seconds": 2.0,
+        "cumulative_copy_elapsed_seconds": 1.0,
+        "cumulative_upstream_elapsed_seconds": 11.0,
+        "cumulative_local_overhead_elapsed_seconds": 0.75,
+        "cumulative_invocation_elapsed_seconds": 12.75,
+    }
 
 
 def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) -> None:
@@ -990,6 +1050,55 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+    invocation = loaded["dagzoo_provenance"]["invocations"][0]
+    materialization_summary_path = (
+        Path(str(invocation["invocation_root"])) / "materialization_summary.json"
+    )
+    materialization_summary = json.loads(
+        materialization_summary_path.read_text(encoding="utf-8")
+    )
+    assert materialization_summary["filter_policy"] == "include_all"
+    assert materialization_summary["generated_datasets"] == invocation["num_datasets"]
+    assert materialization_summary["generate_elapsed_seconds"] >= 0.0
+    assert materialization_summary["upstream_elapsed_seconds"] >= 0.0
+    assert materialization_summary["local_overhead_elapsed_seconds"] >= 0.0
+    assert materialization_summary["invocation_elapsed_seconds"] >= 0.0
+
+    invocation_timing = invocation["materialization_timing"]
+    assert invocation_timing["generated_datasets"] == invocation["num_datasets"]
+    assert invocation_timing["generate_elapsed_seconds"] == pytest.approx(
+        materialization_summary["generate_elapsed_seconds"]
+    )
+    assert invocation_timing["upstream_elapsed_seconds"] == pytest.approx(
+        materialization_summary["upstream_elapsed_seconds"]
+    )
+    assert invocation_timing["local_overhead_elapsed_seconds"] == pytest.approx(
+        materialization_summary["local_overhead_elapsed_seconds"]
+    )
+    assert invocation_timing["invocation_elapsed_seconds"] == pytest.approx(
+        materialization_summary["invocation_elapsed_seconds"]
+    )
+
+    timing_summary = loaded["dagzoo_provenance_summary"]["materialization_timing"]
+    assert loaded["dagzoo_provenance"]["materialization_timing"] == timing_summary
+    assert timing_summary["timed_invocation_count"] == 1
+    assert timing_summary["cumulative_generated_datasets"] == invocation["num_datasets"]
+    assert timing_summary["cumulative_generate_elapsed_seconds"] == pytest.approx(
+        invocation_timing["generate_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_upstream_elapsed_seconds"] == pytest.approx(
+        invocation_timing["upstream_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_local_overhead_elapsed_seconds"] == pytest.approx(
+        invocation_timing["local_overhead_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_invocation_elapsed_seconds"] == pytest.approx(
+        invocation_timing["invocation_elapsed_seconds"]
+    )
+    assert timing_summary["recipe_elapsed_seconds"] >= 0.0
+    assert timing_summary["invocation_fanout_elapsed_seconds"] >= 0.0
+    assert timing_summary["manifest_build_elapsed_seconds"] >= 0.0
+    assert timing_summary["promotion_elapsed_seconds"] >= 0.0
 
 
 def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess_fanout(
@@ -1698,6 +1807,84 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert summary["accepted_datasets"] == 1
     assert summary["curated_accepted_datasets"] == 1
     invocation = dagzoo_provenance["invocations"][0]
+    materialization_summary_path = (
+        Path(str(invocation["invocation_root"])) / "materialization_summary.json"
+    )
+    materialization_summary = json.loads(
+        materialization_summary_path.read_text(encoding="utf-8")
+    )
+    assert materialization_summary["filter_policy"] == "accepted_only"
+    assert materialization_summary["generated_datasets"] == 1
+    assert materialization_summary["round_count"] == 1
+    assert materialization_summary["materialize_worker_threads"] == 2
+    assert materialization_summary["generate_elapsed_seconds"] >= 0.0
+    assert materialization_summary["filter_elapsed_seconds"] == pytest.approx(0.1)
+    assert materialization_summary["copy_elapsed_seconds"] >= 0.0
+    assert materialization_summary["upstream_elapsed_seconds"] == pytest.approx(
+        materialization_summary["generate_elapsed_seconds"] + 0.1
+    )
+    assert materialization_summary["local_overhead_elapsed_seconds"] >= 0.0
+    assert materialization_summary["invocation_elapsed_seconds"] >= 0.0
+    assert materialization_summary["rounds"][0]["filter_elapsed_seconds"] == pytest.approx(0.1)
+    assert materialization_summary["rounds"][0]["filter_datasets_per_minute"] == pytest.approx(
+        600.0
+    )
+
+    invocation_timing = invocation["materialization_timing"]
+    assert invocation_timing["generated_datasets"] == 1
+    assert invocation_timing["round_count"] == 1
+    assert invocation_timing["materialize_worker_threads"] == 2
+    assert invocation_timing["generate_elapsed_seconds"] == pytest.approx(
+        materialization_summary["generate_elapsed_seconds"]
+    )
+    assert invocation_timing["filter_elapsed_seconds"] == pytest.approx(0.1)
+    assert invocation_timing["copy_elapsed_seconds"] == pytest.approx(
+        materialization_summary["copy_elapsed_seconds"]
+    )
+    assert invocation_timing["upstream_elapsed_seconds"] == pytest.approx(
+        materialization_summary["upstream_elapsed_seconds"]
+    )
+    assert invocation_timing["local_overhead_elapsed_seconds"] == pytest.approx(
+        materialization_summary["local_overhead_elapsed_seconds"]
+    )
+    assert invocation_timing["invocation_elapsed_seconds"] == pytest.approx(
+        materialization_summary["invocation_elapsed_seconds"]
+    )
+
+    round_payload = invocation["rounds"][0]
+    assert round_payload["filter_curated_accepted_datasets"] == 1
+    round_timing = round_payload["materialization_timing"]
+    assert round_timing["generate_elapsed_seconds"] >= 0.0
+    assert round_timing["filter_elapsed_seconds"] == pytest.approx(0.1)
+    assert round_timing["filter_datasets_per_minute"] == pytest.approx(600.0)
+    assert round_timing["copy_elapsed_seconds"] >= 0.0
+    assert round_timing["upstream_elapsed_seconds"] == pytest.approx(
+        round_timing["generate_elapsed_seconds"] + 0.1
+    )
+    assert round_timing["local_overhead_elapsed_seconds"] >= 0.0
+    assert round_timing["round_elapsed_seconds"] >= 0.0
+
+    timing_summary = summary["materialization_timing"]
+    assert dagzoo_provenance["materialization_timing"] == timing_summary
+    assert timing_summary["timed_invocation_count"] == 1
+    assert timing_summary["cumulative_round_count"] == 1
+    assert timing_summary["cumulative_generated_datasets"] == 1
+    assert timing_summary["cumulative_generate_elapsed_seconds"] == pytest.approx(
+        invocation_timing["generate_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_filter_elapsed_seconds"] == pytest.approx(0.1)
+    assert timing_summary["cumulative_copy_elapsed_seconds"] == pytest.approx(
+        invocation_timing["copy_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_upstream_elapsed_seconds"] == pytest.approx(
+        invocation_timing["upstream_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_local_overhead_elapsed_seconds"] == pytest.approx(
+        invocation_timing["local_overhead_elapsed_seconds"]
+    )
+    assert timing_summary["cumulative_invocation_elapsed_seconds"] == pytest.approx(
+        invocation_timing["invocation_elapsed_seconds"]
+    )
     assert "filter.n_jobs" not in invocation["rounds"][0]["filter_command"]
     assert Path(str(record["manifest"]["manifest_path"])).exists()
 
@@ -2056,6 +2243,68 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
     assert len(catalog_lines) == 1
     assert set(train_dataset_indices) == {0}
     assert set(test_dataset_indices) == {0}
+
+
+def test_copy_curated_round_shards_uses_snapshot_links_for_full_shards(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    round_curated_dir = tmp_path / "round_curated"
+    final_curated_dir = tmp_path / "final_curated"
+    shard_dir = round_curated_dir / "shard_00000"
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    datasets: list[dict[str, Any]] = []
+    for dataset_index, seed in enumerate((1101, 1102), start=0):
+        x_train, y_train, x_test, y_test = cases._classification_arrays(seed=seed)
+        metadata = cases._classification_metadata(
+            n_features=x_train.shape[1],
+            seed=seed,
+            filter_status="accepted",
+            filter_accepted=True,
+        )
+        metadata["dataset_id"] = f"{seed:032x}"
+        datasets.append(
+            {
+                "dataset_index": dataset_index,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "feature_types": ["floating"] * x_train.shape[1],
+                "metadata": metadata,
+            }
+        )
+    cases._write_packed_shard(shard_dir, datasets=datasets)
+
+    recorded_links: list[tuple[Path, Path]] = []
+    real_link = os.link
+
+    def _record_link(
+        src: str | os.PathLike[str],
+        dst: str | os.PathLike[str],
+        *args: object,
+        **kwargs: object,
+    ) -> None:
+        source_path = Path(src)
+        destination_path = Path(dst)
+        recorded_links.append((source_path, destination_path))
+        real_link(source_path, destination_path, *args, **kwargs)
+
+    monkeypatch.setattr(corpus_materialization_shared_module.os, "link", _record_link)
+
+    next_shard_index, copied_datasets = corpus_materialization_invocation_module._copy_curated_round_shards(
+        round_curated_dir=round_curated_dir,
+        final_curated_dir=final_curated_dir,
+        next_shard_index=0,
+        max_datasets=None,
+    )
+
+    destination_shard = final_curated_dir / "shard_00000"
+    assert next_shard_index == 1
+    assert copied_datasets == 2
+    assert recorded_links
+    assert (destination_shard / "train.parquet").stat().st_ino == (shard_dir / "train.parquet").stat().st_ino
+    assert (destination_shard / "test.parquet").stat().st_ino == (shard_dir / "test.parquet").stat().st_ino
 
 
 def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(
@@ -2934,7 +3183,21 @@ def test_resolve_data_surface_hydrates_corpus_ref(
     assert resolved.recipe_id == "current_recipe"
     assert resolved.manifest_path is not None and resolved.manifest_path.exists()
     assert resolved.allow_missing_values is True
-    assert resolved.dagzoo_provenance == {
+    assert {
+        key: resolved.dagzoo_provenance[key]
+        for key in (
+            "corpus_ref",
+            "recipe_id",
+            "corpus_id",
+            "recipe_kind",
+            "surface_label",
+            "corpus_variant",
+            "comparator_role",
+            "config_refs",
+            "invocation_count",
+            "provenance_labels",
+        )
+    } == {
         "corpus_ref": resolved.corpus_ref,
         "recipe_id": "current_recipe",
         "corpus_id": resolved.corpus_id,
@@ -2949,6 +3212,13 @@ def test_resolve_data_surface_hydrates_corpus_ref(
             "comparator_role": "control",
         },
     }
+    timing_summary = resolved.dagzoo_provenance["materialization_timing"]
+    assert timing_summary["timed_invocation_count"] == 1
+    assert timing_summary["cumulative_generated_datasets"] == 8
+    assert timing_summary["cumulative_generate_elapsed_seconds"] >= 0.0
+    assert timing_summary["cumulative_upstream_elapsed_seconds"] >= 0.0
+    assert timing_summary["cumulative_local_overhead_elapsed_seconds"] >= 0.0
+    assert timing_summary["cumulative_invocation_elapsed_seconds"] >= 0.0
 
 
 def test_resolve_data_surface_rejects_removed_row_cap_subsampling(

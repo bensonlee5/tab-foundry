@@ -6,6 +6,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import subprocess
 from typing import Any, Mapping, cast
 
@@ -113,6 +114,27 @@ def _git_info(root: Path) -> dict[str, Any] | None:
         "describe": describe,
         "dirty": bool(status),
     }
+
+
+def _snapshot_file(source_path: Path, destination_path: Path) -> None:
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    if source_path.is_symlink():
+        destination_path.symlink_to(os.readlink(source_path))
+        return
+    try:
+        os.link(source_path, destination_path)
+    except OSError:
+        shutil.copy2(source_path, destination_path)
+
+
+def _snapshot_tree(source_root: Path, destination_root: Path) -> None:
+    destination_root.mkdir(parents=True, exist_ok=True)
+    for source_path in sorted(source_root.iterdir(), key=lambda path: path.name):
+        destination_path = destination_root / source_path.name
+        if source_path.is_dir() and not source_path.is_symlink():
+            _snapshot_tree(source_path, destination_path)
+            continue
+        _snapshot_file(source_path, destination_path)
 
 
 def _drop_none_values(payload: Mapping[str, Any]) -> dict[str, Any]:
