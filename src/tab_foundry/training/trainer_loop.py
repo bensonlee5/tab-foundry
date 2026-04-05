@@ -17,12 +17,11 @@ from tab_foundry.types import TaskBatch
 from .artifacts import (
     append_history_record,
     append_jsonl_record,
-    canonical_latest_checkpoint_path,
     gradient_history_record,
     history_record,
     save_eval_mode_checkpoint,
-    stage_latest_checkpoint_path,
 )
+from .checkpoint_paths import canonical_latest_checkpoint_path, stage_latest_checkpoint_path
 from .distributed import _reduction_float_dtype, _reduce_any_flag, _reduce_keyed_weighted_scalars
 from .instability import (
     module_grad_norms,

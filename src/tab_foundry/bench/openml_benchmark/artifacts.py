@@ -14,7 +14,7 @@ from tab_foundry.bench.artifacts import (
     resolve_train_elapsed_seconds,
 )
 from tab_foundry.device import resolve_device
-from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.checkpoint_paths import resolve_latest_checkpoint_path
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
 from .dataset_common import BenchmarkDataset, BenchmarkDatasetEvaluationError

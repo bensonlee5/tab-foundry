@@ -16,8 +16,8 @@ from tab_foundry.benchmark_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.bounce.config import BenchmarkBounceDiagnosisConfig, RerunMode, resolve_positive_int
+from tab_foundry.training.checkpoint_paths import resolve_latest_checkpoint_path
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
-from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from tab_foundry.training.trainer import train
 
 

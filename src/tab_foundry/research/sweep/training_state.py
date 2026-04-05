@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from tab_foundry.hashing import sha256_text
-from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.checkpoint_paths import resolve_latest_checkpoint_path
 from tab_foundry.training.surface import (
     normalize_training_backend,
 )

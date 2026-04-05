@@ -18,7 +18,7 @@ from .instability import (
     gradient_history_path,
     telemetry_path,
 )
-from .artifacts import canonical_latest_checkpoint_path, resolve_latest_checkpoint_path
+from .checkpoint_paths import canonical_latest_checkpoint_path, resolve_latest_checkpoint_path
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
