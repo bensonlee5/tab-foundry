@@ -279,9 +279,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
         manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
       dagzoo_provenance:
         acceptance_rate: 0.9986650538337475
@@ -601,9 +601,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
         manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
       dagzoo_provenance:
         acceptance_rate: 0.9986650538337475

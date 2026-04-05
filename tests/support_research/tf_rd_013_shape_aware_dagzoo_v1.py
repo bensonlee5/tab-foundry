@@ -11,6 +11,7 @@ from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspect as inspect_module
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+from tests.support.portability import find_banned_local_path_markers
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -304,7 +305,8 @@ def test_tf_rd_013_shape_aware_support_bundle_and_catalog_defaults_are_tracked_s
         MANIFEST_CHARACTERISTICS_SUMMARY_PATH,
         SUPPORT_ROOT / "README.md",
     ):
-        assert "/Users/" not in path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8")
+        assert find_banned_local_path_markers(text) == ()
 
     dagzoo_default = catalog["deltas"]["delta_data_manifest_root_dagzoo_shape_aware_multi_invocation"][
         "default_effective_surface"

@@ -132,8 +132,8 @@
           "right": 80
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 10,
@@ -238,16 +238,16 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_current_corpus_default_v1__05efca84db48",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
         "corpus_ref": "tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "control",
           "config_refs": [
@@ -264,15 +264,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "ed87bd19a36045d6e67bc91c638bb80d",
                 "generated_corpus_id": "52c5ce110c10bfc12d2a5b8e08d1d2f9",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
                 "handoff_manifest_sha256": "94171e890be6dcd3ccb668bcdef1ef38f4b5d4bd0d43e979e7bf0f2e33e77551",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -280,7 +280,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
+              "invocation_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
               "num_datasets": 10,
               "rows": null,
               "seed": 1
@@ -367,7 +367,7 @@
             "filter_status_counts": {
               "not_run": 10
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 10
             },
@@ -420,7 +420,7 @@
             "unique_dataset_id_count": 10,
             "unique_source_root_count": 1
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
           "manifest_sha256": "05efca84db480654ad6ce4241d12bf0b919e2ab56e999e9bcab8cb5284134bbe"
         },
         "recipe": {
@@ -455,30 +455,30 @@
             "corpus_variant": "current_corpus_default"
           },
           "recipe_id": "tf_rd_013_current_corpus_default_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "anchor_manifest_default"
         },
         "recipe_id": "tf_rd_013_current_corpus_default_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "anchor_manifest_default",
         "surface_label_recommendation": "anchor_manifest_default"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -497,15 +497,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "861deaf09231a9e22e4dfb5cb944f98a",
                 "generated_corpus_id": "edcdb2bf95d382b24fb1c9eb598ab685",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "ad3bcd02e6673e8edb70c41904321709e97a7d2e31fc091cc5739d9805f108a3",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -513,21 +513,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
               "num_datasets": 16,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "5cfc17fcd077dee09c0c7358cbe49124",
                 "generated_corpus_id": "afee047a1be6f9ea711d199f5e5b402b",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "3d71db211b4faebb422b07560c453008885253d2d37a43bafe116aab9aa06e5e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -535,21 +535,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
               "num_datasets": 56,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "fad70c87870c850bcbd38ba6ec2884a7",
                 "generated_corpus_id": "16b1d00003f43f3b8658409e9ad4cfff",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "3fc4f377bc027f18b741ea7e1f26480de0011c762d0af6c89a848245b2553a98",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -557,7 +557,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
@@ -647,7 +647,7 @@
             "filter_status_counts": {
               "not_run": 80
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 80
             },
@@ -702,7 +702,7 @@
             "unique_dataset_id_count": 80,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
           "manifest_sha256": "b71ae7e5acc717dd9d727a5e7355882013369c57d92c18c2f95e109d364cd85f"
         },
         "recipe": {
@@ -769,12 +769,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_large"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_large"
@@ -896,8 +896,8 @@
           "right": 40
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 10,
@@ -978,16 +978,16 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_current_corpus_default_v1__05efca84db48",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
         "corpus_ref": "tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "control",
           "config_refs": [
@@ -1004,15 +1004,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "ed87bd19a36045d6e67bc91c638bb80d",
                 "generated_corpus_id": "52c5ce110c10bfc12d2a5b8e08d1d2f9",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
                 "handoff_manifest_sha256": "94171e890be6dcd3ccb668bcdef1ef38f4b5d4bd0d43e979e7bf0f2e33e77551",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -1020,7 +1020,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
+              "invocation_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
               "num_datasets": 10,
               "rows": null,
               "seed": 1
@@ -1107,7 +1107,7 @@
             "filter_status_counts": {
               "not_run": 10
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 10
             },
@@ -1160,7 +1160,7 @@
             "unique_dataset_id_count": 10,
             "unique_source_root_count": 1
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
           "manifest_sha256": "05efca84db480654ad6ce4241d12bf0b919e2ab56e999e9bcab8cb5284134bbe"
         },
         "recipe": {
@@ -1195,30 +1195,30 @@
             "corpus_variant": "current_corpus_default"
           },
           "recipe_id": "tf_rd_013_current_corpus_default_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "anchor_manifest_default"
         },
         "recipe_id": "tf_rd_013_current_corpus_default_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "anchor_manifest_default",
         "surface_label_recommendation": "anchor_manifest_default"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -1237,15 +1237,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "53e74953fde43f70859b283247273149",
                 "generated_corpus_id": "df64618e3e7ef50e53cf24d7c7af9963",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "71e53dd96763250708fea921725f0d5536688fd506450b6706dc52afc26b8814",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -1253,21 +1253,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "2b75e800eb49bc29227ddc1d3de3400c",
                 "generated_corpus_id": "64e9b83311b42a7a261684e1cdf7416a",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "8af47c2b31f8ea0fe0d08d51d1aa3924213df0154f1f8309d8d98316af52fbe7",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -1275,21 +1275,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
               "num_datasets": 28,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "0faa836a362b7aee63f18dc039790358",
                 "generated_corpus_id": "83957212ec36e6946382bef1a14b0a91",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "9e9132ffff2d6549e03d24b60048e150adf90019029e4f23248ccf0b5cbf1a5a",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -1297,7 +1297,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
@@ -1386,7 +1386,7 @@
             "filter_status_counts": {
               "not_run": 40
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 40
             },
@@ -1439,7 +1439,7 @@
             "unique_dataset_id_count": 40,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
           "manifest_sha256": "f635c43eaba11854351087c1ec1683acfb16f4ef8148712aa3224c4896446fcd"
         },
         "recipe": {
@@ -1506,12 +1506,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_medium"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_medium"
@@ -1641,8 +1641,8 @@
           "right": 20
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 10,
@@ -1735,16 +1735,16 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_current_corpus_default_v1__05efca84db48",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/corpus_record.json",
         "corpus_ref": "tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "control",
           "config_refs": [
@@ -1761,15 +1761,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default --num-datasets 10 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "ed87bd19a36045d6e67bc91c638bb80d",
                 "generated_corpus_id": "52c5ce110c10bfc12d2a5b8e08d1d2f9",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default/handoff_manifest.json",
                 "handoff_manifest_sha256": "94171e890be6dcd3ccb668bcdef1ef38f4b5d4bd0d43e979e7bf0f2e33e77551",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -1777,7 +1777,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
+              "invocation_root": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/invocations/default",
               "num_datasets": 10,
               "rows": null,
               "seed": 1
@@ -1864,7 +1864,7 @@
             "filter_status_counts": {
               "not_run": 10
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 10
             },
@@ -1917,7 +1917,7 @@
             "unique_dataset_id_count": 10,
             "unique_source_root_count": 1
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
           "manifest_sha256": "05efca84db480654ad6ce4241d12bf0b919e2ab56e999e9bcab8cb5284134bbe"
         },
         "recipe": {
@@ -1952,30 +1952,30 @@
             "corpus_variant": "current_corpus_default"
           },
           "recipe_id": "tf_rd_013_current_corpus_default_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "anchor_manifest_default"
         },
         "recipe_id": "tf_rd_013_current_corpus_default_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_current_corpus_default_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "anchor_manifest_default",
         "surface_label_recommendation": "anchor_manifest_default"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -1994,15 +1994,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "88c36e150ae287c8de7772e20633f600",
                 "generated_corpus_id": "55622664d7be765634d5a9eb74511608",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "4c9ab78b03c33ff991aaa6d7bcfa28d4137a4f23cb605fe69c157e6bf851425e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2010,21 +2010,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "1c89a5badd6bdd49d6e3d77364b729a6",
                 "generated_corpus_id": "b718a8a12bb27448bc4907685f3db357",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "9a3bc4d4fbe2e6b6af12d683e02da8b779897444e9661119e6ddcf33cb2d13bd",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2032,21 +2032,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
               "num_datasets": 14,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "b564c40db349ab065c5621b2251d5d63",
                 "generated_corpus_id": "15e22b4ae58e900bb52ff4131a1d3bab",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "a644b06d333295fa9f15c15ca41485dfa0bbdb230ad4ed719aede7d35bb49090",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2054,7 +2054,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
               "num_datasets": 2,
               "rows": null,
               "seed": 1
@@ -2143,7 +2143,7 @@
             "filter_status_counts": {
               "not_run": 20
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 20
             },
@@ -2196,7 +2196,7 @@
             "unique_dataset_id_count": 20,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
           "manifest_sha256": "0ebd4afb229aa3b58ee30059b3d0c1dff122ef9234e75d2e0aa81fd778c92478"
         },
         "recipe": {
@@ -2263,12 +2263,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_small"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_small"
@@ -2384,8 +2384,8 @@
           "right": 80
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 40,
@@ -2478,18 +2478,18 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -2508,15 +2508,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "53e74953fde43f70859b283247273149",
                 "generated_corpus_id": "df64618e3e7ef50e53cf24d7c7af9963",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "71e53dd96763250708fea921725f0d5536688fd506450b6706dc52afc26b8814",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2524,21 +2524,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "2b75e800eb49bc29227ddc1d3de3400c",
                 "generated_corpus_id": "64e9b83311b42a7a261684e1cdf7416a",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "8af47c2b31f8ea0fe0d08d51d1aa3924213df0154f1f8309d8d98316af52fbe7",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2546,21 +2546,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
               "num_datasets": 28,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "0faa836a362b7aee63f18dc039790358",
                 "generated_corpus_id": "83957212ec36e6946382bef1a14b0a91",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "9e9132ffff2d6549e03d24b60048e150adf90019029e4f23248ccf0b5cbf1a5a",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2568,7 +2568,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
@@ -2657,7 +2657,7 @@
             "filter_status_counts": {
               "not_run": 40
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 40
             },
@@ -2710,7 +2710,7 @@
             "unique_dataset_id_count": 40,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
           "manifest_sha256": "f635c43eaba11854351087c1ec1683acfb16f4ef8148712aa3224c4896446fcd"
         },
         "recipe": {
@@ -2777,30 +2777,30 @@
             "corpus_variant": "dagzoo_shape_aware_size_medium"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_medium"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -2819,15 +2819,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "861deaf09231a9e22e4dfb5cb944f98a",
                 "generated_corpus_id": "edcdb2bf95d382b24fb1c9eb598ab685",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "ad3bcd02e6673e8edb70c41904321709e97a7d2e31fc091cc5739d9805f108a3",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2835,21 +2835,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
               "num_datasets": 16,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "5cfc17fcd077dee09c0c7358cbe49124",
                 "generated_corpus_id": "afee047a1be6f9ea711d199f5e5b402b",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "3d71db211b4faebb422b07560c453008885253d2d37a43bafe116aab9aa06e5e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2857,21 +2857,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
               "num_datasets": 56,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "fad70c87870c850bcbd38ba6ec2884a7",
                 "generated_corpus_id": "16b1d00003f43f3b8658409e9ad4cfff",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "3fc4f377bc027f18b741ea7e1f26480de0011c762d0af6c89a848245b2553a98",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -2879,7 +2879,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
@@ -2969,7 +2969,7 @@
             "filter_status_counts": {
               "not_run": 80
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 80
             },
@@ -3024,7 +3024,7 @@
             "unique_dataset_id_count": 80,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
           "manifest_sha256": "b71ae7e5acc717dd9d727a5e7355882013369c57d92c18c2f95e109d364cd85f"
         },
         "recipe": {
@@ -3091,12 +3091,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_large"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_large"
@@ -3212,8 +3212,8 @@
           "right": 80
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 20,
@@ -3306,18 +3306,18 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -3336,15 +3336,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "88c36e150ae287c8de7772e20633f600",
                 "generated_corpus_id": "55622664d7be765634d5a9eb74511608",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "4c9ab78b03c33ff991aaa6d7bcfa28d4137a4f23cb605fe69c157e6bf851425e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3352,21 +3352,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "1c89a5badd6bdd49d6e3d77364b729a6",
                 "generated_corpus_id": "b718a8a12bb27448bc4907685f3db357",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "9a3bc4d4fbe2e6b6af12d683e02da8b779897444e9661119e6ddcf33cb2d13bd",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3374,21 +3374,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
               "num_datasets": 14,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "b564c40db349ab065c5621b2251d5d63",
                 "generated_corpus_id": "15e22b4ae58e900bb52ff4131a1d3bab",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "a644b06d333295fa9f15c15ca41485dfa0bbdb230ad4ed719aede7d35bb49090",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3396,7 +3396,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
               "num_datasets": 2,
               "rows": null,
               "seed": 1
@@ -3485,7 +3485,7 @@
             "filter_status_counts": {
               "not_run": 20
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 20
             },
@@ -3538,7 +3538,7 @@
             "unique_dataset_id_count": 20,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
           "manifest_sha256": "0ebd4afb229aa3b58ee30059b3d0c1dff122ef9234e75d2e0aa81fd778c92478"
         },
         "recipe": {
@@ -3605,30 +3605,30 @@
             "corpus_variant": "dagzoo_shape_aware_size_small"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_small"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -3647,15 +3647,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu --num-datasets 16 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "861deaf09231a9e22e4dfb5cb944f98a",
                 "generated_corpus_id": "edcdb2bf95d382b24fb1c9eb598ab685",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "ad3bcd02e6673e8edb70c41904321709e97a7d2e31fc091cc5739d9805f108a3",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3663,21 +3663,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/benchmark_cpu",
               "num_datasets": 16,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium --num-datasets 56 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "5cfc17fcd077dee09c0c7358cbe49124",
                 "generated_corpus_id": "afee047a1be6f9ea711d199f5e5b402b",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "3d71db211b4faebb422b07560c453008885253d2d37a43bafe116aab9aa06e5e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3685,21 +3685,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/default_medium",
               "num_datasets": 56,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "fad70c87870c850bcbd38ba6ec2884a7",
                 "generated_corpus_id": "16b1d00003f43f3b8658409e9ad4cfff",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "3fc4f377bc027f18b741ea7e1f26480de0011c762d0af6c89a848245b2553a98",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -3707,7 +3707,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/invocations/large_shape",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
@@ -3797,7 +3797,7 @@
             "filter_status_counts": {
               "not_run": 80
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 80
             },
@@ -3852,7 +3852,7 @@
             "unique_dataset_id_count": 80,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
           "manifest_sha256": "b71ae7e5acc717dd9d727a5e7355882013369c57d92c18c2f95e109d364cd85f"
         },
         "recipe": {
@@ -3919,12 +3919,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_large"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_large",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_large"
@@ -4032,8 +4032,8 @@
           "right": 40
         },
         "inspection.manifest_path": {
-          "left": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
-          "right": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
+          "left": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+          "right": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
         },
         "inspection.missing_value_status_counts.clean": {
           "left": 20,
@@ -4114,18 +4114,18 @@
       },
       "left": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -4144,15 +4144,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "88c36e150ae287c8de7772e20633f600",
                 "generated_corpus_id": "55622664d7be765634d5a9eb74511608",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "4c9ab78b03c33ff991aaa6d7bcfa28d4137a4f23cb605fe69c157e6bf851425e",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4160,21 +4160,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/benchmark_cpu",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium --num-datasets 14 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "1c89a5badd6bdd49d6e3d77364b729a6",
                 "generated_corpus_id": "b718a8a12bb27448bc4907685f3db357",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "9a3bc4d4fbe2e6b6af12d683e02da8b779897444e9661119e6ddcf33cb2d13bd",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4182,21 +4182,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/default_medium",
               "num_datasets": 14,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape --num-datasets 2 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "b564c40db349ab065c5621b2251d5d63",
                 "generated_corpus_id": "15e22b4ae58e900bb52ff4131a1d3bab",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "a644b06d333295fa9f15c15ca41485dfa0bbdb230ad4ed719aede7d35bb49090",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4204,7 +4204,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/invocations/large_shape",
               "num_datasets": 2,
               "rows": null,
               "seed": 1
@@ -4293,7 +4293,7 @@
             "filter_status_counts": {
               "not_run": 20
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 20
             },
@@ -4346,7 +4346,7 @@
             "unique_dataset_id_count": 20,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
           "manifest_sha256": "0ebd4afb229aa3b58ee30059b3d0c1dff122ef9234e75d2e0aa81fd778c92478"
         },
         "recipe": {
@@ -4413,30 +4413,30 @@
             "corpus_variant": "dagzoo_shape_aware_size_small"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_small",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_small"
       },
       "right": {
         "artifacts": {
-          "corpus_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-          "latest_pointer_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
+          "corpus_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
+          "latest_pointer_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/latest.json",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet"
         },
         "corpus_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
-        "corpus_record_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
+        "corpus_record_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/corpus_record.json",
         "corpus_ref": "tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1",
         "dagzoo_provenance": {
           "commands": [
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
-            "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+            "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu"
           ],
           "comparator_role": "promoted_anchor_candidate",
           "config_refs": [
@@ -4455,15 +4455,15 @@
           },
           "invocations": [
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cpu.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cpu.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu --num-datasets 8 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cpu.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "53e74953fde43f70859b283247273149",
                 "generated_corpus_id": "df64618e3e7ef50e53cf24d7c7af9963",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu/handoff_manifest.json",
                 "handoff_manifest_sha256": "71e53dd96763250708fea921725f0d5536688fd506450b6706dc52afc26b8814",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4471,21 +4471,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "benchmark_cpu",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/benchmark_cpu",
               "num_datasets": 8,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/default.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/default.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium --num-datasets 28 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/default.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "2b75e800eb49bc29227ddc1d3de3400c",
                 "generated_corpus_id": "64e9b83311b42a7a261684e1cdf7416a",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium/handoff_manifest.json",
                 "handoff_manifest_sha256": "8af47c2b31f8ea0fe0d08d51d1aa3924213df0154f1f8309d8d98316af52fbe7",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4493,21 +4493,21 @@
               },
               "hardware_policy": "none",
               "invocation_id": "default_medium",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/default_medium",
               "num_datasets": 28,
               "rows": null,
               "seed": 1
             },
             {
-              "command": "uv run dagzoo generate --config /workspace/dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root /workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
+              "command": "uv run dagzoo generate --config ../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml --handoff-root outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape --num-datasets 4 --hardware-policy none --seed 1 --device cpu",
               "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
               "device": "cpu",
               "handoff": {
                 "curation_policy": "none",
                 "generate_run_id": "0faa836a362b7aee63f18dc039790358",
                 "generated_corpus_id": "83957212ec36e6946382bef1a14b0a91",
-                "generated_dir": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
-                "handoff_manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
+                "generated_dir": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/generated",
+                "handoff_manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape/handoff_manifest.json",
                 "handoff_manifest_sha256": "9e9132ffff2d6549e03d24b60048e150adf90019029e4f23248ccf0b5cbf1a5a",
                 "recommended_training_artifact_key": "generated_dir",
                 "recommended_training_corpus": "generated",
@@ -4515,7 +4515,7 @@
               },
               "hardware_policy": "none",
               "invocation_id": "large_shape",
-              "invocation_root": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
+              "invocation_root": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/invocations/large_shape",
               "num_datasets": 4,
               "rows": null,
               "seed": 1
@@ -4604,7 +4604,7 @@
             "filter_status_counts": {
               "not_run": 40
             },
-            "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+            "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
             "missing_value_status_counts": {
               "clean": 40
             },
@@ -4657,7 +4657,7 @@
             "unique_dataset_id_count": 40,
             "unique_source_root_count": 3
           },
-          "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+          "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
           "manifest_sha256": "f635c43eaba11854351087c1ec1683acfb16f4ef8148712aa3224c4896446fcd"
         },
         "recipe": {
@@ -4724,12 +4724,12 @@
             "corpus_variant": "dagzoo_shape_aware_size_medium"
           },
           "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-          "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+          "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
           "schema": "tab-foundry-corpus-recipe-v1",
           "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium"
         },
         "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
-        "recipe_path": "/workspace/tab-foundry/reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
+        "recipe_path": "reference/corpus_recipes/tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml",
         "schema": "tab-foundry-corpus-record-v1",
         "surface_label": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "surface_label_recommendation": "tf_rd_013_dagzoo_shape_aware_size_medium"
@@ -4759,7 +4759,7 @@
         "filter_status_counts": {
           "not_run": 10
         },
-        "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+        "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
         "missing_value_status_counts": {
           "clean": 10
         },
@@ -4812,7 +4812,7 @@
         "unique_dataset_id_count": 10,
         "unique_source_root_count": 1
       },
-      "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
+      "manifest_path": "outputs/corpora/tf_rd_013_current_corpus_default_v1/tf_rd_013_current_corpus_default_v1__05efca84db48/manifest.parquet",
       "manifest_sha256": "05efca84db480654ad6ce4241d12bf0b919e2ab56e999e9bcab8cb5284134bbe",
       "recipe_id": "tf_rd_013_current_corpus_default_v1",
       "status": "available"
@@ -4831,7 +4831,7 @@
         "filter_status_counts": {
           "not_run": 80
         },
-        "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+        "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
         "missing_value_status_counts": {
           "clean": 80
         },
@@ -4886,7 +4886,7 @@
         "unique_dataset_id_count": 80,
         "unique_source_root_count": 3
       },
-      "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
+      "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_large_v1/tf_rd_013_dagzoo_shape_aware_size_large_v1__b71ae7e5acc7/manifest.parquet",
       "manifest_sha256": "b71ae7e5acc717dd9d727a5e7355882013369c57d92c18c2f95e109d364cd85f",
       "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_large_v1",
       "status": "available"
@@ -4905,7 +4905,7 @@
         "filter_status_counts": {
           "not_run": 40
         },
-        "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+        "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
         "missing_value_status_counts": {
           "clean": 40
         },
@@ -4958,7 +4958,7 @@
         "unique_dataset_id_count": 40,
         "unique_source_root_count": 3
       },
-      "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
+      "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_medium_v1/tf_rd_013_dagzoo_shape_aware_size_medium_v1__f635c43eaba1/manifest.parquet",
       "manifest_sha256": "f635c43eaba11854351087c1ec1683acfb16f4ef8148712aa3224c4896446fcd",
       "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
       "status": "available"
@@ -4977,7 +4977,7 @@
         "filter_status_counts": {
           "not_run": 20
         },
-        "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+        "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
         "missing_value_status_counts": {
           "clean": 20
         },
@@ -5030,7 +5030,7 @@
         "unique_dataset_id_count": 20,
         "unique_source_root_count": 3
       },
-      "manifest_path": "/workspace/tab-foundry/outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
+      "manifest_path": "outputs/corpora/tf_rd_013_dagzoo_shape_aware_size_small_v1/tf_rd_013_dagzoo_shape_aware_size_small_v1__0ebd4afb229a/manifest.parquet",
       "manifest_sha256": "0ebd4afb229aa3b58ee30059b3d0c1dff122ef9234e75d2e0aa81fd778c92478",
       "recipe_id": "tf_rd_013_dagzoo_shape_aware_size_small_v1",
       "status": "available"

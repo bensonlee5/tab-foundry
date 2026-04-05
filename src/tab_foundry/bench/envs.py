@@ -53,9 +53,9 @@ TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
 class BenchmarkEnvConfig:
     """Input configuration for sibling benchmark env bootstrap."""
 
-    nanotabpfn_root: Path = Path("~/dev/nanoTabPFN")
-    tabpfn_root: Path = Path("~/dev/TabPFN")
-    tabicl_root: Path = Path("~/dev/tabicl")
+    nanotabpfn_root: Path
+    tabpfn_root: Path
+    tabicl_root: Path
     tab_realdata_hub_root: Path | None = None
 
 

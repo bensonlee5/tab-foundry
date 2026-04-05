@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.9] - 2026-04-05
+
+### Changed
+
+- User-facing note: benchmark and legacy prior-training CLI surfaces no longer
+  assume a developer-specific home-directory checkout layout. `tab-foundry bench env bootstrap`,
+  `tab-foundry bench smoke dagzoo`, `tab-foundry research sweep execute`, and
+  `tab-foundry train legacy-prior simple|staged` now require explicit external
+  roots or prior-dump paths when those workflows depend on sibling checkouts.
+- User-facing note: persisted benchmark, training, and reference artifacts now
+  normalize known sibling checkouts such as `../nanoTabPFN/...`,
+  `../dagzoo/...`, and `../tab-realdata-hub/...` instead of embedding
+  workstation-specific absolute paths.
+- User-facing note: tracked benchmark registry and reference artifacts were
+  sanitized to remove workstation-specific absolute path references so the
+  repo is shareable across machines.
+
 ## [0.16.8] - 2026-04-04
 
 ### Changed

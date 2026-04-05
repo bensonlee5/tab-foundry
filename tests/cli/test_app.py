@@ -113,6 +113,8 @@ DISPATCH_CASES = (
                 "compare",
                 "--tab-foundry-run-dir",
                 "/tmp/run",
+                "--tabicl-root",
+                "/tmp/tabicl",
                 "--tab-realdata-hub-root",
                 "/tmp/tab-realdata-hub",
             ),
@@ -120,10 +122,12 @@ DISPATCH_CASES = (
             attribute="_compare_command",
             fields={
                 "tab_foundry_run_dir": _path_attr("tab_foundry_run_dir"),
+                "tabicl_root": _path_attr("tabicl_root"),
                 "tab_realdata_hub_root": _path_attr("tab_realdata_hub_root"),
             },
             expected={
                 "tab_foundry_run_dir": "/tmp/run",
+                "tabicl_root": "/tmp/tabicl",
                 "tab_realdata_hub_root": "/tmp/tab-realdata-hub",
             },
         ),
@@ -157,6 +161,8 @@ DISPATCH_CASES = (
                 "bootstrap",
                 "--nanotabpfn-root",
                 "/tmp/nano",
+                "--tabpfn-root",
+                "/tmp/tabpfn",
                 "--tabicl-root",
                 "/tmp/tabicl",
                 "--tab-realdata-hub-root",
@@ -486,14 +492,28 @@ DISPATCH_CASES = (
     ),
     pytest.param(
         DispatchCase(
-            argv=("research", "sweep", "execute", "--sweep-id", "binary_md_v1", "--include-completed"),
+            argv=(
+                "research",
+                "sweep",
+                "execute",
+                "--sweep-id",
+                "binary_md_v1",
+                "--nanotabpfn-root",
+                "/tmp/nanoTabPFN",
+                "--include-completed",
+            ),
             module=research_execute_cli_module,
             attribute="_execute_command",
             fields={
                 "sweep_id": _optional_str_attr("sweep_id"),
+                "nanotabpfn_root": _path_attr("nanotabpfn_root"),
                 "include_completed": _bool_attr("include_completed"),
             },
-            expected={"sweep_id": "binary_md_v1", "include_completed": True},
+            expected={
+                "sweep_id": "binary_md_v1",
+                "nanotabpfn_root": "/tmp/nanoTabPFN",
+                "include_completed": True,
+            },
         ),
         id="research-sweep-execute",
     ),
@@ -909,6 +929,8 @@ def test_bench_compare_run_from_args_forwards_tab_realdata_hub_root(
         [
             "--tab-foundry-run-dir",
             str(tmp_path / "run"),
+            "--tabicl-root",
+            str(tmp_path / "tabicl"),
             "--tab-realdata-hub-root",
             str(hub_root),
         ],
@@ -934,6 +956,12 @@ def test_bench_env_bootstrap_run_from_args_forwards_tab_realdata_hub_root(
     result = CliRunner().invoke(
         env_bootstrap_cli_module.COMMAND,
         [
+            "--nanotabpfn-root",
+            str(tmp_path / "nanoTabPFN"),
+            "--tabpfn-root",
+            str(tmp_path / "TabPFN"),
+            "--tabicl-root",
+            str(tmp_path / "tabicl"),
             "--tab-realdata-hub-root",
             str(hub_root),
         ],

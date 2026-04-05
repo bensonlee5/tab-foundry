@@ -51,9 +51,6 @@ from .runtime_env import ensure_nanotabpfn_python
 from .screening import screen_metrics
 from .surface_resolution import build_lightweight_training_surface_record
 
-
-DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
-DEFAULT_NANOTABPFN_ROOT = Path("/workspace/nanoTabPFN")
 DEFAULT_DEVICE = "cuda"
 DEFAULT_NANOTABPFN_STEPS = _DEFAULT_NANOTABPFN_STEPS
 DEFAULT_NANOTABPFN_SEEDS = _DEFAULT_NANOTABPFN_SEEDS

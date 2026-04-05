@@ -212,6 +212,8 @@ def test_compare_main_parses_cli_invocation(
             str(tmp_path / "run"),
             "--out-root",
             str(tmp_path / "bench"),
+            "--tabicl-root",
+            str(tmp_path / "tabicl"),
             "--nanotabpfn-root",
             str(tmp_path / "nano"),
             "--nanotabpfn-prior-dump",
@@ -244,7 +246,7 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_manifest_path == tmp_path / "bundle.json"
     assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
-    assert config.tabicl_root == Path("~/dev/tabicl")
+    assert config.tabicl_root == tmp_path / "tabicl"
     stdout = capsys.readouterr().out
     assert "benchmark comparison complete:" in stdout
     assert "primary_external_benchmark=" in stdout
@@ -325,6 +327,8 @@ def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
             str(tmp_path / "bench"),
             "--external-benchmark",
             "nanotabpfn",
+            "--nanotabpfn-root",
+            str(tmp_path / "nano"),
         ]
     )
 
@@ -333,6 +337,40 @@ def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
     assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,)
     stdout = capsys.readouterr().out
     assert "primary_external_benchmark=nanotabpfn" in stdout
+
+
+def test_compare_main_requires_tabicl_root_for_default_tabiclv2(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        compare_cli_module.main(
+            [
+                "--tab-foundry-run-dir",
+                str(tmp_path / "run"),
+            ]
+        )
+
+    assert exc_info.value.code == 2
+    assert "--tabicl-root is required" in capsys.readouterr().err
+
+
+def test_compare_main_requires_nanotabpfn_root_when_nanotabpfn_is_selected(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        compare_cli_module.main(
+            [
+                "--tab-foundry-run-dir",
+                str(tmp_path / "run"),
+                "--external-benchmark",
+                "nanotabpfn",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+    assert "--nanotabpfn-root is required" in capsys.readouterr().err
 
 
 def test_load_benchmark_manifest_datasets_fails_on_bundle_drift(

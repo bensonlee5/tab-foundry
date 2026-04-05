@@ -33,9 +33,9 @@ def _bootstrap_command(
 
 
 @click.command(name="bootstrap", help="Bootstrap sibling benchmark environments")
-@click.option("--nanotabpfn-root", default="~/dev/nanoTabPFN", show_default=True, type=click.Path(path_type=Path), help="Local nanoTabPFN checkout")
-@click.option("--tabpfn-root", default="~/dev/TabPFN", show_default=True, type=click.Path(path_type=Path), help="Local TabPFN checkout")
-@click.option("--tabicl-root", default="~/dev/tabicl", show_default=True, type=click.Path(path_type=Path), help="Local tabicl checkout")
+@click.option("--nanotabpfn-root", required=True, type=click.Path(path_type=Path), help="Local nanoTabPFN checkout")
+@click.option("--tabpfn-root", required=True, type=click.Path(path_type=Path), help="Local TabPFN checkout")
+@click.option("--tabicl-root", required=True, type=click.Path(path_type=Path), help="Local tabicl checkout")
 @click.option(
     "--tab-realdata-hub-root",
     default=None,

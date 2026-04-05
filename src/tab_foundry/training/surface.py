@@ -16,6 +16,7 @@ from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
 )
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.repo_paths import normalize_repo_relative_path
 from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.timestamps import utc_now as _shared_utc_now
 
@@ -179,7 +180,7 @@ def build_training_surface_record(
     manifest_payload: dict[str, Any] | None = None
     if data_surface.manifest_path is not None:
         manifest_payload = {
-            "manifest_path": str(data_surface.manifest_path),
+            "manifest_path": normalize_repo_relative_path(data_surface.manifest_path),
         }
         if data_surface.manifest_path.exists():
             manifest_payload["manifest_sha256"] = sha256_path(data_surface.manifest_path)
@@ -270,7 +271,7 @@ def build_training_surface_record(
     payload = {
         "schema": TRAINING_SURFACE_SCHEMA,
         "generated_at_utc": _utc_now(),
-        "run_dir": str(run_dir.expanduser().resolve()),
+        "run_dir": normalize_repo_relative_path(run_dir),
         "labels": labels,
         "model": model_payload,
         "data": {
@@ -286,7 +287,7 @@ def build_training_surface_record(
             "corpus_record_path": (
                 None
                 if data_surface.corpus_record_path is None
-                else str(data_surface.corpus_record_path)
+                else normalize_repo_relative_path(data_surface.corpus_record_path)
             ),
             "manifest": manifest_payload,
             "dagzoo_provenance": data_surface.dagzoo_provenance,

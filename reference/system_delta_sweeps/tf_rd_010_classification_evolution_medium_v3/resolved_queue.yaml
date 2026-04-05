@@ -331,9 +331,9 @@ rows:
       corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
       recipe_id: tf_rd_010_dagzoo_medium_control_v2
       corpus_id: tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/manifest.parquet
         manifest_sha256: f5028c341cecb349b7fb2212b4352d4ef17da19d44b4f006fbc1768d7054c436
       dagzoo_provenance:
         corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
@@ -640,9 +640,9 @@ rows:
       corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
       recipe_id: tf_rd_010_missingness_mcar_v2
       corpus_id: tf_rd_010_missingness_mcar_v2__e727a421f6f2
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/manifest.parquet
         manifest_sha256: e727a421f6f206043284b918c192db4918d9e6a44b7ff8081670eed9067db6d5
       dagzoo_provenance:
         corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
@@ -951,9 +951,9 @@ rows:
       corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
       recipe_id: tf_rd_010_missingness_mar_v2
       corpus_id: tf_rd_010_missingness_mar_v2__decb0ecfb7c7
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/manifest.parquet
         manifest_sha256: decb0ecfb7c71e02cebf36fe8c228031f3091724d668f774ffcd42596447d3c8
       dagzoo_provenance:
         corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
@@ -1236,9 +1236,9 @@ rows:
       corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10
       recipe_id: tf_rd_010_missingness_mnar_v2
       corpus_id: tf_rd_010_missingness_mnar_v2__b64d33193f10
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/manifest.parquet
         manifest_sha256: b64d33193f107e14ef206ea632ec773bb8fe520634ec6916bd73e30bb8d1b27d
       dagzoo_provenance:
         corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10

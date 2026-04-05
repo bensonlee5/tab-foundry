@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 import importlib.util
-from pathlib import Path
 
 import pytest
 import torch
@@ -12,6 +11,7 @@ from tab_foundry.model.architectures.tabfoundry_simple import (
     _TransformerEncoderLayer,
 )
 from tab_foundry.types import TaskBatch
+from tests.support.paths import NANOTABPFN_MODEL_PATH_ENV, nanotabpfn_model_path
 
 
 def _batch(*, x_test: torch.Tensor | None = None, num_classes: int = 2) -> TaskBatch:
@@ -84,9 +84,11 @@ def _model(**overrides: object) -> TabFoundrySimpleClassifier:
 
 @lru_cache(maxsize=1)
 def _nanotabpfn_module():
-    model_path = Path("~/dev/nanoTabPFN/model.py").expanduser()
-    if not model_path.exists():
-        pytest.skip("local nanoTabPFN reference is not available")
+    model_path = nanotabpfn_model_path()
+    if model_path is None or not model_path.exists():
+        pytest.skip(
+            f"set {NANOTABPFN_MODEL_PATH_ENV} to a local nanoTabPFN model.py path to run parity checks"
+        )
     spec = importlib.util.spec_from_file_location("local_nanotabpfn_model", model_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"failed to load nanoTabPFN model module from {model_path}")

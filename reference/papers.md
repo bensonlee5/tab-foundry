@@ -3,7 +3,7 @@
 Start here when you want the reading list that actually informs architecture,
 training, and scaling decisions in `tab-foundry`.
 
-This list overlaps with `~/dev/dagzoo/reference`, but the lens here is
+This list overlaps with the sibling `../dagzoo/reference` set, but the lens here is
 **architecture, training recipe, and scaling predictability** rather than data
 generation.
 

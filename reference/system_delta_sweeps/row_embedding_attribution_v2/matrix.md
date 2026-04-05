@@ -76,7 +76,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
-  - Execution must use `--device auto`, `--nanotabpfn-root ~/dev/nanoTabPFN`, and `--nanotabpfn-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5` so the anchor nanoTabPFN curve is reused instead of refreshed.
+  - Execution must use `--device auto`, an explicit `--nanotabpfn-root`, and an explicit `--nanotabpfn-prior-dump` so the anchor nanoTabPFN curve is reused instead of refreshed.
   - Canonical rerun registered as `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`

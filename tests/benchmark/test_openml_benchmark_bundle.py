@@ -45,3 +45,20 @@ def test_canonical_benchmark_bundle_source_path_matches_foreign_checkout_repo_tr
     assert canonical_benchmark_bundle_source_path(foreign_bundle_path) == (
         "src/tab_foundry/bench/openml_binary_medium_v1.json"
     )
+
+
+def test_canonical_benchmark_bundle_source_path_uses_known_sibling_relative_form() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    sibling_bundle_path = (
+        repo_root.parent
+        / "tab-realdata-hub"
+        / "src"
+        / "tab_realdata_hub"
+        / "bench"
+        / "openml_classification_medium_v1.json"
+    )
+
+    assert canonical_benchmark_bundle_source_path(
+        sibling_bundle_path,
+        repo_root=repo_root,
+    ) == "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json"

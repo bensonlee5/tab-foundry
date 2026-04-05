@@ -46,3 +46,16 @@ def test_benchmark_registry_helpers_roundtrip_with_explicit_root(tmp_path: Path)
         normalized = benchmark_registry.normalize_registry_path_value(artifact_path, root=repo_root)
         assert normalized == "outputs/run_001/train"
         assert benchmark_registry.resolve_registry_path_value(normalized, root=repo_root) == artifact_path
+
+
+def test_benchmark_registry_helpers_roundtrip_known_sibling_paths(tmp_path: Path) -> None:
+    repo_root = tmp_path / "tab-foundry"
+    sibling_path = (tmp_path / "nanoTabPFN" / "300k_150x5_2.h5").resolve()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(benchmark_registry, "repo_root", lambda: repo_root)
+
+        normalized = benchmark_registry.normalize_registry_path_value(sibling_path, root=repo_root)
+
+    assert normalized == "../nanoTabPFN/300k_150x5_2.h5"
+    assert benchmark_registry.resolve_registry_path_value(normalized, root=repo_root) == sibling_path

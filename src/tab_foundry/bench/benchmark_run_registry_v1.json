@@ -13543,7 +13543,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -15060,7 +15060,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -16603,7 +16603,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -18146,7 +18146,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -19689,7 +19689,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -21206,7 +21206,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -22749,7 +22749,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -24292,7 +24292,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -25835,7 +25835,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -27349,7 +27349,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -28889,7 +28889,7 @@
       },
       "benchmark_bundle": {
         "name": "openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -30429,7 +30429,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -30859,7 +30859,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -31315,7 +31315,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -31771,7 +31771,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -32201,7 +32201,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -32664,7 +32664,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -33127,7 +33127,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -33590,7 +33590,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -33878,7 +33878,7 @@
         "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
         "parent_run_id": "sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8"
       },
-      "manifest_path": "/Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet",
+      "manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet",
       "model": {
         "arch": "tabfoundry_sandwich",
         "architecture": {
@@ -38268,7 +38268,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": null
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -38400,7 +38400,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "architecture": {
@@ -38610,7 +38610,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "architecture": {
@@ -38820,7 +38820,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "architecture": {
@@ -39030,7 +39030,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "architecture": {
@@ -39240,7 +39240,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -39372,7 +39372,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -39504,7 +39504,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -39636,7 +39636,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -39768,7 +39768,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -39900,7 +39900,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40032,7 +40032,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40164,7 +40164,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40296,7 +40296,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40428,7 +40428,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40560,7 +40560,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40692,7 +40692,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
       },
-      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
@@ -40772,7 +40772,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -41222,7 +41222,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -41672,7 +41672,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -42122,7 +42122,7 @@
       },
       "benchmark_bundle": {
         "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "source_path": "../tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
         "task_count": 242,
         "task_ids": [
           11,
@@ -43169,7 +43169,7 @@
         "control_baseline_id": "cls_benchmark_linear_v2",
         "parent_run_id": null
       },
-      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "manifest_path": "../nanoTabPFN/300k_150x5_2.h5",
       "model": {
         "arch": "tabfoundry_sandwich",
         "benchmark_profile": null,
