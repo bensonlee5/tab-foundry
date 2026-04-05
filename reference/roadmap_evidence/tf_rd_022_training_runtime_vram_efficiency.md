@@ -91,6 +91,30 @@ This is the canonical long-form evidence note for
 - the carried TF-RD-022 runtime surface is now fixed to the measured medium
   winner: `mixed_precision=bf16`, `trace_activations=false`, and
   `activation_checkpointing=true`
+- issue [#239](https://github.com/bensonlee5/tab-foundry/issues/239) now
+  records one explicit bounded training-throughput read on that settled runtime
+  surface:
+  - the named TF-RD-022 baseline experiment is now manifest-backed on
+    `tf_rd_010_dagzoo_medium_control` /
+    `tf_rd_010_dagzoo_medium_control_curated_v5` and pinned to CUDA rather than
+    inheriting `legacy_prior`
+  - the measured candidate only changed loader and transfer behavior:
+    `num_workers=2`, `loader_pin_memory=true`,
+    `loader_persistent_workers=true`, `loader_prefetch_factor=2`, and
+    `non_blocking_device_transfer=true`
+  - the completed same-host CUDA benchmark replay improved training time from
+    `best_training_time=6117.0161` to `3429.1443` and
+    `final_training_time=6244.0331` to `3456.8260`, but benchmark quality
+    drifted the wrong way at `best_roc_auc=0.6619213 -> 0.6592971`,
+    `best_log_loss=0.5339507 -> 0.5346940`,
+    `best_brier_score=0.3631727 -> 0.3636804`, and
+    `best_bpc=2.1102889 -> 2.1123012`
+  - TF-RD-022 therefore records `#239` as a measured defer on the low-risk
+    overlap and copy path, and the carried runtime policy remains unchanged
+- benchmark helper entrypoints now resolve checkpoint paths without eagerly
+  importing the full training stack, which removed an incidental `omegaconf`
+  dependency from the TabICLv2 helper environment and unblocked the official
+  CUDA `#239` replay
 - benchmark throughput is still the most credible remaining local win because
   medium benchmarking now takes more than an hour, the evaluator in
   `src/tab_foundry/bench/openml_benchmark/metrics.py` is fully serial, and the
@@ -124,9 +148,10 @@ This is the canonical long-form evidence note for
 - benchmark execution is the highest-priority remaining lane because the medium
   benchmark runtime is already operationally expensive and the current
   evaluation path is serial
-- training speed remains in scope because the codepath still leaves obvious
-  data-pipeline and transfer-overlap questions unanswered, but it should be
-  approached with profiling first and low-risk execution changes second
+- training speed now has one explicit measured defer on the low-risk
+  overlap-and-transfer candidate, so any further work there should only reopen
+  with a more diagnostic profiling or decomposition plan rather than by
+  promoting the combined `#239` knob set
 - corpus materialization remains in scope because it is slow in practice, but
   the first question there is bottleneck attribution between local
   orchestration and upstream `tab-realdata-hub` or dagzoo work
@@ -136,9 +161,6 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the repo still lacks one explicit measured keep/defer decision for training
-  throughput on the settled runtime surface under issue
-  [#239](https://github.com/bensonlee5/tab-foundry/issues/239)
 - the repo still lacks one explicit measured keep/defer decision for medium
   benchmark execution speed under issue
   [#240](https://github.com/bensonlee5/tab-foundry/issues/240)
