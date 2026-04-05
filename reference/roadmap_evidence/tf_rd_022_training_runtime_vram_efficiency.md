@@ -109,8 +109,27 @@ This is the canonical long-form evidence note for
     `best_log_loss=0.5339507 -> 0.5346940`,
     `best_brier_score=0.3631727 -> 0.3636804`, and
     `best_bpc=2.1102889 -> 2.1123012`
-  - TF-RD-022 therefore records `#239` as a measured defer on the low-risk
-    overlap and copy path, and the carried runtime policy remains unchanged
+  - a follow-up same-host CUDA decomposition screen at `runtime.max_steps=24`
+    ranked the split variants `baseline=68.6341s`, `workers=57.1585s`,
+    `loader_overlap=55.6515s`, `transfer=50.8132s`, and
+    `combined=50.9901s`, so the full replay advanced `transfer` and
+    `loader_overlap`
+  - the full same-host CUDA replay on those two split variants preserved the
+    large speedup but still failed the strict benchmark-safe keep bar:
+    `transfer` reached `best_training_time=3081.4472`,
+    `final_training_time=3110.9282`, `best_roc_auc=0.6584391`,
+    `best_log_loss=0.5329700`, `best_brier_score=0.3622467`,
+    `best_bpc=2.1101876`; `loader_overlap` reached
+    `best_training_time=3063.8761`, `final_training_time=3127.7445`,
+    `best_roc_auc=0.6608182`, `best_log_loss=0.5358135`,
+    `best_brier_score=0.3647582`, `best_bpc=2.1100665`; the same-host
+    baseline was `best_training_time=5142.3102`,
+    `final_training_time=5373.6851`, `best_roc_auc=0.6608562`,
+    `best_log_loss=0.5353731`, `best_brier_score=0.3642339`,
+    `best_bpc=2.1077142`
+  - TF-RD-022 therefore records `#239` as a decomposition-backed measured
+    defer on the low-risk overlap and copy path, and the carried runtime
+    policy remains unchanged
 - benchmark helper entrypoints now resolve checkpoint paths without eagerly
   importing the full training stack, which removed an incidental `omegaconf`
   dependency from the TabICLv2 helper environment and unblocked the official
@@ -120,12 +139,12 @@ This is the canonical long-form evidence note for
   `src/tab_foundry/bench/openml_benchmark/metrics.py` is fully serial, and the
   current medium manifest has repeated task signatures that can plausibly share
   batched inference on the existing sandwich surface
-- training throughput still has bounded local headroom because the current
-  loader, device-transfer, and runtime defaults in
+- the current loader, device-transfer, and runtime defaults in
   `src/tab_foundry/data/factory.py`,
   `src/tab_foundry/task_batching.py`, and
-  `src/tab_foundry/training/runtime.py` are conservative rather than
-  aggressively overlapped
+  `src/tab_foundry/training/runtime.py` remain conservative rather than
+  aggressively overlapped, but `#239` has already closed the low-risk
+  training-throughput lane as a measured defer on that surface
 - corpus materialization throughput remains worth a measured pass because the
   workflow is slow in practice and the local orchestration path in
   `src/tab_foundry/data/corpus_materialization_shared.py` still starts from a
@@ -149,9 +168,10 @@ This is the canonical long-form evidence note for
   benchmark runtime is already operationally expensive and the current
   evaluation path is serial
 - training speed now has one explicit measured defer on the low-risk
-  overlap-and-transfer candidate, so any further work there should only reopen
-  with a more diagnostic profiling or decomposition plan rather than by
-  promoting the combined `#239` knob set
+  overlap-and-transfer path, including the completed CUDA decomposition of the
+  combined candidate into `workers`, `loader_overlap`, and `transfer`
+  variants, so no further training-throughput work remains in TF-RD-022 unless
+  a later lane uncovers a new, narrower hypothesis
 - corpus materialization remains in scope because it is slow in practice, but
   the first question there is bottleneck attribution between local
   orchestration and upstream `tab-realdata-hub` or dagzoo work

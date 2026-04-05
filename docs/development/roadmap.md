@@ -579,9 +579,11 @@ Legacy wording note:
     work; issue [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
     is superseded because TF-RD-022 will not reopen harder-surface batching
   - epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now
-    tracks performance optimization on the settled runtime surface, with child
-    issues [#239](https://github.com/bensonlee5/tab-foundry/issues/239),
-    [#240](https://github.com/bensonlee5/tab-foundry/issues/240), and
+    tracks performance optimization on the settled runtime surface, with
+    completed training-throughput child
+    [#239](https://github.com/bensonlee5/tab-foundry/issues/239) and open
+    benchmark/materialization children
+    [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241)
   - the sandwich architecture lane still lives under issue
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178), with issue
@@ -622,14 +624,22 @@ Legacy wording note:
     medium winner (`mixed_precision=bf16`, `trace_activations=false`,
     `activation_checkpointing=true`)
   - issue [#239](https://github.com/bensonlee5/tab-foundry/issues/239) now
-    records one explicit same-host CUDA training-throughput defer on the
-    low-risk loader-overlap and non-blocking-transfer path: the candidate
-    improved `best_training_time` from `6117.0161` to `3429.1443` and
-    `final_training_time` from `6244.0331` to `3456.8260`, but drifted the
-    wrong way on benchmark quality (`best_roc_auc=0.6619213 -> 0.6592971`,
-    `best_log_loss=0.5339507 -> 0.5346940`,
-    `best_brier_score=0.3631727 -> 0.3636804`,
-    `best_bpc=2.1102889 -> 2.1123012`), so the carried runtime policy remains
+    records a completed same-host CUDA training-throughput decomposition on
+    the low-risk loader-overlap and non-blocking-transfer path: a short screen
+    advanced `transfer` and `loader_overlap`, then the full replay measured
+    `transfer` at `best_training_time=3081.4472`,
+    `final_training_time=3110.9282`, `best_roc_auc=0.6584391`,
+    `best_log_loss=0.5329700`, `best_brier_score=0.3622467`,
+    `best_bpc=2.1101876` and `loader_overlap` at
+    `best_training_time=3063.8761`, `final_training_time=3127.7445`,
+    `best_roc_auc=0.6608182`, `best_log_loss=0.5358135`,
+    `best_brier_score=0.3647582`, `best_bpc=2.1100665` against the same-host
+    baseline `best_training_time=5142.3102`,
+    `final_training_time=5373.6851`, `best_roc_auc=0.6608562`,
+    `best_log_loss=0.5353731`, `best_brier_score=0.3642339`,
+    `best_bpc=2.1077142`; both splits preserved large speedups but neither was
+    benchmark-safe across the tracked metrics, so `#239` closes as a
+    decomposition-backed defer and the carried runtime policy remains
     unchanged
 - this epic now follows the closed TF-RD-010 benchmark contract directly; it
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
@@ -642,8 +652,6 @@ Legacy wording note:
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241) with one
     explicit keep or defer decision plus local-versus-upstream bottleneck
     attribution
-  - only reopen training-throughput work if a more diagnostic profiling pass
-    shows a narrower follow-up than the deferred combined `#239` candidate
   - keep sandwich architecture ownership under historical implementation issue
     [#174](https://github.com/bensonlee5/tab-foundry/issues/174), active
     umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),
