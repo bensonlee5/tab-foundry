@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   quality-and-unit:
@@ -52,6 +53,8 @@ jobs:
         run: uv run python scripts/audit/check_version_bump.py --base-ref origin/main
 
       - name: Quality and unit verification
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: ./scripts/dev verify full
 
   iris-smoke:
