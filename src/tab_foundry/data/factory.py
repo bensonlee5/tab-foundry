@@ -169,13 +169,16 @@ def build_task_loader(
     shuffle: bool,
     seed: int,
     task_batch_size: int = 1,
+    pin_memory: bool = False,
+    persistent_workers: bool = False,
+    prefetch_factor: int | None = None,
 ) -> DataLoader[TaskBatch]:
     """Build a task loader with deterministic seeded shuffling."""
 
     resolved_task_batch_size = int(task_batch_size)
     if resolved_task_batch_size <= 0:
         raise ValueError(f"task_batch_size must be >= 1, got {resolved_task_batch_size}")
-
+    resolved_num_workers = int(num_workers)
     collate = partial(
         collate_task_batch,
         requested_task_batch_size=resolved_task_batch_size,
@@ -189,22 +192,67 @@ def build_task_loader(
             raise RuntimeError(
                 "training.task_batch_size > 1 requires a manifest-backed PackedParquetTaskDataset"
             )
+        batch_sampler = _ManifestTaskBatchSampler(
+            dataset,
+            task_batch_size=resolved_task_batch_size,
+            shuffle=shuffle,
+            seed=seed,
+        )
+        if resolved_num_workers > 0:
+            if prefetch_factor is None:
+                return DataLoader(
+                    dataset,
+                    batch_sampler=batch_sampler,
+                    collate_fn=collate,
+                    num_workers=resolved_num_workers,
+                    pin_memory=bool(pin_memory),
+                    persistent_workers=bool(persistent_workers),
+                )
+            return DataLoader(
+                dataset,
+                batch_sampler=batch_sampler,
+                collate_fn=collate,
+                num_workers=resolved_num_workers,
+                pin_memory=bool(pin_memory),
+                persistent_workers=bool(persistent_workers),
+                prefetch_factor=int(prefetch_factor),
+            )
         return DataLoader(
             dataset,
-            batch_sampler=_ManifestTaskBatchSampler(
-                dataset,
-                task_batch_size=resolved_task_batch_size,
-                shuffle=shuffle,
-                seed=seed,
-            ),
-            num_workers=int(num_workers),
+            batch_sampler=batch_sampler,
             collate_fn=collate,
+            num_workers=resolved_num_workers,
+            pin_memory=bool(pin_memory),
+        )
+    if resolved_num_workers > 0:
+        if prefetch_factor is None:
+            return DataLoader(
+                dataset,
+                batch_size=1,
+                shuffle=shuffle,
+                collate_fn=collate,
+                generator=generator,
+                num_workers=resolved_num_workers,
+                pin_memory=bool(pin_memory),
+                persistent_workers=bool(persistent_workers),
+            )
+        return DataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=shuffle,
+            collate_fn=collate,
+            generator=generator,
+            num_workers=resolved_num_workers,
+            pin_memory=bool(pin_memory),
+            persistent_workers=bool(persistent_workers),
+            prefetch_factor=int(prefetch_factor),
         )
     return DataLoader(
         dataset,
         batch_size=1,
         shuffle=shuffle,
-        num_workers=int(num_workers),
         collate_fn=collate,
         generator=generator,
+        num_workers=resolved_num_workers,
+        pin_memory=bool(pin_memory),
     )

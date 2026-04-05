@@ -20,6 +20,7 @@ import tab_foundry.training.artifacts as training_artifacts_module
 import tab_foundry.training.prior.loop as prior_loop_module
 import tab_foundry.training.prior.runtime as prior_runtime_module
 import tab_foundry.training.prior_train as prior_train_module
+import tab_foundry.training.runtime as training_runtime_module
 from tab_foundry.training.prior_dump import (
     PriorDumpBatchMissingness,
     PriorDumpNonFiniteInputError,
@@ -2702,112 +2703,54 @@ def test_train_tabfoundry_simple_prior_allows_zero_grad_clip(
     assert gradient_history[0]["global_grad_norm"] > 0.0
 
 
-def test_resolve_prior_training_device_name_falls_back_for_multilayer_row_cls_on_mps(
+def test_resolve_prior_training_device_name_rejects_explicit_mps(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
 ) -> None:
     cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=3)
     cfg.runtime.device = "mps"
     spec = prior_train_module._model_spec_from_cfg(cfg)
     staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_runtime_module.resolve_prior_training_device_name(
-        cfg,
-        spec=spec,
-        staged_surface=staged_surface,
-    )
-
-    assert device_name == "cpu"
-    assert str(cfg.runtime.device) == "cpu"
-    assert "row_pool='row_cls'" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="MPS is unsupported for training and checkpoint evaluation"):
+        _ = prior_runtime_module.resolve_prior_training_device_name(
+            cfg,
+            spec=spec,
+            staged_surface=staged_surface,
+        )
 
 
-def test_resolve_prior_training_device_name_keeps_mps_for_target_column(
+def test_resolve_prior_training_device_name_rejects_auto_when_it_resolves_to_mps(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
 ) -> None:
     cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="nano_exact", tfrow_n_layers=3)
-    cfg.runtime.device = "mps"
+    cfg.runtime.device = "auto"
     spec = prior_train_module._model_spec_from_cfg(cfg)
     staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
+    monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_runtime_module.resolve_prior_training_device_name(
-        cfg,
-        spec=spec,
-        staged_surface=staged_surface,
-    )
-
-    assert device_name == "mps"
-    assert str(cfg.runtime.device) == "mps"
-    assert capsys.readouterr().err == ""
+    with pytest.raises(ValueError, match="runtime.device='auto' resolved to 'mps'"):
+        _ = prior_runtime_module.resolve_prior_training_device_name(
+            cfg,
+            spec=spec,
+            staged_surface=staged_surface,
+        )
 
 
-def test_resolve_prior_training_device_name_keeps_mps_for_single_layer_row_cls(
+@pytest.mark.parametrize("runtime_device", ["mps", "auto"])
+def test_train_tabfoundry_simple_prior_rejects_mps_runtime_device(
+    runtime_device: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
 ) -> None:
-    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=1)
-    cfg.runtime.device = "mps"
-    spec = prior_train_module._model_spec_from_cfg(cfg)
-    staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
-    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.runtime.device = runtime_device
+    if runtime_device == "auto":
+        monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "mps")
 
-    device_name = prior_runtime_module.resolve_prior_training_device_name(
-        cfg,
-        spec=spec,
-        staged_surface=staged_surface,
-    )
-
-    assert device_name == "mps"
-    assert str(cfg.runtime.device) == "mps"
-    assert capsys.readouterr().err == ""
-
-
-def test_train_tabfoundry_staged_prior_falls_back_to_cpu_for_multilayer_row_cls_on_mps(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    path = _write_prior_dump(
-        tmp_path / "prior_row_cls_fallback.h5",
-        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
-        y=np.asarray([[0, 1, 0]], dtype=np.int64),
-        num_features=np.asarray([2], dtype=np.int64),
-        num_datapoints=np.asarray([3], dtype=np.int64),
-        single_eval_pos=np.asarray([2], dtype=np.int64),
-    )
-    model = _DeviceTrackingConstantLogitModel()
-    optimizer = _CountingOptimizer()
-    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
-    monkeypatch.setattr(
-        prior_train_module,
-        "build_optimizer",
-        lambda *args, **kwargs: OptimizerSelection(
-            optimizers=[("schedulefree_adamw", optimizer)],
-            requested_name="schedulefree_adamw",
-            resolved_name="schedulefree_adamw",
-            fallback_reason=None,
-        ),
-    )
-    monkeypatch.setattr(prior_runtime_module, "resolve_device", lambda _device: "mps")
-    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=3)
-    cfg.runtime.device = "mps"
-
-    result = prior_train_module.train_tabfoundry_simple_prior(
-        cfg,
-        prior_dump_path=path,
-        batch_size=1,
-    )
-
-    assert result.global_step == 1
-    assert model.to_device_types == ["cpu"]
-    assert str(cfg.runtime.device) == "cpu"
-    assert "falling back to CPU" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="MPS is unsupported for training and checkpoint evaluation"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(cfg)
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

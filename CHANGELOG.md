@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.9] - 2026-04-05
+
+### Changed
+
+- User-facing note: training and checkpoint evaluation now support explicit
+  `runtime.loader_pin_memory`, `runtime.loader_persistent_workers`,
+  `runtime.loader_prefetch_factor`, and
+  `runtime.non_blocking_device_transfer` knobs, with conservative defaults on
+  the shared training/eval runtime path.
+- User-facing note: training and checkpoint evaluation now reject
+  `runtime.device=mps`, and `runtime.device=auto` will also fail in those
+  entrypoints if it resolves to MPS.
+- User-facing note: the named TF-RD-022 training-throughput experiment
+  surfaces now run against the manifest-backed TF-RD-010 medium control
+  contract on CUDA instead of inheriting the legacy-prior path.
+- User-facing note: benchmark helper entrypoints now resolve checkpoint paths
+  without eagerly importing the full training stack, which removes an
+  incidental `omegaconf` dependency from the TabICLv2 helper environment
+  during benchmark replay.
+
 ## [0.16.8] - 2026-04-04
 
 ### Changed

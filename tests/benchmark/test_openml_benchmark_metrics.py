@@ -643,6 +643,11 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
             "tab_foundry.bench.openml_benchmark."
         ):
             monkeypatch.delitem(sys.modules, module_name, raising=False)
+        if module_name == "tab_foundry.training" or module_name.startswith(
+            "tab_foundry.training."
+        ):
+            monkeypatch.delitem(sys.modules, module_name, raising=False)
+    monkeypatch.delitem(sys.modules, "omegaconf", raising=False)
 
     real_import = builtins.__import__
 
@@ -653,7 +658,7 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
         fromlist: tuple[object, ...] = (),
         level: int = 0,
     ) -> object:
-        if name.split(".", 1)[0] in {"openml", "pandas"}:
+        if name.split(".", 1)[0] in {"omegaconf", "openml", "pandas"}:
             raise ModuleNotFoundError(f"No module named {name!r}")
         return real_import(name, globals, locals, fromlist, level)
 

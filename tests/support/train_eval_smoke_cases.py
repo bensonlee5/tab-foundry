@@ -17,9 +17,11 @@ from torch.utils.data import Dataset
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.artifacts as training_artifacts_module
 import tab_foundry.training.distributed as distributed_module
+import tab_foundry.training.runtime as training_runtime_module
 import tab_foundry.training.trainer as trainer_module
 import tab_foundry.training.trainer_loop as trainer_loop_module
 import tab_foundry.training.trainer_metrics as trainer_metrics_module
+from tab_foundry.config import compose_config
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.optimizer import OptimizerSelection
 from tab_foundry.training.schedule import build_stage_configs
@@ -1473,7 +1475,7 @@ def test_train_grad_accum_streams_move_and_forward_in_lockstep(
     monkeypatch.setattr(
         trainer_loop_module,
         "move_batch",
-        lambda batch, _device: events.append("move") or batch,
+        lambda batch, _device, **_kwargs: events.append("move") or batch,
     )
 
     cfg = _classification_cfg(tmp_path)
@@ -1641,6 +1643,110 @@ def test_train_rejects_task_batching_for_non_manifest_loader(
         _ = trainer_module.train(cfg)
 
 
+def test_train_rejects_explicit_mps_runtime_device(tmp_path: Path) -> None:
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.device = "mps"
+
+    with pytest.raises(ValueError, match="MPS is unsupported for training and checkpoint evaluation"):
+        _ = trainer_module.train(cfg)
+
+
+def test_train_rejects_auto_runtime_device_when_it_resolves_to_mps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "mps")
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.device = "auto"
+
+    with pytest.raises(ValueError, match="runtime.device='auto' resolved to 'mps'"):
+        _ = trainer_module.train(cfg)
+
+
+@pytest.mark.parametrize(
+    ("experiment_name", "expected_runtime"),
+    [
+        (
+            "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1",
+            {
+                "num_workers": 0,
+                "loader_pin_memory": False,
+                "loader_persistent_workers": False,
+                "loader_prefetch_factor": None,
+                "non_blocking_device_transfer": False,
+            },
+        ),
+        (
+            "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_v1",
+            {
+                "num_workers": 2,
+                "loader_pin_memory": True,
+                "loader_persistent_workers": True,
+                "loader_prefetch_factor": 2,
+                "non_blocking_device_transfer": True,
+            },
+        ),
+    ],
+)
+def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    experiment_name: str,
+    expected_runtime: dict[str, object],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture_dataset(
+        data_cfg: object,
+        *,
+        split: str,
+        task: str,
+        seed: int,
+        preprocessing_cfg: object = None,
+    ) -> object:
+        del split, task, seed, preprocessing_cfg
+        captured["data_cfg"] = data_cfg
+        return object()
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
+    ) -> object:
+        del shuffle, seed, task_batch_size
+        captured["num_workers"] = num_workers
+        captured["pin_memory"] = pin_memory
+        captured["persistent_workers"] = persistent_workers
+        captured["prefetch_factor"] = prefetch_factor
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
+    monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+
+    cfg = compose_config([f"experiment={experiment_name}", "logging.use_wandb=false"])
+    cfg.runtime.output_dir = str(tmp_path / experiment_name)
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = trainer_module.train(cfg)
+
+    data_cfg = captured["data_cfg"]
+    assert str(data_cfg.source) == "manifest"
+    assert str(data_cfg.surface_label) == "tf_rd_010_dagzoo_medium_control"
+    assert str(data_cfg.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v5"
+    assert "legacy_prior" not in cfg
+    assert captured["num_workers"] == expected_runtime["num_workers"]
+    assert captured["pin_memory"] is expected_runtime["loader_pin_memory"]
+    assert captured["persistent_workers"] is expected_runtime["loader_persistent_workers"]
+    assert captured["prefetch_factor"] == expected_runtime["loader_prefetch_factor"]
+
+
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1750,6 +1856,72 @@ def test_train_allows_singleton_true_many_class_fallback_preflight(
 
     with pytest.raises(RuntimeError, match="stop_after_loader"):
         _ = trainer_module.train(cfg)
+
+
+def test_train_passes_loader_overlap_runtime_knobs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "model_build_spec_from_mappings",
+        lambda **_kwargs: SimpleNamespace(task="classification", arch="tabfoundry_simple"),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "resolve_training_loss_surface",
+        lambda *_args, **_kwargs: "classification",
+    )
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
+    ) -> None:
+        captured["shuffle"] = shuffle
+        captured["num_workers"] = num_workers
+        captured["seed"] = seed
+        captured["task_batch_size"] = task_batch_size
+        captured["pin_memory"] = pin_memory
+        captured["persistent_workers"] = persistent_workers
+        captured["prefetch_factor"] = prefetch_factor
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.num_workers = 2
+    cfg.runtime.loader_pin_memory = True
+    cfg.runtime.loader_persistent_workers = True
+    cfg.runtime.loader_prefetch_factor = 2
+    cfg.runtime.val_batches = 0
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = trainer_module.train(cfg)
+
+    assert captured == {
+        "shuffle": True,
+        "num_workers": 2,
+        "seed": 1,
+        "task_batch_size": 1,
+        "pin_memory": True,
+        "persistent_workers": True,
+        "prefetch_factor": 2,
+    }
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
