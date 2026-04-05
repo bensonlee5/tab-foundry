@@ -16,7 +16,9 @@ from tab_foundry.benchmark_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.bounce.config import BenchmarkBounceDiagnosisConfig, RerunMode, resolve_positive_int
+from tab_foundry.repo_paths import resolve_repo_relative_path
 from tab_foundry.training.checkpoint_paths import resolve_latest_checkpoint_path
+from tab_foundry.training.instability import telemetry_path
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.trainer import train
 
@@ -67,6 +69,40 @@ def checkpoint_cfg_from_run(run_dir: Path) -> DictConfig:
     if not isinstance(raw_cfg, dict):
         raise RuntimeError(f"checkpoint config must be a mapping: {checkpoint_path}")
     return cast(DictConfig, OmegaConf.create(json.loads(json.dumps(raw_cfg))))
+
+
+def _load_run_telemetry(run_dir: Path) -> dict[str, Any] | None:
+    resolved_run_dir = run_dir.expanduser().resolve()
+    candidates = (
+        telemetry_path(resolved_run_dir),
+        telemetry_path(resolved_run_dir / "train_outputs"),
+    )
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"telemetry payload must be a mapping: {candidate}")
+        return cast(dict[str, Any], payload)
+    return None
+
+
+def resolve_prior_dump_from_telemetry(run_dir: Path) -> Path:
+    telemetry_payload = _load_run_telemetry(run_dir)
+    if telemetry_payload is None:
+        raise RuntimeError(
+            "dense prior rerun requires telemetry.json with missingness.prior_dump.path to resolve the prior dump"
+        )
+    raw_missingness = telemetry_payload.get("missingness")
+    if not isinstance(raw_missingness, Mapping):
+        raise RuntimeError("telemetry missingness summary is required for dense prior reruns")
+    raw_prior_dump = raw_missingness.get("prior_dump")
+    if not isinstance(raw_prior_dump, Mapping):
+        raise RuntimeError("telemetry missingness.prior_dump summary is required for dense prior reruns")
+    raw_prior_dump_path = raw_prior_dump.get("path")
+    if not isinstance(raw_prior_dump_path, str) or not raw_prior_dump_path.strip():
+        raise RuntimeError("telemetry missingness.prior_dump.path is required for dense prior reruns")
+    return resolve_repo_relative_path(str(raw_prior_dump_path).strip())
 
 
 def infer_rerun_mode(cfg: DictConfig) -> Literal["prior", "train"]:
@@ -133,7 +169,10 @@ def run_dense_checkpoint_rerun(
     if rerun_mode == "auto":
         rerun_mode = infer_rerun_mode(cfg)
     if rerun_mode == "prior":
-        _ = train_tabfoundry_simple_prior(cfg)
+        _ = train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=resolve_prior_dump_from_telemetry(config.run_dir),
+        )
     elif rerun_mode == "train":
         _ = train(cfg)
     else:

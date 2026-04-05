@@ -347,9 +347,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
         manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
       dagzoo_provenance:
         acceptance_rate: 0.9986650538337475
@@ -700,9 +700,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mcar_v3
       corpus_id: tf_rd_010_missingness_mcar_v3__ea57f87af5ec
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mcar_v3/tf_rd_010_missingness_mcar_v3__ea57f87af5ec/manifest.parquet
         manifest_sha256: ea57f87af5ec94a05f2435f8770c12baefc66703c12691043949e82c0d58a509
       dagzoo_provenance:
         comparator_role: tf_rd_010_candidate
@@ -1074,9 +1074,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mar_v3
       corpus_id: tf_rd_010_missingness_mar_v3__f224eab5f6e4
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mar_v3/tf_rd_010_missingness_mar_v3__f224eab5f6e4/manifest.parquet
         manifest_sha256: f224eab5f6e47f74a44d22f2661deb68080b4b9b64d1dacc249b703a546d1d15
       dagzoo_provenance:
         comparator_role: tf_rd_010_candidate
@@ -1450,9 +1450,9 @@ rows:
       materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mnar_v3
       corpus_id: tf_rd_010_missingness_mnar_v3__991de3c5c805
-      corpus_record_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/corpus_record.json
+      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/corpus_record.json
       manifest:
-        manifest_path: /Users/bensonlee/dev/tab-foundry/outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_missingness_mnar_v3/tf_rd_010_missingness_mnar_v3__991de3c5c805/manifest.parquet
         manifest_sha256: 991de3c5c805b604c2e4c67af7c55d7f697bb2eea4dc6784745d33d7dd076f4b
       dagzoo_provenance:
         comparator_role: tf_rd_010_candidate

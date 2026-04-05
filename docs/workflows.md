@@ -111,7 +111,7 @@ new recurring corpus path:
 
 ```bash
 tab-foundry dev data build-manifest \
-  --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
+  --data-root "${DAGZOO_DATA_ROOT:?set DAGZOO_DATA_ROOT to your DagZoo data root}" \
   --out-manifest data/manifests/default.parquet
 ./scripts/build_manifest.sh
 ```
@@ -138,7 +138,8 @@ state.
 The prior-trained staged control surface is still available:
 
 ```bash
-tab-foundry train legacy-prior staged
+tab-foundry train legacy-prior staged \
+  --prior-dump <path-to-nanoTabPFN>/300k_150x5_2.h5
 ```
 
 Evaluate a checkpoint:
@@ -201,7 +202,7 @@ directory.
 Run the dagzoo end-to-end smoke against a sibling checkout:
 
 ```bash
-tab-foundry bench smoke dagzoo
+tab-foundry bench smoke dagzoo --dagzoo-root <path-to-dagzoo>
 ```
 
 This writes artifacts under a timestamped `/tmp/tab_foundry_dagzoo_smoke_*`
@@ -229,7 +230,10 @@ Gradient norm remains a stability diagnostic, not the primary ranking target.
 Bootstrap sibling benchmark environments:
 
 ```bash
-tab-foundry bench env bootstrap
+tab-foundry bench env bootstrap \
+  --nanotabpfn-root <path-to-nanoTabPFN> \
+  --tabpfn-root <path-to-TabPFN> \
+  --tabicl-root <path-to-tabicl>
 ```
 
 Run the default comparison flow after a candidate run is already selected:
@@ -237,7 +241,7 @@ Run the default comparison flow after a candidate run is already selected:
 ```bash
 tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
-  --tabicl-root ~/dev/tabicl
+  --tabicl-root <path-to-tabicl>
 ```
 
 Opt into nanoTabPFN explicitly only when you want the legacy comparator or a
@@ -248,8 +252,9 @@ tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --external-benchmark tabiclv2 \
   --external-benchmark nanotabpfn \
-  --nanotabpfn-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
-  --tabicl-root ~/dev/tabicl
+  --nanotabpfn-root <path-to-nanoTabPFN> \
+  --nanotabpfn-prior-dump <path-to-nanoTabPFN>/300k_150x5_2.h5 \
+  --tabicl-root <path-to-tabicl>
 ```
 
 The canonical medium benchmark surface is
@@ -349,9 +354,10 @@ Graphviz `dot` on `PATH`.
 Execute, rerun, promote, and validate from the packaged sweep surface:
 
 ```bash
-tab-foundry research sweep execute --sweep-id <sweep_id>
+tab-foundry research sweep execute --sweep-id <sweep_id> --nanotabpfn-root <path-to-nanoTabPFN>
 tab-foundry research sweep execute \
   --sweep-id <sweep_id> \
+  --nanotabpfn-root <path-to-nanoTabPFN> \
   --order <order> \
   --include-completed
 tab-foundry research sweep promote \

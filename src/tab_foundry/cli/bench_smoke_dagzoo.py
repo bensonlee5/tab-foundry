@@ -8,7 +8,7 @@ import sys
 import click
 
 import tab_foundry.bench.dagzoo_smoke as smoke_module
-from tab_foundry.cli.click_utils import DEVICE_CHOICES, run_click_command
+from tab_foundry.cli.click_utils import DEVICE_CHOICES, dagzoo_root_option, run_click_command
 
 
 def _dagzoo_smoke_command(
@@ -44,7 +44,7 @@ def _dagzoo_smoke_command(
 
 
 @click.command(name="dagzoo", help="Run the dagzoo smoke harness")
-@click.option("--dagzoo-root", default="~/dev/dagzoo", show_default=True, type=click.Path(path_type=Path), help="Local dagzoo checkout root")
+@dagzoo_root_option()
 @click.option("--out-root", default=None, type=click.Path(path_type=Path), help="Output directory root")
 @click.option(
     "--num-datasets",

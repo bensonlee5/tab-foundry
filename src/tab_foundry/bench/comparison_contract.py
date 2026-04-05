@@ -25,7 +25,7 @@ class BenchmarkComparisonConfig:
 
     tab_foundry_run_dir: Path
     out_root: Path
-    nanotabpfn_root: Path = Path("~/dev/nanoTabPFN")
+    nanotabpfn_root: Path | None = None
     nanotab_prior_dump: Path | None = None
     device: str = "auto"
     nanotabpfn_steps: int = DEFAULT_NANOTABPFN_STEPS
@@ -41,7 +41,7 @@ class BenchmarkComparisonConfig:
     reuse_nanotabpfn_curve_path: Path | None = None
     reuse_nanotabpfn_error: Mapping[str, Any] | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
-    tabicl_root: Path = Path("~/dev/tabicl")
+    tabicl_root: Path | None = None
     tab_realdata_hub_root: Path | None = None
     tabicl_classifier_checkpoint_version: str = DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION
     tabicl_regressor_checkpoint_version: str = DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION

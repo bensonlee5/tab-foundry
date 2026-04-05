@@ -32,7 +32,6 @@ from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR
 from tab_foundry.types import TrainResult
 
 
-DEFAULT_PRIOR_DUMP_PATH = Path("~/dev/nanoTabPFN/300k_150x5_2.h5")
 DEFAULT_BATCH_SIZE = _CONFIG_DEFAULT_BATCH_SIZE
 DEFAULT_EXPERIMENT = "cls_benchmark_linear_simple_prior"
 
@@ -40,7 +39,7 @@ DEFAULT_EXPERIMENT = "cls_benchmark_linear_simple_prior"
 def train_tabfoundry_simple_prior(
     cfg: DictConfig,
     *,
-    prior_dump_path: Path = DEFAULT_PRIOR_DUMP_PATH,
+    prior_dump_path: Path | None = None,
     batch_size: int | None = None,
 ) -> TrainResult:
     """Train an exact-parity staged/simple classifier on the nanoTabPFN prior dump."""
@@ -86,6 +85,8 @@ def train_tabfoundry_simple_prior(
         spec=spec,
         staged_surface=staged_surface,
     )
+    if prior_dump_path is None:
+        raise RuntimeError("prior-dump training requires an explicit prior_dump_path")
     model = build_model_from_spec(spec)
     loss_surface = resolve_training_loss_surface(
         getattr(cfg, "training", None),

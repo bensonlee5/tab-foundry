@@ -12,7 +12,6 @@ from omegaconf import DictConfig
 from tab_foundry.config import compose_config
 from tab_foundry.training.prior_train import (
     DEFAULT_EXPERIMENT,
-    DEFAULT_PRIOR_DUMP_PATH,
     train_tabfoundry_simple_prior,
 )
 from tab_foundry.cli.click_utils import run_click_command
@@ -84,8 +83,7 @@ def _run_staged_command(*, prior_dump: Path, overrides: Sequence[str]) -> int:
 @click.command(name="simple", help="Train the exact-prior simple benchmark family")
 @click.option(
     "--prior-dump",
-    default=str(DEFAULT_PRIOR_DUMP_PATH),
-    show_default=True,
+    required=True,
     type=click.Path(path_type=Path),
     help="Path to the nanoTabPFN prior dump (.h5)",
 )
@@ -97,8 +95,7 @@ def COMMAND(prior_dump: Path, overrides: tuple[str, ...]) -> int:
 @click.command(name="staged", help="Train the exact-prior staged benchmark family")
 @click.option(
     "--prior-dump",
-    default=str(DEFAULT_PRIOR_DUMP_PATH),
-    show_default=True,
+    required=True,
     type=click.Path(path_type=Path),
     help="Path to the nanoTabPFN prior dump (.h5)",
 )

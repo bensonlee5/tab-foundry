@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from click.testing import CliRunner
 import pytest
 
 import tab_foundry.bench.envs as env_module
+import tab_foundry.cli.bench_env_bootstrap as env_bootstrap_cli_module
 
 
 def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
@@ -186,3 +188,10 @@ def test_bootstrap_benchmark_envs_requires_explicit_hub_root_for_py313_tabicl(
                 tabicl_root=tabicl_root,
             )
         )
+
+
+def test_bench_env_bootstrap_cli_requires_explicit_roots() -> None:
+    result = CliRunner().invoke(env_bootstrap_cli_module.COMMAND, [])
+
+    assert result.exit_code == 2
+    assert "Missing option '--nanotabpfn-root'" in result.output

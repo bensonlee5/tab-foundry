@@ -12,6 +12,7 @@ import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.matrix as matrix_module
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+from tests.support.portability import find_banned_local_path_markers
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -418,7 +419,8 @@ def test_tf_rd_013_support_bundle_and_catalog_defaults_are_tracked_separately() 
         MANIFEST_CHARACTERISTICS_SUMMARY_PATH,
         SUPPORT_ROOT / "README.md",
     ):
-        assert "/Users/" not in path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8")
+        assert find_banned_local_path_markers(text) == ()
 
     comparator_default = catalog["deltas"]["delta_data_manifest_curated_realdata_comparator"]["default_effective_surface"]["data"]
     assert comparator_default == {

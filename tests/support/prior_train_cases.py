@@ -31,6 +31,7 @@ from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleCl
 from tab_foundry.model.outputs import CellLikelihoodOutput
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
+from tests.support.paths import NANOTABPFN_MODEL_PATH_ENV, nanotabpfn_model_path
 
 h5py = pytest.importorskip("h5py")
 
@@ -324,9 +325,11 @@ def test_prior_dump_reader_skip_policy_errors_when_full_cycle_is_nonfinite(tmp_p
 
 @lru_cache(maxsize=1)
 def _nanotabpfn_module():
-    model_path = Path("~/dev/nanoTabPFN/model.py").expanduser()
-    if not model_path.exists():
-        pytest.skip("local nanoTabPFN reference is not available")
+    model_path = nanotabpfn_model_path()
+    if model_path is None or not model_path.exists():
+        pytest.skip(
+            f"set {NANOTABPFN_MODEL_PATH_ENV} to a local nanoTabPFN model.py path to run parity checks"
+        )
     spec = importlib.util.spec_from_file_location("local_nanotabpfn_model", model_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"failed to load nanoTabPFN model module from {model_path}")
@@ -1983,6 +1986,16 @@ def test_train_prior_cli_main_passes_prior_dump_and_overrides(
     assert captured["prior_dump_path"] == tmp_path / "prior_dump.h5"
     assert captured["batch_size"] == prior_train_module.DEFAULT_BATCH_SIZE
     assert "Training complete:" in capsys.readouterr().out
+
+
+def test_train_prior_cli_main_requires_prior_dump(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        train_prior_cli_module.main(["runtime.max_steps=1"])
+
+    assert exc_info.value.code == 2
+    assert "Missing option '--prior-dump'" in capsys.readouterr().err
 
 
 def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(

@@ -29,6 +29,12 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     (run_dir / "train_history.jsonl").write_text("{}\n", encoding="utf-8")
+    prior_dump = tmp_path / "prior.h5"
+    prior_dump.write_bytes(b"prior")
+    (run_dir / "telemetry.json").write_text(
+        '{"missingness":{"prior_dump":{"path":"' + str(prior_dump.resolve()) + '"}}}',
+        encoding="utf-8",
+    )
     out_root = tmp_path / "diagnosis"
 
     dense_calls: list[dict[str, Any]] = []
@@ -55,13 +61,14 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
         ),
     )
 
-    def _fake_prior_train(cfg: Any) -> None:
+    def _fake_prior_train(cfg: Any, *, prior_dump_path: Path) -> None:
         dense_calls.append(
             {
                 "checkpoint_every": int(cfg.runtime.checkpoint_every),
                 "eval_every": int(cfg.runtime.eval_every),
                 "output_dir": str(cfg.runtime.output_dir),
                 "use_wandb": bool(cfg.logging.use_wandb),
+                "prior_dump_path": str(prior_dump_path),
             }
         )
         dense_dir = Path(str(cfg.runtime.output_dir))
@@ -172,6 +179,7 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
             "eval_every": 10,
             "output_dir": str((out_root / "dense_checkpoint_run").resolve()),
             "use_wandb": False,
+            "prior_dump_path": str(prior_dump.resolve()),
         }
     ]
     assert "checkpoint_aliasing" in summary["classification"]["primary_causes"]

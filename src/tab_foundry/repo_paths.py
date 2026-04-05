@@ -4,6 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+KNOWN_SIBLING_WORKSPACES = (
+    "dagzoo",
+    "nanoTabPFN",
+    "TabPFN",
+    "tabicl",
+    "tab-realdata-hub",
+)
+
 
 def repo_root() -> Path:
     """Return the repository root for repo-local workflows."""
@@ -58,11 +66,22 @@ def normalize_repo_relative_path(
     *,
     root: Path | None = None,
 ) -> str:
-    """Normalize one path to a repo-relative form when possible."""
+    """Normalize one path to a repo- or sibling-relative form when possible."""
 
     resolved_path = path.expanduser().resolve()
     resolved_root = (root or repo_root()).expanduser().resolve()
     try:
         return str(resolved_path.relative_to(resolved_root))
     except ValueError:
-        return str(resolved_path)
+        pass
+    sibling_parent = resolved_root.parent
+    for sibling_name in KNOWN_SIBLING_WORKSPACES:
+        sibling_root = (sibling_parent / sibling_name).resolve()
+        try:
+            relative_suffix = resolved_path.relative_to(sibling_root)
+        except ValueError:
+            continue
+        if str(relative_suffix) == ".":
+            return str(Path("..") / sibling_name)
+        return str(Path("..") / sibling_name / relative_suffix)
+    return str(resolved_path)

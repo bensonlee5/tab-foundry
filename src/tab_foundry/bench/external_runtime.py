@@ -35,6 +35,10 @@ def nanotabpfn_helper_command(
     helper_script_path: Path,
     src_root: Path,
 ) -> list[str]:
+    if config.nanotabpfn_root is None:
+        raise RuntimeError(
+            "nanoTabPFN execution requires config.nanotabpfn_root when nanotabpfn is selected"
+        )
     nanotab_root = config.nanotabpfn_root.expanduser().resolve()
     command = [
         str(nanotabpfn_python(nanotab_root)),
@@ -69,6 +73,10 @@ def nanotabpfn_helper_command(
 
 
 def validate_nanotabpfn_environment(config: BenchmarkComparisonConfig) -> tuple[Path, Path]:
+    if config.nanotabpfn_root is None:
+        raise RuntimeError(
+            "nanoTabPFN comparison requires --nanotabpfn-root when --external-benchmark nanotabpfn is selected"
+        )
     nanotabpfn_root = config.nanotabpfn_root.expanduser().resolve()
     python_path = nanotabpfn_python(nanotabpfn_root)
     prior_dump = nanotabpfn_prior_dump(nanotabpfn_root, config.nanotab_prior_dump)
@@ -97,6 +105,10 @@ def resolve_reuse_nanotabpfn_error(config: BenchmarkComparisonConfig) -> dict[st
 
 
 def validate_tabiclv2_environment(config: BenchmarkComparisonConfig) -> tuple[Path, Path]:
+    if config.tabicl_root is None:
+        raise RuntimeError(
+            "TabICLv2 comparison requires --tabicl-root when tabiclv2 benchmarking is enabled"
+        )
     tabicl_root = config.tabicl_root.expanduser().resolve()
     python_path = tabiclv2_python(tabicl_root)
     if not tabicl_root.exists():
@@ -169,6 +181,10 @@ def tabiclv2_helper_command(
     helper_script_path: Path,
     src_root: Path,
 ) -> list[str]:
+    if config.tabicl_root is None:
+        raise RuntimeError(
+            "TabICLv2 execution requires config.tabicl_root when tabiclv2 is selected"
+        )
     tabicl_root = config.tabicl_root.expanduser().resolve()
     command = [
         str(tabiclv2_python(tabicl_root)),

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.repo_paths import repo_root
+from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root
 
 
 BENCHMARK_BUNDLE_FILENAME = "openml_binary_medium_v1.json"
@@ -80,7 +80,10 @@ def canonical_benchmark_bundle_source_path(
     )
     if portable is not None:
         return str(portable)
-    return str(resolved_path)
+    return normalize_repo_relative_path(
+        resolved_path,
+        root=resolved_repo_root,
+    )
 
 
 def _normalize_selection(payload: Any) -> dict[str, Any]:

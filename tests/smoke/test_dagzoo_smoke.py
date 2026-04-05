@@ -31,7 +31,7 @@ def test_click_defaults_match_indicative_profile(
 
     result = CliRunner().invoke(
         smoke_cli_module.COMMAND,
-        ["--out-root", str(tmp_path / "run")],
+        ["--dagzoo-root", str(tmp_path / "dagzoo"), "--out-root", str(tmp_path / "run")],
     )
 
     assert result.exit_code == 0, result.output
@@ -41,6 +41,13 @@ def test_click_defaults_match_indicative_profile(
     assert config.train_steps == 250
     assert config.checkpoint_every == 25
     assert config.device == "cpu"
+
+
+def test_click_requires_explicit_dagzoo_root() -> None:
+    result = CliRunner().invoke(smoke_cli_module.COMMAND, [])
+
+    assert result.exit_code == 2
+    assert "Missing option '--dagzoo-root'" in result.output
 
 
 def test_plot_loss_curve_writes_png(tmp_path: Path) -> None:

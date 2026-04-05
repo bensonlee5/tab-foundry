@@ -13,7 +13,6 @@ from tab_foundry.research.sweep.row_execution import (
     DEFAULT_CONCLUSION,
     DEFAULT_DECISION,
     DEFAULT_DEVICE,
-    DEFAULT_NANOTABPFN_ROOT,
 )
 from tab_foundry.research.sweep.runtime_env import absolute_path_without_resolving_symlinks
 from tab_foundry.research.sweep.selection import parse_order_overrides
@@ -102,8 +101,7 @@ def _execute_command(
 @click.option("--nanotabpfn-prior-dump", default=None, type=click.Path(path_type=Path), help="Optional path to the nanoTabPFN prior dump")
 @click.option(
     "--nanotabpfn-root",
-    default=str(DEFAULT_NANOTABPFN_ROOT),
-    show_default=True,
+    required=True,
     type=click.Path(path_type=Path),
     help="Path to the nanoTabPFN checkout",
 )

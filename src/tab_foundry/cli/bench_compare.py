@@ -23,6 +23,7 @@ from tab_foundry.control_baseline_registry import default_control_baseline_regis
 from tab_foundry.external_benchmarks import (
     ALLOWED_EXTERNAL_BENCHMARKS,
     DEFAULT_CLI_EXTERNAL_BENCHMARKS,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
     EXTERNAL_BENCHMARK_TABICLV2,
     normalize_external_benchmarks,
 )
@@ -43,10 +44,10 @@ def _default_out_root() -> Path:
 def _compare_command(
     *,
     tab_foundry_run_dir: Path,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     nanotabpfn_prior_dump: Path | None,
     external_benchmark: tuple[str, ...],
-    tabicl_root: Path,
+    tabicl_root: Path | None,
     tab_realdata_hub_root: Path | None,
     tabicl_classifier_checkpoint_version: str,
     tabicl_regressor_checkpoint_version: str,
@@ -58,6 +59,11 @@ def _compare_command(
     control_baseline_registry: Path,
     benchmark_manifest_path: Path | None,
 ) -> int:
+    requested_external_benchmarks = normalize_external_benchmarks(
+        list(external_benchmark),
+        default=DEFAULT_CLI_EXTERNAL_BENCHMARKS,
+        context="CLI external benchmarks",
+    )
     summary = run_nanotabpfn_benchmark(
         BenchmarkComparisonConfig(
             tab_foundry_run_dir=tab_foundry_run_dir,
@@ -70,11 +76,7 @@ def _compare_command(
             control_baseline_id=control_baseline_id,
             control_baseline_registry=control_baseline_registry,
             benchmark_manifest_path=benchmark_manifest_path,
-            external_benchmarks=normalize_external_benchmarks(
-                list(external_benchmark),
-                default=DEFAULT_CLI_EXTERNAL_BENCHMARKS,
-                context="CLI external benchmarks",
-            ),
+            external_benchmarks=requested_external_benchmarks,
             tabicl_root=tabicl_root,
             tab_realdata_hub_root=tab_realdata_hub_root,
             tabicl_classifier_checkpoint_version=tabicl_classifier_checkpoint_version,
@@ -104,8 +106,7 @@ def _compare_command(
 )
 @click.option(
     "--nanotabpfn-root",
-    default="~/dev/nanoTabPFN",
-    show_default=True,
+    default=None,
     type=click.Path(path_type=Path),
     help="Local nanoTabPFN checkout",
 )
@@ -124,8 +125,7 @@ def _compare_command(
 )
 @click.option(
     "--tabicl-root",
-    default="~/dev/tabicl",
-    show_default=True,
+    default=None,
     type=click.Path(path_type=Path),
     help="Local TabICLv2 checkout used when tabiclv2 is selected",
 )
@@ -189,10 +189,10 @@ def _compare_command(
 )
 def COMMAND(
     tab_foundry_run_dir: Path,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     nanotabpfn_prior_dump: Path | None,
     external_benchmark: tuple[str, ...],
-    tabicl_root: Path,
+    tabicl_root: Path | None,
     tab_realdata_hub_root: Path | None,
     tabicl_classifier_checkpoint_version: str,
     tabicl_regressor_checkpoint_version: str,
@@ -204,6 +204,19 @@ def COMMAND(
     control_baseline_registry: Path,
     benchmark_manifest_path: Path | None,
 ) -> int:
+    requested_external_benchmarks = normalize_external_benchmarks(
+        list(external_benchmark),
+        default=DEFAULT_CLI_EXTERNAL_BENCHMARKS,
+        context="CLI external benchmarks",
+    )
+    if EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and nanotabpfn_root is None:
+        raise click.UsageError(
+            "--nanotabpfn-root is required when --external-benchmark nanotabpfn is selected"
+        )
+    if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks and tabicl_root is None:
+        raise click.UsageError(
+            "--tabicl-root is required when tabiclv2 benchmarking is enabled"
+        )
     return _compare_command(
         tab_foundry_run_dir=tab_foundry_run_dir,
         nanotabpfn_root=nanotabpfn_root,

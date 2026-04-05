@@ -69,10 +69,13 @@ def test_control_baseline_registry_path_values_roundtrip_repo_relative_and_absol
     tmp_path: Path,
 ) -> None:
     repo_local = REPO_ROOT / "reference" / "system_delta_catalog.yaml"
+    sibling_path = (REPO_ROOT.parent / "nanoTabPFN" / "300k_150x5_2.h5").resolve()
     outside_repo = tmp_path / "outside.json"
 
     assert normalize_registry_path_value(repo_local) == "reference/system_delta_catalog.yaml"
     assert resolve_registry_path_value("reference/system_delta_catalog.yaml") == repo_local.resolve()
+    assert normalize_registry_path_value(sibling_path) == "../nanoTabPFN/300k_150x5_2.h5"
+    assert resolve_registry_path_value("../nanoTabPFN/300k_150x5_2.h5") == sibling_path
     assert normalize_registry_path_value(outside_repo) == str(outside_repo.resolve())
     assert resolve_registry_path_value(str(outside_repo.resolve())) == outside_repo.resolve()
 
