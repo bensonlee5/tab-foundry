@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+  - _self_
+
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_transfer_v1
+  num_workers: 2
+  loader_pin_memory: true
+  non_blocking_device_transfer: true
+
+logging:
+  run_name: cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-train-speed-transfer-v1

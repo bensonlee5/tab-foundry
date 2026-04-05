@@ -129,6 +129,58 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_resolution() -> Non
     )
 
 
+def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_workers_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_workers_v1")
+    assert str(cfg.runtime.device) == "cuda"
+    assert int(cfg.runtime.num_workers) == 2
+    assert bool(cfg.runtime.loader_pin_memory) is False
+    assert bool(cfg.runtime.loader_persistent_workers) is False
+    assert cfg.runtime.loader_prefetch_factor is None
+    assert bool(cfg.runtime.non_blocking_device_transfer) is False
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_workers_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-train-speed-workers-v1"
+    )
+
+
+def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_loader_overlap_resolution() -> None:
+    cfg = _compose(
+        "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_loader_overlap_v1"
+    )
+    assert str(cfg.runtime.device) == "cuda"
+    assert int(cfg.runtime.num_workers) == 2
+    assert bool(cfg.runtime.loader_pin_memory) is True
+    assert bool(cfg.runtime.loader_persistent_workers) is True
+    assert int(cfg.runtime.loader_prefetch_factor) == 2
+    assert bool(cfg.runtime.non_blocking_device_transfer) is False
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_loader_overlap_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-train-speed-loader-overlap-v1"
+    )
+
+
+def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_transfer_resolution() -> None:
+    cfg = _compose(
+        "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_transfer_v1"
+    )
+    assert str(cfg.runtime.device) == "cuda"
+    assert int(cfg.runtime.num_workers) == 2
+    assert bool(cfg.runtime.loader_pin_memory) is True
+    assert bool(cfg.runtime.loader_persistent_workers) is False
+    assert cfg.runtime.loader_prefetch_factor is None
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_transfer_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-train-speed-transfer-v1"
+    )
+
+
 def test_cls_smoke_adamw_override_resolution() -> None:
     cfg = _compose("experiment=cls_smoke", "optimizer=adamw")
     assert str(cfg.optimizer.name) == "adamw"
