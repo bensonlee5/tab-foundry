@@ -646,19 +646,22 @@ class TabFoundrySandwichClassifier(nn.Module):
         y_test: torch.Tensor | None,
         train_test_split_index: int,
         feature_type_ids: torch.Tensor,
+        num_classes: int | None = None,
     ) -> CellLikelihoodOutput:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
-        max_label = int(y_train.max().item()) if int(y_train.numel()) > 0 else 1
-        if y_test is not None and int(y_test.numel()) > 0:
-            max_label = max(max_label, int(y_test.max().item()))
-        num_classes = max(2, max_label + 1)
-        self._validate_num_classes(num_classes)
+        resolved_num_classes = int(num_classes) if num_classes is not None else 2
+        if num_classes is None:
+            max_label = int(y_train.max().item()) if int(y_train.numel()) > 0 else 1
+            if y_test is not None and int(y_test.numel()) > 0:
+                max_label = max(max_label, int(y_test.max().item()))
+            resolved_num_classes = max(2, max_label + 1)
+        self._validate_num_classes(resolved_num_classes)
         raw_state = self._build_raw_input_state(
             x_all=x_all,
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,
-            num_classes=num_classes,
+            num_classes=resolved_num_classes,
             feature_type_ids=feature_type_ids,
         )
         feature_state = self._build_feature_state(raw_state)
@@ -674,9 +677,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         num_classes: int | None = None,
     ) -> torch.Tensor:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
-        resolved_num_classes = max(2, int(y_train.max().item()) + 1)
-        if num_classes is not None:
-            resolved_num_classes = int(num_classes)
+        resolved_num_classes = int(num_classes) if num_classes is not None else 2
+        if num_classes is None:
+            resolved_num_classes = max(2, int(y_train.max().item()) + 1)
         self._validate_num_classes(resolved_num_classes)
         raw_state = self._build_raw_input_state(
             x_all=x_all,
@@ -738,12 +741,14 @@ class TabFoundrySandwichClassifier(nn.Module):
         num_classes = self._task_num_classes(batch)
         self._validate_num_classes(num_classes)
         x_all, y_train, _y_test, train_test_split_index = self._prepare_task_inputs(batch)
-        feature_type_ids = self._feature_type_ids_from_metadata(
-            batch.metadata,
-            batch_size=int(x_all.shape[0]),
-            num_features=int(x_all.shape[2]),
-            device=x_all.device,
-        )
+        feature_type_ids = batch.feature_type_ids
+        if feature_type_ids is None:
+            feature_type_ids = self._feature_type_ids_from_metadata(
+                batch.metadata,
+                batch_size=int(x_all.shape[0]),
+                num_features=int(x_all.shape[2]),
+                device=x_all.device,
+            )
         logits = self._forward_logits_batched(
             x_all=x_all,
             y_train=y_train,
@@ -760,22 +765,22 @@ class TabFoundrySandwichClassifier(nn.Module):
         num_classes = self._task_num_classes(batch)
         self._validate_num_classes(num_classes)
         x_all, y_train, y_test, train_test_split_index = self._prepare_task_inputs(batch)
-        feature_type_ids = self._feature_type_ids_from_metadata(
-            batch.metadata,
-            batch_size=int(x_all.shape[0]),
-            num_features=int(x_all.shape[2]),
-            device=x_all.device,
-        )
-        raw_state = self._build_raw_input_state(
+        feature_type_ids = batch.feature_type_ids
+        if feature_type_ids is None:
+            feature_type_ids = self._feature_type_ids_from_metadata(
+                batch.metadata,
+                batch_size=int(x_all.shape[0]),
+                num_features=int(x_all.shape[2]),
+                device=x_all.device,
+            )
+        return self._forward_cell_likelihood_batched(
             x_all=x_all,
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,
-            num_classes=num_classes,
             feature_type_ids=feature_type_ids,
+            num_classes=num_classes,
         )
-        feature_state = self._build_feature_state(raw_state)
-        return _cell_likelihood.forward_cell_likelihood(self, feature_state)
 
     def forward(self, batch: TaskBatch) -> ClassificationOutput | CellLikelihoodOutput:
         if self.loss_surface == _CELL_BPC_LOSS_SURFACE:

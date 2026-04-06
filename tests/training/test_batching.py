@@ -216,6 +216,32 @@ def test_collate_task_batch_stacks_exact_shape_tasks() -> None:
     }
 
 
+def test_collate_task_batch_resolves_feature_type_ids_when_metadata_is_present() -> None:
+    batch_a = TaskBatch(
+        x_train=torch.randn(4, 3),
+        y_train=torch.randint(0, 3, (4,)),
+        x_test=torch.randn(2, 3),
+        y_test=torch.randint(0, 3, (2,)),
+        metadata={"feature_types": ["floating", "integer", "bool"]},
+        num_classes=3,
+    )
+    batch_b = TaskBatch(
+        x_train=torch.randn(4, 3),
+        y_train=torch.randint(0, 3, (4,)),
+        x_test=torch.randn(2, 3),
+        y_test=torch.randint(0, 3, (2,)),
+        metadata={"feature_types": ["integer", "floating", "unknown"]},
+        num_classes=3,
+    )
+
+    out = collate_task_batch([batch_a, batch_b], requested_task_batch_size=2)
+
+    assert out.feature_type_ids is not None
+    assert out.feature_type_ids.dtype == torch.int64
+    assert tuple(out.feature_type_ids.shape) == (2, 3)
+    assert out.feature_type_ids.tolist() == [[2, 1, 0], [1, 2, 4]]
+
+
 def test_collate_task_batch_emits_singleton_fallback_metadata() -> None:
     batch = _sample_batch()
 
@@ -677,9 +703,42 @@ def test_move_batch_moves_tensors_and_preserves_metadata() -> None:
     assert out.num_classes == batch.num_classes
 
 
+def test_move_batch_moves_feature_type_ids_when_present() -> None:
+    batch = TaskBatch(
+        x_train=torch.randn(4, 3),
+        y_train=torch.randint(0, 3, (4,)),
+        x_test=torch.randn(2, 3),
+        y_test=torch.randint(0, 3, (2,)),
+        metadata={"feature_types": ["floating", "integer", "bool"]},
+        num_classes=3,
+        feature_type_ids=torch.tensor([[2, 1, 0]], dtype=torch.int64),
+    )
+
+    out = move_batch(batch, torch.device("cpu"))
+
+    assert out.feature_type_ids is not None
+    assert out.feature_type_ids.device.type == "cpu"
+    assert out.feature_type_ids.tolist() == [[2, 1, 0]]
+
+
 def test_move_batch_forwards_non_blocking_flag(monkeypatch: pytest.MonkeyPatch) -> None:
-    batch = _sample_batch()
-    tracked_ids = {id(batch.x_train), id(batch.y_train), id(batch.x_test), id(batch.y_test)}
+    sample = _sample_batch()
+    batch = TaskBatch(
+        x_train=sample.x_train,
+        y_train=sample.y_train,
+        x_test=sample.x_test,
+        y_test=sample.y_test,
+        metadata=sample.metadata,
+        num_classes=sample.num_classes,
+        feature_type_ids=torch.tensor([[2, 1, 0]], dtype=torch.int64),
+    )
+    tracked_ids = {
+        id(batch.x_train),
+        id(batch.y_train),
+        id(batch.x_test),
+        id(batch.y_test),
+        id(batch.feature_type_ids),
+    }
     seen_flags: list[bool] = []
     original_to = torch.Tensor.to
 
@@ -692,4 +751,4 @@ def test_move_batch_forwards_non_blocking_flag(monkeypatch: pytest.MonkeyPatch) 
 
     _ = move_batch(batch, torch.device("cpu"), non_blocking=True)
 
-    assert seen_flags == [True, True, True, True]
+    assert seen_flags == [True, True, True, True, True]

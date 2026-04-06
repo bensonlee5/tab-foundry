@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import time
-from typing import Any
+from typing import Any, Sequence
 
 from omegaconf import OmegaConf
 
@@ -122,15 +122,21 @@ def _build_variant_requests(
     output_dir: Path | str,
     *,
     max_steps: int,
+    variant_names: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
     suite_output_dir = Path(str(output_dir)).expanduser().resolve()
+    selected_variants = (
+        [_variant_by_name(name) for name in variant_names]
+        if variant_names is not None
+        else list(TF_RD_022_COMPILE_DEBUG_VARIANTS)
+    )
     return [
         _request_payload(
             variant=variant,
             variant_dir=_variant_dir(suite_output_dir, variant),
             max_steps=max_steps,
         )
-        for variant in TF_RD_022_COMPILE_DEBUG_VARIANTS
+        for variant in selected_variants
     ]
 
 
@@ -270,6 +276,7 @@ def run_tf_rd_022_compile_debug_suite(
     *,
     max_steps: int = 24,
     python_executable: str | Path | None = None,
+    variant_names: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Run the short TF-RD-022 compile debug ladder in clean subprocesses."""
 
@@ -277,7 +284,11 @@ def run_tf_rd_022_compile_debug_suite(
     suite_output_dir.mkdir(parents=True, exist_ok=True)
     resolved_python = str(python_executable or sys.executable)
     variants_summary: list[dict[str, Any]] = []
-    for request in _build_variant_requests(suite_output_dir, max_steps=max_steps):
+    for request in _build_variant_requests(
+        suite_output_dir,
+        max_steps=max_steps,
+        variant_names=variant_names,
+    ):
         variant_dir = Path(str(request["variant_dir"])).expanduser().resolve()
         variant_dir.mkdir(parents=True, exist_ok=True)
         request_path = variant_dir / _REQUEST_FILENAME

@@ -7,7 +7,11 @@ from typing import Any, cast
 
 import torch
 
-from tab_foundry.feature_types import FEATURE_TYPE_VOCAB, normalize_feature_types
+from tab_foundry.feature_types import (
+    feature_type_ids_from_resolved as _shared_feature_type_ids_from_resolved,
+    feature_type_ids_from_task_metadata as _shared_feature_type_ids_from_task_metadata,
+    normalize_feature_types,
+)
 from tab_foundry.model.components.non_finite import clip_finite_values
 
 from .blocks import _InducedSetAttentionBlock, _SelfAttentionBlock
@@ -16,7 +20,6 @@ from .states import SandwichFeatureState, SandwichRawInputState
 
 _TRAIN_ROLE_ID = 0
 _TEST_ROLE_ID = 1
-_FEATURE_TYPE_TO_ID = {name: index for index, name in enumerate(FEATURE_TYPE_VOCAB)}
 
 
 def build_raw_input_state(
@@ -86,11 +89,10 @@ def feature_type_ids_from_resolved(
 ) -> torch.Tensor:
     """Map normalized feature-type strings into vocabulary ids."""
 
-    feature_type_ids = [
-        [int(_FEATURE_TYPE_TO_ID[value]) for value in feature_types]
-        for feature_types in resolved_types_by_task
-    ]
-    return torch.tensor(feature_type_ids, device=device, dtype=torch.int64)
+    return _shared_feature_type_ids_from_resolved(
+        resolved_types_by_task,
+        device=device,
+    )
 
 
 def feature_type_ids_from_forward_batched(
@@ -146,49 +148,10 @@ def feature_type_ids_from_metadata(
 ) -> torch.Tensor:
     """Resolve feature types from task metadata."""
 
-    members = metadata.get("task_members")
-    resolved_types_by_task: list[list[str]]
-    if isinstance(members, list) and members:
-        if len(members) != int(batch_size):
-            raise RuntimeError(
-                "tabfoundry_sandwich task-batched metadata must align with the tensor batch size: "
-                f"expected={int(batch_size)}, got={len(members)}"
-            )
-        resolved_types_by_task = []
-        for index, member in enumerate(members):
-            if not isinstance(member, dict):
-                raise RuntimeError(
-                    "tabfoundry_sandwich task-batched metadata members must be objects, "
-                    f"got task_members[{index}]={type(member).__name__}"
-                )
-            try:
-                resolved_types_by_task.append(
-                    normalize_required_feature_types(
-                        member.get("feature_types"),
-                        expected_count=int(num_features),
-                        context=f"batch.metadata.task_members[{index}].feature_types",
-                    )
-                )
-            except ValueError as exc:
-                raise RuntimeError(str(exc)) from exc
-    else:
-        if int(batch_size) != 1:
-            raise RuntimeError(
-                "tabfoundry_sandwich task-batched metadata requires "
-                "batch.metadata.task_members with one feature_types list per task"
-            )
-        try:
-            resolved_types_by_task = [
-                normalize_required_feature_types(
-                    metadata.get("feature_types"),
-                    expected_count=int(num_features),
-                    context="batch.metadata.feature_types",
-                )
-            ]
-        except ValueError as exc:
-            raise RuntimeError(str(exc)) from exc
-    return feature_type_ids_from_resolved(
-        resolved_types_by_task,
+    return _shared_feature_type_ids_from_task_metadata(
+        metadata,
+        batch_size=batch_size,
+        num_features=num_features,
         device=device,
     )
 

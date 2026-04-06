@@ -25,6 +25,19 @@ def test_tf_rd_022_compile_debug_builds_the_expected_variant_matrix(tmp_path: Pa
     assert str(requests[0]["run_output_dir"]).endswith("/baseline_uncompiled/run")
 
 
+def test_tf_rd_022_compile_debug_supports_variant_filtering(tmp_path: Path) -> None:
+    requests = compile_debug_module._build_variant_requests(
+        tmp_path / "compile_debug",
+        max_steps=24,
+        variant_names=("baseline_uncompiled", "compile_inductor_default"),
+    )
+
+    assert [request["variant"]["name"] for request in requests] == [
+        "baseline_uncompiled",
+        "compile_inductor_default",
+    ]
+
+
 def test_tf_rd_022_compile_debug_builds_env_and_output_layout(tmp_path: Path) -> None:
     requests = compile_debug_module._build_variant_requests(tmp_path / "compile_debug", max_steps=8)
     variant_dir = Path(str(requests[0]["variant_dir"]))
@@ -89,6 +102,7 @@ def test_run_tf_rd_022_compile_debug_suite_writes_machine_readable_summary(
         tmp_path / "compile_debug_suite",
         max_steps=8,
         python_executable="/tmp/fake-python",
+        variant_names=("baseline_uncompiled", "compile_inductor_default"),
     )
 
     summary_path = tmp_path / "compile_debug_suite" / "compile_debug_summary.json"
@@ -97,7 +111,11 @@ def test_run_tf_rd_022_compile_debug_suite_writes_machine_readable_summary(
     assert summary == persisted_summary
     assert summary["python_executable"] == "/tmp/fake-python"
     assert summary["max_steps"] == 8
-    assert len(summary["variants"]) == 5
+    assert len(summary["variants"]) == 2
+    assert [variant["name"] for variant in summary["variants"]] == [
+        "baseline_uncompiled",
+        "compile_inductor_default",
+    ]
     assert summary["variants"][0]["graph_break_count"] == 1
     assert summary["variants"][0]["autotune_count"] == 1
     assert summary["variants"][0]["recompile_count"] == 1

@@ -19,6 +19,7 @@ class TaskBatch:
     y_test: torch.Tensor
     metadata: dict[str, Any]
     num_classes: int | None = None
+    feature_type_ids: torch.Tensor | None = None
 
 
 @dataclass(slots=True)
