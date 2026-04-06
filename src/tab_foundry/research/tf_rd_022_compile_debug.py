@@ -42,6 +42,7 @@ class CompileDebugVariant:
 
     name: str
     compile_model: bool
+    compile_dynamic: bool
     compile_backend: str
     compile_mode: str
 
@@ -50,33 +51,66 @@ TF_RD_022_COMPILE_DEBUG_VARIANTS = (
     CompileDebugVariant(
         name="baseline_uncompiled",
         compile_model=False,
+        compile_dynamic=False,
         compile_backend="inductor",
         compile_mode="max-autotune-no-cudagraphs",
     ),
     CompileDebugVariant(
         name="compile_eager",
         compile_model=True,
+        compile_dynamic=False,
+        compile_backend="eager",
+        compile_mode="max-autotune-no-cudagraphs",
+    ),
+    CompileDebugVariant(
+        name="compile_eager_dynamic",
+        compile_model=True,
+        compile_dynamic=True,
         compile_backend="eager",
         compile_mode="max-autotune-no-cudagraphs",
     ),
     CompileDebugVariant(
         name="compile_aot_eager",
         compile_model=True,
+        compile_dynamic=False,
+        compile_backend="aot_eager",
+        compile_mode="max-autotune-no-cudagraphs",
+    ),
+    CompileDebugVariant(
+        name="compile_aot_eager_dynamic",
+        compile_model=True,
+        compile_dynamic=True,
         compile_backend="aot_eager",
         compile_mode="max-autotune-no-cudagraphs",
     ),
     CompileDebugVariant(
         name="compile_inductor_default",
         compile_model=True,
+        compile_dynamic=False,
+        compile_backend="inductor",
+        compile_mode="default",
+    ),
+    CompileDebugVariant(
+        name="compile_inductor_default_dynamic",
+        compile_model=True,
+        compile_dynamic=True,
         compile_backend="inductor",
         compile_mode="default",
     ),
     CompileDebugVariant(
         name="compile_inductor_max_autotune",
         compile_model=True,
+        compile_dynamic=False,
         compile_backend="inductor",
         compile_mode="max-autotune-no-cudagraphs",
     ),
+)
+TF_RD_022_COMPILE_DEBUG_DEFAULT_VARIANT_NAMES = (
+    "baseline_uncompiled",
+    "compile_eager",
+    "compile_eager_dynamic",
+    "compile_inductor_default",
+    "compile_inductor_default_dynamic",
 )
 
 
@@ -128,7 +162,9 @@ def _build_variant_requests(
     selected_variants = (
         [_variant_by_name(name) for name in variant_names]
         if variant_names is not None
-        else list(TF_RD_022_COMPILE_DEBUG_VARIANTS)
+        else [
+            _variant_by_name(name) for name in TF_RD_022_COMPILE_DEBUG_DEFAULT_VARIANT_NAMES
+        ]
     )
     return [
         _request_payload(
@@ -180,6 +216,7 @@ def tf_rd_022_compile_debug_variant_cfg(
         eval_every=max_steps,
         checkpoint_every=max_steps,
         compile_model=variant.compile_model,
+        compile_dynamic=variant.compile_dynamic,
         compile_backend=variant.compile_backend,
         compile_mode=variant.compile_mode,
         run_name_suffix=f"-{variant.name}",
@@ -259,6 +296,7 @@ def _variant_summary(
         "return_code": int(return_code),
         "compile": {
             "compile_model": bool(request["variant"]["compile_model"]),
+            "compile_dynamic": bool(request["variant"]["compile_dynamic"]),
             "compile_backend": str(request["variant"]["compile_backend"]),
             "compile_mode": str(request["variant"]["compile_mode"]),
         },

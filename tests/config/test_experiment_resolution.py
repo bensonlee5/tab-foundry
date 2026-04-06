@@ -80,6 +80,7 @@ def test_runtime_smoke_override_resolution() -> None:
     assert bool(cfg.runtime.non_blocking_device_transfer) is False
     assert cfg.runtime.checkpoint_every is None
     assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert bool(cfg.runtime.activation_checkpointing) is False
@@ -94,6 +95,7 @@ def test_runtime_workstation_resolution() -> None:
     assert cfg.runtime.loader_prefetch_factor is None
     assert bool(cfg.runtime.non_blocking_device_transfer) is False
     assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
 
@@ -108,6 +110,7 @@ def test_runtime_tf_rd_022_policy_resolution() -> None:
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
     assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert bool(cfg.runtime.trace_activations) is False
@@ -211,6 +214,8 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:
     assert bool(cfg.runtime.trace_activations) is bool(base_cfg.runtime.trace_activations)
     assert bool(base_cfg.runtime.compile_model) is False
     assert bool(cfg.runtime.compile_model) is True
+    assert bool(base_cfg.runtime.compile_dynamic) is False
+    assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert int(cfg.runtime.max_steps) == int(base_cfg.runtime.max_steps)

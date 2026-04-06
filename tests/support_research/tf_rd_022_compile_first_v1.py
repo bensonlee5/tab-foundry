@@ -31,6 +31,8 @@ def test_tf_rd_022_compile_first_cfg_inherits_the_policy_surface_with_a_compile_
     compile_runtime = dict(compile_payload["runtime"])
     assert base_runtime.pop("compile_model") is False
     assert compile_runtime.pop("compile_model") is True
+    assert base_runtime["compile_dynamic"] is False
+    assert compile_runtime["compile_dynamic"] is False
     assert base_runtime["compile_backend"] == "inductor"
     assert base_runtime["compile_mode"] == "max-autotune-no-cudagraphs"
     assert compile_runtime["compile_backend"] == "inductor"
@@ -54,6 +56,7 @@ def test_tf_rd_022_compile_profile_cfg_applies_short_run_overrides(tmp_path: Pat
     )
 
     assert bool(cfg.runtime.compile_model) is True
+    assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert int(cfg.runtime.max_steps) == 24

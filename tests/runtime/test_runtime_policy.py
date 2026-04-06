@@ -57,6 +57,7 @@ def test_runtime_compile_model_resolution_coerces_bool_flags(
             "device": "auto",
             "mixed_precision": "bf16",
             "compile_model": "yes",
+            "compile_dynamic": "on",
             "trace_activations": "false",
         }
     )
@@ -64,8 +65,14 @@ def test_runtime_compile_model_resolution_coerces_bool_flags(
     policy = resolve_compile_policy(cfg)
 
     assert policy.enabled is True
+    assert policy.dynamic is True
     assert policy.backend == "inductor"
     assert policy.mode == "max-autotune-no-cudagraphs"
+    assert policy.torch_compile_kwargs() == {
+        "backend": "inductor",
+        "mode": "max-autotune-no-cudagraphs",
+        "dynamic": True,
+    }
     assert resolve_compile_model(cfg) is True
 
 
@@ -80,6 +87,21 @@ def test_runtime_compile_model_rejects_invalid_bool() -> None:
 
     with pytest.raises(ValueError, match="runtime.compile_model must be boolean-compatible"):
         _ = resolve_compile_model(cfg)
+
+
+def test_runtime_compile_dynamic_rejects_invalid_bool() -> None:
+    cfg = OmegaConf.create(
+        {
+            "device": "cuda",
+            "mixed_precision": "bf16",
+            "compile_model": True,
+            "compile_dynamic": "maybe",
+            "trace_activations": False,
+        }
+    )
+
+    with pytest.raises(ValueError, match="runtime.compile_dynamic must be boolean-compatible"):
+        _ = resolve_compile_policy(cfg)
 
 
 def test_runtime_compile_policy_rejects_invalid_backend() -> None:
@@ -162,3 +184,20 @@ def test_runtime_compile_model_requires_torch_compile_support(
 
     with pytest.raises(RuntimeError, match="requires torch.compile support"):
         _ = resolve_compile_model(cfg)
+
+
+def test_runtime_compile_dynamic_is_inert_when_compile_is_disabled() -> None:
+    cfg = OmegaConf.create(
+        {
+            "device": "cpu",
+            "mixed_precision": "no",
+            "compile_model": False,
+            "compile_dynamic": True,
+        }
+    )
+
+    policy = resolve_compile_policy(cfg)
+
+    assert policy.enabled is False
+    assert policy.dynamic is True
+    assert policy.torch_compile_kwargs() == {}

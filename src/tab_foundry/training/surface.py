@@ -25,6 +25,7 @@ from tab_foundry.timestamps import utc_now as _shared_utc_now
 from .trainer_runtime_config import (
     _resolve_activation_checkpointing,
     _resolve_compile_backend,
+    _resolve_compile_dynamic,
     _resolve_compile_mode,
     _resolve_compile_model,
     _resolve_trace_activations,
@@ -57,6 +58,7 @@ def _normalize_runtime_surface_cfg(raw_runtime_cfg: Mapping[str, Any]) -> dict[s
     }
     resolved_runtime_cfg = OmegaConf.create(runtime_cfg)
     runtime_cfg["compile_model"] = _resolve_compile_model(resolved_runtime_cfg)
+    runtime_cfg["compile_dynamic"] = _resolve_compile_dynamic(resolved_runtime_cfg)
     runtime_cfg["compile_backend"] = _resolve_compile_backend(resolved_runtime_cfg)
     runtime_cfg["compile_mode"] = _resolve_compile_mode(resolved_runtime_cfg)
     runtime_cfg["trace_activations"] = _resolve_trace_activations(resolved_runtime_cfg)

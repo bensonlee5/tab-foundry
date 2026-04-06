@@ -25,6 +25,7 @@ def _compose_tf_rd_022_compile_cfg(
     eval_every: int | None = None,
     checkpoint_every: int | None = None,
     compile_model: bool | None = None,
+    compile_dynamic: bool | None = None,
     compile_backend: str | None = None,
     compile_mode: str | None = None,
     output_dir_suffix: str | None = None,
@@ -46,6 +47,8 @@ def _compose_tf_rd_022_compile_cfg(
         overrides.append(f"runtime.output_dir={resolved_output_dir}")
     if compile_model is not None:
         overrides.append(f"runtime.compile_model={str(bool(compile_model)).lower()}")
+    if compile_dynamic is not None:
+        overrides.append(f"runtime.compile_dynamic={str(bool(compile_dynamic)).lower()}")
     if compile_backend is not None:
         overrides.append(f"runtime.compile_backend={str(compile_backend)}")
     if compile_mode is not None:

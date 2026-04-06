@@ -289,7 +289,7 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
     assert record["training"]["loss_surface"] == "cell_bpc"
 
 
-def test_build_training_surface_record_includes_compile_model_runtime_flag(
+def test_build_training_surface_record_includes_compile_runtime_flags(
     tmp_path: Path,
 ) -> None:
     manifest_path = _write_manifest(tmp_path / "manifest_compile.parquet")
@@ -318,6 +318,7 @@ def test_build_training_surface_record_includes_compile_model_runtime_flag(
                 "device": "cuda",
                 "output_dir": str(tmp_path / "outputs"),
                 "compile_model": True,
+                "compile_dynamic": True,
                 "trace_activations": False,
                 "activation_checkpointing": True,
             },
@@ -326,6 +327,7 @@ def test_build_training_surface_record_includes_compile_model_runtime_flag(
     )
 
     assert record["runtime"]["compile_model"] is True
+    assert record["runtime"]["compile_dynamic"] is True
     assert record["runtime"]["compile_backend"] == "inductor"
     assert record["runtime"]["compile_mode"] == "max-autotune-no-cudagraphs"
     assert record["runtime"]["trace_activations"] is False

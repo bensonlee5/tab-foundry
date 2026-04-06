@@ -13,15 +13,15 @@ def test_tf_rd_022_compile_debug_builds_the_expected_variant_matrix(tmp_path: Pa
     assert [request["variant"]["name"] for request in requests] == [
         "baseline_uncompiled",
         "compile_eager",
-        "compile_aot_eager",
+        "compile_eager_dynamic",
         "compile_inductor_default",
-        "compile_inductor_max_autotune",
+        "compile_inductor_default_dynamic",
     ]
     assert requests[0]["variant"]["compile_model"] is False
     assert requests[1]["variant"]["compile_backend"] == "eager"
-    assert requests[2]["variant"]["compile_backend"] == "aot_eager"
+    assert requests[2]["variant"]["compile_dynamic"] is True
     assert requests[3]["variant"]["compile_mode"] == "default"
-    assert requests[4]["variant"]["compile_mode"] == "max-autotune-no-cudagraphs"
+    assert requests[4]["variant"]["compile_dynamic"] is True
     assert str(requests[0]["run_output_dir"]).endswith("/baseline_uncompiled/run")
 
 
@@ -29,12 +29,12 @@ def test_tf_rd_022_compile_debug_supports_variant_filtering(tmp_path: Path) -> N
     requests = compile_debug_module._build_variant_requests(
         tmp_path / "compile_debug",
         max_steps=24,
-        variant_names=("baseline_uncompiled", "compile_inductor_default"),
+        variant_names=("baseline_uncompiled", "compile_aot_eager_dynamic"),
     )
 
     assert [request["variant"]["name"] for request in requests] == [
         "baseline_uncompiled",
-        "compile_inductor_default",
+        "compile_aot_eager_dynamic",
     ]
 
 
@@ -80,7 +80,12 @@ def test_run_tf_rd_022_compile_debug_suite_writes_machine_readable_summary(
         run_output_dir = Path(str(request["run_output_dir"]))
         compile_debug_module._write_json(
             variant_dir / "resolved_config.json",
-            {"runtime": {"compile_model": request["variant"]["compile_model"]}},
+            {
+                "runtime": {
+                    "compile_model": request["variant"]["compile_model"],
+                    "compile_dynamic": request["variant"]["compile_dynamic"],
+                }
+            },
         )
         compile_debug_module._write_json(
             variant_dir / "subprocess_result.json",
@@ -102,7 +107,7 @@ def test_run_tf_rd_022_compile_debug_suite_writes_machine_readable_summary(
         tmp_path / "compile_debug_suite",
         max_steps=8,
         python_executable="/tmp/fake-python",
-        variant_names=("baseline_uncompiled", "compile_inductor_default"),
+        variant_names=("baseline_uncompiled", "compile_inductor_default_dynamic"),
     )
 
     summary_path = tmp_path / "compile_debug_suite" / "compile_debug_summary.json"
@@ -114,10 +119,12 @@ def test_run_tf_rd_022_compile_debug_suite_writes_machine_readable_summary(
     assert len(summary["variants"]) == 2
     assert [variant["name"] for variant in summary["variants"]] == [
         "baseline_uncompiled",
-        "compile_inductor_default",
+        "compile_inductor_default_dynamic",
     ]
     assert summary["variants"][0]["graph_break_count"] == 1
     assert summary["variants"][0]["autotune_count"] == 1
     assert summary["variants"][0]["recompile_count"] == 1
+    assert summary["variants"][0]["compile"]["compile_dynamic"] is False
+    assert summary["variants"][1]["compile"]["compile_dynamic"] is True
     assert summary["variants"][0]["artifacts"]["training_surface_record"] is True
     assert summary["variants"][0]["artifacts"]["torch_trace"] is True

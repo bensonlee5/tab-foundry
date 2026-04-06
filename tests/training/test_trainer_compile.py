@@ -39,7 +39,8 @@ def _assert_train_compile_model_order_and_kwargs(
     tmp_path: Path,
     compile_backend: str,
     compile_mode: str,
-    expected_compile_kwargs: dict[str, str],
+    compile_dynamic: bool,
+    expected_compile_kwargs: dict[str, object],
 ) -> None:
     events: list[str] = []
     _install_classification_fakes(monkeypatch)
@@ -74,6 +75,7 @@ def _assert_train_compile_model_order_and_kwargs(
     cfg = _classification_cfg(tmp_path)
     cfg.runtime.device = "cuda"
     cfg.runtime.compile_model = True
+    cfg.runtime.compile_dynamic = compile_dynamic
     cfg.runtime.compile_backend = compile_backend
     cfg.runtime.compile_mode = compile_mode
     cfg.runtime.activation_checkpointing = True
@@ -86,6 +88,7 @@ def _assert_train_compile_model_order_and_kwargs(
     assert events[:4] == ["loss_surface", "activation_checkpointing", "compile", "prepare"]
     assert model.activation_checkpointing_enabled is True
     assert training_surface["runtime"]["compile_model"] is True
+    assert training_surface["runtime"]["compile_dynamic"] is compile_dynamic
     assert training_surface["runtime"]["compile_backend"] == compile_backend
     assert training_surface["runtime"]["compile_mode"] == compile_mode
 
@@ -99,20 +102,29 @@ def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
         tmp_path=tmp_path,
         compile_backend="inductor",
         compile_mode="max-autotune-no-cudagraphs",
+        compile_dynamic=False,
         expected_compile_kwargs={"backend": "inductor", "mode": "max-autotune-no-cudagraphs"},
     )
 
 
 @pytest.mark.parametrize(
-    ("compile_backend", "compile_mode", "expected_compile_kwargs"),
+    ("compile_backend", "compile_mode", "compile_dynamic", "expected_compile_kwargs"),
     [
         (
             "inductor",
             "max-autotune-no-cudagraphs",
+            False,
             {"backend": "inductor", "mode": "max-autotune-no-cudagraphs"},
         ),
-        ("eager", "reduce-overhead", {"backend": "eager"}),
-        ("aot_eager", "default", {"backend": "aot_eager"}),
+        ("eager", "reduce-overhead", False, {"backend": "eager"}),
+        ("aot_eager", "default", False, {"backend": "aot_eager"}),
+        ("eager", "default", True, {"backend": "eager", "dynamic": True}),
+        (
+            "inductor",
+            "default",
+            True,
+            {"backend": "inductor", "mode": "default", "dynamic": True},
+        ),
     ],
 )
 def test_train_compile_model_uses_expected_compile_kwargs(
@@ -120,13 +132,15 @@ def test_train_compile_model_uses_expected_compile_kwargs(
     tmp_path: Path,
     compile_backend: str,
     compile_mode: str,
-    expected_compile_kwargs: dict[str, str],
+    compile_dynamic: bool,
+    expected_compile_kwargs: dict[str, object],
 ) -> None:
     _assert_train_compile_model_order_and_kwargs(
         monkeypatch=monkeypatch,
         tmp_path=tmp_path,
         compile_backend=compile_backend,
         compile_mode=compile_mode,
+        compile_dynamic=compile_dynamic,
         expected_compile_kwargs=expected_compile_kwargs,
     )
 
@@ -146,6 +160,7 @@ def test_train_compile_model_is_opt_in(
     monkeypatch.setattr(trainer_module.torch, "compile", _unexpected_compile)
     cfg = _classification_cfg(tmp_path)
     cfg.runtime.compile_model = False
+    cfg.runtime.compile_dynamic = True
 
     _ = trainer_module.train(cfg)
 

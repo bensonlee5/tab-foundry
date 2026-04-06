@@ -13,6 +13,7 @@ from tab_foundry.device import resolve_device
 
 from .trainer_runtime_config import (
     _resolve_compile_backend,
+    _resolve_compile_dynamic,
     _resolve_compile_mode,
     _resolve_compile_model,
     _resolve_trace_activations,
@@ -26,15 +27,18 @@ class CompilePolicy:
     enabled: bool
     backend: str
     mode: str
+    dynamic: bool
 
-    def torch_compile_kwargs(self) -> dict[str, str]:
+    def torch_compile_kwargs(self) -> dict[str, object]:
         """Return the torch.compile kwargs for this resolved policy."""
 
         if not self.enabled:
             return {}
-        kwargs = {"backend": self.backend}
+        kwargs: dict[str, object] = {"backend": self.backend}
         if self.backend == "inductor":
             kwargs["mode"] = self.mode
+        if self.dynamic:
+            kwargs["dynamic"] = True
         return kwargs
 
 
@@ -93,10 +97,16 @@ def resolve_compile_policy(runtime_cfg: DictConfig) -> CompilePolicy:
     """Resolve and validate the training-time torch.compile policy."""
 
     compile_model = _resolve_compile_model(runtime_cfg)
+    compile_dynamic = _resolve_compile_dynamic(runtime_cfg)
     compile_backend = _resolve_compile_backend(runtime_cfg)
     compile_mode = _resolve_compile_mode(runtime_cfg)
     if not compile_model:
-        return CompilePolicy(enabled=False, backend=compile_backend, mode=compile_mode)
+        return CompilePolicy(
+            enabled=False,
+            backend=compile_backend,
+            mode=compile_mode,
+            dynamic=compile_dynamic,
+        )
     if _resolve_trace_activations(runtime_cfg):
         raise ValueError("runtime.compile_model=true requires runtime.trace_activations=false")
     resolved_device = resolve_training_device_name(runtime_cfg)
@@ -108,7 +118,12 @@ def resolve_compile_policy(runtime_cfg: DictConfig) -> CompilePolicy:
     compile_fn = getattr(torch, "compile", None)
     if not callable(compile_fn):
         raise RuntimeError("runtime.compile_model=true requires torch.compile support")
-    return CompilePolicy(enabled=True, backend=compile_backend, mode=compile_mode)
+    return CompilePolicy(
+        enabled=True,
+        backend=compile_backend,
+        mode=compile_mode,
+        dynamic=compile_dynamic,
+    )
 
 
 def build_accelerator_from_runtime(

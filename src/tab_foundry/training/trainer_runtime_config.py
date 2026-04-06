@@ -57,6 +57,13 @@ def _resolve_compile_model(runtime_cfg: DictConfig) -> bool:
     )
 
 
+def _resolve_compile_dynamic(runtime_cfg: DictConfig) -> bool:
+    return _coerce_runtime_bool(
+        raw_value=getattr(runtime_cfg, "compile_dynamic", False),
+        name="runtime.compile_dynamic",
+    )
+
+
 def _resolve_compile_backend(runtime_cfg: DictConfig) -> str:
     return _coerce_runtime_choice(
         raw_value=getattr(runtime_cfg, "compile_backend", "inductor"),
