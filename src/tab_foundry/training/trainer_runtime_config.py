@@ -28,6 +28,20 @@ def _resolve_activation_checkpointing(runtime_cfg: DictConfig) -> bool:
     )
 
 
+def _resolve_compile_model(runtime_cfg: DictConfig) -> bool:
+    return _coerce_runtime_bool(
+        raw_value=getattr(runtime_cfg, "compile_model", False),
+        name="runtime.compile_model",
+    )
+
+
+def _resolve_trace_activations(runtime_cfg: DictConfig) -> bool:
+    return _coerce_runtime_bool(
+        raw_value=getattr(runtime_cfg, "trace_activations", False),
+        name="runtime.trace_activations",
+    )
+
+
 def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
     value = int(getattr(cfg, "grad_accum_steps", 1))
     if value <= 0:

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.11] - 2026-04-05
+
+### Changed
+
+- User-facing note: training now supports opt-in `runtime.compile_model`
+  on the manifest-backed training path. The first pass wraps the model with
+  `torch.compile(..., mode="max-autotune-no-cudagraphs")` after loss-surface
+  setup and activation-checkpoint enablement, and rejects incompatible runtime
+  combinations instead of silently degrading.
+- User-facing note: `runtime.compile_model=true` currently requires
+  `runtime.device` to resolve to CUDA and `runtime.trace_activations=false`.
+- User-facing note: added
+  `experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_v1`
+  plus the TF-RD-022 compile-first profiler helper surface so compile vs
+  non-compile TF-RD-022 runs can be measured and compared on the locked medium
+  contract.
+- User-facing note: training-surface records now persist `runtime.compile_model`
+  so run inspection and sweep artifacts can distinguish compiled and
+  non-compiled training runs.
+
 ## [0.16.10] - 2026-04-05
 
 ### Changed

@@ -274,17 +274,21 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the repo records one explicit keep/defer decision on whether a
     steering-derived corpus front changes the carried sandwich dagzoo slice
 
-### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
+### TF-RD-022: Kernel-Level Training Acceleration On The Settled Sandwich Runtime Surface Before Classification Scaling
 
 - External evidence:
-  - dedicated runtime-policy literature is not yet curated in this repo
-  - the next sources to curate are PyTorch bf16, activation-checkpointing, and
-    throughput or memory telemetry references for A100-class training
+  - dedicated runtime-policy and kernel-acceleration literature is not yet
+    curated in this repo
+  - the next sources to curate are PyTorch compile/Inductor, CUDA graph
+    capture, SDPA/Flash-style attention backends, and profiler methodology
+    references for A100-class training
 - Repo-local evidence:
-  - deferred issue `#58` already tracks runtime or VRAM summary work but
-    stayed attached to the earlier TF-RD-002 measurement chain
-  - epic `#168` plus child issues `#169`, `#170`, and `#171` now give the
-    runtime lane an explicit roadmap home
+  - historical issues `#58`, `#169`, `#170`, and `#171` established the
+    runtime-policy lane and telemetry surfaces
+  - epic `#168` plus active child issue `#247` now give the kernel-level
+    training-acceleration lane an explicit roadmap home, while closed issue
+    `#239` records negative evidence on low-risk loader/transfer tweaks and
+    closed issues `#240` and `#241` record operational speed sidecars
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
   - sandwich architecture ownership now lives under the historical
@@ -292,11 +296,12 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     anchor-retention decision `#184`; this runtime lane is a dependency surface
     for later classification work rather than the owner of sandwich planning
   - training telemetry and benchmark-registry artifacts now preserve runtime
-    summaries and regime-budget metadata needed for later runtime-policy and
-    scaling comparisons
+    summaries and regime-budget metadata needed for later runtime-policy,
+    profiler, and scaling comparisons
 - Success signal:
-  - the repo records one explicit kernel/runtime policy with peak-memory and
-    throughput evidence, and later scaling work can inherit it
+  - the repo records one explicit carried runtime policy plus one
+    profiler-backed keep/defer decision on kernel-level training acceleration,
+    and later scaling work can inherit both
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 

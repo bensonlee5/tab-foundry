@@ -54,8 +54,8 @@ cross-epic map.
   canonical TF-RD-021 steering-derived synthetic follow-on note on the carried
   sandwich dagzoo slice
 - [`roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
-  canonical TF-RD-022 runtime-and-VRAM efficiency note for the carried
-  sandwich classification family before scaling
+  canonical TF-RD-022 kernel-acceleration and runtime-policy note for the
+  carried sandwich classification family before scaling
 - [`roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):

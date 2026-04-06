@@ -9,6 +9,7 @@ loader_prefetch_factor: null
 non_blocking_device_transfer: false
 grad_clip: 0.0
 grad_accum_steps: 4
+compile_model: false
 trace_activations: false
 activation_checkpointing: true
 eval_every: 25

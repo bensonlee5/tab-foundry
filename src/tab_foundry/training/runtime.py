@@ -5,8 +5,11 @@ from __future__ import annotations
 from accelerate import Accelerator
 from accelerate.utils import DataLoaderConfiguration
 from omegaconf import DictConfig
+import torch
 
 from tab_foundry.device import resolve_device
+
+from .trainer_runtime_config import _resolve_compile_model, _resolve_trace_activations
 
 
 def resolve_training_device_name(runtime_cfg: DictConfig) -> str:
@@ -52,6 +55,26 @@ def resolve_grad_accum_steps(runtime_cfg: DictConfig, *, override: int | None = 
     if steps <= 0:
         raise ValueError(f"runtime.grad_accum_steps must be >= 1, got {steps}")
     return steps
+
+
+def resolve_compile_model(runtime_cfg: DictConfig) -> bool:
+    """Resolve training-time torch.compile policy from runtime config."""
+
+    compile_model = _resolve_compile_model(runtime_cfg)
+    if not compile_model:
+        return False
+    if _resolve_trace_activations(runtime_cfg):
+        raise ValueError("runtime.compile_model=true requires runtime.trace_activations=false")
+    resolved_device = resolve_training_device_name(runtime_cfg)
+    if resolved_device != "cuda":
+        raise ValueError(
+            "runtime.compile_model=true requires runtime.device to resolve to 'cuda', "
+            f"got {resolved_device!r}"
+        )
+    compile_fn = getattr(torch, "compile", None)
+    if not callable(compile_fn):
+        raise RuntimeError("runtime.compile_model=true requires torch.compile support")
+    return True
 
 
 def build_accelerator_from_runtime(
