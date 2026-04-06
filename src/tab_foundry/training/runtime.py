@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from accelerate import Accelerator
 from accelerate.utils import DataLoaderConfiguration
 from omegaconf import DictConfig
@@ -9,7 +11,31 @@ import torch
 
 from tab_foundry.device import resolve_device
 
-from .trainer_runtime_config import _resolve_compile_model, _resolve_trace_activations
+from .trainer_runtime_config import (
+    _resolve_compile_backend,
+    _resolve_compile_mode,
+    _resolve_compile_model,
+    _resolve_trace_activations,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CompilePolicy:
+    """Resolved training-time torch.compile policy."""
+
+    enabled: bool
+    backend: str
+    mode: str
+
+    def torch_compile_kwargs(self) -> dict[str, str]:
+        """Return the torch.compile kwargs for this resolved policy."""
+
+        if not self.enabled:
+            return {}
+        kwargs = {"backend": self.backend}
+        if self.backend == "inductor":
+            kwargs["mode"] = self.mode
+        return kwargs
 
 
 def resolve_training_device_name(runtime_cfg: DictConfig) -> str:
@@ -60,9 +86,17 @@ def resolve_grad_accum_steps(runtime_cfg: DictConfig, *, override: int | None = 
 def resolve_compile_model(runtime_cfg: DictConfig) -> bool:
     """Resolve training-time torch.compile policy from runtime config."""
 
+    return resolve_compile_policy(runtime_cfg).enabled
+
+
+def resolve_compile_policy(runtime_cfg: DictConfig) -> CompilePolicy:
+    """Resolve and validate the training-time torch.compile policy."""
+
     compile_model = _resolve_compile_model(runtime_cfg)
+    compile_backend = _resolve_compile_backend(runtime_cfg)
+    compile_mode = _resolve_compile_mode(runtime_cfg)
     if not compile_model:
-        return False
+        return CompilePolicy(enabled=False, backend=compile_backend, mode=compile_mode)
     if _resolve_trace_activations(runtime_cfg):
         raise ValueError("runtime.compile_model=true requires runtime.trace_activations=false")
     resolved_device = resolve_training_device_name(runtime_cfg)
@@ -74,7 +108,7 @@ def resolve_compile_model(runtime_cfg: DictConfig) -> bool:
     compile_fn = getattr(torch, "compile", None)
     if not callable(compile_fn):
         raise RuntimeError("runtime.compile_model=true requires torch.compile support")
-    return True
+    return CompilePolicy(enabled=True, backend=compile_backend, mode=compile_mode)
 
 
 def build_accelerator_from_runtime(

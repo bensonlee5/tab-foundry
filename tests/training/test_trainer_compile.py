@@ -33,9 +33,13 @@ class _CountingProfiler:
         self.steps += 1
 
 
-def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
+def _assert_train_compile_model_order_and_kwargs(
+    *,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    compile_backend: str,
+    compile_mode: str,
+    expected_compile_kwargs: dict[str, str],
 ) -> None:
     events: list[str] = []
     _install_classification_fakes(monkeypatch)
@@ -62,7 +66,7 @@ def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
 
     def _fake_compile(compiled_model, **kwargs):
         assert compiled_model is model
-        assert kwargs == {"mode": "max-autotune-no-cudagraphs"}
+        assert kwargs == expected_compile_kwargs
         events.append("compile")
         return compiled_model
 
@@ -70,6 +74,8 @@ def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
     cfg = _classification_cfg(tmp_path)
     cfg.runtime.device = "cuda"
     cfg.runtime.compile_model = True
+    cfg.runtime.compile_backend = compile_backend
+    cfg.runtime.compile_mode = compile_mode
     cfg.runtime.activation_checkpointing = True
 
     result = trainer_module.train(cfg)
@@ -80,6 +86,49 @@ def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
     assert events[:4] == ["loss_surface", "activation_checkpointing", "compile", "prepare"]
     assert model.activation_checkpointing_enabled is True
     assert training_surface["runtime"]["compile_model"] is True
+    assert training_surface["runtime"]["compile_backend"] == compile_backend
+    assert training_surface["runtime"]["compile_mode"] == compile_mode
+
+
+def test_train_compile_model_runs_after_checkpointing_and_before_prepare(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _assert_train_compile_model_order_and_kwargs(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        compile_backend="inductor",
+        compile_mode="max-autotune-no-cudagraphs",
+        expected_compile_kwargs={"backend": "inductor", "mode": "max-autotune-no-cudagraphs"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("compile_backend", "compile_mode", "expected_compile_kwargs"),
+    [
+        (
+            "inductor",
+            "max-autotune-no-cudagraphs",
+            {"backend": "inductor", "mode": "max-autotune-no-cudagraphs"},
+        ),
+        ("eager", "reduce-overhead", {"backend": "eager"}),
+        ("aot_eager", "default", {"backend": "aot_eager"}),
+    ],
+)
+def test_train_compile_model_uses_expected_compile_kwargs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    compile_backend: str,
+    compile_mode: str,
+    expected_compile_kwargs: dict[str, str],
+) -> None:
+    _assert_train_compile_model_order_and_kwargs(
+        monkeypatch=monkeypatch,
+        tmp_path=tmp_path,
+        compile_backend=compile_backend,
+        compile_mode=compile_mode,
+        expected_compile_kwargs=expected_compile_kwargs,
+    )
 
 
 def test_train_compile_model_is_opt_in(

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from omegaconf import OmegaConf
+
 from tab_foundry.data.manifest_characteristics import compute_manifest_characteristics
 from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
@@ -19,6 +21,14 @@ from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.repo_paths import normalize_repo_relative_path
 from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.timestamps import utc_now as _shared_utc_now
+
+from .trainer_runtime_config import (
+    _resolve_activation_checkpointing,
+    _resolve_compile_backend,
+    _resolve_compile_mode,
+    _resolve_compile_model,
+    _resolve_trace_activations,
+)
 
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
@@ -37,6 +47,23 @@ _EXCLUDED_RUNTIME_SURFACE_KEYS = frozenset({"device", "output_dir"})
 
 def _utc_now() -> str:
     return _shared_utc_now()
+
+
+def _normalize_runtime_surface_cfg(raw_runtime_cfg: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_cfg = {
+        str(key): value
+        for key, value in raw_runtime_cfg.items()
+        if str(key) not in _EXCLUDED_RUNTIME_SURFACE_KEYS
+    }
+    resolved_runtime_cfg = OmegaConf.create(runtime_cfg)
+    runtime_cfg["compile_model"] = _resolve_compile_model(resolved_runtime_cfg)
+    runtime_cfg["compile_backend"] = _resolve_compile_backend(resolved_runtime_cfg)
+    runtime_cfg["compile_mode"] = _resolve_compile_mode(resolved_runtime_cfg)
+    runtime_cfg["trace_activations"] = _resolve_trace_activations(resolved_runtime_cfg)
+    runtime_cfg["activation_checkpointing"] = _resolve_activation_checkpointing(
+        resolved_runtime_cfg
+    )
+    return runtime_cfg
 
 
 def normalize_training_backend(value: Any) -> str | None:
@@ -151,11 +178,7 @@ def build_training_surface_record(
     runtime_cfg = (
         None
         if not isinstance(raw_runtime_cfg, Mapping)
-        else {
-            str(key): value
-            for key, value in raw_runtime_cfg.items()
-            if str(key) not in _EXCLUDED_RUNTIME_SURFACE_KEYS
-        }
+        else _normalize_runtime_surface_cfg(raw_runtime_cfg)
     )
     if state_dict is None:
         model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)

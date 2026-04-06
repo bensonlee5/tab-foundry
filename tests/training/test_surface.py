@@ -326,6 +326,8 @@ def test_build_training_surface_record_includes_compile_model_runtime_flag(
     )
 
     assert record["runtime"]["compile_model"] is True
+    assert record["runtime"]["compile_backend"] == "inductor"
+    assert record["runtime"]["compile_mode"] == "max-autotune-no-cudagraphs"
     assert record["runtime"]["trace_activations"] is False
     assert record["runtime"]["activation_checkpointing"] is True
     assert "device" not in record["runtime"]

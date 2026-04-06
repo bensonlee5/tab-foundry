@@ -88,4 +88,6 @@ def test_train_compile_cuda_smoke(tmp_path: Path) -> None:
     assert result.best_checkpoint is not None
     assert result.best_checkpoint.exists()
     assert training_surface["runtime"]["compile_model"] is True
+    assert training_surface["runtime"]["compile_backend"] == "inductor"
+    assert training_surface["runtime"]["compile_mode"] == "max-autotune-no-cudagraphs"
     assert training_surface["runtime"]["activation_checkpointing"] is True

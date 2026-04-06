@@ -671,14 +671,19 @@ class TabFoundrySandwichClassifier(nn.Module):
         y_train: torch.Tensor,
         train_test_split_index: int,
         feature_type_ids: torch.Tensor,
+        num_classes: int | None = None,
     ) -> torch.Tensor:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        resolved_num_classes = max(2, int(y_train.max().item()) + 1)
+        if num_classes is not None:
+            resolved_num_classes = int(num_classes)
+        self._validate_num_classes(resolved_num_classes)
         raw_state = self._build_raw_input_state(
             x_all=x_all,
             y_train=y_train,
             y_test=None,
             train_test_split_index=train_test_split_index,
-            num_classes=max(2, int(y_train.max().item()) + 1),
+            num_classes=resolved_num_classes,
             feature_type_ids=feature_type_ids,
         )
         feature_state = self._build_feature_state(raw_state)
@@ -744,6 +749,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             y_train=y_train,
             train_test_split_index=train_test_split_index,
             feature_type_ids=feature_type_ids,
+            num_classes=num_classes,
         )
         return _classification_flow.build_classification_output(
             logits=logits,

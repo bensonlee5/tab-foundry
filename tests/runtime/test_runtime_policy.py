@@ -5,6 +5,7 @@ import pytest
 
 import tab_foundry.training.runtime as training_runtime_module
 from tab_foundry.training.runtime import (
+    resolve_compile_policy,
     resolve_compile_model,
     resolve_cpu_mode,
     resolve_grad_accum_steps,
@@ -60,6 +61,11 @@ def test_runtime_compile_model_resolution_coerces_bool_flags(
         }
     )
 
+    policy = resolve_compile_policy(cfg)
+
+    assert policy.enabled is True
+    assert policy.backend == "inductor"
+    assert policy.mode == "max-autotune-no-cudagraphs"
     assert resolve_compile_model(cfg) is True
 
 
@@ -74,6 +80,36 @@ def test_runtime_compile_model_rejects_invalid_bool() -> None:
 
     with pytest.raises(ValueError, match="runtime.compile_model must be boolean-compatible"):
         _ = resolve_compile_model(cfg)
+
+
+def test_runtime_compile_policy_rejects_invalid_backend() -> None:
+    cfg = OmegaConf.create(
+        {
+            "device": "cuda",
+            "mixed_precision": "bf16",
+            "compile_model": True,
+            "compile_backend": "nvfuser",
+            "trace_activations": False,
+        }
+    )
+
+    with pytest.raises(ValueError, match="runtime.compile_backend must be one of"):
+        _ = resolve_compile_policy(cfg)
+
+
+def test_runtime_compile_policy_rejects_invalid_mode() -> None:
+    cfg = OmegaConf.create(
+        {
+            "device": "cuda",
+            "mixed_precision": "bf16",
+            "compile_model": True,
+            "compile_mode": "turbo",
+            "trace_activations": False,
+        }
+    )
+
+    with pytest.raises(ValueError, match="runtime.compile_mode must be one of"):
+        _ = resolve_compile_policy(cfg)
 
 
 def test_runtime_compile_model_requires_cuda(

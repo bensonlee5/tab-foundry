@@ -18,10 +18,51 @@ TF_RD_022_COMPILE_FIRST_EXPERIMENT = (
 )
 
 
+def _compose_tf_rd_022_compile_cfg(
+    *,
+    output_dir: Path | str | None = None,
+    max_steps: int | None = None,
+    eval_every: int | None = None,
+    checkpoint_every: int | None = None,
+    compile_model: bool | None = None,
+    compile_backend: str | None = None,
+    compile_mode: str | None = None,
+    output_dir_suffix: str | None = None,
+    run_name_suffix: str | None = None,
+) -> DictConfig:
+    resolved_output_dir = (
+        Path(str(output_dir)).expanduser().resolve()
+        if output_dir is not None
+        else None
+    )
+    overrides = [f"experiment={TF_RD_022_COMPILE_FIRST_EXPERIMENT}"]
+    if max_steps is not None:
+        overrides.append(f"runtime.max_steps={int(max_steps)}")
+    if eval_every is not None:
+        overrides.append(f"runtime.eval_every={int(eval_every)}")
+    if checkpoint_every is not None:
+        overrides.append(f"runtime.checkpoint_every={int(checkpoint_every)}")
+    if resolved_output_dir is not None:
+        overrides.append(f"runtime.output_dir={resolved_output_dir}")
+    if compile_model is not None:
+        overrides.append(f"runtime.compile_model={str(bool(compile_model)).lower()}")
+    if compile_backend is not None:
+        overrides.append(f"runtime.compile_backend={str(compile_backend)}")
+    if compile_mode is not None:
+        overrides.append(f"runtime.compile_mode={str(compile_mode)}")
+    cfg = compose_config(overrides)
+    if resolved_output_dir is None and output_dir_suffix:
+        base_output_dir = Path(str(cfg.runtime.output_dir)).expanduser()
+        cfg.runtime.output_dir = str(base_output_dir.with_name(f"{base_output_dir.name}{output_dir_suffix}"))
+    if run_name_suffix:
+        cfg.logging.run_name = f"{cfg.logging.run_name}{run_name_suffix}"
+    return cfg
+
+
 def tf_rd_022_compile_first_cfg() -> DictConfig:
     """Resolve the canonical TF-RD-022 compile-first experiment config."""
 
-    return compose_config([f"experiment={TF_RD_022_COMPILE_FIRST_EXPERIMENT}"])
+    return _compose_tf_rd_022_compile_cfg()
 
 
 def tf_rd_022_compile_profile_cfg(
@@ -31,25 +72,14 @@ def tf_rd_022_compile_profile_cfg(
 ) -> DictConfig:
     """Resolve the short profiler screen config for the compile-first experiment."""
 
-    resolved_output_dir = (
-        Path(str(output_dir)).expanduser().resolve()
-        if output_dir is not None
-        else None
+    return _compose_tf_rd_022_compile_cfg(
+        output_dir=output_dir,
+        max_steps=max_steps,
+        eval_every=max_steps,
+        checkpoint_every=max_steps,
+        output_dir_suffix="_profile_short",
+        run_name_suffix="-profile-short",
     )
-    overrides = [
-        f"experiment={TF_RD_022_COMPILE_FIRST_EXPERIMENT}",
-        f"runtime.max_steps={int(max_steps)}",
-        f"runtime.eval_every={int(max_steps)}",
-        f"runtime.checkpoint_every={int(max_steps)}",
-    ]
-    if resolved_output_dir is not None:
-        overrides.append(f"runtime.output_dir={resolved_output_dir}")
-    cfg = compose_config(overrides)
-    if resolved_output_dir is None:
-        base_output_dir = Path(str(cfg.runtime.output_dir)).expanduser()
-        cfg.runtime.output_dir = str(base_output_dir.with_name(f"{base_output_dir.name}_profile_short"))
-    cfg.logging.run_name = f"{cfg.logging.run_name}-profile-short"
-    return cfg
 
 
 def run_tf_rd_022_compile_profile(

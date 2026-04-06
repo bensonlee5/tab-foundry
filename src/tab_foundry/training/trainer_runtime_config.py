@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from omegaconf import DictConfig
 
+_VALID_COMPILE_BACKENDS = frozenset({"inductor", "aot_eager", "eager"})
+_VALID_COMPILE_MODES = frozenset(
+    {"max-autotune-no-cudagraphs", "default", "reduce-overhead"}
+)
+
 
 def _coerce_runtime_bool(*, raw_value: object, name: str) -> bool:
     if raw_value is None:
@@ -21,6 +26,23 @@ def _coerce_runtime_bool(*, raw_value: object, name: str) -> bool:
     raise ValueError(f"{name} must be boolean-compatible, got {raw_value!r}")
 
 
+def _coerce_runtime_choice(
+    *,
+    raw_value: object,
+    name: str,
+    default: str,
+    valid_values: frozenset[str],
+) -> str:
+    if raw_value is None:
+        return default
+    normalized = str(raw_value).strip().lower()
+    if not normalized:
+        return default
+    if normalized in valid_values:
+        return normalized
+    raise ValueError(f"{name} must be one of {sorted(valid_values)}, got {raw_value!r}")
+
+
 def _resolve_activation_checkpointing(runtime_cfg: DictConfig) -> bool:
     return _coerce_runtime_bool(
         raw_value=getattr(runtime_cfg, "activation_checkpointing", False),
@@ -32,6 +54,24 @@ def _resolve_compile_model(runtime_cfg: DictConfig) -> bool:
     return _coerce_runtime_bool(
         raw_value=getattr(runtime_cfg, "compile_model", False),
         name="runtime.compile_model",
+    )
+
+
+def _resolve_compile_backend(runtime_cfg: DictConfig) -> str:
+    return _coerce_runtime_choice(
+        raw_value=getattr(runtime_cfg, "compile_backend", "inductor"),
+        name="runtime.compile_backend",
+        default="inductor",
+        valid_values=_VALID_COMPILE_BACKENDS,
+    )
+
+
+def _resolve_compile_mode(runtime_cfg: DictConfig) -> str:
+    return _coerce_runtime_choice(
+        raw_value=getattr(runtime_cfg, "compile_mode", "max-autotune-no-cudagraphs"),
+        name="runtime.compile_mode",
+        default="max-autotune-no-cudagraphs",
+        valid_values=_VALID_COMPILE_MODES,
     )
 
 

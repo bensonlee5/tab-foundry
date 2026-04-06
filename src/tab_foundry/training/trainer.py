@@ -24,7 +24,7 @@ from .instability import (
 )
 from .loss_surface import configure_model_loss_surface, resolve_training_loss_surface
 from .optimizer import build_optimizer
-from .runtime import build_accelerator_from_runtime, resolve_compile_model
+from .runtime import build_accelerator_from_runtime, resolve_compile_policy
 from .schedule import build_stage_configs
 from .surface import TRAINING_BACKEND_MANIFEST, write_training_surface_record
 from .trainer_finalize import finalize_training_run
@@ -174,12 +174,12 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
                 "implemented by tabfoundry_staged and tabfoundry_sandwich"
             )
         enable_activation_checkpointing()
-    compile_model = resolve_compile_model(cfg.runtime)
-    if compile_model:
+    compile_policy = resolve_compile_policy(cfg.runtime)
+    if compile_policy.enabled:
         compile_fn = getattr(torch, "compile", None)
         if not callable(compile_fn):
             raise RuntimeError("runtime.compile_model=true requires torch.compile support")
-        model = compile_fn(model, mode="max-autotune-no-cudagraphs")
+        model = compile_fn(model, **compile_policy.torch_compile_kwargs())
     if val_loader is None:
         model, train_loader = accelerator.prepare(model, train_loader)
     else:
