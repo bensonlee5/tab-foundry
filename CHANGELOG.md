@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-facing note: training-surface records now persist `runtime.compile_model`
   so run inspection and sweep artifacts can distinguish compiled and
   non-compiled training runs.
+- User-facing note: corpus materialization now persists invocation- and
+  recipe-level timing attribution in `materialization_summary.json` and
+  `corpus_record.json`, including generate, filter, copy, manifest-build,
+  promotion, and aggregate local-versus-upstream elapsed-time reads.
+- User-facing note: accepted-only full-shard corpus promotion now uses a
+  hardlink-capable snapshot path when possible, reducing repo-local copy I/O
+  without changing copied dataset counts or corpus contents.
 
 ## [0.16.10] - 2026-04-05
 
