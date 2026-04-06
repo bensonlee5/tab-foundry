@@ -2595,6 +2595,57 @@ def test_scoped_recipe_identity_is_path_independent_across_repo_roots(
     )
 
 
+def test_load_copied_corpus_record_relocates_embedded_paths_across_repo_roots(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root_a = tmp_path / "repo_a"
+    repo_root_b = tmp_path / "repo_b"
+    repo_root_a.mkdir(parents=True, exist_ok=True)
+    repo_root_b.mkdir(parents=True, exist_ok=True)
+    _initialize_repo_workspace(repo_root_a)
+    _initialize_repo_workspace(repo_root_b)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+
+    record_a = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_root_a.parent / "dagzoo",
+        force=True,
+        repo_root=repo_root_a,
+    )
+    source_recipe_root = repo_root_a / "outputs" / "corpora" / "current_recipe"
+    target_recipe_root = repo_root_b / "outputs" / "corpora" / "current_recipe"
+    target_recipe_root.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source_recipe_root, target_recipe_root)
+
+    loaded = load_corpus_record("current_recipe", repo_root=repo_root_b)
+
+    assert loaded["corpus_ref"] == record_a["corpus_ref"]
+    assert Path(str(loaded["corpus_record_path"])).exists()
+    assert not str(loaded["corpus_record_path"]).startswith(str(repo_root_a))
+    assert not str(loaded["manifest"]["manifest_path"]).startswith(str(repo_root_a))
+    assert Path(str(loaded["manifest"]["manifest_path"])).exists()
+    assert str(loaded["artifacts"]["corpus_root"]).startswith(str(repo_root_b))
+    assert Path(str(loaded["artifacts"]["corpus_root"])).exists()
+    assert str(loaded["manifest"]["characteristics"]["sidecar_path"]).startswith(str(repo_root_b))
+    invocation = loaded["dagzoo_provenance"]["invocations"][0]
+    assert str(invocation["invocation_root"]).startswith(str(repo_root_b))
+    assert Path(str(invocation["invocation_root"])).exists()
+    assert str(invocation["handoff"]["generated_dir"]).startswith(str(repo_root_b))
+    assert Path(str(invocation["handoff"]["generated_dir"])).exists()
+
+    _patch_corpus_repo_root(monkeypatch, repo_root_b)
+    resolved = resolve_data_surface(
+        {
+            "source": "manifest",
+            "corpus_ref": "current_recipe",
+        }
+    )
+    assert resolved.manifest_path is not None
+    assert resolved.manifest_path.exists()
+    assert str(resolved.manifest_path).startswith(str(repo_root_b))
+
+
 def test_materialize_corpus_recipe_reuses_complete_cached_corpus(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
