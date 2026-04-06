@@ -652,6 +652,32 @@ Legacy wording note:
     investigation on the core sandwich path; it will target attention,
     readout, cell-mixer, and training-loop execution rather than reopening
     loader or benchmark-orchestration tweaks
+  - the completed CUDA compile-debug ladder under issue
+    [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now records
+    explicit negative evidence for Inductor on the carried surface: the first
+    short ladder measured `baseline_uncompiled=80.7s`,
+    `compile_eager=97.5s`, `compile_aot_eager=129.4s`,
+    `compile_inductor_default=299.2s`, and terminated
+    `compile_inductor_max_autotune=1315.7s`; after scalar-hoist,
+    feature-type-tensorization, and normalization-traceability fixes, the
+    second ladder cleared graph breaks and metadata guards, and the CUDA 12.8
+    A100 rerun kept `compile_eager_dynamic` as the only viable compile
+    candidate while `compile_inductor_default_dynamic` still failed in the
+    backward path
+  - the same-host CUDA 12.8 A100 medium replay pair now records the current
+    keep/defer decision point for `compile_eager_dynamic`: baseline finished in
+    `3815.8697s` at throughput `40.6491` examples/s and matched-budget
+    `final_log_loss_at_matched_regime_budget=0.6815635531`, while
+    `compile_eager_dynamic` finished in `3596.6320s` at throughput `43.1664`
+    examples/s but slightly regressed the matched-budget metric to
+    `0.6818175198`; under the strict non-worse quality gate this is currently
+    measured defer evidence despite the `~5.7%` wall-time and `~6.2%`
+    throughput win
+  - posthoc benchmark comparison on compile-enabled checkpoints still requires
+    a loader compatibility fix because raw `torch.compile` checkpoints carry
+    `_orig_mod.`-prefixed state-dict keys; the current compile metric was
+    recovered from sanitized checkpoint copies rather than the unmodified
+    benchmark path
   - issues [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241) remain useful
     operational evidence on benchmark and materialization speed, but they no
@@ -660,10 +686,15 @@ Legacy wording note:
   should not reopen sandwich-parent selection, TF-RD-021, dagzoo RD-002,
   dagzoo RD-005, or broader regime-choice work
 - Required work:
-  - close the kernel-level training-acceleration lane under issue
-    [#247](https://github.com/bensonlee5/tab-foundry/issues/247) with one
-    explicit profiler-backed keep or defer decision on the core sandwich
-    training step
+  - fix compile-checkpoint benchmark compatibility under issue
+    [#247](https://github.com/bensonlee5/tab-foundry/issues/247) so the
+    posthoc benchmark path can load raw `torch.compile` checkpoints without
+    sanitized copies
+  - unless that loader fix plus one confirming replay overturns the current
+    tiny matched-budget regression, close the kernel-level
+    training-acceleration lane under issue
+    [#247](https://github.com/bensonlee5/tab-foundry/issues/247) as a measured
+    defer on the settled runtime surface
   - prioritize execution-path work in
     `src/tab_foundry/model/components/attention.py`,
     `src/tab_foundry/model/architectures/tabfoundry_sandwich/blocks.py`,
@@ -673,6 +704,9 @@ Legacy wording note:
     `src/tab_foundry/training/runtime.py`; evaluate `torch.compile` /
     Inductor, CUDA graph capture, fusion-sensitive norm/activation/MLP paths,
     and layout/copy reductions only when profiler evidence justifies them
+  - if the measured defer stands, move the next TF-RD-022 slice to
+    `x_test` shape variability reduction or bucketing rather than more
+    Inductor or autotune work
   - keep benchmark/materialization speed work documented under closed issues
     [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241) rather than

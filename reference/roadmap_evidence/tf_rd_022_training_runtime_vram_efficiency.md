@@ -142,6 +142,27 @@ This is the canonical long-form evidence note for
 - issue [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now owns
   the remaining TF-RD-022 training-speed question as a profiler-backed kernel
   investigation on the carried surface
+- the completed compile-debug ladders under
+  [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now make the
+  current training-speed read explicit: the first CUDA short ladder measured
+  `baseline_uncompiled=80.7s`, `compile_eager=97.5s`,
+  `compile_aot_eager=129.4s`, `compile_inductor_default=299.2s`, and
+  terminated `compile_inductor_max_autotune=1315.7s`; after the scalar-hoist,
+  feature-type-tensorization, and normalization-traceability fixes, the
+  rerun removed the old graph breaks and metadata-guard churn and left
+  `compile_eager_dynamic` as the only viable compile candidate
+- the same-host CUDA 12.8 A100 medium replay pair now records the current
+  keep/defer evidence on that candidate: baseline finished in `3815.8697s`
+  with throughput `40.6491` examples/s and matched-budget
+  `final_log_loss_at_matched_regime_budget=0.6815635531`, while
+  `compile_eager_dynamic` finished in `3596.6320s` with throughput `43.1664`
+  examples/s but slightly regressed the matched-budget metric to
+  `0.6818175198`; under the hard non-worse quality gate this is measured
+  defer evidence even though runtime improved by about `5.7%`
+- raw compile-enabled checkpoints still do not round-trip through the current
+  benchmark loader because `torch.compile` leaves `_orig_mod.`-prefixed model
+  keys; the compiled matched-budget metric therefore came from sanitized
+  checkpoint copies rather than the unmodified posthoc benchmark path
 - the highest-value repo-local hotspots are likely the repeated SDPA-backed
   cross/self-attention and readout or cell-mixer reshapes in
   `src/tab_foundry/model/components/attention.py`,
@@ -179,15 +200,20 @@ This is the canonical long-form evidence note for
   and concentrate on core sandwich compute kernels
 - benchmark and materialization speedups remain documented as operational
   sidecars, but they are no longer the defining remaining TF-RD-022 gate
+- the current compile-first read is the same shape: `compile_eager_dynamic`
+  is the only compile candidate worth keeping around, but the medium replay is
+  slightly benchmark-worse under the strict gate, so TF-RD-022 should treat it
+  as defer evidence unless a loader fix plus one confirming replay shows the
+  tiny metric delta is noise rather than a real regression
 - TF-RD-022 should not reopen sandwich-parent selection, larger architecture
   changes, law-design work, or harder-surface batching while the runtime gate
   and kernel-acceleration read are still unresolved
 
 ## Open Evidence Gaps
 
-- the repo still lacks one explicit measured keep/defer decision for
-  kernel-level training acceleration under issue
-  [#247](https://github.com/bensonlee5/tab-foundry/issues/247)
+- the repo still lacks a clean unmodified posthoc benchmark path for
+  compile-enabled checkpoints because the benchmark loader does not yet
+  normalize `_orig_mod.`-prefixed state-dict keys
 - the repo still lacks profiler attribution showing whether attention,
   readout, cell-mixer, or training-loop capture opportunities dominate step
   time enough to justify deeper kernel work

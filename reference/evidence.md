@@ -298,6 +298,13 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - training telemetry and benchmark-registry artifacts now preserve runtime
     summaries and regime-budget metadata needed for later runtime-policy,
     profiler, and scaling comparisons
+  - the current compile-first replay evidence keeps Inductor as negative
+    evidence and `compile_eager_dynamic` as the only viable compile candidate:
+    on the same CUDA 12.8 A100 host it improved wall time from `3815.8697s`
+    to `3596.6320s` but slightly worsened
+    `final_log_loss_at_matched_regime_budget` from `0.6815635531` to
+    `0.6818175198`, so the strict gate currently reads this as measured defer
+    rather than a kept runtime change
 - Success signal:
   - the repo records one explicit carried runtime policy plus one
     profiler-backed keep/defer decision on kernel-level training acceleration,
