@@ -12,8 +12,8 @@ from tests.support_research.helpers import assert_training_surface_semantics
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ID = "tf_rd_024_classification_knob_sweep_v1"
 ANCHOR_RUN_ID = (
-    "sd_tf_rd_010_classification_evolution_medium_v4_01_"
-    "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8"
+    "sd_tf_rd_024_classification_knob_sweep_v1_"
+    "anchor_compile_eager_dynamic_v1"
 )
 EXPECTED_ROWS = [
     "delta_tf_rd_024_cls_sandwich_latents12_v1",
@@ -38,7 +38,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_tf_rd_024_classification_knob_sweep_v1_is_registered_but_not_active() -> None:
+def test_tf_rd_024_classification_knob_sweep_v1_is_registered_and_ready() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
     assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
@@ -48,7 +48,7 @@ def test_tf_rd_024_classification_knob_sweep_v1_is_registered_but_not_active() -
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v4",
-        "status": "draft",
+        "status": "ready",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -64,11 +64,11 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_010_classification_evolution_medium_v4"
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "ready"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert_training_surface_semantics(
         sweep,
-        training_experiment="cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1",
+        training_experiment="cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1",
         surface_role="classification_architecture_followup",
         comparison_policy="anchor_only",
         external_benchmarks=[],
@@ -87,15 +87,15 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
 
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
-    assert any("#168" in note for note in notes)
-    assert any("dagzoo RD-002/RD-005" in note for note in notes)
+    assert any("#247" in note for note in notes)
+    assert any("compile-eager-dynamic" in note for note in notes)
     assert any("Keep `d_icl`, `sandwich_layers`, batch size, LR, clipping" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["blocked_on_runtime_policy"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["blocked"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
 
     latents = _row_by_ref(queue, "delta_tf_rd_024_cls_sandwich_latents12_v1")
     assert "sandwich_latents" in latents["anchor_delta"]
@@ -116,7 +116,7 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
     )
     assert_training_surface_semantics(
         materialized,
-        training_experiment="cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1",
+        training_experiment="cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1",
         surface_role="classification_architecture_followup",
         external_benchmarks=[],
     )
@@ -124,8 +124,8 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
 
     for row in materialized["rows"]:
         runtime = row["training"]["overrides"]["runtime"]
-        assert row["status"] == "blocked_on_runtime_policy"
-        assert row["interpretation_status"] == "blocked"
+        assert row["status"] == "ready"
+        assert row["interpretation_status"] == "pending"
         assert row["training"]["task_batch_size"] == 16
         assert row["training"]["prior_dump_batch_size"] == 64
         assert runtime["mixed_precision"] == "bf16"
@@ -134,6 +134,10 @@ def test_tf_rd_024_classification_knob_sweep_v1_matches_the_post_performance_pla
         assert runtime["grad_accum_steps"] == 4
         assert row["model"]["d_icl"] == 60
         assert row["model"]["sandwich_layers"] == 2
+        resolved_runtime = row["resolved_surface"]["runtime"]
+        assert resolved_runtime["compile_model"] is True
+        assert resolved_runtime["compile_backend"] == "eager"
+        assert resolved_runtime["compile_dynamic"] is True
 
 
 def test_tf_rd_024_classification_knob_sweep_v1_matrix_records_the_runtime_policy_handoff() -> None:
@@ -145,10 +149,12 @@ def test_tf_rd_024_classification_knob_sweep_v1_matrix_records_the_runtime_polic
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
     assert "PerceiverIO" in matrix
-    assert "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1" in matrix
+    assert "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1" in matrix
     assert "delta_tf_rd_024_cls_sandwich_headhidden128_v1" in matrix
     assert "mixed_precision': 'bf16'" in matrix
     assert "activation_checkpointing': True" in matrix
+    assert "compile_model': True" in matrix
+    assert "compile_dynamic': True" in matrix
     assert "TF-RD-010 medium contract screens rows first; any keep must then validate on the closed TF-RD-010 large contract." in matrix
     assert "`d_icl`" in matrix
     assert "`sandwich_layers`" in matrix

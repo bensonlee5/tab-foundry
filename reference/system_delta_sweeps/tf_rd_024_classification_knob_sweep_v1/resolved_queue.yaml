@@ -6,14 +6,14 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_kno
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_024_classification_knob_sweep_v1/matrix.md
 sweep_id: tf_rd_024_classification_knob_sweep_v1
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
-sweep_status: draft
+sweep_status: ready
 complexity_level: classification_md
-anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
-training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
-training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
 surface_role: classification_architecture_followup
 comparison_policy: anchor_only
 upstream_reference:
@@ -21,12 +21,16 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - This draft follow-on sweep starts only after TF-RD-022 closes on one explicit
-    runtime-policy candidate that has already cleared the large-validation gate under
-    [#168](https://github.com/bensonlee5/tab-foundry/issues/168) plus child issues
-    [#169](https://github.com/bensonlee5/tab-foundry/issues/169) and [#170](https://github.com/bensonlee5/tab-foundry/issues/170).
-  - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
-    from the closed TF-RD-010 medium package on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`.
+  - TF-RD-022 is now closed on the kept compile-eager-dynamic runtime surface from
+    [#247](https://github.com/bensonlee5/tab-foundry/issues/247), so this follow-on
+    sweep inherits the explicit compile-enabled execution contract rather than the
+    earlier pre-compile TF-RD-010 control surface.
+  - The locked anchor is benchmark registry run `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`,
+    trained on `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+    and benchmarked on the closed TF-RD-010 medium rung at `final_log_loss=0.6820309591`.
+  - The same trained anchor already has a sequential large-rung reference at `final_log_loss=0.9298541427`,
+    so any medium keep signal from this sweep still needs to hold on the closed TF-RD-010
+    large contract before the knob is carried forward.
   - Medium is the screening rung for this epic. Any row that looks keep-worthy on
     medium still needs validation on the closed TF-RD-010 large contract before the
     knob is carried forward.
@@ -36,10 +40,11 @@ anchor_surface:
   - Reuse the historical TF-RD-021B sandwich delta families where possible so this
     post-performance lane stays a bounded architecture-knob read instead of becoming
     a parallel search program.
-  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`:
+  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
     `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`, `trace_activations=false`,
-    `activation_checkpointing=true`, `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`,
-    `optimizer.min_lr=1e-5`, and linear warmup at `lr_max=1e-3`.'
+    `activation_checkpointing=true`, `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
+    `compile_backend=eager`, `compile_dynamic=true`, `max_steps=2500`, `optimizer.min_lr=1e-5`,
+    and linear warmup at `lr_max=1e-3`.'
   - The only live architecture knobs in this sweep are `head_hidden_dim`, `sandwich_summary_tokens_per_axis`,
     `sandwich_latents`, `sandwich_heads`, `sandwich_ff_expansion`, and `sandwich_self_attention_per_cross`.
   - Keep `d_icl`, `sandwich_layers`, batch size, LR, clipping, optimizer family, and
@@ -88,14 +93,14 @@ anchor_surface:
       on the harder large rung before the knob stays live.
   - dimension: training and runtime surface
     upstream: No external paper fixes this exact prior-dump or runtime policy.
-    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
-      with the inherited TF-RD-022 runtime policy.
+    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+      with the kept TF-RD-022 compile-eager-dynamic runtime policy.
     interpretation: Hold optimizer, schedule, batching, and runtime policy fixed so
       this sweep isolates architecture knobs only.
 anchor_context:
-  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
-  experiment: cls_benchmark_sandwich_classification_evolution_v1
-  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
   model:
     arch: tabfoundry_sandwich
     benchmark_profile: null
@@ -110,7 +115,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_024_cls_sandwich_latents12_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B latent-count family on the closed TF-RD-010 medium
     contract to see whether the retained sandwich remains overprovisioned on latent-bank
     count once TF-RD-022 freezes the runtime policy.
@@ -181,11 +186,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -292,7 +296,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -338,18 +342,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 127312872348e6a94c827cd1e78862b6918d5fcb320b6cc14ef98924d7967d97
+  resolved_surface_fingerprint: afa211bdd632d1ae89856948265c8e87fd85ec6986df920e28acc4272e4e6968
 - order: 2
   delta_id: delta_tf_rd_024_cls_sandwich_heads2_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B attention-head family on the closed TF-RD-010 contract
     to test whether head factorization remains a live post-performance knob once runtime
     policy is explicit.
@@ -420,11 +432,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -531,7 +542,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -577,18 +588,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 5deffebfed77ed1947dd846b679cf361aa2aad2ec82b35cb1dddd9ad1cf5fbec
+  resolved_surface_fingerprint: 63ab63e8e71f5694fa1c644b47720b0e152defa34fbc4986945db60291d6a413
 - order: 3
   delta_id: delta_tf_rd_024_cls_sandwich_ffexp1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B feed-forward expansion family on the closed TF-RD-010
     contract to check whether the retained sandwich still needs the larger trunk MLP
     bracket after TF-RD-022.
@@ -659,11 +678,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -768,7 +786,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -814,18 +832,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: f2c1ecd3fcaebc755c7958da6b351cdd82d5418800e5aa864471da1c6413ac69
+  resolved_surface_fingerprint: cf886baeecb8181fa7a9fc4a9363ee50b51f213a70e99e9f425dc87d44fa3186
 - order: 4
   delta_id: delta_tf_rd_024_cls_sandwich_summarytokens1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B summary-token family on the closed TF-RD-010 contract
     to measure whether the retained sandwich still needs extra summary-stream bandwidth
     after runtime policy is fixed.
@@ -896,11 +922,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -1006,7 +1031,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -1052,18 +1077,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 5cd409a3bba5d00e6cb71f462d575496282eed909bbdf3768b7c4f2c82efb7e6
+  resolved_surface_fingerprint: 3a0ca601bcf832934d7d12e8e5d4ea52f0924e101527b0ccac7aa9a9a37ff559
 - order: 5
   delta_id: delta_tf_rd_024_cls_sandwich_selfattn1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B latent self-refinement family on the closed TF-RD-010
     contract to test whether repeated latent self-attention is still a meaningful
     contributor once TF-RD-022 stabilizes the runtime surface.
@@ -1134,11 +1167,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -1245,7 +1277,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -1291,18 +1323,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: d4d55f8269b6f191d36d4a7922e284cb9ca1c0f9ce0f34fd12ccbf9e4f858287
+  resolved_surface_fingerprint: 1396a70f0ffa448370f00c3ff5a0f86d8305a2014cd214ad1250bd31e472ffd5
 - order: 6
   delta_id: delta_tf_rd_024_cls_sandwich_headhidden64_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B lower head-hidden bracket on the closed TF-RD-010
     contract to see whether the current classifier head is overprovisioned after TF-RD-022.
   hypothesis: Reducing `head_hidden_dim` from `96` to `64` should stay close to anchor
@@ -1372,11 +1412,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -1482,7 +1521,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -1528,18 +1567,26 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: ab5388692849916ebd8edf8534837a938e98983c7b68d1e18b5c8b5600768cc1
+  resolved_surface_fingerprint: cfe6154ff1785d337ba0355dd1f2db9b4d780a8b657523ea85b85e9655a4c913
 - order: 7
   delta_id: delta_tf_rd_024_cls_sandwich_headhidden128_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B upper head-hidden bracket on the closed TF-RD-010
     contract to test whether the retained multiclass sandwich is actually readout-limited
     once TF-RD-022 fixes the runtime surface.
@@ -1610,11 +1657,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row
-    on the TF-RD-010 medium rung and validate any keep signal on the closed large
-    rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -1721,7 +1767,7 @@ rows:
       filter_policy: null
       allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v1
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v1
       corpus_id: null
@@ -1767,14 +1813,22 @@ rows:
       seed: 1
       mixed_precision: bf16
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 197875f59ee5ecd0352178a3320390c4e194e0a9b7388fd007cd202db4f028f2
+  resolved_surface_fingerprint: e6f91c9e424b42d8f15891f575f44a904c7a9885f67c9ea08cebb96b86375eb2
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_knob_sweep_v1/resolved_queue.yaml
-inputs_fingerprint: d4e93d45dd0630b3354b85a3b73462f55adc6c76ec8642452ed1abfc4e8226ff
+inputs_fingerprint: a2749a862ea714bab2d2e7f0bc33a550a1d6153377fa16b105cc807e449a7298

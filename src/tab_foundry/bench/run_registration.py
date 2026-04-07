@@ -134,6 +134,46 @@ def _normalize_registry_path(path: Path) -> str:
     )
 
 
+def _path_suffix_after_anchor(path: Path, *, anchor: tuple[str, ...]) -> Path | None:
+    parts = path.parts
+    anchor_length = len(anchor)
+    for index in range(len(parts) - anchor_length + 1):
+        if tuple(parts[index : index + anchor_length]) == anchor:
+            suffix = parts[index + anchor_length :]
+            return Path(*suffix) if suffix else Path()
+    return None
+
+
+def _relocate_repo_anchored_path(
+    value: Any,
+    *,
+    allow_missing_parent: bool = False,
+) -> Path | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    raw_path = Path(value).expanduser()
+    if not raw_path.is_absolute():
+        return None
+
+    resolved_repo_root = repo_root()
+    relocation_roots = (
+        (("outputs",), resolved_repo_root / "outputs"),
+        (("data",), resolved_repo_root / "data"),
+        (("reference",), resolved_repo_root / "reference"),
+        (("src",), resolved_repo_root / "src"),
+    )
+    for anchor, target_root in relocation_roots:
+        suffix = _path_suffix_after_anchor(raw_path, anchor=anchor)
+        if suffix is None:
+            continue
+        relocated = (target_root / suffix).resolve()
+        if relocated.exists():
+            return relocated
+        if allow_missing_parent and relocated.parent.exists():
+            return relocated
+    return raw_path.resolve()
+
+
 def _resolve_registry_path_value(value: str) -> Path:
     return read_benchmark_registry.resolve_registry_path_value(
         value,
@@ -142,7 +182,26 @@ def _resolve_registry_path_value(value: str) -> Path:
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
+    relocated = _relocate_repo_anchored_path(raw_value)
+    if relocated is not None:
+        return relocated
     return _resolve_config_path_common(raw_value, root=repo_root())
+
+
+def _resolve_summary_path_value(
+    raw_value: Any,
+    *,
+    allow_missing_parent: bool = False,
+) -> Path:
+    if not isinstance(raw_value, str) or not raw_value.strip():
+        raise RuntimeError("comparison summary path value must be a non-empty string")
+    relocated = _relocate_repo_anchored_path(
+        raw_value,
+        allow_missing_parent=allow_missing_parent,
+    )
+    if relocated is not None:
+        return relocated
+    return _resolve_registry_path_value(str(raw_value))
 
 
 def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
@@ -150,10 +209,7 @@ def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, 
         benchmark_bundle.get("source_path"),
         context="comparison_summary.benchmark_bundle.source_path",
     )
-    resolved_source_path = read_benchmark_registry.resolve_registry_path_value(
-        benchmark_bundle_source,
-        root=repo_root(),
-    )
+    resolved_source_path = _resolve_summary_path_value(benchmark_bundle_source)
     return {
         "name": str(benchmark_bundle["name"]),
         "version": int(benchmark_bundle["version"]),
@@ -228,11 +284,8 @@ def derive_benchmark_run_record(
     resolved_summary_path = comparison_summary_path.expanduser().resolve()
     summary = load_comparison_summary(resolved_summary_path)
     tab_foundry = ensure_mapping(summary["tab_foundry"], context="comparison_summary.tab_foundry")
-    summary_run_dir = _resolve_registry_path_value(
-        ensure_non_empty_string(
-            tab_foundry.get("run_dir"),
-            context="comparison_summary.tab_foundry.run_dir",
-        )
+    summary_run_dir = _resolve_summary_path_value(
+        ensure_non_empty_string(tab_foundry.get("run_dir"), context="comparison_summary.tab_foundry.run_dir")
     )
     if summary_run_dir != resolved_run_dir:
         raise RuntimeError(
@@ -284,7 +337,10 @@ def derive_benchmark_run_record(
     if isinstance(raw_artifacts, dict):
         raw_curve = raw_artifacts.get("comparison_curve_png")
         if isinstance(raw_curve, str) and raw_curve.strip():
-            comparison_curve_path = Path(str(raw_curve)).expanduser().resolve()
+            comparison_curve_path = _resolve_summary_path_value(
+                raw_curve,
+                allow_missing_parent=True,
+            )
     if comparison_curve_path is None:
         comparison_curve_path = resolved_summary_path.parent / "comparison_curve.png"
     training_surface_payload, training_surface_path = _training_surface_record(
