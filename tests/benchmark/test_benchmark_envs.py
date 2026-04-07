@@ -29,10 +29,9 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     installed: list[tuple[Path, str]] = []
     validated: list[tuple[Path, str]] = []
     linked_src_roots: list[tuple[Path, Path, str]] = []
-    linked_src_roots: list[tuple[Path, Path, str]] = []
-    linked_src_roots: list[tuple[Path, Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda root: synced.append(root))
+    monkeypatch.setattr(env_module.sys, "platform", "darwin")
     monkeypatch.setattr(env_module, "_python_version_info", lambda _python_path: (3, 14))
     monkeypatch.setattr(
         env_module,
@@ -43,20 +42,6 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
         env_module,
         "_validate_import",
         lambda python_path, module_name: validated.append((python_path, module_name)),
-    )
-    monkeypatch.setattr(
-        env_module,
-        "_install_explicit_src_root_path",
-        lambda python_path, *, src_root, module_name: linked_src_roots.append(
-            (python_path, src_root, module_name)
-        ),
-    )
-    monkeypatch.setattr(
-        env_module,
-        "_install_explicit_src_root_path",
-        lambda python_path, *, src_root, module_name: linked_src_roots.append(
-            (python_path, src_root, module_name)
-        ),
     )
     monkeypatch.setattr(
         env_module,
@@ -93,6 +78,65 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     assert summary["nanotabpfn_python"].endswith("/nano/.venv/bin/python")
 
 
+def test_bootstrap_benchmark_envs_installs_repo_expected_torch_stack_on_linux(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    nano_root = tmp_path / "nano"
+    tabpfn_root = tmp_path / "tabpfn"
+    tabicl_root = tmp_path / "tabicl"
+    hub_root = tmp_path / "tab-realdata-hub"
+    for root in (nano_root, tabpfn_root, tabicl_root, hub_root):
+        root.mkdir(parents=True)
+    (hub_root / "pyproject.toml").write_text("[project]\nname='tab-realdata-hub'\n", encoding="utf-8")
+    (hub_root / "src" / "tab_realdata_hub").mkdir(parents=True)
+    for root in (nano_root, tabpfn_root, tabicl_root):
+        (root / ".venv" / "bin").mkdir(parents=True)
+        (root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+
+    installed: list[tuple[Path, str, str | None]] = []
+
+    monkeypatch.setattr(env_module, "_sync_repo", lambda _root: None)
+    monkeypatch.setattr(env_module.sys, "platform", "linux")
+    monkeypatch.setattr(env_module, "_python_version_info", lambda _python_path: (3, 14))
+    monkeypatch.setattr(
+        env_module,
+        "_install_python_package",
+        lambda python_path, package_spec, *, index_url=None: installed.append(
+            (python_path, package_spec, index_url)
+        ),
+    )
+    monkeypatch.setattr(env_module, "_validate_import", lambda _python_path, _module_name: None)
+
+    env_module.bootstrap_benchmark_envs(
+        env_module.BenchmarkEnvConfig(
+            nanotabpfn_root=nano_root,
+            tabpfn_root=tabpfn_root,
+            tabicl_root=tabicl_root,
+            tab_realdata_hub_root=hub_root,
+        )
+    )
+
+    expected_torch_installs = [
+        (
+            nano_root.resolve() / ".venv" / "bin" / "python",
+            env_module.LINUX_TORCH_INSTALL_SPEC,
+            env_module.LINUX_TORCH_INDEX_URL,
+        ),
+        (
+            tabpfn_root.resolve() / ".venv" / "bin" / "python",
+            env_module.LINUX_TORCH_INSTALL_SPEC,
+            env_module.LINUX_TORCH_INDEX_URL,
+        ),
+        (
+            tabicl_root.resolve() / ".venv" / "bin" / "python",
+            env_module.LINUX_TORCH_INSTALL_SPEC,
+            env_module.LINUX_TORCH_INDEX_URL,
+        ),
+    ]
+    assert installed[:3] == expected_torch_installs
+
+
 def test_tab_realdata_hub_install_spec_uses_published_package_by_default() -> None:
     assert env_module._tab_realdata_hub_install_spec() == env_module.TAB_REALDATA_HUB_INSTALL_SPEC
 
@@ -118,6 +162,7 @@ def test_bootstrap_benchmark_envs_uses_runtime_dependencies_for_py313_tabicl(
     linked_src_roots: list[tuple[Path, Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda _root: None)
+    monkeypatch.setattr(env_module.sys, "platform", "darwin")
     monkeypatch.setattr(
         env_module,
         "_python_version_info",
@@ -178,6 +223,7 @@ def test_bootstrap_benchmark_envs_requires_explicit_hub_root_for_py313_tabicl(
         (root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda _root: None)
+    monkeypatch.setattr(env_module.sys, "platform", "darwin")
     monkeypatch.setattr(env_module, "_python_version_info", lambda _python_path: (3, 13))
 
     with pytest.raises(RuntimeError, match="pass --tab-realdata-hub-root"):
