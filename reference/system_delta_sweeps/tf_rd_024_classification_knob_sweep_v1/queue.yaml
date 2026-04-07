@@ -37,7 +37,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -120,7 +120,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -203,7 +203,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -286,7 +286,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -369,7 +369,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -452,7 +452,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -535,7 +535,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
