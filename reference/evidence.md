@@ -285,8 +285,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - Repo-local evidence:
   - historical issues `#58`, `#169`, `#170`, and `#171` established the
     runtime-policy lane and telemetry surfaces
-  - epic `#168` plus active child issue `#247` now give the kernel-level
-    training-acceleration lane an explicit roadmap home, while closed issue
+  - epic `#168` plus child issue `#247` now record the completed kernel-level
+    training-acceleration lane, while closed issue
     `#239` records negative evidence on low-risk loader/transfer tweaks and
     closed issues `#240` and `#241` record operational speed sidecars
   - the canonical long-form note now lives in
@@ -298,17 +298,17 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - training telemetry and benchmark-registry artifacts now preserve runtime
     summaries and regime-budget metadata needed for later runtime-policy,
     profiler, and scaling comparisons
-  - the current compile-first replay evidence keeps Inductor as negative
-    evidence and `compile_eager_dynamic` as the only viable compile candidate:
-    on the same CUDA 12.8 A100 host it improved wall time from `3815.8697s`
-    to `3596.6320s` but slightly worsened
-    `final_log_loss_at_matched_regime_budget` from `0.6815635531` to
-    `0.6818175198`, so the strict gate currently reads this as measured defer
-    rather than a kept runtime change
+  - the compile-first replay evidence keeps Inductor as negative evidence and
+    now closes positively on `compile_eager_dynamic`: after the loader fix for
+    raw compile checkpoints, the confirming same-host CUDA 12.8 A100 replay
+    improved wall time from `3848.0996s` to `3586.6358s` and improved
+    `final_log_loss_at_matched_regime_budget` from `0.6820820744` to
+    `0.6810689708`, so TF-RD-022 now records a kept compile-first runtime
+    change rather than a measured defer
 - Success signal:
-  - the repo records one explicit carried runtime policy plus one
-    profiler-backed keep/defer decision on kernel-level training acceleration,
-    and later scaling work can inherit both
+  - satisfied: the repo records one explicit carried runtime policy plus one
+    profiler-backed keep decision on kernel-level training acceleration, and
+    later scaling work can inherit both
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 
@@ -373,7 +373,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     artifacts are not yet canonical on the carried dagzoo classification slice
   - TF-RD-018 is now historical closeout evidence only and is no longer a
     blocker for the first sandwich scaling fit
-  - TF-RD-022 must still hand back one measured runtime policy
+  - TF-RD-022 now hands back one measured runtime policy plus one kept
+    compile-first training-acceleration verdict
   - TF-RD-021 must still hand back one keep/defer steering decision on the
     carried dagzoo slice
   - the completed TF-RD-021B keep-current-anchor decision under `#184` is the

@@ -3,8 +3,8 @@
 This is the canonical long-form evidence note for
 [TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-kernel-level-training-acceleration-on-the-settled-sandwich-runtime-surface-before-classification-scaling).
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `completed`
+- Milestone: `Completed`
 - Dependency position: runs after the closed TF-RD-010 classification
   benchmark contract is explicit, and before
   [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md) and
@@ -33,13 +33,13 @@ This is the canonical long-form evidence note for
   runtime-policy surface that made TF-RD-022 explicit enough for downstream
   work; issue [#171](https://github.com/bensonlee5/tab-foundry/issues/171) is
   superseded because TF-RD-022 will not reopen harder-surface batching
-- epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now tracks
+- epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now closes
   kernel-level training acceleration on the settled runtime surface end to
   end, with closed low-risk training-throughput defer
   [#239](https://github.com/bensonlee5/tab-foundry/issues/239), closed
   benchmark/materialization sidecars
   [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
-  [#241](https://github.com/bensonlee5/tab-foundry/issues/241), and active
+  [#241](https://github.com/bensonlee5/tab-foundry/issues/241), and closed
   kernel-acceleration child
   [#247](https://github.com/bensonlee5/tab-foundry/issues/247)
 - sandwich architecture ownership now lives under the historical
@@ -139,9 +139,9 @@ This is the canonical long-form evidence note for
   importing the full training stack, which removed an incidental `omegaconf`
   dependency from the TabICLv2 helper environment and unblocked the official
   CUDA `#239` replay
-- issue [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now owns
-  the remaining TF-RD-022 training-speed question as a profiler-backed kernel
-  investigation on the carried surface
+- issue [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now
+  closes the TF-RD-022 training-speed question as a profiler-backed
+  compile-first kernel investigation on the carried surface
 - the completed compile-debug ladders under
   [#247](https://github.com/bensonlee5/tab-foundry/issues/247) now make the
   current training-speed read explicit: the first CUDA short ladder measured
@@ -151,18 +151,22 @@ This is the canonical long-form evidence note for
   feature-type-tensorization, and normalization-traceability fixes, the
   rerun removed the old graph breaks and metadata-guard churn and left
   `compile_eager_dynamic` as the only viable compile candidate
-- the same-host CUDA 12.8 A100 medium replay pair now records the current
-  keep/defer evidence on that candidate: baseline finished in `3815.8697s`
-  with throughput `40.6491` examples/s and matched-budget
-  `final_log_loss_at_matched_regime_budget=0.6815635531`, while
-  `compile_eager_dynamic` finished in `3596.6320s` with throughput `43.1664`
-  examples/s but slightly regressed the matched-budget metric to
-  `0.6818175198`; under the hard non-worse quality gate this is measured
-  defer evidence even though runtime improved by about `5.7%`
-- raw compile-enabled checkpoints still do not round-trip through the current
-  benchmark loader because `torch.compile` leaves `_orig_mod.`-prefixed model
-  keys; the compiled matched-budget metric therefore came from sanitized
-  checkpoint copies rather than the unmodified posthoc benchmark path
+- the first same-host CUDA 12.8 A100 medium replay pair left
+  `compile_eager_dynamic` as the only viable compile candidate but did not
+  close the gate by itself because the matched-budget metric was slightly
+  worse despite a runtime win
+- raw compile-enabled checkpoints now round-trip through the ordinary
+  benchmark loader because the checkpoint path normalizes leading repeated
+  `_orig_mod.`-prefixed model keys before model-spec derivation and
+  `load_state_dict(...)`
+- the confirming same-host CUDA 12.8 A100 medium replay pair now closes the
+  keep result for `compile_eager_dynamic`: baseline finished in `3848.0996s`
+  with matched-budget `final_log_loss_at_matched_regime_budget=0.6820820744`,
+  while `compile_eager_dynamic` finished in `3586.6358s` at
+  `0.6810689708`; that is a `~6.8%` wall-time win plus a benchmark-better
+  matched-budget result on the same host, so TF-RD-022 keeps compile-first
+  eager-plus-dynamic-shape execution as the settled training-acceleration
+  verdict on the carried runtime surface
 - the highest-value repo-local hotspots are likely the repeated SDPA-backed
   cross/self-attention and readout or cell-mixer reshapes in
   `src/tab_foundry/model/components/attention.py`,
@@ -190,9 +194,9 @@ This is the canonical long-form evidence note for
 - runtime-policy selection is complete enough for downstream planning: the
   carried TF-RD-022 surface is `bf16` with activation tracing off and
   activation checkpointing on
-- the remaining TF-RD-022 work is a careful kernel-level training-acceleration
-  investigation on top of that settled runtime surface rather than more
-  runtime-policy selection or more operational speed cleanup
+- TF-RD-022 is now complete: the repo has one explicit carried runtime policy
+  and one explicit kept compile-first training-acceleration verdict on top of
+  that settled runtime surface
 - training speed now has one explicit measured defer on the low-risk
   overlap-and-transfer path, including the completed CUDA decomposition of the
   combined candidate into `workers`, `loader_overlap`, and `transfer`
@@ -200,31 +204,30 @@ This is the canonical long-form evidence note for
   and concentrate on core sandwich compute kernels
 - benchmark and materialization speedups remain documented as operational
   sidecars, but they are no longer the defining remaining TF-RD-022 gate
-- the current compile-first read is the same shape: `compile_eager_dynamic`
-  is the only compile candidate worth keeping around, but the medium replay is
-  slightly benchmark-worse under the strict gate, so TF-RD-022 should treat it
-  as defer evidence unless a loader fix plus one confirming replay shows the
-  tiny metric delta is noise rather than a real regression
+- the compile-first read now closes positively: `compile_eager_dynamic` is the
+  only compile candidate worth carrying forward, and the loader-fixed
+  confirming replay shows a same-host runtime win without benchmark regression
 - TF-RD-022 should not reopen sandwich-parent selection, larger architecture
   changes, law-design work, or harder-surface batching while the runtime gate
-  and kernel-acceleration read are still unresolved
+  and kernel-acceleration read are already settled
 
 ## Open Evidence Gaps
 
-- the repo still lacks a clean unmodified posthoc benchmark path for
-  compile-enabled checkpoints because the benchmark loader does not yet
-  normalize `_orig_mod.`-prefixed state-dict keys
 - the repo still lacks profiler attribution showing whether attention,
   readout, cell-mixer, or training-loop capture opportunities dominate step
-  time enough to justify deeper kernel work
+  time enough to justify any future deeper kernel work beyond the kept
+  compile-first result
 
 ## Exit Signals
 
-- one explicit benchmark-safe runtime policy exists for the classification
-  scaling target, justified by repo-local time and VRAM evidence
-- the repo has one explicit measured keep/defer outcome for kernel-level
+- satisfied: one explicit benchmark-safe runtime policy exists for the
+  classification scaling target, justified by repo-local time and VRAM
+  evidence
+- satisfied: the repo has one explicit measured keep outcome for kernel-level
   training acceleration on that settled runtime surface
-- artifacts, summaries, and profiler traces expose runtime and timing reads
-  compactly enough to compare future runs without manual log inspection
-- later TF-RD-024 architecture work and TF-RD-009 can inherit the same runtime
-  policy and training-acceleration verdict without re-deriving them
+- satisfied: artifacts, summaries, and profiler traces expose runtime and
+  timing reads compactly enough to compare future runs without manual log
+  inspection
+- satisfied: later TF-RD-024 architecture work and TF-RD-009 can inherit the
+  same runtime policy and training-acceleration verdict without re-deriving
+  them
