@@ -289,6 +289,53 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
     assert record["training"]["loss_surface"] == "cell_bpc"
 
 
+def test_build_training_surface_record_includes_compile_runtime_flags(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_compile.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 32,
+                "head_hidden_dim": 64,
+                "sandwich_latents": 12,
+                "sandwich_layers": 1,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+                "sandwich_summary_tokens_per_axis": 2,
+                "sandwich_self_attention_per_cross": 1,
+                "sandwich_pre_row_attention_layers": 1,
+                "sandwich_pre_column_attention_layers": 1,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+            "runtime": {
+                "device": "cuda",
+                "output_dir": str(tmp_path / "outputs"),
+                "compile_model": True,
+                "compile_dynamic": True,
+                "trace_activations": False,
+                "activation_checkpointing": True,
+            },
+        },
+        run_dir=tmp_path / "run_compile",
+    )
+
+    assert record["runtime"]["compile_model"] is True
+    assert record["runtime"]["compile_dynamic"] is True
+    assert record["runtime"]["compile_backend"] == "inductor"
+    assert record["runtime"]["compile_mode"] == "max-autotune-no-cudagraphs"
+    assert record["runtime"]["trace_activations"] is False
+    assert record["runtime"]["activation_checkpointing"] is True
+    assert "device" not in record["runtime"]
+    assert "output_dir" not in record["runtime"]
+
+
 def test_build_training_surface_record_omits_cross_arch_sandwich_build_spec_fields(
     tmp_path: Path,
 ) -> None:

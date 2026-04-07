@@ -11,7 +11,11 @@ from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_classifier
 import tab_foundry.bench.openml_benchmark.metrics as benchmark_metrics_module
-from tab_foundry.bench.openml_benchmark import evaluate_classifier, load_dataset_cache
+from tab_foundry.bench.openml_benchmark import (
+    evaluate_classifier,
+    evaluate_tab_foundry_run,
+    load_dataset_cache,
+)
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.outputs import CellLikelihoodOutput, ClassificationOutput
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
@@ -25,6 +29,32 @@ class _TinyClassifier(nn.Module):
 
     def forward(self, batch: TaskBatch) -> ClassificationOutput:
         return ClassificationOutput(logits=self.linear(batch.x_test), num_classes=2)
+
+
+class _TinySandwichClassifier(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 2)
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        return ClassificationOutput(logits=self.linear(batch.x_test), num_classes=2)
+
+    def forward_cell_likelihood(self, batch: TaskBatch) -> CellLikelihoodOutput:
+        per_cell_bits = torch.zeros(
+            (1, batch.x_test.shape[0], batch.x_test.shape[1]),
+            dtype=batch.x_test.dtype,
+            device=batch.x_test.device,
+        )
+        return CellLikelihoodOutput(
+            per_cell_bits=per_cell_bits,
+            bpc=torch.tensor(0.0, dtype=batch.x_test.dtype, device=batch.x_test.device),
+            bpf=torch.tensor(0.0, dtype=batch.x_test.dtype, device=batch.x_test.device),
+            aux_metrics={
+                "bpc_cell_count": float(batch.x_test.shape[0] * batch.x_test.shape[1]),
+                "bpf_feature_count": float(batch.x_test.shape[1]),
+                "excluded_non_finite_cell_count": 0.0,
+            },
+        )
 
 
 class _CapturingClassifier(nn.Module):
@@ -150,6 +180,218 @@ class _BatchedSandwichClassifier(nn.Module):
                 "excluded_non_finite_cell_count": float((~torch.isfinite(x_all)).sum().item()),
             },
         )
+
+
+def test_load_checkpoint_model_leaves_plain_state_dict_keys_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _TinyClassifier()
+    captured: dict[str, tuple[str, ...] | None] = {"state_dict_keys": None}
+    fake_spec = SimpleNamespace(task="classification")
+
+    def _fake_spec_builder(**kwargs):
+        state_dict = kwargs.get("state_dict")
+        captured["state_dict_keys"] = None if state_dict is None else tuple(state_dict.keys())
+        return fake_spec
+
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        _fake_spec_builder,
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "build_model_from_spec",
+        lambda _spec: _TinyClassifier(),
+    )
+
+    checkpoint = tmp_path / "plain.pt"
+    original_state = {key: value.clone() for key, value in model.state_dict().items()}
+    torch.save(
+        {"model": original_state, "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+
+    loaded_model, _ = checkpoint_classifier.load_checkpoint_model(
+        checkpoint,
+        device=torch.device("cpu"),
+    )
+
+    assert captured["state_dict_keys"] == tuple(original_state.keys())
+    for key, value in original_state.items():
+        assert torch.equal(loaded_model.state_dict()[key], value)
+
+
+def test_load_checkpoint_model_normalizes_compile_wrapped_state_dict_keys(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _TinyClassifier()
+    captured: dict[str, tuple[str, ...] | None] = {"state_dict_keys": None}
+    fake_spec = SimpleNamespace(task="classification")
+
+    def _fake_spec_builder(**kwargs):
+        state_dict = kwargs.get("state_dict")
+        captured["state_dict_keys"] = None if state_dict is None else tuple(state_dict.keys())
+        return fake_spec
+
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        _fake_spec_builder,
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "build_model_from_spec",
+        lambda _spec: _TinyClassifier(),
+    )
+
+    checkpoint = tmp_path / "compiled.pt"
+    original_state = {key: value.clone() for key, value in model.state_dict().items()}
+    compiled_state = {
+        (
+            f"_orig_mod._orig_mod.{key}"
+            if key == "linear.weight"
+            else f"_orig_mod.{key}"
+        ): value.clone()
+        for key, value in original_state.items()
+    }
+    torch.save(
+        {"model": compiled_state, "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+
+    loaded_model, _ = checkpoint_classifier.load_checkpoint_model(
+        checkpoint,
+        device=torch.device("cpu"),
+    )
+
+    assert captured["state_dict_keys"] == tuple(original_state.keys())
+    for key, value in original_state.items():
+        assert torch.equal(loaded_model.state_dict()[key], value)
+
+
+def test_load_checkpoint_model_rejects_duplicate_normalized_keys(tmp_path: Path) -> None:
+    model = _TinyClassifier()
+    original_state = {key: value.clone() for key, value in model.state_dict().items()}
+    checkpoint = tmp_path / "duplicate_compiled.pt"
+    torch.save(
+        {
+            "model": {
+                "linear.weight": original_state["linear.weight"].clone(),
+                "_orig_mod.linear.weight": original_state["linear.weight"].clone(),
+                "_orig_mod.linear.bias": original_state["linear.bias"].clone(),
+            },
+            "config": {"task": "classification", "model": {}},
+        },
+        checkpoint,
+    )
+
+    with pytest.raises(RuntimeError, match="duplicate key 'linear.weight'"):
+        checkpoint_classifier.load_checkpoint_model(
+            checkpoint,
+            device=torch.device("cpu"),
+        )
+
+
+def test_evaluate_tab_foundry_run_loads_compile_wrapped_checkpoints(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_sandwich",
+        input_normalization="none",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "build_model_from_spec",
+        lambda _spec: _TinySandwichClassifier(),
+    )
+
+    model = _TinySandwichClassifier()
+    compiled_state = {
+        f"_orig_mod.{key}": value.clone()
+        for key, value in model.state_dict().items()
+    }
+    run_dir = tmp_path / "compiled_run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    torch.save(
+        {
+            "model": compiled_state,
+            "config": {"task": "classification", "model": {}},
+            "global_step": 25,
+        },
+        checkpoint_dir / "best.pt",
+    )
+    torch.save(
+        {
+            "model": compiled_state,
+            "config": {"task": "classification", "model": {}},
+            "global_step": 50,
+        },
+        checkpoint_dir / "latest.pt",
+    )
+    (checkpoint_dir / "step_000025.pt").write_bytes(b"step25")
+    (checkpoint_dir / "step_000050.pt").write_bytes(b"step50")
+    (run_dir / "train_history.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "step": 25,
+                        "stage": "train",
+                        "train_loss": 0.5,
+                        "train_acc": 0.5,
+                        "lr": 1.0e-3,
+                        "grad_norm": 1.0,
+                        "elapsed_seconds": 1.0,
+                        "train_elapsed_seconds": 1.0,
+                        "val_loss": None,
+                        "val_acc": None,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "step": 50,
+                        "stage": "train",
+                        "train_loss": 0.4,
+                        "train_acc": 0.6,
+                        "lr": 1.0e-3,
+                        "grad_norm": 1.1,
+                        "elapsed_seconds": 2.0,
+                        "train_elapsed_seconds": 2.0,
+                        "val_loss": None,
+                        "val_acc": None,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    x = np.tile(np.arange(20, dtype=np.float32)[:, None], (1, 4))
+    y = np.asarray([0, 1] * 10, dtype=np.int64)
+    records = evaluate_tab_foundry_run(
+        run_dir,
+        datasets={"toy": (x, y, ["floating"] * int(x.shape[1]))},
+        task_type="supervised_classification",
+        device="cpu",
+        checkpoint_selection="best_and_final",
+    )
+
+    assert [Path(str(record["checkpoint_path"])).name for record in records] == ["best.pt", "latest.pt"]
+    assert [int(record["step"]) for record in records] == [25, 50]
+    assert all(record.get("evaluation_error") is None for record in records)
+    assert all(float(record["log_loss"]) >= 0.0 for record in records)
 
 
 def test_tab_foundry_classifier_predicts_probabilities(

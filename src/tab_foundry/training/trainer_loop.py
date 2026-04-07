@@ -416,6 +416,7 @@ def run_training_loop(
     trace_activations: bool,
     non_blocking_device_transfer: bool,
     flush_activation_trace_stats,
+    profiler: Any | None,
     run: Any,
     state: TrainingLoopState,
 ) -> None:
@@ -607,6 +608,8 @@ def run_training_loop(
 
             state.train_elapsed_seconds += time.perf_counter() - step_train_start
             state.global_step += 1
+            if profiler is not None:
+                profiler.step()
             state.examples_seen += step_examples_seen
             state.tokens_seen += step_tokens_seen
             metric_keys = sorted(set(train_metric_sums) | expected_keys)

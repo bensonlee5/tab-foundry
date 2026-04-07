@@ -56,7 +56,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.hashing`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, `tab_foundry.training`, and
   `tab_foundry.types`.
-- `tab_foundry.task_batching` depends on `tab_foundry.types`.
+- `tab_foundry.task_batching` depends on `tab_foundry.feature_types`
+  and `tab_foundry.types`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.feature_types`,
   `tab_foundry.hashing`, `tab_foundry.likelihoods`,

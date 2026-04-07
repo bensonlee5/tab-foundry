@@ -24,7 +24,7 @@ from .instability import (
 )
 from .loss_surface import configure_model_loss_surface, resolve_training_loss_surface
 from .optimizer import build_optimizer
-from .runtime import build_accelerator_from_runtime
+from .runtime import build_accelerator_from_runtime, resolve_compile_policy
 from .schedule import build_stage_configs
 from .surface import TRAINING_BACKEND_MANIFEST, write_training_surface_record
 from .trainer_finalize import finalize_training_run
@@ -42,6 +42,7 @@ from .trainer_runtime_config import (
     _resolve_max_steps,
     _resolve_non_blocking_device_transfer,
     _resolve_target_train_seconds,
+    _resolve_trace_activations,
     _resolve_val_batches,
 )
 from .trainer_summary import _trainer_summary_payload
@@ -63,7 +64,7 @@ __all__ = [
 ]
 
 
-def train(cfg: DictConfig) -> TrainResult:
+def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     """Train from config."""
 
     task = str(cfg.task)
@@ -173,12 +174,18 @@ def train(cfg: DictConfig) -> TrainResult:
                 "implemented by tabfoundry_staged and tabfoundry_sandwich"
             )
         enable_activation_checkpointing()
+    compile_policy = resolve_compile_policy(cfg.runtime)
+    if compile_policy.enabled:
+        compile_fn = getattr(torch, "compile", None)
+        if not callable(compile_fn):
+            raise RuntimeError("runtime.compile_model=true requires torch.compile support")
+        model = compile_fn(model, **compile_policy.torch_compile_kwargs())
     if val_loader is None:
         model, train_loader = accelerator.prepare(model, train_loader)
     else:
         model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
     base_model = accelerator.unwrap_model(model)
-    trace_activations = bool(getattr(cfg.runtime, "trace_activations", False))
+    trace_activations = _resolve_trace_activations(cfg.runtime)
     enable_activation_trace = getattr(base_model, "enable_activation_trace", None)
     flush_activation_trace = getattr(base_model, "flush_activation_trace", None)
     flush_activation_trace_stats = getattr(base_model, "flush_activation_trace_stats", None)
@@ -336,6 +343,7 @@ def train(cfg: DictConfig) -> TrainResult:
             trace_activations=trace_activations,
             non_blocking_device_transfer=non_blocking_device_transfer,
             flush_activation_trace_stats=_flush_activation_trace_stats,
+            profiler=profiler,
             run=run,
             state=state,
         )

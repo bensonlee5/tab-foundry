@@ -285,13 +285,11 @@ def _normalize_train_test_tensors_3d_zscore(
             normalized_mode=normalized_mode,
         )
 
-        train_out = train.clone()
-        test_out = test.clone()
-        train_out[train_mask] = processed_train_norm[train_mask]
+        train_out = torch.where(train_mask, processed_train_norm, train)
         valid_test_mask = test_mask & has_finite.unsqueeze(1)
-        test_out[valid_test_mask] = processed_test_norm[valid_test_mask]
+        test_out = torch.where(valid_test_mask, processed_test_norm, test)
         zero_test_mask = test_mask & (~has_finite).unsqueeze(1)
-        test_out[zero_test_mask] = 0.0
+        test_out = torch.where(zero_test_mask, torch.zeros_like(test_out), test_out)
         return train_out, test_out
 
     if normalized_mode == "train_winsorize_zscore":

@@ -6,6 +6,10 @@ from typing import Any, Mapping
 
 import torch
 
+from tab_foundry.feature_types import (
+    feature_type_ids_from_task_metadata,
+    metadata_has_explicit_feature_types,
+)
 from tab_foundry.types import TaskBatch
 
 
@@ -110,7 +114,7 @@ def _stack_task_tensors(items: list[TaskBatch]) -> TaskBatch:
             f"got {[None if value is None else int(value) for value in num_classes]}"
         )
     signature_text = task_batch_signature_text(signatures[0])
-    return TaskBatch(
+    batch = TaskBatch(
         x_train=torch.stack([item.x_train for item in items], dim=0),
         y_train=torch.stack([item.y_train for item in items], dim=0),
         x_test=torch.stack([item.x_test for item in items], dim=0),
@@ -123,6 +127,49 @@ def _stack_task_tensors(items: list[TaskBatch]) -> TaskBatch:
             "task_batch_mode": "batched",
         },
         num_classes=items[0].num_classes,
+    )
+    return _with_resolved_feature_type_ids(batch)
+
+
+def _resolve_feature_type_ids(batch: TaskBatch) -> torch.Tensor | None:
+    if batch.feature_type_ids is not None:
+        return batch.feature_type_ids
+    if not metadata_has_explicit_feature_types(batch.metadata):
+        return None
+    if batch.x_train.ndim == 2:
+        batch_size = 1
+        num_features = int(batch.x_train.shape[1])
+    elif batch.x_train.ndim == 3:
+        batch_size = int(batch.x_train.shape[0])
+        num_features = int(batch.x_train.shape[2])
+    else:
+        raise RuntimeError(
+            "task batch feature-type resolution requires rank-2 or rank-3 x_train tensors, "
+            f"got ndim={int(batch.x_train.ndim)}"
+        )
+    try:
+        return feature_type_ids_from_task_metadata(
+            batch.metadata,
+            batch_size=batch_size,
+            num_features=num_features,
+            device=batch.x_train.device,
+        )
+    except RuntimeError:
+        return None
+
+
+def _with_resolved_feature_type_ids(batch: TaskBatch) -> TaskBatch:
+    feature_type_ids = _resolve_feature_type_ids(batch)
+    if feature_type_ids is None or feature_type_ids is batch.feature_type_ids:
+        return batch
+    return TaskBatch(
+        x_train=batch.x_train,
+        y_train=batch.y_train,
+        x_test=batch.x_test,
+        y_test=batch.y_test,
+        metadata=batch.metadata,
+        num_classes=batch.num_classes,
+        feature_type_ids=feature_type_ids,
     )
 
 
@@ -142,23 +189,25 @@ def collate_task_batch(
     if requested_task_batch_size == 1:
         if len(items) != 1:
             raise RuntimeError("Only batch_size=1 is supported for task-level batching")
-        return items[0]
+        return _with_resolved_feature_type_ids(items[0])
     if len(items) == 1:
         item = items[0]
         signature_text = task_batch_signature_text(task_batch_signature(item))
-        return TaskBatch(
-            x_train=item.x_train,
-            y_train=item.y_train,
-            x_test=item.x_test,
-            y_test=item.y_test,
-            metadata={
-                "task_members": [dict(item.metadata)],
-                "task_batch_size_requested": int(requested_task_batch_size),
-                "task_batch_size_actual": 1,
-                "task_batch_signature": signature_text,
-                "task_batch_mode": "singleton_fallback",
-            },
-            num_classes=item.num_classes,
+        return _with_resolved_feature_type_ids(
+            TaskBatch(
+                x_train=item.x_train,
+                y_train=item.y_train,
+                x_test=item.x_test,
+                y_test=item.y_test,
+                metadata={
+                    "task_members": [dict(item.metadata)],
+                    "task_batch_size_requested": int(requested_task_batch_size),
+                    "task_batch_size_actual": 1,
+                    "task_batch_signature": signature_text,
+                    "task_batch_mode": "singleton_fallback",
+                },
+                num_classes=item.num_classes,
+            )
         )
     if len(items) > int(requested_task_batch_size):
         raise RuntimeError(
@@ -186,4 +235,9 @@ def move_batch(
         y_test=batch.y_test.to(device, non_blocking=non_blocking),
         metadata=batch.metadata,
         num_classes=batch.num_classes,
+        feature_type_ids=(
+            None
+            if batch.feature_type_ids is None
+            else batch.feature_type_ids.to(device, non_blocking=non_blocking)
+        ),
     )

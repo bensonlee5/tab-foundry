@@ -846,6 +846,95 @@ def test_tabfoundry_sandwich_forward_batched_matches_forward_with_feature_types(
     assert torch.allclose(logits.squeeze(0), output.logits, atol=1.0e-6, rtol=1.0e-5)
 
 
+def test_tabfoundry_sandwich_forward_classification_passes_task_num_classes_to_batched_logits() -> None:
+    model = _model()
+    batch = _batch(num_classes=3)
+    captured: dict[str, int | None] = {}
+    original_forward_logits_batched = model._forward_logits_batched
+
+    def _recording_forward_logits_batched(
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+        feature_type_ids: torch.Tensor,
+        num_classes: int | None = None,
+    ) -> torch.Tensor:
+        captured["num_classes"] = num_classes
+        return original_forward_logits_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+            feature_type_ids=feature_type_ids,
+            num_classes=num_classes,
+        )
+
+    model._forward_logits_batched = _recording_forward_logits_batched  # type: ignore[method-assign]
+
+    output = model.forward_classification(batch)
+
+    assert captured["num_classes"] == 3
+    assert output.num_classes == 3
+
+
+def test_tabfoundry_sandwich_forward_logits_batched_explicit_num_classes_matches_inferred_path() -> None:
+    model = _model()
+    batch = _batch(num_classes=3)
+    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+
+    inferred_logits = model._forward_logits_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+    )
+    explicit_logits = model._forward_logits_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+        num_classes=3,
+    )
+
+    torch.testing.assert_close(explicit_logits, inferred_logits)
+
+
+def test_tabfoundry_sandwich_forward_logits_batched_skips_label_inference_when_num_classes_is_explicit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _model()
+    batch = _batch(num_classes=3)
+    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    original_max = torch.Tensor.max
+
+    def _explode_on_max(self: torch.Tensor, *args: object, **kwargs: object) -> torch.Tensor:
+        if self is y_train:
+            raise AssertionError("y_train.max() should not run when num_classes is explicit")
+        return original_max(self, *args, **kwargs)
+
+    monkeypatch.setattr(torch.Tensor, "max", _explode_on_max)
+
+    _ = model._forward_logits_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+        num_classes=3,
+    )
+
+
 def test_tabfoundry_sandwich_supports_task_batched_feature_type_metadata() -> None:
     model = _model()
     batch = collate_task_batch(
@@ -1008,6 +1097,41 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_num_classes_above_m
         _ = model.forward_cell_likelihood(_batch(num_classes=3))
 
 
+def test_tabfoundry_sandwich_forward_cell_likelihood_skips_label_inference_when_num_classes_is_explicit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _model()
+    batch = _batch(num_classes=3)
+    feature_type_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=1,
+        num_features=int(batch.x_train.shape[1]),
+        device=batch.x_train.device,
+    )
+    original_max = torch.Tensor.max
+
+    def _explode_on_max(self: torch.Tensor, *args: object, **kwargs: object) -> torch.Tensor:
+        if self is batch.y_train or self is batch.y_test:
+            raise AssertionError("label max() should not run when num_classes is explicit")
+        return original_max(self, *args, **kwargs)
+
+    monkeypatch.setattr(torch.Tensor, "max", _explode_on_max)
+
+    output = model.forward_cell_likelihood(
+        TaskBatch(
+            x_train=batch.x_train,
+            y_train=batch.y_train,
+            x_test=batch.x_test,
+            y_test=batch.y_test,
+            metadata=batch.metadata,
+            num_classes=batch.num_classes,
+            feature_type_ids=feature_type_ids,
+        )
+    )
+
+    assert output.bpc is not None
+
+
 def test_tabfoundry_sandwich_forward_cell_likelihood_infers_num_classes_from_test_labels() -> None:
     model = _model()
     batch = TaskBatch(
@@ -1036,6 +1160,31 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_infers_num_classes_from_tes
 
     assert output.bpc is not None
     assert torch.isfinite(output.bpc)
+
+
+def test_tabfoundry_sandwich_forward_classification_prefers_batch_feature_type_ids() -> None:
+    model = _model()
+    batch = _batch()
+    feature_type_ids = torch.tensor([[2, 1, 0, 3]], dtype=torch.int64)
+
+    def _explode(*args: object, **kwargs: object) -> torch.Tensor:
+        raise AssertionError("metadata feature-type resolution should be skipped")
+
+    model._feature_type_ids_from_metadata = _explode  # type: ignore[method-assign]
+
+    output = model.forward_classification(
+        TaskBatch(
+            x_train=batch.x_train,
+            y_train=batch.y_train,
+            x_test=batch.x_test,
+            y_test=batch.y_test,
+            metadata=batch.metadata,
+            num_classes=batch.num_classes,
+            feature_type_ids=feature_type_ids,
+        )
+    )
+
+    assert output.logits is not None
 
 
 def test_tabfoundry_sandwich_cell_bpc_honors_input_normalization() -> None:

@@ -83,6 +83,53 @@ def _candidate_corpus_record_paths(
     ]
 
 
+def _resolved_lookup_repo_root(repo_root: Path | None) -> Path:
+    return (repo_root or _repo_root()).expanduser().resolve()
+
+
+def _path_suffix_after_anchor(path: Path, *, anchor: tuple[str, ...]) -> Path | None:
+    parts = path.parts
+    anchor_length = len(anchor)
+    for index in range(len(parts) - anchor_length + 1):
+        if tuple(parts[index : index + anchor_length]) == anchor:
+            suffix = parts[index + anchor_length :]
+            return Path(*suffix) if suffix else Path()
+    return None
+
+
+def _relocate_repo_anchored_path(
+    value: Any,
+    *,
+    repo_root: Path | None = None,
+    allow_missing_parent: bool = False,
+) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    raw_path = Path(value).expanduser()
+    if not raw_path.is_absolute():
+        return str(raw_path)
+
+    resolved_repo_root = _resolved_lookup_repo_root(repo_root)
+    relocation_roots = (
+        (("outputs", "corpora"), corpus_outputs_root(repo_root=resolved_repo_root)),
+        (("reference", "corpus_recipes"), resolved_repo_root / "reference" / "corpus_recipes"),
+        (
+            ("reference", "system_delta_sweeps"),
+            resolved_repo_root / "reference" / "system_delta_sweeps",
+        ),
+    )
+    for anchor, target_root in relocation_roots:
+        suffix = _path_suffix_after_anchor(raw_path, anchor=anchor)
+        if suffix is None:
+            continue
+        relocated = (target_root / suffix).resolve()
+        if relocated.exists():
+            return str(relocated)
+        if allow_missing_parent and relocated.parent.exists():
+            return str(relocated)
+    return str(raw_path.resolve())
+
+
 def _record_matches_recipe(
     record: Mapping[str, Any],
     recipe: CorpusRecipe,
@@ -147,40 +194,143 @@ def _load_record_from_latest_pointer(
     )
     if latest is None:
         return None
-    latest_record_path = latest.get("corpus_record_path")
-    if not isinstance(latest_record_path, str) or not latest_record_path.strip():
+    relocated_latest_record_path = _relocate_repo_anchored_path(
+        latest.get("corpus_record_path"),
+        repo_root=repo_root,
+    )
+    if relocated_latest_record_path is None:
         return None
     try:
         record = _load_corpus_record_payload(
-            Path(latest_record_path).expanduser().resolve(),
+            Path(relocated_latest_record_path).expanduser().resolve(),
             context=f"corpus latest pointer record for {recipe.recipe_id!r}",
         )
     except RuntimeError:
         return None
-    return record if _record_matches_recipe(record, recipe, storage=storage) else None
+    prepared_record = _relocate_corpus_record_paths(record, repo_root=repo_root)
+    return prepared_record if _record_matches_recipe(prepared_record, recipe, storage=storage) else None
 
 
-def _copy_record(record: Mapping[str, Any]) -> dict[str, Any]:
+def _copy_mapping_payload(record: Mapping[str, Any]) -> dict[str, Any]:
     payload = json.loads(json.dumps(record))
     if not isinstance(payload, Mapping):
         raise RuntimeError("copied corpus record must remain a mapping")
     return {str(key): value for key, value in payload.items()}
 
 
+def _relocate_corpus_record_paths(
+    record: Mapping[str, Any],
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    relocated = _copy_mapping_payload(record)
+
+    relocated_corpus_record_path = _relocate_repo_anchored_path(
+        relocated.get("corpus_record_path"),
+        repo_root=repo_root,
+    )
+    if relocated_corpus_record_path is not None:
+        relocated["corpus_record_path"] = relocated_corpus_record_path
+
+    relocated_recipe_path = _relocate_repo_anchored_path(
+        relocated.get("recipe_path"),
+        repo_root=repo_root,
+    )
+    if relocated_recipe_path is not None:
+        relocated["recipe_path"] = relocated_recipe_path
+
+    artifacts = relocated.get("artifacts")
+    if isinstance(artifacts, dict):
+        for key, allow_missing_parent in (
+            ("corpus_root", False),
+            ("manifest_path", False),
+            ("latest_pointer_path", False),
+        ):
+            relocated_value = _relocate_repo_anchored_path(
+                artifacts.get(key),
+                repo_root=repo_root,
+                allow_missing_parent=allow_missing_parent,
+            )
+            if relocated_value is not None:
+                artifacts[key] = relocated_value
+
+    manifest = relocated.get("manifest")
+    if isinstance(manifest, dict):
+        relocated_manifest_path = _relocate_repo_anchored_path(
+            manifest.get("manifest_path"),
+            repo_root=repo_root,
+        )
+        if relocated_manifest_path is not None:
+            manifest["manifest_path"] = relocated_manifest_path
+
+        characteristics = manifest.get("characteristics")
+        if isinstance(characteristics, dict):
+            relocated_sidecar_path = _relocate_repo_anchored_path(
+                characteristics.get("sidecar_path"),
+                repo_root=repo_root,
+                allow_missing_parent=True,
+            )
+            if relocated_sidecar_path is not None:
+                characteristics["sidecar_path"] = relocated_sidecar_path
+
+    dagzoo_provenance = relocated.get("dagzoo_provenance")
+    if isinstance(dagzoo_provenance, dict):
+        for list_key, require_parent in (
+            ("filter_manifest_paths", False),
+            ("curated_root_lineage", False),
+        ):
+            values = dagzoo_provenance.get(list_key)
+            if isinstance(values, list):
+                dagzoo_provenance[list_key] = [
+                    _relocate_repo_anchored_path(
+                        value,
+                        repo_root=repo_root,
+                        allow_missing_parent=require_parent,
+                    )
+                    if isinstance(value, str)
+                    else value
+                    for value in values
+                ]
+
+        invocations = dagzoo_provenance.get("invocations")
+        if isinstance(invocations, list):
+            for invocation in invocations:
+                if not isinstance(invocation, dict):
+                    continue
+                for key in ("invocation_root", "rendered_config_path"):
+                    relocated_value = _relocate_repo_anchored_path(
+                        invocation.get(key),
+                        repo_root=repo_root,
+                    )
+                    if relocated_value is not None:
+                        invocation[key] = relocated_value
+                handoff = invocation.get("handoff")
+                if isinstance(handoff, dict):
+                    for key in ("handoff_manifest_path", "generated_dir"):
+                        relocated_value = _relocate_repo_anchored_path(
+                            handoff.get(key),
+                            repo_root=repo_root,
+                        )
+                        if relocated_value is not None:
+                            handoff[key] = relocated_value
+
+    return relocated
+
+
 def hydrate_corpus_record_manifest_characteristics(record: Mapping[str, Any]) -> dict[str, Any]:
     manifest = record.get("manifest")
     if not isinstance(manifest, Mapping):
-        return _copy_record(record)
+        return _copy_mapping_payload(record)
 
     manifest_path_raw = manifest.get("manifest_path")
     if not isinstance(manifest_path_raw, str) or not manifest_path_raw.strip():
-        return _copy_record(record)
+        return _copy_mapping_payload(record)
     manifest_path = Path(manifest_path_raw).expanduser().resolve()
 
     raw_characteristics = manifest.get("characteristics")
     characteristics = raw_characteristics if isinstance(raw_characteristics, Mapping) else {}
     if characteristics.get("record_count") is not None:
-        return _copy_record(record)
+        return _copy_mapping_payload(record)
 
     sidecar_path_raw = characteristics.get("sidecar_path")
     sidecar_path = (
@@ -202,7 +352,7 @@ def hydrate_corpus_record_manifest_characteristics(record: Mapping[str, Any]) ->
                 sidecar_path=sidecar_path,
             )
 
-    hydrated = _copy_record(record)
+    hydrated = _copy_mapping_payload(record)
     hydrated_manifest = hydrated.get("manifest")
     if not isinstance(hydrated_manifest, dict):
         return hydrated
@@ -224,8 +374,9 @@ def _matching_corpus_records_for_recipe(
             record_path,
             context=f"corpus record candidate for {recipe.recipe_id!r}",
         )
-        if _record_matches_recipe(record, recipe, storage=storage):
-            matches.append(record)
+        prepared_record = _relocate_corpus_record_paths(record, repo_root=repo_root)
+        if _record_matches_recipe(prepared_record, recipe, storage=storage):
+            matches.append(prepared_record)
     return matches
 
 
@@ -239,9 +390,12 @@ def load_corpus_record(
 ) -> dict[str, Any]:
     recipe_id, corpus_id = _parse_corpus_ref(corpus_ref)
     if corpus_id is not None:
-        record = _load_corpus_record_payload(
-            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
-            context=f"corpus record {recipe_id}/{corpus_id}",
+        record = _relocate_corpus_record_paths(
+            _load_corpus_record_payload(
+                corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+                context=f"corpus record {recipe_id}/{corpus_id}",
+            ),
+            repo_root=repo_root,
         )
         return (
             hydrate_corpus_record_manifest_characteristics(record)
@@ -290,6 +444,7 @@ def load_corpus_record(
             corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
             context=f"corpus record {recipe_id}/{corpus_id}",
         )
+        record = _relocate_corpus_record_paths(record, repo_root=repo_root)
         return (
             hydrate_corpus_record_manifest_characteristics(record)
             if hydrate_characteristics
@@ -308,6 +463,7 @@ def load_corpus_record(
             corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
             context=f"corpus record {recipe_id}/{corpus_id}",
         )
+        record = _relocate_corpus_record_paths(record, repo_root=repo_root)
         return (
             hydrate_corpus_record_manifest_characteristics(record)
             if hydrate_characteristics

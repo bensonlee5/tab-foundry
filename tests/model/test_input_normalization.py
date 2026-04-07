@@ -334,3 +334,38 @@ def test_batched_preserve_non_finite_matches_stacked_2d_behavior() -> None:
         atol=1.0e-6,
         rtol=1.0e-6,
     )
+
+
+def test_batched_preserve_non_finite_zeroes_finite_test_values_when_train_column_has_no_finite_data() -> None:
+    x_train = torch.tensor(
+        [
+            [
+                [float("nan"), 1.0],
+                [float("inf"), 3.0],
+                [float("-inf"), 5.0],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    x_test = torch.tensor(
+        [
+            [
+                [7.0, 7.0],
+                [float("nan"), 9.0],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+
+    train_norm, test_norm = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    assert torch.isnan(train_norm[0, 0, 0])
+    assert torch.isposinf(train_norm[0, 1, 0])
+    assert torch.isneginf(train_norm[0, 2, 0])
+    assert test_norm[0, 0, 0].item() == pytest.approx(0.0)
+    assert torch.isnan(test_norm[0, 1, 0])
