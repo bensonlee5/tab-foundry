@@ -167,9 +167,21 @@ Dedicated section since scaling predictability is the repo's primary goal.
 |----------|-------|-------------------------------|--------|
 | 2203.15556 | Training Compute-Optimal Large Language Models (Chinchilla) | Direct methodology reference for fitting compute-optimal curves. The primary template for the scaling-law measurement work (`TF-RD-009`). | https://arxiv.org/abs/2203.15556 |
 | 2001.08361 | Scaling Laws for Neural Language Models | Foundational; establishes power-law relationships between compute budget, dataset size, and model parameters. | https://arxiv.org/abs/2001.08361 |
-| 2505.13738 | Power Lines: Scaling Laws for Language Models | Scaling law methodology refinements; directly relevant to building the scaling predictability measurement infrastructure. | https://arxiv.org/abs/2505.13738 |
+| 2603.00541 | Spectral Condition for μP under Width-Depth Scaling | Depth-aware μP reference for joint width-depth scaling. Relevant when TF-RD-009 moves `d_icl` and `sandwich_layers` together instead of treating width transfer as the whole story. | https://arxiv.org/abs/2603.00541 |
+| 2603.15958 | Deriving Hyperparameter Scaling Laws via Modern Optimization Theory | Gives closed-form power-law schedules for learning rate, momentum, and batch size as functions of iteration or token budget while holding model size fixed. Relevant as an optimizer-transfer prior inside TF-RD-009. | https://arxiv.org/abs/2603.15958 |
+| 2505.13738 | Power Lines: Scaling Laws for Weight Decay and Batch Size in LLM Pre-training | Directly relevant to optimizer coupling inside TF-RD-009. Gives concrete batch-size, weight-decay, and timescale scaling relationships that should be treated as priors to test rather than universal tabular laws. | https://arxiv.org/abs/2505.13738 |
 | 2305.16264 | Scaling Data-Constrained Language Models | Relevant when synthetic data budget is the bottleneck; analyzes how data repetition and mixing affects scaling behavior. | https://arxiv.org/abs/2305.16264 |
 | 2210.14891 | Broken Neural Scaling Laws | Explains why scaling isn't always a simple power law; critical for diagnosing knees and plateaus in scaling curves. | https://arxiv.org/abs/2210.14891 |
+
+## Synthetic Data And Curriculum
+
+These references are relevant when TF-RD-009 treats curriculum choice or
+synthetic-data mixture as an empirical slice variable rather than as a core
+model-size law.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
+| 2502.15588 | Improving the Scaling Laws of Synthetic Data with Deliberate Practice | Synthetic-data curriculum reference. Supports treating informative or challenging sample selection as a sample-efficiency lever, but not as a substitute for the core width/depth scaling contract. | https://arxiv.org/abs/2502.15588 |
 
 ## External Repo References
 
