@@ -3115,6 +3115,243 @@ deltas:
     default_next_action: Run as order 2 in the TF-RD-024 two-row follow-up sweep, then compare directly against the current best medium result from `sandwich_heads=2`.
     applicability_guards: []
 
+  delta_tf_rd_009_cls_sandwich_dicl48_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Reduce TF-RD-009 classification sandwich width from `d_icl=60` to `48` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
+    upstream_delta: TF-RD-009 treats width as the first live scaling axis after the TF-RD-024 heads1 replay establishes the benchmark-registry-backed anchor.
+    expected_effect: If the carried heads1 classification surface is width-overprovisioned on the closed medium contract, dropping to `d_icl=48` should preserve most benchmark quality at the matched regime budget.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+        - Compare directly against the replayed `d_icl=60` anchor at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Interpret this contraction only in the context of the full four-width family `{48, 60(anchor), 96, 128}`.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 48
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as the lower-width bracket in `tf_rd_009_width_transfer_medium_v1` after the replayed heads1 anchor is promoted.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl96_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
+    upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the heads1 replay anchor is benchmark-registry-backed.
+    expected_effect: If the carried heads1 classification surface is still width-limited on the closed medium contract, increasing to `d_icl=96` should improve benchmark fit without reopening any other sandwich knob.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+        - Compare directly against the replayed `d_icl=60` anchor at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Use the result to decide whether width-only movement remains a live TF-RD-009 family before joint width-depth work opens.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 96
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as the first upper-width bracket in `tf_rd_009_width_transfer_medium_v1` after the replayed heads1 anchor is promoted.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl128_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `128` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
+    upstream_delta: This is the larger-width bracket for the first TF-RD-009 width-transfer family once the carried heads1 anchor is replayed and registered.
+    expected_effect: If width-only improvement remains monotone beyond `d_icl=96`, expanding to `128` should either continue the gain or show that width-only transfer is flattening before joint width-depth scaling begins.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+        - Compare directly against the replayed `d_icl=60` anchor at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Treat this row as evidence about the upper edge of the first width-only family, not as permission to retune optimizer or open a compute-optimal frontier yet.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as the largest width bracket in `tf_rd_009_width_transfer_medium_v1` after the replayed heads1 anchor is promoted.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

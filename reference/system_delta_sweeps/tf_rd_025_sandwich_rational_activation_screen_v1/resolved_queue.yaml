@@ -275,7 +275,7 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
@@ -388,15 +388,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 8fb948eb06bd89aba8a8a04193958397df2247d16a894e4e8537cc76bc2ac24a
+  resolved_surface_fingerprint: 3f3a61fbdd80abfd87d2c6da3e7101f30535887bd0babd2169ac57d0fa5cbc98
 - order: 2
   delta_id: delta_model_sandwich_activation_rational_v1
   status: screened
@@ -597,7 +605,7 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      requested_corpus_ref: null
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
@@ -710,14 +718,22 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 4
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: b417dc6fc74643f7f3a1406c389d7c9cdf1fb31744a89feeebcd253d907332e1
+  resolved_surface_fingerprint: 775964a7de0772b6e402ceb561727f0667139fd78270f9f7611cf9ee4974a018
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/resolved_queue.yaml
-inputs_fingerprint: a34833d94b2c0a5857a7d70dce493d664515fdef284e0f4aef1fb310cfa6cd82
+inputs_fingerprint: 8243b280951c0002cb644f8c9c886c72638c3165b8881266924bd50e0923ef04

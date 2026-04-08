@@ -1,0 +1,91 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_anchor_replay_heads1_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
+  status: ready
+  rationale: Replay the carried TF-RD-024 `sandwich_heads=1` winner on the closed
+    medium classification contract so TF-RD-009 starts from a benchmark-registry-backed
+    anchor instead of a historical queue-only result.
+  hypothesis: The carried `sandwich_heads=1` surface should replay cleanly on the
+    inherited TF-RD-022 compile-eager-dynamic bundle and remain clearly better than
+    the original `sandwich_heads=4` compile anchor at matched regime budget.
+  anchor_delta: Replay the carried `sandwich_heads=1` topology exactly against the
+    locked `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`
+    compile anchor while keeping `d_icl=60`, the non-scaling sandwich knobs, the
+    curated medium corpus, and the runtime/optimizer bundle fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute as a standalone replay package; do not mutate the historical TF-RD-024
+    follow-up sweep in place.
+  - Register the resulting benchmark run locally, then promote this replayed row so
+    `tf_rd_009_anchor_replay_heads1_medium_v1` becomes the formal TF-RD-009 anchor package.
+  - Use the replayed run as the fixed `d_icl=60` anchor for the first TF-RD-009 width
+    family `{48, 60(anchor), 96, 128}`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Replay and promote this row, then bootstrap `tf_rd_009_width_transfer_medium_v1`
+    with this registered run as the anchor.
+  notes:
+  - This row is required because the historical TF-RD-024 heads1 result is not benchmark-registry-backed on `main`.
+  - Treat the resulting run as the formal TF-RD-009 anchor only after local registry import and in-package promotion complete.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

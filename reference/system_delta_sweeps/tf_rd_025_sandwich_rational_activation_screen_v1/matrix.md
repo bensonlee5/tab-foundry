@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_025_sandwich_rat
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `a34833d94b2c0a5857a7d70dce493d664515fdef284e0f4aef1fb310cfa6cd82`
+- Resolved queue inputs fingerprint: `8243b280951c0002cb644f8c9c886c72638c3165b8881266924bd50e0923ef04`
 
 ## Locked Surface
 
@@ -56,8 +56,8 @@ Upstream reference: `Rational-activation transformer theory` from `https://arxiv
 - Anchor delta: Starting from the carried TF-RD-010 anchor, switch only the sandwich-internal block norm from `layernorm` to `none` on the CPU no-AMP screening surface.
 - Expected effect: Removing the internal block norms may improve the sandwich family's core FF routing on this surface, but it also risks a training-stability regression.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `8fb948eb06bd89aba8a8a04193958397df2247d16a894e4e8537cc76bc2ac24a`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `3f3a61fbdd80abfd87d2c6da3e7101f30535887bd0babd2169ac57d0fa5cbc98`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_activation': 'gelu', 'sandwich_block_norm': 'none', 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Run this row first as the norm-free control for the activation screen.
@@ -93,8 +93,8 @@ Upstream reference: `Rational-activation transformer theory` from `https://arxiv
 - Anchor delta: Starting from row `01`, switch only `model.sandwich_activation` from `gelu` to `rational` while keeping `sandwich_block_norm=none`, the curated dagzoo corpus, and the CPU no-AMP runtime fixed.
 - Expected effect: The rational activation may preserve more useful curvature than GELU on the norm-free sandwich surface, with the main risk being optimizer or stability regressions.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `b417dc6fc74643f7f3a1406c389d7c9cdf1fb31744a89feeebcd253d907332e1`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `775964a7de0772b6e402ceb561727f0667139fd78270f9f7611cf9ee4974a018`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_activation': 'rational', 'sandwich_block_norm': 'none', 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
   - Execute only after row `01` defines the norm-free GELU control on the same surface.
