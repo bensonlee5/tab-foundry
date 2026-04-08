@@ -1,0 +1,712 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/matrix.md
+sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+parent_sweep_id: tf_rd_024_classification_knob_sweep_v1
+sweep_status: ready
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_architecture_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This is a separate two-row TF-RD-024 follow-up after the completed seven-row medium
+    screen in `tf_rd_024_classification_knob_sweep_v1`; do not mutate the historical
+    sweep when interpreting these rows.
+  - The locked compile anchor remains benchmark registry run `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`,
+    benchmarked on the closed TF-RD-010 medium rung at `final_log_loss=0.6820309591`.
+  - The current best completed medium row is `delta_tf_rd_024_cls_sandwich_heads2_v1`
+    from run `sd_tf_rd_024_classification_knob_sweep_v1_02_delta_tf_rd_024_cls_sandwich_heads2_v1_v1`
+    with `final_log_loss=0.6762878243`; this follow-up decides whether either new
+    probe replaces that winner before TF-RD-009.
+  - This follow-up is medium-only by decision. It does not reopen TF-RD-024 large-rung
+    validation; the goal is to pick the pre-scaling family, not to run another broad
+    bounded sweep.
+  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
+    `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`, `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
+    `compile_backend=eager`, `compile_dynamic=true`, `max_steps=2500`, `optimizer.min_lr=1e-5`,
+    and linear warmup at `lr_max=1e-3`.'
+  - Run the two rows sequentially on one GPU-backed VM and benchmark each row on the
+    closed TF-RD-010 medium contract before the next row begins.
+  dimension_table:
+  - dimension: attention partitioning
+    upstream: Transformer head count changes factorization without changing total
+      width.
+    anchor: The settled compile-eager-dynamic anchor uses `sandwich_heads=4`, and
+      the completed seven-row medium screen found `sandwich_heads=2` to be the best
+      result so far.
+    interpretation: '`sandwich_heads=1` asks whether the heads=2 win reflects a broader
+      low-head regime or a narrow local optimum.'
+  - dimension: row pre-mixer depth
+    upstream: The sandwich adds a row-wise feature mixer before the first latent read;
+      TF-RD-021B showed that removing it is materially harmful.
+    anchor: The settled compile-eager-dynamic anchor uses `sandwich_pre_row_attention_layers=1`.
+    interpretation: '`sandwich_pre_row_attention_layers=2` asks whether the row pre-mixer
+      is still capacity-limited before scaling begins.'
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Closed TF-RD-010 medium contract with `cls_benchmark_linear_multiclass_medium_v1`
+      as the control baseline.
+    interpretation: Medium-only is sufficient here because this follow-up exists to
+      choose the pre-scaling family, not to reopen TF-RD-024 large validation.
+  - dimension: training and runtime surface
+    upstream: No external paper fixes this exact prior-dump or runtime policy.
+    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+      with the kept TF-RD-022 compile-eager-dynamic runtime policy.
+    interpretation: Hold optimizer, schedule, batching, corpus, and runtime policy
+      fixed so these two rows isolate topology only.
+anchor_context:
+  run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
+  status: ready
+  rationale: Follow the completed TF-RD-024 medium winner `sandwich_heads=2` with
+    one lower head-partition bracket to test whether the gain reflects a broader low-head
+    regime before TF-RD-009 freezes topology.
+  hypothesis: If the `sandwich_heads=2` win reflects excess head factorization rather
+    than a narrow local optimum, reducing `sandwich_heads` from `4` to `1` may stay
+    competitive or improve further on the closed medium contract.
+  anchor_delta: Changes `model.sandwich_heads` from `4` to `1` while holding `d_icl=60`,
+    `sandwich_layers=2`, `sandwich_latents=24`, the compile-eager-dynamic runtime
+    surface, and the closed TF-RD-010 medium benchmark contract fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute as an independent follow-up against the fresh compile-eager-dynamic anchor
+    instead of stacking on top of `sandwich_heads=2`.
+  - Carry the lower head count into TF-RD-009 only if it beats the current best medium
+    result from `sandwich_heads=2`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run as order 1 in the TF-RD-024 two-row follow-up sweep, then compare
+    directly against the current best medium result from `sandwich_heads=2`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_followup
+  binary_applicable: false
+  description: Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads`
+    from `4` to `1` on the inherited multiclass benchmark surface.
+  upstream_delta: Extends the TF-RD-024 attention-head family one bracket lower after
+    `sandwich_heads=2` won the initial medium screen.
+  entangled_legacy_stage: none
+  expected_effect: If the medium gain from the lower-head bracket reflects excess
+    head factorization rather than a narrow `2`-head sweet spot, `sandwich_heads=1`
+    may remain competitive or improve further on the closed medium contract.
+  adequacy_knobs:
+  - fixed TF-RD-010 medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime policy surface
+  - attention partitioning only; no width, depth, batching, or optimizer reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute as an independent follow-up against the fresh compile-eager-dynamic
+      anchor instead of stacking on top of `sandwich_heads=2`.
+    - Carry the lower head count into TF-RD-009 only if it beats the current best
+      medium result from `sandwich_heads=2`.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 0b3be75f60d2d62aa06d1f7efcfa44229dc3a32efa606b43230e2c3b1a807252
+- order: 2
+  delta_id: delta_tf_rd_024_followup_cls_sandwich_prerow2_v1
+  status: ready
+  rationale: 'Probe the most plausible topology expansion suggested by the earlier
+    sandwich ablations without reopening a broad search: deepen only the row pre-mixer
+    that was clearly harmful to remove in TF-RD-021B.'
+  hypothesis: If the row-wise pre-Perceiver mixer is still capacity-limited on the
+    current medium contract, increasing `sandwich_pre_row_attention_layers` from `1`
+    to `2` may improve benchmark quality enough to beat the current best `sandwich_heads=2`
+    row before scaling.
+  anchor_delta: Changes `model.sandwich_pre_row_attention_layers` from `1` to `2`
+    while holding `d_icl=60`, `sandwich_layers=2`, `sandwich_heads=4`, the compile-eager-dynamic
+    runtime surface, and the closed TF-RD-010 medium benchmark contract fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 2
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute as an independent topology probe against the fresh compile-eager-dynamic
+    anchor instead of stacking with `sandwich_heads=1`.
+  - Carry the deeper row pre-mixer into TF-RD-009 only if it beats the current best
+    medium result from `sandwich_heads=2`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run as order 2 in the TF-RD-024 two-row follow-up sweep, then compare
+    directly against the current best medium result from `sandwich_heads=2`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: architecture_followup
+  binary_applicable: false
+  description: Extend the row pre-mixer family by increasing `sandwich_pre_row_attention_layers`
+    from `1` to `2` on the inherited multiclass benchmark surface.
+  upstream_delta: Extends the historical TF-RD-021B row pre-mixer family upward after
+    the `prerow=0` ablation showed that row-wise feature mixing is materially useful.
+  entangled_legacy_stage: none
+  expected_effect: If the row-wise pre-Perceiver mixer is still capacity-limited on
+    the current multiclass contract, the deeper row pre-mixer bracket may improve
+    medium benchmark fit enough to justify the scaling handoff.
+  adequacy_knobs:
+  - fixed TF-RD-010 medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime policy surface
+  - row pre-mixer depth only; no compounded head, width, or latent changes
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute as an independent topology probe against the fresh compile-eager-dynamic
+      anchor instead of stacking with `sandwich_heads=1`.
+    - Carry the deeper row pre-mixer into TF-RD-009 only if it beats the current best
+      medium result from `sandwich_heads=2`.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 60
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 2
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 2
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 4
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 3622a8d310525faf142d32a42055dc79e98823a7e305a274adcde9f9add45eda
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml
+inputs_fingerprint: 95e91cf0a0e0b34f3fa09df7b4c1ce99b5502a406021857e0bd3034736300932

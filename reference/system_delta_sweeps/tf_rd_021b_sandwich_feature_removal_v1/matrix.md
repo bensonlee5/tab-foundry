@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 - Parent sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
 - Complexity level: `binary_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `1902da7ec41714a3e821c13b54349f490e3c9f15a4c1a2e76e02fe17fe323360`
+- Resolved queue inputs fingerprint: `55f8ac82795e0f25683b7f9abe61c5f40f4a075e993bd056113abea521f09912`
 
 ## Locked Surface
 
@@ -65,8 +65,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross` from `4` to `0`.
 - Expected effect: If the structural gain comes from stage-0 full-cell access and dual readout more than from latent recycling, removing the self-attention stack may be only weakly harmful.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `aa16be8d9dd4a825d8df6523009dba244089c7d0ec568b4c7480d367ab781953`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `904772e82e0ebe000e3709d7767e2eb4742446728131e1c39e539e5879cf7195`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Treat this as the removal-first replacement for the earlier self-attention-depth ablation.
@@ -98,8 +98,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `41a7e0cc2b521e50cd37d345e2afb5bb04728fae91106f19e002a02d71d378e5`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `11d5de64b295e49f83b5e4883247b1ca211e22f1172e317f7aa280811714c49f`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Treat this as the minimal retained FF form for the removal-first follow-up.
@@ -131,8 +131,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
 - Expected effect: If the hybrid path is structurally adequate already, combining self-attention removal with 1x FF expansion may preserve most of the fit while simplifying the trunk materially.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `b66e91ca949d8754b6b90fd966d438a10da22120f6ae57547c58b1f11ef2d8d8`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `5a2023d615a0689e95b4162e6ba033ddd3cf9945ba14b0e0646f77298cc49624`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Use this as the first compound removal candidate after the isolated removal row.
@@ -164,8 +164,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross` from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis` from `4` to `1`.
 - Expected effect: If the hybrid architecture mainly needs the stage-0 full-cell path and the final cell-stream readout, this compound simplification may preserve bounded quality with the smallest remaining nonzero summary/FF settings.
 - Effective labels: model=`tabfoundry_sandwich`, data=`legacy_prior`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `d54ab1a505ea3c5cc4ee5e87081545e601b954b2a150b9afc9100aaaa32df490`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Resolved surface fingerprint: `cf7ed650a7477adab8d4b2f2e38c9b5ebfbdaaec8bafd208b8fe906d98fe6764`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 1, 'sandwich_summary_tokens_per_axis': 1, 'sandwich_self_attention_per_cross': 0, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
   - Use this as the smallest currently supported parent in the TF-RD-021B removal-first screen.
