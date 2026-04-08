@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
+import sys
 
 from tab_foundry.bench.helper_imports import (
     resolve_tab_realdata_hub_root,
@@ -40,6 +41,8 @@ package = false
 """
 
 TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.5"
+LINUX_TORCH_INSTALL_SPEC = "torch==2.11.0+cu128"
+LINUX_TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
 TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
     "numpy>=2.1",
     "openml>=0.15",
@@ -87,18 +90,34 @@ def _validate_import(python_path: Path, module_name: str) -> None:
     )
 
 
-def _install_python_package(python_path: Path, package_spec: str) -> None:
-    subprocess.run(
-        [
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            str(python_path),
-            package_spec,
-        ],
-        check=True,
-    )
+def _install_python_package(
+    python_path: Path,
+    package_spec: str,
+    *,
+    index_url: str | None = None,
+) -> None:
+    command = [
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        str(python_path),
+    ]
+    if index_url is not None:
+        command.extend(["--index-url", index_url])
+    command.append(package_spec)
+    subprocess.run(command, check=True)
+
+
+def _ensure_repo_expected_torch_stack(*python_paths: Path) -> None:
+    if sys.platform != "linux":
+        return
+    for python_path in python_paths:
+        _install_python_package(
+            python_path,
+            LINUX_TORCH_INSTALL_SPEC,
+            index_url=LINUX_TORCH_INDEX_URL,
+        )
 
 
 def _python_version_info(python_path: Path) -> tuple[int, int]:
@@ -175,6 +194,11 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     nanotabpfn_python = nanotabpfn_root / ".venv" / "bin" / "python"
     tabpfn_python = tabpfn_root / ".venv" / "bin" / "python"
     tabicl_python = tabicl_root / ".venv" / "bin" / "python"
+    _ensure_repo_expected_torch_stack(
+        nanotabpfn_python,
+        tabpfn_python,
+        tabicl_python,
+    )
     resolved_tab_realdata_hub_root = resolve_tab_realdata_hub_root(
         tab_realdata_hub_root=config.tab_realdata_hub_root,
     )

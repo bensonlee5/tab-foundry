@@ -365,15 +365,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: aa16be8d9dd4a825d8df6523009dba244089c7d0ec568b4c7480d367ab781953
+  resolved_surface_fingerprint: 904772e82e0ebe000e3709d7767e2eb4742446728131e1c39e539e5879cf7195
 - order: 2
   delta_id: delta_tf_rd_021b_sandwich_ffexp1_v1
   status: completed
@@ -621,15 +629,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 41a7e0cc2b521e50cd37d345e2afb5bb04728fae91106f19e002a02d71d378e5
+  resolved_surface_fingerprint: 11d5de64b295e49f83b5e4883247b1ca211e22f1172e317f7aa280811714c49f
 - order: 3
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
   status: completed
@@ -882,15 +898,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: b66e91ca949d8754b6b90fd966d438a10da22120f6ae57547c58b1f11ef2d8d8
+  resolved_surface_fingerprint: 5a2023d615a0689e95b4162e6ba033ddd3cf9945ba14b0e0646f77298cc49624
 - order: 4
   delta_id: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
   status: completed
@@ -1146,14 +1170,22 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: d54ab1a505ea3c5cc4ee5e87081545e601b954b2a150b9afc9100aaaa32df490
+  resolved_surface_fingerprint: cf7ed650a7477adab8d4b2f2e38c9b5ebfbdaaec8bafd208b8fe906d98fe6764
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml
-inputs_fingerprint: 1902da7ec41714a3e821c13b54349f490e3c9f15a4c1a2e76e02fe17fe323360
+inputs_fingerprint: 55f8ac82795e0f25683b7f9abe61c5f40f4a075e993bd056113abea521f09912

@@ -1,0 +1,86 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+parent_sweep_id: tf_rd_024_classification_knob_sweep_v1
+status: completed
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_architecture_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This is a separate two-row TF-RD-024 follow-up after the completed seven-row
+    medium screen in `tf_rd_024_classification_knob_sweep_v1`; do not mutate the
+    historical sweep when interpreting these rows.
+  - The locked compile anchor remains benchmark registry run `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`,
+    benchmarked on the closed TF-RD-010 medium rung at `final_log_loss=0.6820309591`.
+  - The current best completed medium row is `delta_tf_rd_024_cls_sandwich_heads2_v1`
+    from run `sd_tf_rd_024_classification_knob_sweep_v1_02_delta_tf_rd_024_cls_sandwich_heads2_v1_v1`
+    with `final_log_loss=0.6762878243`; this follow-up decides whether either new
+    probe replaces that winner before TF-RD-009.
+  - This follow-up is medium-only by decision. It does not reopen TF-RD-024 large-rung
+    validation; the goal is to pick the pre-scaling family, not to run another broad
+    bounded sweep.
+  - 'Both follow-up rows are now complete on the closed TF-RD-010 medium contract:
+    `sandwich_heads=1` finished at `final_log_loss=0.6603575333`, while
+    `sandwich_pre_row_attention_layers=2` finished at `0.6780725432`.'
+  - 'The scaling handoff winner is `sandwich_heads=1`. `sandwich_pre_row_attention_layers=2`
+    improved over the anchor but did not beat either `sandwich_heads=2` or the new
+    `sandwich_heads=1` winner.'
+  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
+    `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`,
+    `trace_activations=false`, `activation_checkpointing=true`,
+    `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
+    `compile_backend=eager`, `compile_dynamic=true`, `max_steps=2500`,
+    `optimizer.min_lr=1e-5`, and linear warmup at `lr_max=1e-3`.'
+  - Run the two rows sequentially on one GPU-backed VM and benchmark each row on
+    the closed TF-RD-010 medium contract before the next row begins.
+  dimension_table:
+  - dimension: attention partitioning
+    upstream: Transformer head count changes factorization without changing total
+      width.
+    anchor: The settled compile-eager-dynamic anchor uses `sandwich_heads=4`, and
+      the completed seven-row medium screen found `sandwich_heads=2` to be the best
+      result so far.
+    interpretation: '`sandwich_heads=1` asks whether the heads=2 win reflects a broader
+      low-head regime or a narrow local optimum.'
+  - dimension: row pre-mixer depth
+    upstream: The sandwich adds a row-wise feature mixer before the first latent
+      read; TF-RD-021B showed that removing it is materially harmful.
+    anchor: The settled compile-eager-dynamic anchor uses `sandwich_pre_row_attention_layers=1`.
+    interpretation: '`sandwich_pre_row_attention_layers=2` asks whether the row pre-mixer
+      is still capacity-limited before scaling begins.'
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Closed TF-RD-010 medium contract with `cls_benchmark_linear_multiclass_medium_v1`
+      as the control baseline.
+    interpretation: Medium-only is sufficient here because this follow-up exists to
+      choose the pre-scaling family, not to reopen TF-RD-024 large validation.
+  - dimension: training and runtime surface
+    upstream: No external paper fixes this exact prior-dump or runtime policy.
+    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+      with the kept TF-RD-022 compile-eager-dynamic runtime policy.
+    interpretation: Hold optimizer, schedule, batching, corpus, and runtime policy
+      fixed so these two rows isolate topology only.
+anchor_context:
+  run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

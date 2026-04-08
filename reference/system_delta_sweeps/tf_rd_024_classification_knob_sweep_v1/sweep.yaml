@@ -1,14 +1,14 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_024_classification_knob_sweep_v1
 parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
-status: draft
+status: ready
 complexity_level: classification_md
-anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
+anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
-training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
-training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
 surface_role: classification_architecture_followup
 comparison_policy: anchor_only
 upstream_reference:
@@ -16,13 +16,19 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - This draft follow-on sweep starts only after TF-RD-022 closes on one explicit
-    runtime-policy candidate that has already cleared the large-validation gate
-    under [#168](https://github.com/bensonlee5/tab-foundry/issues/168)
-    plus child issues [#169](https://github.com/bensonlee5/tab-foundry/issues/169)
-    and [#170](https://github.com/bensonlee5/tab-foundry/issues/170).
-  - The locked anchor remains benchmark registry run `sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8`
-    from the closed TF-RD-010 medium package on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`.
+  - TF-RD-022 is now closed on the kept compile-eager-dynamic runtime surface from
+    [#247](https://github.com/bensonlee5/tab-foundry/issues/247), so this follow-on
+    sweep inherits the explicit compile-enabled execution contract rather than the
+    earlier pre-compile TF-RD-010 control surface.
+  - The locked anchor is benchmark registry run
+    `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`,
+    trained on `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+    and benchmarked on the closed TF-RD-010 medium rung at
+    `final_log_loss=0.6820309591`.
+  - The same trained anchor already has a sequential large-rung reference at
+    `final_log_loss=0.9298541427`, so any medium keep signal from this sweep still
+    needs to hold on the closed TF-RD-010 large contract before the knob is carried
+    forward.
   - Medium is the screening rung for this epic. Any row that looks keep-worthy on
     medium still needs validation on the closed TF-RD-010 large contract before
     the knob is carried forward.
@@ -32,10 +38,11 @@ anchor_surface:
   - Reuse the historical TF-RD-021B sandwich delta families where possible so this
     post-performance lane stays a bounded architecture-knob read instead of becoming
     a parallel search program.
-  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`:
+  - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
     `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`,
     `trace_activations=false`, `activation_checkpointing=true`,
-    `grad_accum_steps=4`, `grad_clip=0.0`, `max_steps=2500`,
+    `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
+    `compile_backend=eager`, `compile_dynamic=true`, `max_steps=2500`,
     `optimizer.min_lr=1e-5`, and linear warmup at `lr_max=1e-3`.'
   - The only live architecture knobs in this sweep are `head_hidden_dim`, `sandwich_summary_tokens_per_axis`,
     `sandwich_latents`, `sandwich_heads`, `sandwich_ff_expansion`, and
@@ -88,14 +95,14 @@ anchor_surface:
       on the harder large rung before the knob stays live.
   - dimension: training and runtime surface
     upstream: No external paper fixes this exact prior-dump or runtime policy.
-    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1`
-      with the inherited TF-RD-022 runtime policy.
+    anchor: Training experiment `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+      with the kept TF-RD-022 compile-eager-dynamic runtime policy.
     interpretation: Hold optimizer, schedule, batching, and runtime policy fixed so
       this sweep isolates architecture knobs only.
 anchor_context:
-  run_id: sd_tf_rd_010_classification_evolution_medium_v4_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v8
-  experiment: cls_benchmark_sandwich_classification_evolution_v1
-  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
   model:
     arch: tabfoundry_sandwich
     benchmark_profile: null

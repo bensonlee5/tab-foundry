@@ -329,6 +329,44 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.42)
 
 
+def test_derive_benchmark_run_record_relocates_repo_anchored_paths_from_synced_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    remote_repo_root = Path("/") / "workspace" / "tab-foundry"
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="synced_anchor",
+        checkpoint_data_cfg={"manifest_path": str(remote_repo_root / "data" / "manifests" / "default.parquet")},
+    )
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["tab_foundry"]["run_dir"] = str(
+        remote_repo_root / "outputs" / "synced_anchor" / "train"
+    )
+    summary["benchmark_bundle"]["source_path"] = str(
+        remote_repo_root / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
+    )
+    summary["artifacts"]["comparison_curve_png"] = str(
+        remote_repo_root / "outputs" / "synced_anchor" / "benchmark" / "comparison_curve.png"
+    )
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["manifest_path"] == "data/manifests/default.parquet"
+    assert record["benchmark_bundle"]["source_path"] == "src/tab_foundry/bench/openml_benchmark_v1.json"
+    assert record["artifacts"]["run_dir"] == "outputs/synced_anchor/train"
+    assert record["artifacts"]["comparison_curve_path"] == (
+        "outputs/synced_anchor/benchmark/comparison_curve.png"
+    )
+
+
 def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_spec(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

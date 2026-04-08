@@ -3,7 +3,7 @@ sweep_id: tf_rd_024_classification_knob_sweep_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_024_cls_sandwich_latents12_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B latent-count family on the closed TF-RD-010
     medium contract to see whether the retained sandwich remains overprovisioned
     on latent-bank count once TF-RD-022 freezes the runtime policy.
@@ -37,7 +37,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -74,10 +74,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -86,7 +86,7 @@ rows:
   parent_delta_ref: null
 - order: 2
   delta_ref: delta_tf_rd_024_cls_sandwich_heads2_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B attention-head family on the closed TF-RD-010
     contract to test whether head factorization remains a live post-performance
     knob once runtime policy is explicit.
@@ -120,7 +120,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -157,10 +157,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -169,7 +169,7 @@ rows:
   parent_delta_ref: null
 - order: 3
   delta_ref: delta_tf_rd_024_cls_sandwich_ffexp1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B feed-forward expansion family on the closed
     TF-RD-010 contract to check whether the retained sandwich still needs the
     larger trunk MLP bracket after TF-RD-022.
@@ -203,7 +203,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -240,10 +240,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -252,7 +252,7 @@ rows:
   parent_delta_ref: null
 - order: 4
   delta_ref: delta_tf_rd_024_cls_sandwich_summarytokens1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B summary-token family on the closed TF-RD-010
     contract to measure whether the retained sandwich still needs extra summary-stream
     bandwidth after runtime policy is fixed.
@@ -286,7 +286,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -323,10 +323,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -335,7 +335,7 @@ rows:
   parent_delta_ref: null
 - order: 5
   delta_ref: delta_tf_rd_024_cls_sandwich_selfattn1_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B latent self-refinement family on the closed
     TF-RD-010 contract to test whether repeated latent self-attention is still
     a meaningful contributor once TF-RD-022 stabilizes the runtime surface.
@@ -369,7 +369,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -406,10 +406,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -418,7 +418,7 @@ rows:
   parent_delta_ref: null
 - order: 6
   delta_ref: delta_tf_rd_024_cls_sandwich_headhidden64_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B lower head-hidden bracket on the closed TF-RD-010
     contract to see whether the current classifier head is overprovisioned after
     TF-RD-022.
@@ -452,7 +452,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -489,10 +489,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null
@@ -501,7 +501,7 @@ rows:
   parent_delta_ref: null
 - order: 7
   delta_ref: delta_tf_rd_024_cls_sandwich_headhidden128_v1
-  status: blocked_on_runtime_policy
+  status: ready
   rationale: Reuse the TF-RD-021B upper head-hidden bracket on the closed TF-RD-010
     contract to test whether the retained multiclass sandwich is actually readout-limited
     once TF-RD-022 fixes the runtime surface.
@@ -535,7 +535,7 @@ rows:
     corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
     surface_overrides:
       source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
   preprocessing:
     surface_label: runtime_default
   training:
@@ -572,10 +572,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-022 large-validation gate, then screen this row on the
-    TF-RD-010 medium rung and validate any keep signal on the closed large rung.
+  next_action: Execute this row on the inherited compile-eager-dynamic medium surface,
+    then validate any keep signal on the closed large rung.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null

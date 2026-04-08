@@ -2961,6 +2961,160 @@ deltas:
     default_next_action: Wait for the TF-RD-022 keep anchor, then run this row inside the bounded TF-RD-024 knob sweep.
     applicability_guards: []
 
+  delta_tf_rd_024_followup_cls_sandwich_heads1_v1:
+    dimension_family: model
+    family: architecture_followup
+    binary_applicable: false
+    description: Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface.
+    upstream_delta: Extends the TF-RD-024 attention-head family one bracket lower after `sandwich_heads=2` won the initial medium screen.
+    expected_effect: If the medium gain from the lower-head bracket reflects excess head factorization rather than a narrow `2`-head sweet spot, `sandwich_heads=1` may remain competitive or improve further on the closed medium contract.
+    adequacy_knobs:
+      - fixed TF-RD-010 medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime policy surface
+      - attention partitioning only; no width, depth, batching, or optimizer reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as an independent follow-up against the fresh compile-eager-dynamic anchor instead of stacking on top of `sandwich_heads=2`.
+        - Carry the lower head count into TF-RD-009 only if it beats the current best medium result from `sandwich_heads=2`.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Run as order 1 in the TF-RD-024 two-row follow-up sweep, then compare directly against the current best medium result from `sandwich_heads=2`.
+    applicability_guards: []
+
+  delta_tf_rd_024_followup_cls_sandwich_prerow2_v1:
+    dimension_family: model
+    family: architecture_followup
+    binary_applicable: false
+    description: Extend the row pre-mixer family by increasing `sandwich_pre_row_attention_layers` from `1` to `2` on the inherited multiclass benchmark surface.
+    upstream_delta: Extends the historical TF-RD-021B row pre-mixer family upward after the `prerow=0` ablation showed that row-wise feature mixing is materially useful.
+    expected_effect: If the row-wise pre-Perceiver mixer is still capacity-limited on the current multiclass contract, the deeper row pre-mixer bracket may improve medium benchmark fit enough to justify the scaling handoff.
+    adequacy_knobs:
+      - fixed TF-RD-010 medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime policy surface
+      - row pre-mixer depth only; no compounded head, width, or latent changes
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as an independent topology probe against the fresh compile-eager-dynamic anchor instead of stacking with `sandwich_heads=1`.
+        - Carry the deeper row pre-mixer into TF-RD-009 only if it beats the current best medium result from `sandwich_heads=2`.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 2
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Run as order 2 in the TF-RD-024 two-row follow-up sweep, then compare directly against the current best medium result from `sandwich_heads=2`.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

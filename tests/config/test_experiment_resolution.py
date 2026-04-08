@@ -232,6 +232,43 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:
     )
 
 
+def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_eager_dynamic_resolution() -> None:
+    base_cfg = _compose("experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1")
+    cfg = _compose(
+        "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1"
+    )
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert str(cfg.data.source) == str(base_cfg.data.source)
+    assert str(cfg.data.surface_label) == str(base_cfg.data.surface_label)
+    assert str(cfg.data.corpus_ref) == str(base_cfg.data.corpus_ref)
+    assert str(cfg.runtime.device) == str(base_cfg.runtime.device)
+    assert str(cfg.runtime.mixed_precision) == str(base_cfg.runtime.mixed_precision)
+    assert float(cfg.runtime.grad_clip) == float(base_cfg.runtime.grad_clip)
+    assert int(cfg.runtime.grad_accum_steps) == int(base_cfg.runtime.grad_accum_steps)
+    assert bool(cfg.runtime.activation_checkpointing) is bool(base_cfg.runtime.activation_checkpointing)
+    assert bool(cfg.runtime.trace_activations) is bool(base_cfg.runtime.trace_activations)
+    assert bool(base_cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_model) is True
+    assert bool(base_cfg.runtime.compile_dynamic) is False
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert str(cfg.runtime.compile_mode) == str(base_cfg.runtime.compile_mode)
+    assert int(cfg.runtime.max_steps) == int(base_cfg.runtime.max_steps)
+    assert int(cfg.training.task_batch_size) == int(base_cfg.training.task_batch_size)
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-compile-eager-dynamic-v1"
+    )
+    assert str(cfg.logging.history_jsonl_path) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1/"
+        "train_history.jsonl"
+    )
+
+
 def test_cls_smoke_adamw_override_resolution() -> None:
     cfg = _compose("experiment=cls_smoke", "optimizer=adamw")
     assert str(cfg.optimizer.name) == "adamw"

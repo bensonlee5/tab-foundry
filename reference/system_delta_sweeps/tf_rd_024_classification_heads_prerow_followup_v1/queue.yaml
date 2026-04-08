@@ -1,0 +1,237 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
+  status: completed
+  rationale: >-
+    Follow the completed TF-RD-024 medium winner `sandwich_heads=2` with one lower
+    head-partition bracket to test whether the gain reflects a broader low-head regime
+    before TF-RD-009 freezes topology.
+  hypothesis: >-
+    If the `sandwich_heads=2` win reflects excess head factorization rather than
+    a narrow local optimum, reducing `sandwich_heads` from `4` to `1` may stay
+    competitive or improve further on the closed medium contract.
+  anchor_delta: >-
+    Changes `model.sandwich_heads` from `4` to `1` while holding `d_icl=60`,
+    `sandwich_layers=2`, `sandwich_latents=24`, the compile-eager-dynamic runtime
+    surface, and the closed TF-RD-010 medium benchmark contract fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute as an independent follow-up against the fresh compile-eager-dynamic anchor
+    instead of stacking on top of `sandwich_heads=2`.
+  - Carry the lower head count into TF-RD-009 only if it beats the current best medium
+    result from `sandwich_heads=2`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_024_classification_heads_prerow_followup_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Carry `sandwich_heads=1` into TF-RD-009 as the pre-scaling family winner,
+    and keep the remaining non-scaling knobs frozen unless the scaling study reopens them.
+  notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic
+    runtime surface.
+  - "`sandwich_heads=1` finished at `final_log_loss=0.6603575333`, beating the fresh
+    compile anchor (`0.6820309591`) and the prior best TF-RD-024 row `sandwich_heads=2`
+    (`0.6762878243`)."
+  - Treat this row as the TF-RD-024 closeout winner and the direct scaling handoff
+    surface for TF-RD-009.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 1150.0
+    best_bpc: 2.1451476352568464
+    final_bpc: 2.193652361413985
+    best_bpf: 2.1451298937067254
+    final_bpf: 2.1936251668077498
+    best_log_loss: 0.7032870122453748
+    final_log_loss: 0.6603575332789623
+    best_brier_score: 0.43756917281930896
+    final_brier_score: 0.4112373520609529
+    best_roc_auc: 0.5855507247683179
+    final_roc_auc: 0.6362053841980241
+    best_training_time: 1515.033030409366
+    final_training_time: 3106.177388638258
+    objective_metric: final_log_loss_at_matched_regime_budget
+    final_minus_best_bpc: 0.04850472615713855
+    final_minus_best_bpf: 0.04849527310102444
+    final_minus_best_log_loss: -0.042929478966412526
+    final_minus_best_brier_score: -0.02633182075835605
+    final_minus_best_roc_auc: 0.05065465942970615
+    drift: -0.042929478966412526
+    delta_final_log_loss: -0.021673425869693674
+    delta_final_brier_score: -0.01135264078988607
+    delta_final_roc_auc: 0.027105128194910066
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_024_followup_cls_sandwich_prerow2_v1
+  status: completed
+  rationale: >-
+    Probe the most plausible topology expansion suggested by the earlier sandwich
+    ablations without reopening a broad search: deepen only the row pre-mixer that
+    was clearly harmful to remove in TF-RD-021B.
+  hypothesis: >-
+    If the row-wise pre-Perceiver mixer is still capacity-limited on the current
+    medium contract, increasing `sandwich_pre_row_attention_layers` from `1` to `2`
+    may improve benchmark quality enough to beat the current best `sandwich_heads=2`
+    row before scaling.
+  anchor_delta: >-
+    Changes `model.sandwich_pre_row_attention_layers` from `1` to `2` while holding
+    `d_icl=60`, `sandwich_layers=2`, `sandwich_heads=4`, the compile-eager-dynamic
+    runtime surface, and the closed TF-RD-010 medium benchmark contract fixed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 2
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute as an independent topology probe against the fresh compile-eager-dynamic
+    anchor instead of stacking with `sandwich_heads=1`.
+  - Carry the deeper row pre-mixer into TF-RD-009 only if it beats the current best
+    medium result from `sandwich_heads=2`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_024_classification_heads_prerow_followup_v1_02_delta_tf_rd_024_followup_cls_sandwich_prerow2_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep `sandwich_pre_row_attention_layers=1` for TF-RD-009; this deeper
+    pre-row mixer improved over the anchor but did not beat the `sandwich_heads=2`
+    or `sandwich_heads=1` follow-up winners.
+  notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic
+    runtime surface.
+  - "`sandwich_pre_row_attention_layers=2` finished at `final_log_loss=0.6780725432`,
+    improving over the fresh compile anchor (`0.6820309591`) but remaining worse than
+    `sandwich_heads=2` (`0.6762878243`) and `sandwich_heads=1` (`0.6603575333`)."
+  - Keep the pre-row mixer at `1` for TF-RD-009 and treat this row as bounded
+    positive-but-not-promoted evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 1575.0
+    best_bpc: 2.1419148739134526
+    final_bpc: 2.180406184334684
+    best_bpf: 2.1419142340424155
+    final_bpf: 2.1804238580781723
+    best_log_loss: 0.7084262297440123
+    final_log_loss: 0.6780725432447957
+    best_brier_score: 0.4411325825261554
+    final_brier_score: 0.4221803919876032
+    best_roc_auc: 0.5733776335018924
+    final_roc_auc: 0.6253470331599075
+    best_training_time: 2317.593965243548
+    final_training_time: 3469.28946432285
+    objective_metric: final_log_loss_at_matched_regime_budget
+    final_minus_best_bpc: 0.03849131042123154
+    final_minus_best_bpf: 0.03850962403575688
+    final_minus_best_log_loss: -0.030353686499216548
+    final_minus_best_brier_score: -0.018952190538552183
+    final_minus_best_roc_auc: 0.05196939965801506
+    drift: -0.030353686499216548
+    delta_final_log_loss: -0.003958415903860257
+    delta_final_brier_score: -0.0004096008632357706
+    delta_final_roc_auc: 0.016246777156793457
+  parent_delta_ref: null
