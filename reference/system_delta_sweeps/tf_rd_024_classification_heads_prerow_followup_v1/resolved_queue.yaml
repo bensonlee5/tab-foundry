@@ -6,7 +6,7 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_hea
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/matrix.md
 sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
 parent_sweep_id: tf_rd_024_classification_knob_sweep_v1
-sweep_status: ready
+sweep_status: completed
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -33,6 +33,12 @@ anchor_surface:
   - This follow-up is medium-only by decision. It does not reopen TF-RD-024 large-rung
     validation; the goal is to pick the pre-scaling family, not to run another broad
     bounded sweep.
+  - 'Both follow-up rows are now complete on the closed TF-RD-010 medium contract:
+    `sandwich_heads=1` finished at `final_log_loss=0.6603575333`, while `sandwich_pre_row_attention_layers=2`
+    finished at `0.6780725432`.'
+  - The scaling handoff winner is `sandwich_heads=1`. `sandwich_pre_row_attention_layers=2`
+    improved over the anchor but did not beat either `sandwich_heads=2` or the new
+    `sandwich_heads=1` winner.
   - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
     `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`, `trace_activations=false`,
     `activation_checkpointing=true`, `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
@@ -85,7 +91,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
-  status: ready
+  status: completed
   rationale: Follow the completed TF-RD-024 medium winner `sandwich_heads=2` with
     one lower head-partition bracket to test whether the gain reflects a broader low-head
     regime before TF-RD-009 freezes topology.
@@ -153,18 +159,49 @@ rows:
     result from `sandwich_heads=2`.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_024_classification_heads_prerow_followup_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Run as order 1 in the TF-RD-024 two-row follow-up sweep, then compare
-    directly against the current best medium result from `sandwich_heads=2`.
-  notes: []
+  next_action: Carry `sandwich_heads=1` into TF-RD-009 as the pre-scaling family winner,
+    and keep the remaining non-scaling knobs frozen unless the scaling study reopens
+    them.
+  notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic
+    runtime surface.
+  - '`sandwich_heads=1` finished at `final_log_loss=0.6603575333`, beating the fresh
+    compile anchor (`0.6820309591`) and the prior best TF-RD-024 row `sandwich_heads=2`
+    (`0.6762878243`).'
+  - Treat this row as the TF-RD-024 closeout winner and the direct scaling handoff
+    surface for TF-RD-009.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1150.0
+    best_bpc: 2.1451476352568464
+    final_bpc: 2.193652361413985
+    best_bpf: 2.1451298937067254
+    final_bpf: 2.1936251668077498
+    best_log_loss: 0.7032870122453748
+    final_log_loss: 0.6603575332789623
+    best_brier_score: 0.43756917281930896
+    final_brier_score: 0.4112373520609529
+    best_roc_auc: 0.5855507247683179
+    final_roc_auc: 0.6362053841980241
+    best_training_time: 1515.033030409366
+    final_training_time: 3106.177388638258
+    objective_metric: final_log_loss_at_matched_regime_budget
+    final_minus_best_bpc: 0.04850472615713855
+    final_minus_best_bpf: 0.04849527310102444
+    final_minus_best_log_loss: -0.042929478966412526
+    final_minus_best_brier_score: -0.02633182075835605
+    final_minus_best_roc_auc: 0.05065465942970615
+    drift: -0.042929478966412526
+    delta_final_log_loss: -0.021673425869693674
+    delta_final_brier_score: -0.01135264078988607
+    delta_final_roc_auc: 0.027105128194910066
   parent_delta_ref: null
   dimension_family: model
   family: architecture_followup
@@ -397,7 +434,7 @@ rows:
   resolved_surface_fingerprint: 0b3be75f60d2d62aa06d1f7efcfa44229dc3a32efa606b43230e2c3b1a807252
 - order: 2
   delta_id: delta_tf_rd_024_followup_cls_sandwich_prerow2_v1
-  status: ready
+  status: completed
   rationale: 'Probe the most plausible topology expansion suggested by the earlier
     sandwich ablations without reopening a broad search: deepen only the row pre-mixer
     that was clearly harmful to remove in TF-RD-021B.'
@@ -466,18 +503,49 @@ rows:
     medium result from `sandwich_heads=2`.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_024_classification_heads_prerow_followup_v1_02_delta_tf_rd_024_followup_cls_sandwich_prerow2_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run as order 2 in the TF-RD-024 two-row follow-up sweep, then compare
-    directly against the current best medium result from `sandwich_heads=2`.
-  notes: []
+  next_action: Keep `sandwich_pre_row_attention_layers=1` for TF-RD-009; this deeper
+    pre-row mixer improved over the anchor but did not beat the `sandwich_heads=2`
+    or `sandwich_heads=1` follow-up winners.
+  notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic
+    runtime surface.
+  - '`sandwich_pre_row_attention_layers=2` finished at `final_log_loss=0.6780725432`,
+    improving over the fresh compile anchor (`0.6820309591`) but remaining worse than
+    `sandwich_heads=2` (`0.6762878243`) and `sandwich_heads=1` (`0.6603575333`).'
+  - Keep the pre-row mixer at `1` for TF-RD-009 and treat this row as bounded positive-but-not-promoted
+    evidence.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1575.0
+    best_bpc: 2.1419148739134526
+    final_bpc: 2.180406184334684
+    best_bpf: 2.1419142340424155
+    final_bpf: 2.1804238580781723
+    best_log_loss: 0.7084262297440123
+    final_log_loss: 0.6780725432447957
+    best_brier_score: 0.4411325825261554
+    final_brier_score: 0.4221803919876032
+    best_roc_auc: 0.5733776335018924
+    final_roc_auc: 0.6253470331599075
+    best_training_time: 2317.593965243548
+    final_training_time: 3469.28946432285
+    objective_metric: final_log_loss_at_matched_regime_budget
+    final_minus_best_bpc: 0.03849131042123154
+    final_minus_best_bpf: 0.03850962403575688
+    final_minus_best_log_loss: -0.030353686499216548
+    final_minus_best_brier_score: -0.018952190538552183
+    final_minus_best_roc_auc: 0.05196939965801506
+    drift: -0.030353686499216548
+    delta_final_log_loss: -0.003958415903860257
+    delta_final_brier_score: -0.0004096008632357706
+    delta_final_roc_auc: 0.016246777156793457
   parent_delta_ref: null
   dimension_family: model
   family: architecture_followup
@@ -709,4 +777,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 3622a8d310525faf142d32a42055dc79e98823a7e305a274adcde9f9add45eda
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml
-inputs_fingerprint: 95e91cf0a0e0b34f3fa09df7b4c1ce99b5502a406021857e0bd3034736300932
+inputs_fingerprint: f17ed01ad4d49b7eac5312bf06300f073427e3f565c58b100ac3790e4d5ae13a

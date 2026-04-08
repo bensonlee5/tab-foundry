@@ -38,6 +38,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
   handoff
+- [`TF-RD-024`](roadmap_evidence/tf_rd_024_post_performance_architecture_knob_sweep.md):
+  bounded post-performance sandwich knob sweep evidence on the kept compile
+  surface
 - [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
   architecture-surface closeout evidence and benchmark-evolution handoff
 - [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
@@ -309,6 +312,33 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - satisfied: the repo records one explicit carried runtime policy plus one
     profiler-backed keep decision on kernel-level training acceleration, and
     later scaling work can inherit both
+
+### TF-RD-024: Post-Performance Architecture-Knob Sweep On The Classification-First Sandwich Target
+
+- External evidence:
+  - direct literature for these exact sandwich-local down-ablation choices is
+    still lighter than the scaling-law and runtime notes, so the main value
+    here is bounded repo-local screening rather than paper-driven defaults
+- Repo-local evidence:
+  - issue `#233` is the umbrella for this bounded post-performance
+    architecture lane and closes on the medium-only closeout
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_024_post_performance_architecture_knob_sweep.md`
+  - the completed sweep now inherits the kept TF-RD-022 compile surface via
+    `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
+  - the fresh compile-eager-dynamic anchor is now benchmarked at medium
+    `final_log_loss=0.6820309591` and large `final_log_loss=0.9298541427`
+  - the completed seven-row medium sweep found one first-pass winner,
+    `sandwich_heads=2` at `0.6762878243`, while the rest of the bounded
+    down-ablation set was worse than the anchor
+  - the explicit two-row follow-up then improved further: `sandwich_heads=1`
+    reached `0.6603575333`, while `sandwich_pre_row_attention_layers=2`
+    reached `0.6780725432`
+  - TF-RD-009 now inherits `sandwich_heads=1` as the pre-scaling architecture
+    handoff winner
+- Success signal:
+  - satisfied: TF-RD-024 is now closed with one explicit medium-only keep/defer
+    decision before TF-RD-009 proceeds
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 

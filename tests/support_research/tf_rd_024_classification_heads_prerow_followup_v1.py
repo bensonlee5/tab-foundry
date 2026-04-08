@@ -33,7 +33,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_tf_rd_024_heads_prerow_followup_is_registered_and_ready() -> None:
+def test_tf_rd_024_heads_prerow_followup_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
     assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
@@ -41,7 +41,7 @@ def test_tf_rd_024_heads_prerow_followup_is_registered_and_ready() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_024_classification_knob_sweep_v1",
-        "status": "ready",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -57,7 +57,7 @@ def test_tf_rd_024_heads_prerow_followup_matches_the_two_row_plan() -> None:
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_024_classification_knob_sweep_v1"
-    assert sweep["status"] == "ready"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert_training_surface_semantics(
         sweep,
@@ -86,20 +86,28 @@ def test_tf_rd_024_heads_prerow_followup_matches_the_two_row_plan() -> None:
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready"]
-    assert [row["interpretation_status"] for row in rows] == ["pending", "pending"]
+    assert [row["status"] for row in rows] == ["completed", "completed"]
+    assert [row["interpretation_status"] for row in rows] == ["completed", "completed"]
     assert all(row["execution_policy"] == "benchmark_full" for row in rows)
     assert all(row["benchmark_checkpoint_selection"] == "all" for row in rows)
 
     heads1 = _row_by_ref(queue, "delta_tf_rd_024_followup_cls_sandwich_heads1_v1")
     assert heads1["model"]["sandwich_heads"] == 1
     assert heads1["model"]["sandwich_pre_row_attention_layers"] == 1
-    assert "sandwich_heads=2" in heads1["next_action"]
+    assert heads1["decision"] == "keep"
+    assert heads1["run_id"] == (
+        "sd_tf_rd_024_classification_heads_prerow_followup_v1_01_"
+        "delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1"
+    )
+    assert "TF-RD-009" in heads1["next_action"]
+    assert heads1["benchmark_metrics"]["final_log_loss"] == 0.6603575332789623
 
     prerow2 = _row_by_ref(queue, "delta_tf_rd_024_followup_cls_sandwich_prerow2_v1")
     assert prerow2["model"]["sandwich_heads"] == 4
     assert prerow2["model"]["sandwich_pre_row_attention_layers"] == 2
+    assert prerow2["decision"] == "defer"
     assert "independent topology probe" in prerow2["parameter_adequacy_plan"][0]
+    assert prerow2["benchmark_metrics"]["final_log_loss"] == 0.6780725432447957
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -116,8 +124,8 @@ def test_tf_rd_024_heads_prerow_followup_matches_the_two_row_plan() -> None:
 
     for row in materialized["rows"]:
         runtime = row["training"]["overrides"]["runtime"]
-        assert row["status"] == "ready"
-        assert row["interpretation_status"] == "pending"
+        assert row["status"] == "completed"
+        assert row["interpretation_status"] == "completed"
         assert row["training"]["task_batch_size"] == 16
         assert row["training"]["prior_dump_batch_size"] == 64
         assert runtime["mixed_precision"] == "bf16"
@@ -139,10 +147,13 @@ def test_tf_rd_024_heads_prerow_followup_resolved_artifacts_capture_medium_only_
 
     assert resolved["schema"] == "tab-foundry-system-delta-resolved-queue-v1"
     assert resolved["sweep_id"] == SWEEP_ID
-    assert resolved["sweep_status"] == "ready"
+    assert resolved["sweep_status"] == "completed"
     assert resolved["anchor_run_id"] == ANCHOR_RUN_ID
-    assert [row["status"] for row in resolved["rows"]] == ["ready", "ready"]
-    assert [row["run_id"] for row in resolved["rows"]] == [None, None]
+    assert [row["status"] for row in resolved["rows"]] == ["completed", "completed"]
+    assert [row["run_id"] for row in resolved["rows"]] == [
+        "sd_tf_rd_024_classification_heads_prerow_followup_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
+        "sd_tf_rd_024_classification_heads_prerow_followup_v1_02_delta_tf_rd_024_followup_cls_sandwich_prerow2_v1_v1",
+    ]
 
     heads1_runtime = resolved["rows"][0]["resolved_surface"]["runtime"]
     assert heads1_runtime["compile_model"] is True
@@ -164,9 +175,10 @@ def test_tf_rd_024_heads_prerow_followup_resolved_artifacts_capture_medium_only_
     ).read_text(encoding="utf-8")
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
-    assert "Sweep status: `ready`" in matrix
+    assert "Sweep status: `completed`" in matrix
     assert ANCHOR_RUN_ID in matrix
     assert "sandwich_heads=2" in matrix
     assert "Medium-only is sufficient here" in matrix
     assert "delta_tf_rd_024_followup_cls_sandwich_heads1_v1" in matrix
     assert "delta_tf_rd_024_followup_cls_sandwich_prerow2_v1" in matrix
+    assert "Final log loss: `0.6604`" in matrix

@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
 parent_sweep_id: tf_rd_024_classification_knob_sweep_v1
-status: ready
+status: completed
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -28,6 +28,12 @@ anchor_surface:
   - This follow-up is medium-only by decision. It does not reopen TF-RD-024 large-rung
     validation; the goal is to pick the pre-scaling family, not to run another broad
     bounded sweep.
+  - 'Both follow-up rows are now complete on the closed TF-RD-010 medium contract:
+    `sandwich_heads=1` finished at `final_log_loss=0.6603575333`, while
+    `sandwich_pre_row_attention_layers=2` finished at `0.6780725432`.'
+  - 'The scaling handoff winner is `sandwich_heads=1`. `sandwich_pre_row_attention_layers=2`
+    improved over the anchor but did not beat either `sandwich_heads=2` or the new
+    `sandwich_heads=1` winner.'
   - 'Freeze the inherited runtime and training surface from `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`:
     `task_batch_size=16`, `prior_dump_batch_size=64`, `mixed_precision=bf16`,
     `trace_activations=false`, `activation_checkpointing=true`,

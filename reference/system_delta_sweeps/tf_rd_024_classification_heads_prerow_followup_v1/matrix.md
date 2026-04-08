@@ -5,11 +5,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_024_classificati
 ## Sweep
 
 - Sweep id: `tf_rd_024_classification_heads_prerow_followup_v1`
-- Sweep status: `ready`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_024_classification_knob_sweep_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `95e91cf0a0e0b34f3fa09df7b4c1ce99b5502a406021857e0bd3034736300932`
+- Resolved queue inputs fingerprint: `f17ed01ad4d49b7eac5312bf06300f073427e3f565c58b100ac3790e4d5ae13a`
 
 ## Locked Surface
 
@@ -38,15 +38,15 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | ready | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Run as order 1 in the TF-RD-024 two-row follow-up sweep, then compare directly against the current best medium result from `sandwich_heads=2`. |
-| 2 | `delta_tf_rd_024_followup_cls_sandwich_prerow2_v1` | architecture_followup | no | ready | none | Extend the row pre-mixer family by increasing `sandwich_pre_row_attention_layers` from `1` to `2` on the inherited multiclass benchmark surface. | Run as order 2 in the TF-RD-024 two-row follow-up sweep, then compare directly against the current best medium result from `sandwich_heads=2`. |
+| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | completed | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Carry `sandwich_heads=1` into TF-RD-009 as the pre-scaling family winner, and keep the remaining non-scaling knobs frozen unless the scaling study reopens them. |
+| 2 | `delta_tf_rd_024_followup_cls_sandwich_prerow2_v1` | architecture_followup | no | completed | none | Extend the row pre-mixer family by increasing `sandwich_pre_row_attention_layers` from `1` to `2` on the inherited multiclass benchmark surface. | Keep `sandwich_pre_row_attention_layers=1` for TF-RD-009; this deeper pre-row mixer improved over the anchor but did not beat the `sandwich_heads=2` or `sandwich_heads=1` follow-up winners. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_024_followup_cls_sandwich_heads1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface.
@@ -68,16 +68,28 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - attention partitioning only; no width, depth, batching, or optimizer reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `keep`
+- Notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic runtime surface.
+  - `sandwich_heads=1` finished at `final_log_loss=0.6603575333`, beating the fresh compile anchor (`0.6820309591`) and the prior best TF-RD-024 row `sandwich_heads=2` (`0.6762878243`).
+  - Treat this row as the TF-RD-024 closeout winner and the direct scaling handoff surface for TF-RD-009.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_024_classification_heads_prerow_followup_v1/delta_tf_rd_024_followup_cls_sandwich_heads1_v1/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best log loss: `0.7033` (step 1150.0)
+  - Final log loss: `0.6604`
+  - Final Brier score: `0.4112`
+  - Final ROC AUC: `0.6362`
+  - Drift (final − best): `-0.0429`
+  - Legacy feature-cell diagnostics remain secondary to log loss on classification-objective rows.
+  - Final BPC (legacy feature-cell diagnostic): `2.1937`
+  - Final BPF (legacy feature-cell diagnostic): `2.1936`
 
 ### 2. `delta_tf_rd_024_followup_cls_sandwich_prerow2_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Extend the row pre-mixer family by increasing `sandwich_pre_row_attention_layers` from `1` to `2` on the inherited multiclass benchmark surface.
@@ -99,8 +111,20 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - row pre-mixer depth only; no compounded head, width, or latent changes
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical medium-only follow-up completed on the inherited compile-eager-dynamic runtime surface.
+  - `sandwich_pre_row_attention_layers=2` finished at `final_log_loss=0.6780725432`, improving over the fresh compile anchor (`0.6820309591`) but remaining worse than `sandwich_heads=2` (`0.6762878243`) and `sandwich_heads=1` (`0.6603575333`).
+  - Keep the pre-row mixer at `1` for TF-RD-009 and treat this row as bounded positive-but-not-promoted evidence.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_024_classification_heads_prerow_followup_v1/delta_tf_rd_024_followup_cls_sandwich_prerow2_v1/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best log loss: `0.7084` (step 1575.0)
+  - Final log loss: `0.6781`
+  - Final Brier score: `0.4222`
+  - Final ROC AUC: `0.6253`
+  - Drift (final − best): `-0.0304`
+  - Legacy feature-cell diagnostics remain secondary to log loss on classification-objective rows.
+  - Final BPC (legacy feature-cell diagnostic): `2.1804`
+  - Final BPF (legacy feature-cell diagnostic): `2.1804`

@@ -341,7 +341,7 @@ sweeps:
     external_benchmarks: []
   tf_rd_024_classification_heads_prerow_followup_v1:
     parent_sweep_id: tf_rd_024_classification_knob_sweep_v1
-    status: ready
+    status: completed
     anchor_run_id: sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1
     complexity_level: classification_md
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
