@@ -400,13 +400,16 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - Repo-local evidence:
   - tuning and comparison tooling are already present
   - runtime-summary and regime-budget artifacts now exist, but scaling-law
-    artifacts are not yet canonical on the carried dagzoo classification slice
+    artifacts are not yet canonical on the closed TF-RD-010 classification
+    contract
   - TF-RD-018 is now historical closeout evidence only and is no longer a
     blocker for the first sandwich scaling fit
   - TF-RD-022 now hands back one measured runtime policy plus one kept
     compile-first training-acceleration verdict
-  - TF-RD-021 must still hand back one keep/defer steering decision on the
-    carried dagzoo slice
+  - TF-RD-024 now hands back the bounded non-scaling architecture freeze with
+    `sandwich_heads=1` as the carry-forward winner
+  - TF-RD-021 remains sidecar corpus context rather than a blocker on the
+    first TF-RD-009 design-note and execution path
   - the completed TF-RD-021B keep-current-anchor decision under `#184` is the
     precursor for the hybrid sandwich family and does not close TF-RD-009 by
     itself
@@ -414,8 +417,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
   - the repo fits classification scaling laws on the simplified sandwich family
-    under one harder dagzoo slice, one inherited runtime policy, and one
-    matched regime-budget contract
+    under the closed TF-RD-010 classification contract, one inherited runtime
+    policy, and one matched regime-budget contract
 
 ### TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target
 
