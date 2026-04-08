@@ -6,11 +6,15 @@ This is the canonical long-form evidence note for
 - Status: `planned`
 - Milestone: `Next`
 - Dependency position: follows
+  [TF-RD-010](tf_rd_010_many_class_promotion.md),
   [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md),
-  [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md),
-  [TF-RD-010](tf_rd_010_many_class_promotion.md), and the simplified-parent
-  phase of
+  [TF-RD-024](tf_rd_024_post_performance_architecture_knob_sweep.md), and the
+  simplified-parent phase of
   [TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion)
+- GitHub issue chain: umbrella
+  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
+  child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
+  sweep-program design child [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
 
 ## External Evidence
 
@@ -25,7 +29,7 @@ This is the canonical long-form evidence note for
 - [Synthetic Data And Curriculum](../papers.md#synthetic-data-and-curriculum):
   synthetic-data scaling and curriculum references remain the best guide for
   treating curriculum or SCM-mixture as a first-class scaling dimension.
-- Dedicated references to keep explicit in the law-design note:
+- The law-design note should keep these references explicit:
   - μP / Tensor Programs V
   - Spectral Condition for μP under Width-Depth Scaling
   - Deriving Hyperparameter Scaling Laws via Modern Optimization Theory
@@ -36,79 +40,119 @@ This is the canonical long-form evidence note for
 
 ## Repo-Local Evidence
 
-- the roadmap now treats `tabfoundry_sandwich` as the primary classification
-  scaling family, with `tabfoundry_staged` retained as the incumbent reference
-  line rather than the scaling parent
-- training telemetry and benchmark-registry artifacts now preserve resolved
-  sandwich specs, runtime summaries, and regime-budget metadata needed for
-  later scaling comparisons
-- matched token budget alone is not sufficient once curriculum, SCM mixture,
-  or task complexity changes; the repo now needs a matched regime-budget
-  contract
+- `tabfoundry_sandwich` is now the primary classification scaling family, with
+  `tabfoundry_staged` retained only as the incumbent reference line rather than
+  the scaling parent
 - sandwich simplification under
   [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the required
   pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
-- the first scaling target is now the closed TF-RD-010 medium/large
-  classification benchmark contract rather than the earlier binary-only regime
-- TF-RD-024 is now closed on medium-only evidence, with `sandwich_heads=1`
-  carried forward as the bounded non-dynamics architecture winner for the
-  first scaling pass
+- TF-RD-010 is now closed on the carried classification benchmark contract, so
+  the first scaling target is the benchmark-defined medium/large multiclass
+  family rather than the older binary-only regime
+- TF-RD-022 is now closed on one inherited runtime policy, and training
+  telemetry plus benchmark-registry artifacts preserve resolved sandwich specs,
+  `runtime_summary`, and `regime_budget` metadata needed for later scaling
+  comparisons
+- TF-RD-024 is now closed on medium-only evidence under
+  [#233](https://github.com/bensonlee5/tab-foundry/issues/233), with
+  `sandwich_heads=1` carried forward as the bounded non-dynamics architecture
+  winner for the first scaling pass
+- TF-RD-021 remains sidecar corpus context under
+  [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
+  blocker on the TF-RD-009 critical path
 - regression is explicitly deferred from the first scaling program and is not a
   blocker for the first classification law fit
 
-## Theory-Backed Versus Empirical Dimensions
+## Locked Starting Surface
 
-- High-confidence dimensions:
-  - width transfer via `d_icl` with μP-style priors
-  - optimizer transfer via LR, momentum, and batch as a function of budget
-  - curriculum or SCM-mixture as a real scaling dimension rather than noise
-- Medium-confidence dimensions:
-  - width and depth should be modeled jointly rather than collapsed to
-    parameter count alone
-  - matched regime budget should include unique-task budget as well as token
-    budget
-- Lower-confidence dimensions:
-  - exact width-depth exponents from recent theory transfer cleanly to the
-    tabular sandwich family without refitting
-  - one universal compound knob will transfer cleanly across every later
-    classification regime without further validation
+- Benchmark contract:
+  - inherit the closed TF-RD-010 classification benchmark contract only
+  - keep the active classification metric as
+    `final_log_loss_at_matched_regime_budget`, interpreted as label-target log
+    loss per test cell
+  - keep the first fitting slice on the carried medium rung that TF-RD-024 used
+    for its closeout; hold the large rung as follow-on validation on the same
+    benchmark family once a coherent first fit exists
+- Runtime policy:
+  - inherit the closed TF-RD-022 runtime surface unchanged:
+    `mixed_precision=bf16`, `trace_activations=false`,
+    `activation_checkpointing=true`, `compile_model=true`,
+    `compile_backend=eager`, and `compile_dynamic=true`
+- Architecture freeze:
+  - inherit the TF-RD-024 compile-eager-dynamic anchor values for every
+    non-scaling sandwich knob
+  - substitute the TF-RD-024 winner `sandwich_heads=1`
+  - keep `head_hidden_dim`, `sandwich_summary_tokens_per_axis`,
+    `sandwich_latents`, `sandwich_ff_expansion`,
+    `sandwich_self_attention_per_cross`, and
+    `sandwich_pre_row_attention_layers` frozen for the first fit
 
-## Current Interpretation
+## First-Pass Law Design Contract
 
-- the first scaling-law note should be a design note, not an immediate sweep
-  spec
-- the first fit should stay classification-only and should not wait on
-  regression
-- the first law should be conditional over:
+- Live theory-backed dimensions:
   - width via `d_icl`
   - depth via `sandwich_layers`
-  - optimizer transfer via LR, momentum, and batch
-  - fixed inherited runtime policy
-  - fixed benchmark contract
-- the first carried slice should be the closed TF-RD-010 classification
-  benchmark contract, and the primary objective on that slice should be
-  multiclass log loss
-- matched token budget remains necessary, but comparisons should be interpreted
-  through matched regime budget:
-  - token budget
-  - unique-task budget
-  - fixed curriculum or SCM-mixture slice
-  - fixed task-complexity band
-- TF-RD-024, not TF-RD-009, owns the bounded non-dynamics sandwich knob sweep;
-  TF-RD-009 should reserve `d_icl`, `sandwich_layers`, and optimizer transfer
-  as the main live dimensions
-- the first public single-knob interface should be derived from the fitted law
-  later; it should not be authored up front
+  - optimizer transfer via learning-rate scale, Adam-style momentum or beta
+    settings, and batch-size transfer on the inherited runtime surface
+- Empirical dimensions that stay explicit but secondary:
+  - curriculum or SCM-mixture choice is a real scaling dimension, but the first
+    fit should hold one carried slice fixed rather than mix multiple curricula
+  - width and depth should be modeled jointly instead of collapsing the first
+    fit to parameter count alone
+- Frozen dimensions for this branch of TF-RD-009:
+  - no reopening of TF-RD-024 bounded non-dynamics knob work
+  - no reopening of TF-RD-022 runtime-policy or kernel-acceleration work
+  - no TF-RD-021 corpus change as a prerequisite to the first fit
+  - no regression, missingness, or imbalance expansion in the first law fit
 
-## Open Evidence Gaps
+## Matched Regime Budget Contract
 
-- the dedicated literature-synthesis and law-design note is not yet written
-- the runtime policy is now finalized as a hard inherited precondition for the
-  scaling ladder via TF-RD-022
-- the TF-RD-024 bounded architecture keep/defer decision is now finalized with
-  `sandwich_heads=1` as the carry-forward winner
-- the repo still does not have one canonical TF-RD-009 artifact path on the
-  inherited benchmark and runtime contract
+- Matched token budget remains necessary but is not sufficient on its own.
+- Treat rows as the same regime-budget comparison only when they keep the
+  carried benchmark slice fixed through the same benchmark manifest and
+  complexity rung, and preserve the same:
+  - `token_budget`
+  - `unique_task_budget`
+  - `curriculum_id`
+  - `objective_metric`
+  - inherited runtime policy
+- Treat any change to benchmark rung, curriculum or SCM mixture, or task-family
+  mix as a new empirical slice rather than another point on the same first law.
+
+## Ranking, Guardrails, And Non-Goals
+
+- Primary ranking objective:
+  - use `final_log_loss_at_matched_regime_budget` as the only ranking key for
+    the first classification scaling fit
+- Guardrails:
+  - keep calibration, stability, runtime, and clipped-step or instability
+    summaries as explicit guardrails and tie-break context rather than folding
+    them into one composite score
+- Non-goals:
+  - do not create a public `sandwich_scale` interface yet
+  - do not author a TF-RD-009 sweep id or system-delta scaffold in this note
+  - do not reinterpret historical BPC-era comparisons as the live ranking rule
+
+## Handoff To #140
+
+- [#229](https://github.com/bensonlee5/tab-foundry/issues/229) is satisfied
+  when this design note gives
+  [#140](https://github.com/bensonlee5/tab-foundry/issues/140) one explicit
+  sweep-program design contract.
+- The sweep-program design issue should:
+  - decide whether TF-RD-009 execution should remain one bounded sweep issue or
+    split into multiple epics or tickets once the width-depth and
+    optimizer-transfer plan is made concrete
+  - define the follow-on issue tree for comprehensive sweeps before execution
+    work starts
+  - keep the inherited medium classification rung, matched regime-budget
+    contract, and locked runtime and architecture surface fixed while designing
+    that issue tree
+  - reserve creation of the first `tf_rd_009_*` sweep scaffold and any
+    execution-facing artifact paths for the follow-on issue or issues created by
+    [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  - keep any later single-knob or public scaling interface internal-only until
+    cross-surface validation is complete
 
 ## Exit Signals
 

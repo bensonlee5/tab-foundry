@@ -928,11 +928,22 @@ Legacy wording note:
 
 - Status: `planned`
 - Milestone: `Next`
+- Active issue chain: umbrella issue
+  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
+  child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
+  sweep-program design child
+  [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
   TF-RD-022 runtime policy, one TF-RD-024 bounded architecture read, and a
   literature-grounded law-design note
 - Current state:
+  - as of April 8, 2026, TF-RD-024 closed via
+    [#233](https://github.com/bensonlee5/tab-foundry/issues/233), so TF-RD-009
+    is again the active `Next` lane on the main roadmap path
+  - TF-RD-021 remains sidecar corpus context under
+    [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
+    blocker for this lane
   - tuning and benchmark-adjacent tooling already exist
   - scaling-law intent is clear, but scaling on the current simple binary regime
     risks low-signal conclusions because recent architecture deltas are already
