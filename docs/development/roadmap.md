@@ -929,9 +929,9 @@ Legacy wording note:
 - Status: `planned`
 - Milestone: `Next`
 - Active issue chain: umbrella issue
-  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
-  child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
-  sweep-program design child
+  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), completed
+  design-note child [#229](https://github.com/bensonlee5/tab-foundry/issues/229),
+  then active sweep-program design child
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
@@ -941,6 +941,11 @@ Legacy wording note:
   - as of April 8, 2026, TF-RD-024 closed via
     [#233](https://github.com/bensonlee5/tab-foundry/issues/233), so TF-RD-009
     is again the active `Next` lane on the main roadmap path
+  - PR [#252](https://github.com/bensonlee5/tab-foundry/pull/252) merged the
+    literature-deepened TF-RD-009 design note and closed
+    [#229](https://github.com/bensonlee5/tab-foundry/issues/229), so
+    [#140](https://github.com/bensonlee5/tab-foundry/issues/140) is now the
+    active branch point for execution-tree design
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
@@ -955,18 +960,36 @@ Legacy wording note:
     classification benchmark contract with matched runtime policy and matched
     regime budget, but the inherited pre-scaling architecture surface is now
     fixed by TF-RD-024
+  - the next explicit issue order under
+    [#140](https://github.com/bensonlee5/tab-foundry/issues/140) is:
+    [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
+    [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256),
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+    [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
+    [#259](https://github.com/bensonlee5/tab-foundry/issues/259), then
+    [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
   - the keep-current-anchor decision under
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the
     required precursor for this family, but it does not satisfy TF-RD-009 by
     itself
 - Required work:
-  - write the dedicated law-design note before any scaling fit, grounded in
-    μP, depth-aware μP follow-ups, optimizer-budget scaling work, Chinchilla,
-    and synthetic-data curriculum references
-  - separate theory-backed and empirical dimensions explicitly:
-    width via `d_icl`, depth via `sandwich_layers`, optimizer transfer via LR,
-    momentum, and batch, and curriculum or SCM mixture as an empirical
-    higher-order term
+  - keep [#140](https://github.com/bensonlee5/tab-foundry/issues/140) as the
+    authoritative sweep-program design issue, with the execution tree grouped
+    into one fixed-budget family epic and one post-fit frontier plus robustness
+    epic
+  - execute the fixed-budget family in order:
+    [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+  - keep the post-fit extensions separate from the first fixed-budget law
+    family:
+    [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the
+    compute-optimal parameter-token frontier and
+    [#260](https://github.com/bensonlee5/tab-foundry/issues/260) for
+    curriculum and repeated-data slice robustness
   - keep the bounded non-dynamics sandwich knob sweep in TF-RD-024 rather than
     reopening those dimensions inside TF-RD-009
   - treat matched token budget as necessary but not sufficient; compare by
@@ -980,8 +1003,6 @@ Legacy wording note:
   - use `final_log_loss_at_matched_regime_budget` as the primary ranking
     objective on the carried multiclass slice, with calibration, stability,
     and runtime as explicit guardrails rather than BPC-era stand-ins
-  - run optimizer-transfer and model-size scaling together rather than as
-    separate programs
   - keep the eventual `sandwich_scale` interface internal-only until the law is
     validated on the carried multiclass slice and later follow-on robustness
     lanes

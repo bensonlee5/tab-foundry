@@ -389,25 +389,38 @@ This note should give
 [#140](https://github.com/bensonlee5/tab-foundry/issues/140) a much sharper
 design input than "run some scaling sweeps."
 
-The sweep-program design issue should preserve these separations explicitly:
+The created issue tree under
+[#140](https://github.com/bensonlee5/tab-foundry/issues/140) should preserve
+these separations explicitly and execute them in this order:
 
-- Sweep family 1: fixed-budget width transfer
+- fixed-budget classification law family epic
+  [#253](https://github.com/bensonlee5/tab-foundry/issues/253)
+- fixed-budget width transfer on the medium multiclass rung
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254)
   - vary `model.d_icl`
   - keep `model.sandwich_layers` fixed
   - keep matched `token_budget`, `unique_task_budget`, and `curriculum_id`
-- Sweep family 2: fixed-budget joint width-depth scaling
+- fixed-budget joint width-depth scaling on the medium multiclass rung
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
   - vary `model.d_icl` and `model.sandwich_layers`
   - treat optimizer transfer as a lower-confidence empirical question
   - keep non-scaling sandwich knobs frozen
-- Sweep family 3: compute-optimal parameter-token frontier
+- fixed-budget law-fit and report synthesis
+  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
+- large-rung validation of the kept fixed-budget law
+  [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+- post-fit frontier and robustness extensions epic
+  [#258](https://github.com/bensonlee5/tab-foundry/issues/258)
+- compute-optimal parameter-token frontier
+  [#259](https://github.com/bensonlee5/tab-foundry/issues/259)
   - co-design model size and `regime_budget.token_budget`
   - do not mix these rows into the fixed-budget law fit
-- Sweep family 4: curriculum or repeated-data slices
+- curriculum and repeated-data slice robustness
+  [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
   - hold one architecture family fixed
   - vary `curriculum_id` or repetition regime explicitly
 
-The issue tree designed by [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
-should also preserve these rules:
+The issue tree should also preserve these rules:
 
 - dimensions that must be co-designed:
   - `model.d_icl` and `model.sandwich_layers` for architecture laws
