@@ -14,7 +14,7 @@ This is the canonical long-form evidence note for
 - GitHub issue chain: umbrella
   [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
   child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
-  first execution child [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  sweep-program design child [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
 
 ## External Evidence
 
@@ -138,16 +138,19 @@ This is the canonical long-form evidence note for
 - [#229](https://github.com/bensonlee5/tab-foundry/issues/229) is satisfied
   when this design note gives
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140) one explicit
-  first-sweep contract.
-- The first execution issue should:
-  - create the first `tf_rd_009_*` sweep scaffold on the inherited medium
-    classification rung
-  - vary `d_icl`, `sandwich_layers`, and optimizer-transfer settings together
-    on the locked runtime and architecture surface rather than turning them into
-    separate epics
-  - keep all comparisons on the matched regime-budget contract defined above
-  - hold the large rung for follow-on validation after the first fit is
-    coherent on medium
+  sweep-program design contract.
+- The sweep-program design issue should:
+  - decide whether TF-RD-009 execution should remain one bounded sweep issue or
+    split into multiple epics or tickets once the width-depth and
+    optimizer-transfer plan is made concrete
+  - define the follow-on issue tree for comprehensive sweeps before execution
+    work starts
+  - keep the inherited medium classification rung, matched regime-budget
+    contract, and locked runtime and architecture surface fixed while designing
+    that issue tree
+  - reserve creation of the first `tf_rd_009_*` sweep scaffold and any
+    execution-facing artifact paths for the follow-on issue or issues created by
+    [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
   - keep any later single-knob or public scaling interface internal-only until
     cross-surface validation is complete
 

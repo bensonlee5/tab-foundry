@@ -931,7 +931,8 @@ Legacy wording note:
 - Active issue chain: umbrella issue
   [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
   child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
-  execution child [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  sweep-program design child
+  [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
   TF-RD-022 runtime policy, one TF-RD-024 bounded architecture read, and a
