@@ -3446,6 +3446,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     assert captured_benchmark['external_benchmarks'] == ('tabiclv2',)
     assert captured_registration['experiment'] == 'cls_benchmark_staged'
     assert captured_registration['config_profile'] == 'cls_benchmark_staged'
+    assert captured_registration['track'] == 'system_delta_binary_medium_v1'
     assert captured_registration['sweep_id'] == sweep_id
     assert captured_registration['parent_sweep_id'] == 'input_norm_followup'
     assert captured_posthoc['telemetry_path'] == train_dir / 'telemetry.json'
@@ -3643,6 +3644,7 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
     def fake_register_benchmark_run(**kwargs: Any) -> dict[str, Any]:
         captured['registration_run_dir'] = kwargs['run_dir']
         captured['comparison_summary_path'] = kwargs['comparison_summary_path']
+        captured['registration_track'] = kwargs['track']
         return {
             'run': {
                 'comparisons': {
@@ -3663,7 +3665,7 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
             'external_benchmarks': [],
             'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
             'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
-            'surface_role': 'custom',
+            'surface_role': 'classification_scaling_law',
         },
         queue_row=queue_row,
         materialized_row=materialized_row,
@@ -3684,6 +3686,7 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
     assert captured['benchmark_out_root'] == benchmark_dir
     assert captured['checkpoint_selection'] == 'best_and_final'
     assert captured['registration_run_dir'] == reusable_train_dir
+    assert captured['registration_track'] == 'system_delta_classification_medium_v1'
     assert captured['comparison_summary_path'] == benchmark_dir / 'comparison_summary.json'
     assert captured['queue_metrics_run_dir'] == reusable_train_dir
     assert captured['telemetry_path'] == reusable_train_dir / 'telemetry.json'

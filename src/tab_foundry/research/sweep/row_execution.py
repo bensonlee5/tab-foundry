@@ -58,6 +58,7 @@ DEFAULT_NANOTABPFN_EVAL_EVERY = _DEFAULT_NANOTABPFN_EVAL_EVERY
 DEFAULT_NANOTABPFN_BATCH_SIZE = _DEFAULT_NANOTABPFN_BATCH_SIZE
 DEFAULT_NANOTABPFN_LR = _DEFAULT_NANOTABPFN_LR
 DEFAULT_TRACK = "system_delta_binary_medium_v1"
+CLASSIFICATION_SCALING_LAW_TRACK = "system_delta_classification_medium_v1"
 DEFAULT_BUDGET_CLASS = "short-run"
 DEFAULT_DECISION = "defer"
 DEFAULT_BENCHMARK_CHECKPOINT_SELECTION = "all"
@@ -206,6 +207,18 @@ def _sweep_external_benchmarks(
             allow_empty=True,
         )
     )
+
+
+def _registration_track(
+    sweep: SweepPayload | None,
+    *,
+    sweep_meta: Mapping[str, Any],
+) -> str:
+    surface_role_raw = sweep.surface_role if sweep is not None else sweep_meta.get("surface_role")
+    surface_role = str(surface_role_raw).strip().lower() if surface_role_raw is not None else ""
+    if surface_role == "classification_scaling_law":
+        return CLASSIFICATION_SCALING_LAW_TRACK
+    return DEFAULT_TRACK
 
 
 def run_row(
@@ -576,7 +589,7 @@ def run_row(
     parent_sweep_id = sweep.parent_sweep_id if sweep is not None else sweep_meta.get("parent_sweep_id")
     registration = register_benchmark_run(
         run_id=run_id,
-        track=DEFAULT_TRACK,
+        track=_registration_track(sweep, sweep_meta=sweep_meta),
         experiment=training_surface.training_experiment,
         config_profile=training_surface.training_config_profile,
         budget_class=DEFAULT_BUDGET_CLASS,

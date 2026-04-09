@@ -1,0 +1,339 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_width_transfer_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl48_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl48_v1` against anchor
+    `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+    for sweep `tf_rd_009_width_transfer_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl48_v1`
+    against locked anchor `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 48
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+  - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Interpret this contraction only in the context of the full four-width family `{48,
+    60(anchor), 96, 128}`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_width_transfer_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: 'Keep as the losing lower-width contraction reference; do not carry
+    this row forward into #255 except as evidence that shrinking below the anchor
+    hurts the matched-regime-budget objective.'
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_transfer_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1`.
+  - Width-transfer probe recorded against the TF-RD-009 heads1 anchor; interpret after
+    the full width family completes.
+  - 'Width-family closeout: `d_icl=48` underperformed the replay anchor and remains
+    a contraction-only reference.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 25.0
+    max_grad_norm: 5.902438489453223
+    best_bpc: 2.0853760374429062
+    best_bpf: 2.085362711435214
+    best_roc_auc: 0.4951003900227544
+    best_log_loss: 0.8631345955205482
+    best_brier_score: 0.5552643463779311
+    final_bpc: 2.1139179639478085
+    final_bpf: 2.1139074418417545
+    final_roc_auc: 0.5941658816587325
+    final_log_loss: 0.6938509577583987
+    final_brier_score: 0.43282471009016243
+    final_minus_best_bpc: 0.028541926504902282
+    final_minus_best_bpf: 0.028544730406540708
+    final_minus_best_roc_auc: 0.09906549163597811
+    final_minus_best_log_loss: -0.1692836377621495
+    final_minus_best_brier_score: -0.12243963628776866
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.1692836377621495
+    delta_final_bpc: -0.07806696329627805
+    delta_final_bpf: -0.07804607254551765
+    delta_final_log_loss: 0.03182364048967656
+    delta_final_brier_score: 0.01982714726329532
+    delta_final_roc_auc: -0.0405579658584001
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl96_v1` against anchor
+    `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+    for sweep `tf_rd_009_width_transfer_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    against locked anchor `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+  - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Use the result to decide whether width-only movement remains a live TF-RD-009
+    family before joint width-depth work opens.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: 'Carry `d_icl=96` into #255 as the explicit joint width-depth baseline
+    because it improved the matched-regime-budget objective cleanly without the instability
+    warnings seen at `d_icl=128`.'
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Width-transfer probe recorded against the TF-RD-009 heads1 anchor; interpret after
+    the full width family completes.
+  - 'Width-family closeout: chosen #255 handoff baseline because it improved final
+    log loss, Brier score, and ROC AUC with health verdict `ok`.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 925.0
+    max_grad_norm: 6.420765314500382
+    best_bpc: 2.217948172348549
+    best_bpf: 2.217929468944679
+    best_roc_auc: 0.6108581450092416
+    best_log_loss: 0.6857896959515518
+    best_brier_score: 0.4243014967593568
+    final_bpc: 2.3481240247548243
+    final_bpf: 2.3480840868695445
+    final_roc_auc: 0.6715934041863434
+    final_log_loss: 0.633147552884019
+    final_brier_score: 0.39143103179189775
+    final_minus_best_bpc: 0.13017585240627527
+    final_minus_best_bpf: 0.1301546179248656
+    final_minus_best_roc_auc: 0.060735259177101764
+    final_minus_best_log_loss: -0.05264214306753279
+    final_minus_best_brier_score: -0.032870464967459045
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.05264214306753279
+    delta_final_bpc: 0.15613909751073773
+    delta_final_bpf: 0.15613057248227236
+    delta_final_log_loss: -0.028879764384703077
+    delta_final_brier_score: -0.02156653103496936
+    delta_final_roc_auc: 0.03686955666921077
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl128_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl128_v1` against anchor
+    `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+    for sweep `tf_rd_009_width_transfer_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl128_v1`
+    against locked anchor `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 128
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+  - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Treat this row as evidence about the upper edge of the first width-only family,
+    not as permission to retune optimizer or open a compute-optimal frontier yet.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_width_transfer_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders:
+  - health verdict `warn` in run inspection
+  - max_grad_norm spiked to 54.68714918577819
+  - legacy feature-cell diagnostics BPC/BPF diverged sharply despite improved matched-regime-budget
+    objective
+  next_action: 'Keep as upper-width evidence only; do not use as the default #255
+    handoff because the raw log-loss win came with elevated instability signals.'
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_transfer_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+  - Width-transfer probe recorded against the TF-RD-009 heads1 anchor; interpret after
+    the full width family completes.
+  - 'Width-family closeout: objective-leading row but not the chosen #255 handoff
+    because the run carried elevated stability warnings.'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 675.0
+    max_grad_norm: 54.68714918577819
+    best_bpc: 2.775310181609929
+    best_bpf: 2.775277701402322
+    best_roc_auc: 0.5850410932952353
+    best_log_loss: 0.7038646653046823
+    best_brier_score: 0.4371989787392025
+    final_bpc: 5.6873575815622015
+    final_bpf: 5.68707742261457
+    final_roc_auc: 0.6719020274101793
+    final_log_loss: 0.6224818729475354
+    final_brier_score: 0.3847663644321952
+    final_minus_best_bpc: 2.9120473999522725
+    final_minus_best_bpf: 2.9117997212122484
+    final_minus_best_roc_auc: 0.086860934114944
+    final_minus_best_log_loss: -0.08138279235714685
+    final_minus_best_brier_score: -0.0524326143070073
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.08138279235714685
+    delta_final_bpc: 3.495372654318115
+    delta_final_bpf: 3.4951239082272982
+    delta_final_log_loss: -0.039545444321186674
+    delta_final_brier_score: -0.02823119839467192
+    delta_final_roc_auc: 0.037178179893046726
+  parent_delta_ref: null

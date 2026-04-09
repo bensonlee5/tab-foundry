@@ -3,7 +3,7 @@ sweep_id: tf_rd_009_anchor_replay_heads1_medium_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
-  status: ready
+  status: completed
   rationale: Replay the carried TF-RD-024 `sandwich_heads=1` winner on the closed
     medium classification contract so TF-RD-009 starts from a benchmark-registry-backed
     anchor instead of a historical queue-only result.
@@ -12,8 +12,8 @@ rows:
     the original `sandwich_heads=4` compile anchor at matched regime budget.
   anchor_delta: Replay the carried `sandwich_heads=1` topology exactly against the
     locked `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`
-    compile anchor while keeping `d_icl=60`, the non-scaling sandwich knobs, the
-    curated medium corpus, and the runtime/optimizer bundle fixed.
+    compile anchor while keeping `d_icl=60`, the non-scaling sandwich knobs, the curated
+    medium corpus, and the runtime/optimizer bundle fixed.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -69,23 +69,49 @@ rows:
   - Execute as a standalone replay package; do not mutate the historical TF-RD-024
     follow-up sweep in place.
   - Register the resulting benchmark run locally, then promote this replayed row so
-    `tf_rd_009_anchor_replay_heads1_medium_v1` becomes the formal TF-RD-009 anchor package.
+    `tf_rd_009_anchor_replay_heads1_medium_v1` becomes the formal TF-RD-009 anchor
+    package.
   - Use the replayed run as the fixed `d_icl=60` anchor for the first TF-RD-009 width
     family `{48, 60(anchor), 96, 128}`.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Replay and promote this row, then bootstrap `tf_rd_009_width_transfer_medium_v1`
-    with this registered run as the anchor.
+  next_action: 'Use this replayed heads1 run as the locked TF-RD-009 anchor while
+    carrying `d_icl=96` into #255 as the chosen joint width-depth baseline.'
   notes:
-  - This row is required because the historical TF-RD-024 heads1 result is not benchmark-registry-backed on `main`.
-  - Treat the resulting run as the formal TF-RD-009 anchor only after local registry import and in-package promotion complete.
+  - This row is required because the historical TF-RD-024 heads1 result is not benchmark-registry-backed
+    on `main`.
+  - Treat the resulting run as the formal TF-RD-009 anchor only after local registry
+    import and in-package promotion complete.
+  - Canonical rerun registered as `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`.
+  - Replay established the TF-RD-009 heads1 anchor for the first width-transfer family.
+  - 'The completed width-only family kept `d_icl=96` as the explicit #255 handoff
+    baseline while retaining this replay as the formal TF-RD-009 anchor.'
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1125.0
+    max_grad_norm: 9.916873089767549
+    best_bpc: 2.144088190551781
+    best_bpf: 2.1440709271698632
+    best_roc_auc: 0.5840371196066116
+    best_log_loss: 0.7037525237038704
+    best_brier_score: 0.437828970424258
+    final_bpc: 2.1919849272440866
+    final_bpf: 2.191953514387272
+    final_roc_auc: 0.6347238475171326
+    final_log_loss: 0.6620273172687221
+    final_brier_score: 0.4129975628268671
+    final_minus_best_bpc: 0.04789673669230554
+    final_minus_best_bpf: 0.0478825872174089
+    final_minus_best_roc_auc: 0.05068672791052098
+    final_minus_best_log_loss: -0.04172520643514832
+    final_minus_best_brier_score: -0.024831407597390887
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.04172520643514832
   parent_delta_ref: null

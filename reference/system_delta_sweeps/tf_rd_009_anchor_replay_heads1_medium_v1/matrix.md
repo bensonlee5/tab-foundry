@@ -5,15 +5,15 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_anchor_repla
 ## Sweep
 
 - Sweep id: `tf_rd_009_anchor_replay_heads1_medium_v1`
-- Sweep status: `ready`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_024_classification_heads_prerow_followup_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_anchor_replay_heads1_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `6bed39234067f2b4b7dcaa7fb77fdc23e7c8930a9b9d502a3be2c77a6596d003`
+- Resolved queue inputs fingerprint: `1d49b1bddf8206ac0d4aa0090f40e438a51eb303d6444378b03a1927076e4454`
 
 ## Locked Surface
 
-- Anchor run id: `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`
+- Anchor run id: `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
 - Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
 - External benchmarks: `none`
@@ -21,7 +21,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_anchor_repla
 - Training config profile: `cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1`
 - Surface role: `classification_scaling_law`
 - Comparison policy: `anchor_only`
-- Anchor metrics: final BPC `2.1107`, final BPF `2.1107`, final log loss `0.6820`, final Brier score `0.4226`, best ROC AUC `0.6091`, final ROC AUC `0.6091`, final training time `4657.1s`
+- Anchor metrics: final BPC `2.1920`, final BPF `2.1920`, final log loss `0.6620`, final Brier score `0.4130`, best ROC AUC `0.5840`, final ROC AUC `0.6347`, final training time `8466.6s`
 
 ## Anchor Comparison
 
@@ -37,14 +37,14 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | ready | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Replay and promote this row, then bootstrap `tf_rd_009_width_transfer_medium_v1` with this registered run as the anchor. |
+| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | completed | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Use this replayed heads1 run as the locked TF-RD-009 anchor while carrying `d_icl=96` into #255 as the chosen joint width-depth baseline. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_024_followup_cls_sandwich_heads1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface.
@@ -67,11 +67,14 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - attention partitioning only; no width, depth, batching, or optimizer reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `keep`
 - Notes:
   - This row is required because the historical TF-RD-024 heads1 result is not benchmark-registry-backed on `main`.
   - Treat the resulting run as the formal TF-RD-009 anchor only after local registry import and in-package promotion complete.
+  - Canonical rerun registered as `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`.
+  - Replay established the TF-RD-009 heads1 anchor for the first width-transfer family.
+  - The completed width-only family kept `d_icl=96` as the explicit #255 handoff baseline while retaining this replay as the formal TF-RD-009 anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_anchor_replay_heads1_medium_v1/delta_tf_rd_024_followup_cls_sandwich_heads1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2` with final log loss `0.6620`, delta final log loss `+0.0000`, final Brier score `0.4130`, delta final brier score `+0.0000`, final ROC AUC `0.6347`, delta final roc auc `+0.0000`, final BPC (legacy feature-cell diagnostic) `2.1920`, delta final bpc (legacy feature-cell diagnostic) `+0.0000`, final BPF (legacy feature-cell diagnostic) `2.1920`, delta final bpf (legacy feature-cell diagnostic) `+0.0000`, best ROC AUC `0.5840`, delta final training time `+0.0s`

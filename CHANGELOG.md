@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.12] - 2026-04-09
+
+### Changed
+
+- User-facing note: `tab-foundry research sweep execute` no longer requires
+  `--nanotabpfn-root` when a system-delta sweep row does not configure any
+  `nanotabpfn` external benchmark comparator.
+- User-facing note: classification-scaling-law system-delta sweeps now
+  register benchmark runs under the dedicated
+  `system_delta_classification_medium_v1` track instead of reusing the older
+  binary-medium label.
+- User-facing note: the canonical TF-RD-009 artifacts now include the
+  registry-backed heads1 replay anchor
+  `tf_rd_009_anchor_replay_heads1_medium_v1` and the first completed
+  width-transfer family `tf_rd_009_width_transfer_medium_v1`, with
+  `d_icl=96` carried forward as the clean-width handoff into joint
+  width-depth work.
+
 ## [0.16.11] - 2026-04-05
 
 ### Changed
