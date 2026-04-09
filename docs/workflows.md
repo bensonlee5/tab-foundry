@@ -354,7 +354,7 @@ Graphviz `dot` on `PATH`.
 Execute, rerun, promote, and validate from the packaged sweep surface:
 
 ```bash
-tab-foundry research sweep execute --sweep-id <sweep_id> --nanotabpfn-root <path-to-nanoTabPFN>
+tab-foundry research sweep execute --sweep-id <sweep_id>
 tab-foundry research sweep execute \
   --sweep-id <sweep_id> \
   --nanotabpfn-root <path-to-nanoTabPFN> \
@@ -366,6 +366,9 @@ tab-foundry research sweep promote \
 tab-foundry research sweep render --sweep-id <sweep_id>
 tab-foundry research sweep validate --sweep-id <sweep_id>
 ```
+
+Pass `--nanotabpfn-root` only when the selected sweep's
+`external_benchmarks` include `nanotabpfn`.
 
 Manual train, benchmark, and registry commands remain the advanced fallback
 when the generic executor is not flexible enough for a one-off debug pass.

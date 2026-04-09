@@ -30,7 +30,7 @@ def _execute_command(
     include_completed: bool,
     promote_first_executed_row_to_anchor: bool,
     nanotabpfn_prior_dump: Path | None,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     reuse_nanotabpfn_only: bool,
     device: str,
     tab_foundry_python: Path,
@@ -42,7 +42,9 @@ def _execute_command(
     prior_dump = (
         None if nanotabpfn_prior_dump is None else nanotabpfn_prior_dump.expanduser().resolve()
     )
-    nanotabpfn_root = nanotabpfn_root.expanduser().resolve()
+    resolved_nanotabpfn_root = (
+        None if nanotabpfn_root is None else nanotabpfn_root.expanduser().resolve()
+    )
     fallback_python = absolute_path_without_resolving_symlinks(tab_foundry_python)
     if prior_dump is not None and not prior_dump.exists():
         raise RuntimeError(f"prior dump does not exist: {prior_dump}")
@@ -64,7 +66,7 @@ def _execute_command(
     executed = execute_sweep(
         sweep_id=sweep_id,
         prior_dump=prior_dump,
-        nanotabpfn_root=nanotabpfn_root,
+        nanotabpfn_root=resolved_nanotabpfn_root,
         reuse_nanotabpfn_only=reuse_nanotabpfn_only,
         device=device,
         fallback_python=fallback_python,
@@ -101,9 +103,8 @@ def _execute_command(
 @click.option("--nanotabpfn-prior-dump", default=None, type=click.Path(path_type=Path), help="Optional path to the nanoTabPFN prior dump")
 @click.option(
     "--nanotabpfn-root",
-    required=True,
     type=click.Path(path_type=Path),
-    help="Path to the nanoTabPFN checkout",
+    help="Path to the nanoTabPFN checkout. Required only when the selected sweep uses the nanoTabPFN comparator.",
 )
 @click.option(
     "--reuse-nanotabpfn-only",
@@ -135,7 +136,7 @@ def COMMAND(
     include_completed: bool,
     promote_first_executed_row_to_anchor: bool,
     nanotabpfn_prior_dump: Path | None,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     reuse_nanotabpfn_only: bool,
     device: str,
     tab_foundry_python: Path,

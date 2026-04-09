@@ -553,6 +553,39 @@ def test_main_allows_omitting_prior_dump(
     assert captured['reuse_nanotabpfn_only'] is False
 
 
+def test_main_allows_omitting_nanotabpfn_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    fallback_python.chmod(0o755)
+
+    captured: dict[str, Any] = {}
+
+    def fake_execute_sweep(**kwargs: Any) -> list[str]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(sweep_execute_cli_module, 'execute_sweep', fake_execute_sweep)
+
+    exit_code = sweep_execute_cli_module.main(
+        [
+            '--sweep-id',
+            'shared_surface_bridge_v1',
+            '--tab-foundry-python',
+            str(fallback_python),
+            '--device',
+            'cpu',
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured['nanotabpfn_root'] is None
+
+
 def test_main_passes_reuse_nanotabpfn_only(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -682,6 +715,66 @@ def test_execute_sweep_rejects_mps_device_programmatically(tmp_path: Path) -> No
             prior_dump=None,
             nanotabpfn_root=Path('/tmp/nanotabpfn'),
             device='mps',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            paths=paths,
+        )
+
+
+def test_execute_sweep_allows_missing_nanotabpfn_root_when_sweep_has_no_nanotabpfn(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    sweep_path = paths.sweeps_root / sweep_id / 'sweep.yaml'
+    sweep = _load_yaml(sweep_path)
+    sweep['external_benchmarks'] = []
+    _write_yaml(sweep_path, sweep)
+
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'completed'
+    _write_yaml(queue_path, queue)
+
+    captured_roots: list[Path | None] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        captured_roots.append(cast(Path | None, kwargs['nanotabpfn_root']))
+        return f"run_{kwargs['queue_row']['order']}"
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=None,
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['run_1']
+    assert captured_roots == [None]
+
+
+def test_execute_sweep_requires_nanotabpfn_root_when_sweep_uses_nanotabpfn(
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, _queue_path = _make_exec_sweep(tmp_path)
+    sweep_path = paths.sweeps_root / sweep_id / 'sweep.yaml'
+    sweep = _load_yaml(sweep_path)
+    sweep['external_benchmarks'] = ['nanotabpfn']
+    _write_yaml(sweep_path, sweep)
+
+    with pytest.raises(
+        RuntimeError,
+        match="--nanotabpfn-root is required when sweep external_benchmarks include 'nanotabpfn'",
+    ):
+        _ = execute_sweep(
+            sweep_id=sweep_id,
+            prior_dump=None,
+            nanotabpfn_root=None,
+            device='cpu',
             fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
             paths=paths,
         )

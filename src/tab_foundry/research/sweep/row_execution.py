@@ -218,7 +218,7 @@ def run_row(
     parent_run_id: str | None,
     queue: Mapping[str, Any],
     prior_dump: Path | None,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     device: str,
     fallback_python: Path,
     decision: str,
@@ -238,6 +238,10 @@ def run_row(
     sweep_semantics = resolve_sweep_semantics(resolved_sweep_meta)
     training_surface = sweep_semantics.training_surface
     external_benchmarks = _sweep_external_benchmarks(sweep, sweep_meta=sweep_meta)
+    if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks and nanotabpfn_root is None:
+        raise RuntimeError(
+            "--nanotabpfn-root is required when sweep external_benchmarks include 'nanotabpfn'"
+        )
     delta_root = (
         paths.repo_root
         / "outputs"
@@ -481,6 +485,7 @@ def run_row(
     reuse_curve_path = None
     reuse_nanotabpfn_error = None
     if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks:
+        assert nanotabpfn_root is not None
         reuse_selection = _curve_reuse.resolve_reusable_nanotabpfn_curve(
             sweep_meta=sweep_meta,
             anchor_run_id=anchor_run_id,
@@ -527,6 +532,7 @@ def run_row(
                 flush=True,
             )
         else:
+            assert nanotabpfn_root is not None
             _ = ensure_nanotabpfn_python(
                 nanotabpfn_root=nanotabpfn_root,
                 fallback_python=fallback_python,

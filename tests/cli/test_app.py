@@ -97,6 +97,10 @@ def _path_attr(name: str) -> Reader:
     return lambda args: str(getattr(args, name))
 
 
+def _optional_path_attr(name: str) -> Reader:
+    return lambda args: None if getattr(args, name) is None else str(getattr(args, name))
+
+
 def _str_attr(name: str) -> Reader:
     return lambda args: str(getattr(args, name))
 
@@ -516,6 +520,31 @@ DISPATCH_CASES = (
             },
         ),
         id="research-sweep-execute",
+    ),
+    pytest.param(
+        DispatchCase(
+            argv=(
+                "research",
+                "sweep",
+                "execute",
+                "--sweep-id",
+                "binary_md_v1",
+                "--include-completed",
+            ),
+            module=research_execute_cli_module,
+            attribute="_execute_command",
+            fields={
+                "sweep_id": _optional_str_attr("sweep_id"),
+                "nanotabpfn_root": _optional_path_attr("nanotabpfn_root"),
+                "include_completed": _bool_attr("include_completed"),
+            },
+            expected={
+                "sweep_id": "binary_md_v1",
+                "nanotabpfn_root": None,
+                "include_completed": True,
+            },
+        ),
+        id="research-sweep-execute-no-nanotab-root",
     ),
     pytest.param(
         DispatchCase(
