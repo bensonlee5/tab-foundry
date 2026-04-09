@@ -46,6 +46,13 @@ into the canonical library modules.
   control-baseline registry loader and path-resolution surface shared by
   `bench` and `research`. It delegates shared path/record helpers to
   `src/tab_foundry/registry/`.
+- `src/tab_foundry/hardware_profiles.py`: dependency-light hardware identity
+  normalization shared by training telemetry, benchmark registration, and
+  hardware-baseline decisions.
+- `src/tab_foundry/hardware_architecture_registry.py`: dependency-light
+  read-only loader for the repo-tracked hardware architecture baseline
+  registry; it mirrors the read-only benchmark/control-baseline registry
+  pattern for non-mutating consumers.
 - `src/tab_foundry/external_benchmarks.py`: dependency-light canonical source
   for external benchmark ids, defaults, labels, and normalization.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
@@ -83,13 +90,16 @@ into the canonical library modules.
   helpers, and shared artifact helpers. `bench/compare.py` is the canonical
   manual benchmark comparison/orchestration library surface,
   `bench/run_registration.py` and
-  `bench/control_baseline_freeze.py` are the canonical programmatic registry
-  write APIs, and `bench/comparison_runtime.py` is the canonical programmatic
-  benchmark-execution surface used by research. Packaged `bench` parser
-  ownership now lives under `src/tab_foundry/cli/bench_*.py`; the packaged
-  bench library modules are parser-free. The remaining standalone internal
-  helper entrypoints now live under `scripts/bench/`; their corresponding
-  `src/tab_foundry/bench/` modules are parser-free library code.
+  `bench/control_baseline_freeze.py`, and
+  `bench/hardware_architecture_freeze.py` are the canonical programmatic
+  registry write APIs, and `bench/comparison_runtime.py` is the canonical
+  programmatic benchmark-execution surface used by research. Packaged `bench`
+  parser ownership now lives under `src/tab_foundry/cli/bench_*.py`; the
+  packaged bench library modules are parser-free, including
+  `cli/bench_hardware_architecture_freeze.py` for the hardware-baseline freeze
+  command. The remaining standalone internal helper entrypoints now live under
+  `scripts/bench/`; their corresponding `src/tab_foundry/bench/` modules are
+  parser-free library code.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep ownership now lives under

@@ -398,6 +398,14 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
                 "throughput_tokens_per_second": 6400.0,
                 "non_train_overhead_seconds": 0.8,
             },
+            "hardware_summary": {
+                "device_type": "cuda",
+                "raw_device_name": "NVIDIA A100-SXM4-80GB",
+                "gpu_class": "a100",
+                "total_device_vram_bytes": 80 * 1024**3,
+                "vram_class_gb": 80,
+                "hardware_profile_id": "a100_80gb",
+            },
             "regime_budget": {
                 "tokens_per_step": 512.0,
                 "tokens_seen": 38400,
@@ -430,6 +438,14 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
     assert record["model"]["architecture"]["latents"] == 20
     assert record["runtime_summary"]["peak_vram_allocated"] == 1024
     assert record["runtime_summary"]["throughput_tokens_per_second"] == pytest.approx(6400.0)
+    assert record["hardware_summary"] == {
+        "device_type": "cuda",
+        "raw_device_name": "NVIDIA A100-SXM4-80GB",
+        "gpu_class": "a100",
+        "total_device_vram_bytes": 80 * 1024**3,
+        "vram_class_gb": 80,
+        "hardware_profile_id": "a100_80gb",
+    }
     assert record["regime_budget"]["tokens_seen"] == 38400
     assert record["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert record["regime_budget"]["curriculum_id"] == "dagzoo_shape_aware_multi_invocation"

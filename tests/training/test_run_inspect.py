@@ -71,6 +71,17 @@ def _runtime_summary() -> dict[str, object]:
     }
 
 
+def _hardware_summary() -> dict[str, object]:
+    return {
+        "device_type": "cuda",
+        "raw_device_name": "NVIDIA A100-SXM4-80GB",
+        "gpu_class": "a100",
+        "total_device_vram_bytes": 80 * 1024**3,
+        "vram_class_gb": 80,
+        "hardware_profile_id": "a100_80gb",
+    }
+
+
 def _regime_budget() -> dict[str, object]:
     return {
         "tokens_per_step": 512.0,
@@ -171,6 +182,7 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
         history_records=history_records,
         gradient_records=gradient_records,
         runtime_summary=_runtime_summary(),
+        hardware_summary=_hardware_summary(),
         regime_budget=_regime_budget(),
         training_surface_record=training_surface_record,
     )
@@ -212,6 +224,7 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
                 },
                 "tab_foundry_metrics": {"best_roc_auc": 0.71},
                 "runtime_summary": _runtime_summary(),
+                "hardware_summary": _hardware_summary(),
                 "regime_budget": _regime_budget(),
             },
             indent=2,
@@ -227,14 +240,18 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
     assert payload["comparison_summary"]["best_roc_auc"] == 0.71
     assert payload["benchmark_run_record"]["run_id"] == "row_one_run"
     assert payload["runtime_summary"]["peak_vram_reserved"] == 2048
+    assert payload["hardware_summary"]["hardware_profile_id"] == "a100_80gb"
     assert payload["regime_budget"]["token_budget"] == 38400
     assert payload["benchmark_run_record"]["runtime_summary"]["throughput_tokens_per_second"] == 6400.0
+    assert payload["benchmark_run_record"]["hardware_summary"]["gpu_class"] == "a100"
     assert payload["artifacts"]["comparison_summary_json"]["exists"] is True
     assert payload["artifacts"]["latest_checkpoint_pt"]["exists"] is True
     assert payload["artifacts"]["latest_checkpoint_pt"]["path"].endswith("latest_stage1.pt")
     rendered = render_run_inspect_text(payload)
     assert "runtime_summary=" in rendered
     assert "\"throughput_tokens_per_second\": 6400.0" in rendered
+    assert "hardware_summary=" in rendered
+    assert "\"hardware_profile_id\": \"a100_80gb\"" in rendered
     assert "regime_budget=" in rendered
     assert "\"token_budget\": 38400" in rendered
 

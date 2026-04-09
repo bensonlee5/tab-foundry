@@ -12,6 +12,7 @@ from typing import Any, Mapping, cast
 from omegaconf import DictConfig
 import torch
 
+from tab_foundry.hardware_profiles import build_hardware_summary
 from tab_foundry.training.artifacts import (
     append_history_record,
     append_jsonl_record,
@@ -645,6 +646,7 @@ def _build_prior_telemetry_payload(
         tokens_seen=state.tokens_seen,
         peak_memory_summary=peak_device_memory_summary(device),
     )
+    hardware_summary = build_hardware_summary(device)
     regime_budget = build_regime_budget_summary(
         task=task,
         loss_surface=loss_surface,
@@ -662,6 +664,7 @@ def _build_prior_telemetry_payload(
         history_records=state.history_records,
         gradient_records=state.gradient_records,
         runtime_summary=runtime_summary,
+        hardware_summary=hardware_summary,
         regime_budget=regime_budget,
         missingness=missingness_summary,
         training_surface_record=training_surface_payload,

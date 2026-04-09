@@ -396,6 +396,9 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     runtime_summary = payload.get("runtime_summary")
     if isinstance(runtime_summary, Mapping):
         lines.append(f"runtime_summary={_format_jsonable(dict(runtime_summary))}")
+    hardware_summary = payload.get("hardware_summary")
+    if isinstance(hardware_summary, Mapping):
+        lines.append(f"hardware_summary={_format_jsonable(dict(hardware_summary))}")
     regime_budget = payload.get("regime_budget")
     if isinstance(regime_budget, Mapping):
         lines.append(f"regime_budget={_format_jsonable(dict(regime_budget))}")

@@ -76,6 +76,8 @@ dimension family:
   `sweep.yaml`
 - canonical benchmark registry:
   `src/tab_foundry/bench/benchmark_run_registry_v1.json`
+- canonical hardware architecture registry:
+  `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
 - research template: `reference/system_delta_campaign_template.md`
@@ -94,6 +96,11 @@ Keep these invariant by default:
   contracts
 
 The benchmark registry is the historical system of record.
+
+The hardware architecture registry is the stateful "preferred architecture for
+this hardware surface" record. It should only be updated from benchmark-backed
+evidence, and it is keyed by both hardware identity and surface identity rather
+than by hardware alone.
 
 Registry-resolved `outputs/staged_ladder/...` artifact paths are convenience
 runtime references for local workspaces. They may be absent in a fresh clone or
@@ -225,6 +232,10 @@ For each queue row:
 1. If `execution_policy=benchmark_full`, register the benchmark-facing run in
    `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its
    `sweep_id`.
+1. If the sweep resolves a preferred architecture for one hardware surface,
+   freeze or update that decision in
+   `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` with
+   `tab-foundry bench registry freeze-hardware-baseline`.
 1. If `execution_policy=benchmark_full`, write `result_card.md`.
 1. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
 1. Update the queue row status, run ids, interpretation, and next action.

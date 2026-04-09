@@ -1187,6 +1187,7 @@ def build_training_telemetry(
     task: str | None = None,
     global_step: int | None = None,
     runtime_summary: Mapping[str, Any] | None = None,
+    hardware_summary: Mapping[str, Any] | None = None,
     regime_budget: Mapping[str, Any] | None = None,
     missingness: Mapping[str, Any] | None = None,
     training_surface_record: Mapping[str, Any] | None = None,
@@ -1236,6 +1237,9 @@ def build_training_telemetry(
         ),
         "runtime_summary": (
             None if runtime_summary is None else _normalize_payload_values(runtime_summary)
+        ),
+        "hardware_summary": (
+            None if hardware_summary is None else _normalize_payload_values(hardware_summary)
         ),
         "regime_budget": (
             None if regime_budget is None else _normalize_payload_values(regime_budget)

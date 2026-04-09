@@ -141,6 +141,15 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     non_train_overhead_seconds: FiniteFloat | None = None
 
 
+class _HardwareSummaryPayload(_RegistryPayloadModel):
+    device_type: StrictStr | None = None
+    raw_device_name: StrictStr | None = None
+    gpu_class: StrictStr | None = None
+    total_device_vram_bytes: StrictInt | None = None
+    vram_class_gb: StrictInt | None = None
+    hardware_profile_id: StrictStr | None = None
+
+
 class _RegimeBudgetPayload(_RegistryPayloadModel):
     tokens_per_step: FiniteFloat | None = None
     tokens_seen: StrictInt | None = None
@@ -207,6 +216,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    hardware_summary: _HardwareSummaryPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
@@ -229,6 +239,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    hardware_summary: _HardwareSummaryPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None

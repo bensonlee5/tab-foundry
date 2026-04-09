@@ -394,6 +394,17 @@ def _runtime_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _hardware_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "device_type": _summary_value(payload, "device_type"),
+        "raw_device_name": _summary_value(payload, "raw_device_name"),
+        "gpu_class": _summary_value(payload, "gpu_class"),
+        "total_device_vram_bytes": _summary_value(payload, "total_device_vram_bytes"),
+        "vram_class_gb": _summary_value(payload, "vram_class_gb"),
+        "hardware_profile_id": _summary_value(payload, "hardware_profile_id"),
+    }
+
+
 def _regime_budget_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "tokens_per_step": _summary_value(payload, "tokens_per_step"),
@@ -435,6 +446,28 @@ def _preferred_regime_budget(
     return None
 
 
+def _preferred_hardware_summary(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("hardware_summary"),
+        Mapping,
+    ):
+        return _hardware_summary_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["hardware_summary"])
+        )
+    if isinstance(telemetry_payload, Mapping) and isinstance(
+        telemetry_payload.get("hardware_summary"),
+        Mapping,
+    ):
+        return _hardware_summary_excerpt(
+            cast(Mapping[str, Any], telemetry_payload["hardware_summary"])
+        )
+    return None
+
+
 def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "run_id": _summary_value(record, "run_id"),
@@ -459,6 +492,11 @@ def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_summary": (
             _runtime_summary_excerpt(cast(Mapping[str, Any], record.get("runtime_summary")))
             if isinstance(record.get("runtime_summary"), Mapping)
+            else None
+        ),
+        "hardware_summary": (
+            _hardware_summary_excerpt(cast(Mapping[str, Any], record.get("hardware_summary")))
+            if isinstance(record.get("hardware_summary"), Mapping)
             else None
         ),
         "regime_budget": (
@@ -567,6 +605,10 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         if comparison_summary is None
         else _comparison_summary_excerpt(comparison_summary),
         "runtime_summary": _preferred_runtime_summary(
+            benchmark_run_record=benchmark_run_record,
+            telemetry_payload=telemetry_payload,
+        ),
+        "hardware_summary": _preferred_hardware_summary(
             benchmark_run_record=benchmark_run_record,
             telemetry_payload=telemetry_payload,
         ),

@@ -33,6 +33,7 @@
 - We prefer shared utility packages over hand-rolled helpers to keep invariants centralized.
 - We don’t probe data “YOLO-style”; we validate boundaries or rely on typed SDKs.
 - We optimize for iteration speed: internal Python APIs and internal config structure may change without backward-compat guarantees.
+- For literature-backed exploration, make sure to **extract relevant formulas and details** from papers, rather than relying on high-level descriptions or code implementations alone, to ensure that the underlying principles are understood and can be applied flexibly.
 
 ## User-Facing Changes and Release Hygiene
 

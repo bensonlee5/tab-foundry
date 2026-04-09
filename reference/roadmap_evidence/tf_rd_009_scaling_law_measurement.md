@@ -210,6 +210,107 @@ the medium classification rung. Any later compute-optimal parameter-token
 frontier belongs to a distinct sweep family designed by
 [#140](https://github.com/bensonlee5/tab-foundry/issues/140).
 
+## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+
+The first joint width-depth family should be derived in two layers: paper
+constraints first, then a repo-local integer-row bridge. The papers constrain
+the family shape, but they do not provide a closed-form integer schedule for
+the sandwich architecture used here.
+
+### Paper Constraints
+
+- *Scaling Laws for Neural Language Models*:
+  - use a smooth, approximately power-law size axis
+  - TF-RD-009 adoption decision: use a log-spaced effective-size family rather
+    than an ad hoc width-depth grid
+- *Training Compute-Optimal Large Language Models*:
+  - under fixed compute, parameters and tokens should scale together
+  - TF-RD-009 adoption decision: keep `token_budget` fixed in
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255), so this
+    branch is explicitly not the compute-optimal frontier
+- *Tensor Programs V (muP)*:
+  - width is the cleanest first transfer axis
+  - TF-RD-009 adoption decision: carry the width-only winner `96x2` forward as
+    the in-family baseline rather than re-deriving the whole family from
+    parameter count alone
+- *Spectral Condition for μP under Width-Depth Scaling*:
+  - once depth moves, width and depth must be co-designed together
+  - TF-RD-009 adoption decision: use a diagonal co-scaling family instead of
+    independent width and depth sweeps
+
+### Repo-Local Size Bridge
+
+For the frozen TF-RD-009 sandwich surface, use the following effective-size
+proxy for the first joint family:
+
+- `S(d, L) = L * d^2`
+- repo-local parameter bridge:
+  - `P_local(d, L) ≈ 89 * L * d^2`
+
+This bridge is empirical, not paper-claimed. It is derived from the benchmarked
+TF-RD-009 evidence already on `main`:
+
+- formal external anchor `60x2`:
+  - `d_icl=60`
+  - `sandwich_layers=2`
+  - `total_params=646,970`
+  - implied coefficient `646,970 / (2 * 60^2) = 89.86`
+- carried width baseline `96x2`:
+  - `d_icl=96`
+  - `sandwich_layers=2`
+  - `total_params=1,618,286`
+  - implied coefficient `1,618,286 / (2 * 96^2) = 87.80`
+- upper width evidence `128x2`:
+  - `d_icl=128`
+  - `sandwich_layers=2`
+  - `total_params=2,849,422`
+  - implied coefficient `2,849,422 / (2 * 128^2) = 86.96`
+
+Rounded to one simple planning constant, the carried surface fits
+`P_local(d, L) ≈ 89 * L * d^2`.
+
+### Exact Diagonal Locked For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+
+Keep the formal external TF-RD-009 anchor at `60x2`, carry `96x2` as the
+in-family baseline, and queue only the new joint rows `88x1` and `104x3`.
+
+Derivation:
+
+- formal external anchor:
+  - `60x2`
+  - anchor-equivalent effective size
+    `S_anchor = 2 * 60^2 = 7200`
+- lower joint row:
+  - choose `L = 1`
+  - solve `d = sqrt(7200 / 1) = 84.9`
+  - round to the nearest practical `d_icl` rung: `88`
+  - resulting row: `88x1`
+  - resulting effective size: `S = 1 * 88^2 = 7744`
+- carried in-family baseline:
+  - `96x2`
+  - resulting effective size: `S = 2 * 96^2 = 18432`
+- upper joint row target:
+  - match the width-only upper evidence scale rather than extrapolating beyond
+    it
+  - width-only upper evidence scale:
+    `S_upper = 2 * 128^2 = 32768`
+  - choose `L = 3`
+  - solve `d = sqrt(32768 / 3) = 104.5`
+  - round to the nearest practical `d_icl` rung: `104`
+  - resulting row: `104x3`
+  - resulting effective size: `S = 3 * 104^2 = 32448`
+
+This keeps the first joint family narrow and interpretable:
+
+- formal external anchor: `60x2`
+- carried baseline: `96x2`
+- new lower joint probe: `88x1`
+- new upper joint probe: `104x3`
+
+It also avoids the unsupported jump to `128x4`. That row is not derived from
+the current evidence bridge, and it extrapolates well past the already-warned
+`128x2` width-only regime.
+
 ## Literature Synthesis
 
 ### Size, Data, And Compute Laws
@@ -433,11 +534,17 @@ Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
   fixed-budget family epic, but treat
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254) as completed
   execution input rather than the final TF-RD-009 law claim
+- keep `60x2` and run id
+  `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+  as the formal external TF-RD-009 anchor for lane-level interpretation; do
+  not rerun it inside the joint family
 - use `d_icl=96` and run id
   `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
   as the carried width baseline for the first joint width-depth family
-- vary `model.d_icl` and `model.sandwich_layers` together inside
-  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- execute the exact diagonal `88x1 -> 96x2 -> 104x3` inside
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), where `88x1`
+  and `104x3` come from the repo-local bridge `S(d, L) = L * d^2` and
+  `P_local(d, L) ≈ 89 * L * d^2`
 - keep `token_budget`, `unique_task_budget`, `curriculum_id`, benchmark slice,
   runtime policy, objective metric, and the non-scaling sandwich knobs fixed
 - keep `sandwich_heads=1` as the carried TF-RD-024 handoff winner
@@ -448,6 +555,39 @@ Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and curriculum or
   repeated-data slice work in
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
+
+## Hardware-Aware Preferred Architecture State
+
+TF-RD-009 should not leave the "best architecture for this hardware surface" as
+an issue comment or W&B memory. It should live in a repo-tracked registry with
+the same discipline as the benchmark and control-baseline registries.
+
+Canonical registry:
+
+- `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`
+
+Selection contract:
+
+- hardware identity:
+  - `gpu_class + vram_class_gb`
+- surface identity:
+  - `track`
+  - `surface_role`
+  - `runtime_profile`
+  - benchmark manifest path and associated surface labels
+- ranking rule:
+  - choose the benchmark-backed row with the best matched-budget objective
+    among `health=ok` runs
+  - record runtime and VRAM as guardrails and rationale fields, not as the
+    ranking metric itself
+
+First TF-RD-009 use:
+
+- create the first entry for the retained `rtx8000_45gb` medium classification
+  surface after the joint width-depth family lands
+- keep the formal external anchor `60x2` for lane interpretation
+- keep the carried baseline `96x2` as the fallback preferred architecture if
+  `104x3` is benchmark-backed but unstable
 
 The issue tree should still preserve these rules:
 

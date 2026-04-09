@@ -978,8 +978,21 @@ Legacy wording note:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
   - execute [#255](https://github.com/bensonlee5/tab-foundry/issues/255) next,
-    using `d_icl=96` as the carried width baseline while introducing controlled
-    `model.sandwich_layers` movement
+    using the theory-constrained diagonal `88x1 -> 96x2 -> 104x3`, with `60x2`
+    retained as the formal external anchor and `96x2` retained as the carried
+    in-family baseline
+  - document the paper-vs-repo derivation explicitly for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
+    use Kaplan to justify a smooth effective-size axis, keep Chinchilla-style
+    parameter-token coupling out of this fixed-budget branch, use μP to justify
+    carrying the width winner `96x2`, use the spectral μP paper to require
+    joint width-depth movement once `sandwich_layers` changes, and derive the
+    integer rows through the repo-local bridge `S(d, L) = L * d^2` with
+    `P_local(d, L) ≈ 89 * L * d^2`
+  - maintain the preferred architecture statefully in
+    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
+    hardware profile plus sweep surface rather than by GitHub issue state; the
+    first TF-RD-009 entry should be the retained `rtx8000_45gb` medium
+    classification surface selected from the healthy benchmark-backed evidence
   - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257), after the
     joint width-depth family is complete

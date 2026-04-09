@@ -162,6 +162,8 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert telemetry["runtime_summary"]["throughput_examples_per_second"] > 0.0
     assert telemetry["runtime_summary"]["throughput_tokens_per_second"] > 0.0
     assert telemetry["runtime_summary"]["non_train_overhead_seconds"] >= 0.0
+    assert telemetry["hardware_summary"]["device_type"] == "cpu"
+    assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"
     assert telemetry["regime_budget"]["tokens_seen"] > 0
     assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
     assert telemetry["regime_budget"]["tokens_per_step"] > 0.0

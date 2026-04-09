@@ -121,5 +121,6 @@ def _training_telemetry_summary_payload(
         "gradient_summary": telemetry_payload.get("gradient_summary"),
         "diagnostics": telemetry_payload.get("diagnostics"),
         "runtime_summary": telemetry_payload.get("runtime_summary"),
+        "hardware_summary": telemetry_payload.get("hardware_summary"),
         "regime_budget": telemetry_payload.get("regime_budget"),
     }

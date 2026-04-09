@@ -3352,6 +3352,164 @@ deltas:
     default_next_action: Execute as the largest width bracket in `tf_rd_009_width_transfer_medium_v1` after the replayed heads1 anchor is promoted.
     applicability_guards: []
 
+  delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=88`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor-equivalent effective size under the repo-local bridge `S(d, L) = L * d^2`.
+    upstream_delta: TF-RD-009 uses the literature-backed rule that width and depth must be co-designed once depth moves, then converts that into an exact repo-local row through the measured sandwich size bridge `P_local(d, L) ≈ 89 * L * d^2`.
+    expected_effect: If the sandwich target can trade one layer for more width while preserving anchor-equivalent effective size, `88x1` should show whether the lower diagonal stays competitive against the carried `96x2` baseline at matched regime budget.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only baseline for `#255`.
+        - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row inside the diagonal family `{88x1, 96x2, 104x3}` rather than as a standalone keep/reject claim.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 88
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 1
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 1 in `tf_rd_009_width_depth_medium_v1` against the carried `96x2` baseline.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=104`, `sandwich_layers=3`, derived by matching the effective size of the width-only upper evidence row `128x2` under the repo-local bridge `S(d, L) = L * d^2`.
+    upstream_delta: TF-RD-009 treats this as the first upper joint probe allowed by the literature-backed width-depth co-design rule without extrapolating to a non-derived `128x4` regime.
+    expected_effect: If the fixed-budget law continues above the carried `96x2` baseline, `104x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after the lower diagonal `88x1` row so the first TF-RD-009 joint family remains an ordered diagonal rather than a grid.
+        - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently replace it with a different upper geometry in the same branch.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 104
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 3
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower diagonal row is benchmark-backed.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

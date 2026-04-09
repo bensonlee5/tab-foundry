@@ -244,6 +244,17 @@ def _runtime_summary_from_telemetry(
     return summary or None
 
 
+def _hardware_summary_from_telemetry(
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(telemetry_payload, Mapping):
+        return None
+    summary = _normalized_optional_mapping(telemetry_payload.get("hardware_summary"))
+    if summary is None:
+        return None
+    return summary or None
+
+
 def _regime_budget_from_artifacts(
     *,
     raw_cfg: Mapping[str, Any],

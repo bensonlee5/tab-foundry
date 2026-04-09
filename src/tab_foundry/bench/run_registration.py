@@ -12,6 +12,7 @@ from tab_foundry.bench.artifacts import load_history, write_json
 from tab_foundry.bench.openml_benchmark import resolve_tab_foundry_run_artifact_paths
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
+    _hardware_summary_from_telemetry,
     _load_training_telemetry,
     _model_payload_from_cfg,
     _regime_budget_from_artifacts,
@@ -378,6 +379,7 @@ def derive_benchmark_run_record(
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
+        "hardware_summary": _hardware_summary_from_telemetry(telemetry_payload),
         "regime_budget": _regime_budget_from_artifacts(
             raw_cfg=raw_cfg,
             history=history,
@@ -485,6 +487,7 @@ def derive_benchmark_run_entry(
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
         "runtime_summary": record.get("runtime_summary"),
+        "hardware_summary": record.get("hardware_summary"),
         "regime_budget": record.get("regime_budget"),
         "model_size": record["model_size"],
         "surface_labels": record.get("surface_labels"),

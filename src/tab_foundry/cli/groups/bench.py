@@ -58,6 +58,11 @@ _REGISTRY_GROUP = LazyGroup(
             attr="COMMAND",
             help="Freeze a control baseline",
         ),
+        "freeze-hardware-baseline": LazyCommandSpec(
+            module="tab_foundry.cli.bench_hardware_architecture_freeze",
+            attr="COMMAND",
+            help="Freeze a hardware architecture baseline",
+        ),
         "register-run": LazyCommandSpec(
             module="tab_foundry.cli.bench_run_registration",
             attr="COMMAND",

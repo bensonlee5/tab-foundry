@@ -301,8 +301,25 @@ tab-foundry bench registry register-run \
   --conclusion "Exact staged repro matches the frozen anchor contract."
 ```
 
+Freeze a preferred architecture for one hardware surface with:
+
+```bash
+tab-foundry bench registry freeze-hardware-baseline \
+  --baseline-id tf_rd_009_rtx8000_45gb_classification_medium_v1 \
+  --preferred-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --formal-anchor-run-id sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2 \
+  --baseline-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --evidence-run-id sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2 \
+  --evidence-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --surface-role classification_scaling_law \
+  --decision keep \
+  --rationale "Retain the healthiest matched-budget architecture for the retained RTX 8000 medium classification surface."
+```
+
 Use `wandb` for live observation and debugging. Use the benchmark registries
-for the repo's historical system of record.
+for the repo's historical system of record. Use the hardware architecture
+registry to persist the preferred architecture for a specific hardware profile
+plus benchmark surface.
 
 ### Benchmark Cost Policy
 
