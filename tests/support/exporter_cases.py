@@ -9,6 +9,7 @@ import typing
 import numpy as np
 from omegaconf import OmegaConf
 import pytest
+from safetensors.torch import load_file
 import torch
 
 import tab_foundry.export.exporter as exporter_module
@@ -839,6 +840,52 @@ def test_reference_loader_round_trip_classification_logits(tmp_path: Path) -> No
 
     assert getattr(loaded.model, "many_class_train_mode") == "path_nll"
     assert loaded.validated.inference_config.many_class_inference_mode == "full_probs"
+    assert src_out.logits is not None
+    assert dst_out.logits is not None
+    assert torch.allclose(src_out.logits, dst_out.logits)
+
+
+def test_export_checkpoint_normalizes_compiled_state_dict_keys(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_compiled_prefix.pt"
+    cfg = _make_config("classification", input_normalization="none")
+    model_cfg = cfg["model"]
+    assert isinstance(model_cfg, dict)
+    torch.manual_seed(11)
+    source_model = _build_model("classification", model_cfg)
+    compiled_state = {
+        f"_orig_mod.{key}": value
+        for key, value in source_model.state_dict().items()
+    }
+    torch.save(
+        {
+            "model": compiled_state,
+            "global_step": 7,
+            "config": cfg,
+        },
+        checkpoint,
+    )
+
+    out_dir = tmp_path / "export_compiled_prefix"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    weights = load_file(str(out_dir / "weights.safetensors"))
+    assert weights
+    assert not any(key.startswith("_orig_mod.") for key in weights)
+
+    loaded = load_export_bundle(out_dir)
+    torch.manual_seed(21)
+    batch = TaskBatch(
+        x_train=torch.randn(8, 5),
+        y_train=torch.randint(0, 3, (8,)),
+        x_test=torch.randn(3, 5),
+        y_test=torch.randint(0, 3, (3,)),
+        metadata={},
+        num_classes=3,
+    )
+    with torch.no_grad():
+        src_out = source_model(batch)
+        dst_out = loaded.model(batch)
+
     assert src_out.logits is not None
     assert dst_out.logits is not None
     assert torch.allclose(src_out.logits, dst_out.logits)

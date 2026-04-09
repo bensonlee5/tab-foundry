@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing note: benchmark run registration now persists optional W&B run
+  identity plus a versioned remote checkpoint artifact ref in the benchmark run
+  registry, and new `tab-foundry dev checkpoint-publish` /
+  `tab-foundry dev checkpoint-resolve` commands now backfill and recover those
+  best-checkpoint artifacts through W&B when local registry paths are missing.
+- User-facing note: export bundles now preserve the full live sandwich contract
+  needed by the TF-RD-009 `d_icl=96` candidate, including
+  `feature_type_conditioning`, likelihood settings, and sandwich summary / pre-
+  attention fields, and compiled `_orig_mod.*` checkpoint keys now normalize on
+  the canonical export path instead of requiring downstream compatibility shims.
+
 ## [0.16.12] - 2026-04-09
 
 ### Changed

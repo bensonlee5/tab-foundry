@@ -14,6 +14,7 @@ from typing import Any, Mapping
 from safetensors.torch import save_file
 import torch
 
+from tab_foundry.checkpoint_state import normalize_checkpoint_model_state_dict
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
 from tab_foundry.preprocessing import (
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
@@ -161,10 +162,11 @@ def _preprocessor_state_v3(cfg: Mapping[str, Any]) -> ExportPreprocessorState:
 
 
 def _normalize_state_dict(state_dict: Any) -> dict[str, torch.Tensor]:
-    if not isinstance(state_dict, dict):
+    if not isinstance(state_dict, Mapping):
         raise RuntimeError("checkpoint['model'] must be a state_dict object")
     out: dict[str, torch.Tensor] = {}
-    for key, value in state_dict.items():
+    normalized = normalize_checkpoint_model_state_dict(state_dict)
+    for key, value in normalized.items():
         if not isinstance(key, str):
             raise RuntimeError("state_dict keys must be strings")
         if not isinstance(value, torch.Tensor):
