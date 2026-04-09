@@ -1,0 +1,70 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_009_anchor_replay_heads1_medium_v1
+parent_sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+status: completed
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_scaling_law
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This one-row TF-RD-009 replay exists because the historical `tf_rd_024_classification_heads_prerow_followup_v1`
+    queue recorded the winning `sandwich_heads=1` result without a benchmark-registry-backed
+    run on `main`.
+  - The locked comparison anchor remains benchmark registry run `sd_tf_rd_024_classification_knob_sweep_v1_anchor_compile_eager_dynamic_v1`
+    on the closed TF-RD-010 multiclass medium manifest.
+  - Re-execute only the carried `sandwich_heads=1` surface so TF-RD-009 starts from
+    a real registry-backed anchor on the exact compile-eager-dynamic TF-RD-022 runtime
+    bundle.
+  - After the replay completes, promote the replayed row inside this package so `tf_rd_009_anchor_replay_heads1_medium_v1`
+    becomes internally coherent and can serve as the parent anchor for the first width-transfer
+    family.
+  dimension_table:
+  - dimension: attention partitioning
+    upstream: TF-RD-024 showed that the lower-head bracket was the strongest remaining
+      topology family on the closed medium contract.
+    anchor: Replay `sandwich_heads=1` at `d_icl=60` while freezing `sandwich_layers=2`,
+      `head_hidden_dim=96`, `sandwich_latents=24`, `sandwich_ff_expansion=2`, `sandwich_summary_tokens_per_axis=3`,
+      `sandwich_self_attention_per_cross=4`, `sandwich_pre_row_attention_layers=1`,
+      `sandwich_pre_column_attention_layers=1`, `sandwich_pre_column_inducing_tokens=16`,
+      and `feature_type_conditioning=film`.
+    interpretation: This replay is not a new topology search; it is a registry repair
+      step that formalizes the carried TF-RD-009 anchor.
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Closed TF-RD-010 curated multiclass medium manifest with `cls_benchmark_linear_multiclass_medium_v1`
+      as the control baseline.
+    interpretation: Keep the medium benchmark surface fixed so the replayed anchor
+      is directly comparable to later TF-RD-009 width rows at matched regime budget.
+  - dimension: training and runtime surface
+    upstream: Not applicable.
+    anchor: Inherited TF-RD-022 compile-eager-dynamic bundle with `task_batch_size=16`,
+      `prior_dump_batch_size=64`, `mixed_precision=bf16`, `trace_activations=false`,
+      `activation_checkpointing=true`, `grad_accum_steps=4`, `grad_clip=0.0`, `compile_model=true`,
+      `compile_backend=eager`, `compile_dynamic=true`, `max_steps=2500`, `optimizer.min_lr=1e-5`,
+      and linear warmup at `lr_max=1e-3`.
+    interpretation: Optimizer and runtime settings stay frozen here; TF-RD-009 width
+      transfer reads the inherited bundle first and treats any retuning as later work.
+anchor_context:
+  run_id: sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

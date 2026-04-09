@@ -141,7 +141,7 @@ summarized later instead of occupying the active queue.
 
 | Rank | Roadmap ID | Item | Status | Milestone |
 | ---- | ---------- | ---- | ------ | --------- |
-| 1 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 1 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | in_progress | Next |
 | 2 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
 | 3 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Later |
 | 4 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | research | Later |
@@ -926,13 +926,18 @@ Legacy wording note:
 
 ### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
-- Status: `planned`
+- Status: `in_progress`
 - Milestone: `Next`
 - Active issue chain: umbrella issue
   [#51](https://github.com/bensonlee5/tab-foundry/issues/51), completed
   design-note child [#229](https://github.com/bensonlee5/tab-foundry/issues/229),
-  then active sweep-program design child
-  [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  completed sweep-program design child
+  [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active fixed-budget
+  family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
+  completed width-transfer child
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), then active
+  joint width-depth child
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
   TF-RD-022 runtime policy, one TF-RD-024 bounded architecture read, and a
@@ -940,56 +945,47 @@ Legacy wording note:
 - Current state:
   - as of April 8, 2026, TF-RD-024 closed via
     [#233](https://github.com/bensonlee5/tab-foundry/issues/233), so TF-RD-009
-    is again the active `Next` lane on the main roadmap path
+    remained the active `Next` lane on the main roadmap path
   - PR [#252](https://github.com/bensonlee5/tab-foundry/pull/252) merged the
     literature-deepened TF-RD-009 design note and closed
-    [#229](https://github.com/bensonlee5/tab-foundry/issues/229), so
-    [#140](https://github.com/bensonlee5/tab-foundry/issues/140) is now the
-    active branch point for execution-tree design
+    [#229](https://github.com/bensonlee5/tab-foundry/issues/229)
+  - PR [#261](https://github.com/bensonlee5/tab-foundry/pull/261) merged the
+    sweep-program design tree and closed
+    [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  - [#254](https://github.com/bensonlee5/tab-foundry/issues/254) replayed the
+    carried `sandwich_heads=1` row because the historical TF-RD-024 follow-up
+    result was queue-only and not benchmark-registry-backed on `main`
+  - the replay established the formal TF-RD-009 anchor at `d_icl=60` with
+    `final_log_loss=0.6620`
+  - the executed medium width family was `{48, 60(anchor), 96, 128}` under the
+    closed TF-RD-010 multiclass contract, the kept TF-RD-022
+    compile-eager-dynamic runtime bundle, and matched regime budget
+  - `d_icl=48` underperformed the anchor at `final_log_loss=0.6939`
+  - `d_icl=96` improved the matched-regime-budget objective to
+    `final_log_loss=0.6331`, improved Brier score and ROC AUC, and kept run
+    health at `ok`
+  - `d_icl=128` achieved the best raw objective result at
+    `final_log_loss=0.6225`, but it also produced a health `warn`,
+    `max_grad_norm=54.6871`, and sharply worse legacy BPC/BPF diagnostics
+  - width-only family conclusion: keep width-only as a live empirical baseline,
+    but carry `d_icl=96` into [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+    as the explicit joint width-depth handoff because it is the cleanest
+    improved row
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
-  - tuning and benchmark-adjacent tooling already exist
-  - scaling-law intent is clear, but scaling on the current simple binary regime
-    risks low-signal conclusions because recent architecture deltas are already
-    close on that surface
-  - training telemetry and benchmark-registry artifacts now preserve resolved
-    sandwich specs, runtime summaries, and regime-budget metadata needed for
-    later scaling comparisons
-  - there is still no canonical scaling artifact path on the closed
-    classification benchmark contract with matched runtime policy and matched
-    regime budget, but the inherited pre-scaling architecture surface is now
-    fixed by TF-RD-024
-  - the next explicit issue order under
-    [#140](https://github.com/bensonlee5/tab-foundry/issues/140) is:
-    [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
-    [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
-    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
-    [#256](https://github.com/bensonlee5/tab-foundry/issues/256),
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
-    [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
-    [#259](https://github.com/bensonlee5/tab-foundry/issues/259), then
-    [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
-  - the keep-current-anchor decision under
-    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the
-    required precursor for this family, but it does not satisfy TF-RD-009 by
-    itself
 - Required work:
-  - keep [#140](https://github.com/bensonlee5/tab-foundry/issues/140) as the
-    authoritative sweep-program design issue, with the execution tree grouped
-    into one fixed-budget family epic and one post-fit frontier plus robustness
-    epic
-  - execute the fixed-budget family in order:
-    [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
-    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
-    [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
-  - keep the post-fit extensions separate from the first fixed-budget law
-    family:
-    [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the
-    compute-optimal parameter-token frontier and
-    [#260](https://github.com/bensonlee5/tab-foundry/issues/260) for
-    curriculum and repeated-data slice robustness
+  - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
+    authoritative fixed-budget family epic
+  - execute [#255](https://github.com/bensonlee5/tab-foundry/issues/255) next,
+    using `d_icl=96` as the carried width baseline while introducing controlled
+    `model.sandwich_layers` movement
+  - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257), after the
+    joint width-depth family is complete
+  - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
+    [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
+    the first fixed-budget law family
   - keep the bounded non-dynamics sandwich knob sweep in TF-RD-024 rather than
     reopening those dimensions inside TF-RD-009
   - treat matched token budget as necessary but not sufficient; compare by

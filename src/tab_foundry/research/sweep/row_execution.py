@@ -58,6 +58,7 @@ DEFAULT_NANOTABPFN_EVAL_EVERY = _DEFAULT_NANOTABPFN_EVAL_EVERY
 DEFAULT_NANOTABPFN_BATCH_SIZE = _DEFAULT_NANOTABPFN_BATCH_SIZE
 DEFAULT_NANOTABPFN_LR = _DEFAULT_NANOTABPFN_LR
 DEFAULT_TRACK = "system_delta_binary_medium_v1"
+CLASSIFICATION_SCALING_LAW_TRACK = "system_delta_classification_medium_v1"
 DEFAULT_BUDGET_CLASS = "short-run"
 DEFAULT_DECISION = "defer"
 DEFAULT_BENCHMARK_CHECKPOINT_SELECTION = "all"
@@ -208,6 +209,18 @@ def _sweep_external_benchmarks(
     )
 
 
+def _registration_track(
+    sweep: SweepPayload | None,
+    *,
+    sweep_meta: Mapping[str, Any],
+) -> str:
+    surface_role_raw = sweep.surface_role if sweep is not None else sweep_meta.get("surface_role")
+    surface_role = str(surface_role_raw).strip().lower() if surface_role_raw is not None else ""
+    if surface_role == "classification_scaling_law":
+        return CLASSIFICATION_SCALING_LAW_TRACK
+    return DEFAULT_TRACK
+
+
 def run_row(
     *,
     sweep_id: str,
@@ -218,7 +231,7 @@ def run_row(
     parent_run_id: str | None,
     queue: Mapping[str, Any],
     prior_dump: Path | None,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     device: str,
     fallback_python: Path,
     decision: str,
@@ -238,6 +251,10 @@ def run_row(
     sweep_semantics = resolve_sweep_semantics(resolved_sweep_meta)
     training_surface = sweep_semantics.training_surface
     external_benchmarks = _sweep_external_benchmarks(sweep, sweep_meta=sweep_meta)
+    if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks and nanotabpfn_root is None:
+        raise RuntimeError(
+            "--nanotabpfn-root is required when sweep external_benchmarks include 'nanotabpfn'"
+        )
     delta_root = (
         paths.repo_root
         / "outputs"
@@ -481,6 +498,7 @@ def run_row(
     reuse_curve_path = None
     reuse_nanotabpfn_error = None
     if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks:
+        assert nanotabpfn_root is not None
         reuse_selection = _curve_reuse.resolve_reusable_nanotabpfn_curve(
             sweep_meta=sweep_meta,
             anchor_run_id=anchor_run_id,
@@ -527,6 +545,7 @@ def run_row(
                 flush=True,
             )
         else:
+            assert nanotabpfn_root is not None
             _ = ensure_nanotabpfn_python(
                 nanotabpfn_root=nanotabpfn_root,
                 fallback_python=fallback_python,
@@ -570,7 +589,7 @@ def run_row(
     parent_sweep_id = sweep.parent_sweep_id if sweep is not None else sweep_meta.get("parent_sweep_id")
     registration = register_benchmark_run(
         run_id=run_id,
-        track=DEFAULT_TRACK,
+        track=_registration_track(sweep, sweep_meta=sweep_meta),
         experiment=training_surface.training_experiment,
         config_profile=training_surface.training_config_profile,
         budget_class=DEFAULT_BUDGET_CLASS,

@@ -347,3 +347,19 @@ sweeps:
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
+  tf_rd_009_anchor_replay_heads1_medium_v1:
+    parent_sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
+    status: completed
+    anchor_run_id: sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_009_width_transfer_medium_v1:
+    parent_sweep_id: tf_rd_009_anchor_replay_heads1_medium_v1
+    status: completed
+    anchor_run_id: sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []

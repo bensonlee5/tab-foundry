@@ -399,9 +399,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     sandwich-specific dagzoo, steering, and runtime decisions
 - Repo-local evidence:
   - tuning and comparison tooling are already present
-  - runtime-summary and regime-budget artifacts now exist, but scaling-law
-    artifacts are not yet canonical on the closed TF-RD-010 classification
-    contract
+  - the replay anchor plus the first width-transfer family now provide
+    canonical TF-RD-009 scaling artifacts on the closed TF-RD-010
+    classification contract under matched regime budget
   - TF-RD-018 is now historical closeout evidence only and is no longer a
     blocker for the first sandwich scaling fit
   - TF-RD-022 now hands back one measured runtime policy plus one kept
@@ -413,6 +413,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the completed TF-RD-021B keep-current-anchor decision under `#184` is the
     precursor for the hybrid sandwich family and does not close TF-RD-009 by
     itself
+  - `d_icl=96` is the chosen `#255` handoff baseline because it improved the
+    matched-regime-budget objective cleanly, while `d_icl=128` remains a
+    higher-risk upper-width result with elevated stability warnings
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

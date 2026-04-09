@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v2`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `aa205566f4cf17475bd41ae0fbb0fcdf26f055162e2bd9f479dfeeb73c84ab11`
+- Resolved queue inputs fingerprint: `643118ad7230c4743ec67fd9617fef25e6382ca3b81e830da5c8d8d1f0bf5e94`
 
 ## Locked Surface
 
@@ -58,9 +58,9 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v2` while validating on the hub-owned medium classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `65061f420f2f22bacbfae3f837d7a71ea20b8fb0d297ebf56cff327c4726299b`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v2'}`
+- Resolved surface fingerprint: `f00d58c1290a2d9183b22ad28dc44a29f60234b104d7cbf0c5e181ea85753b58`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec'}`
 - Parameter adequacy plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest from `openml_classification_medium_v1.json` before execution.
   - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline before treating any row outcome as a promotion or defer decision.
@@ -70,11 +70,12 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - medium and large real-data validation separation via `tab-realdata-hub` manifests
   - class-count coverage, feature-count coverage, missingness policy, and minority-class floor on the validation side
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at \<=1024 total rows per synthetic dataset.
+  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.
   - Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - This row remains the intended TF-RD-010 medium reference for missingness and class-imbalance reporting on the medium validation pool.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
@@ -84,7 +85,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/result_card.md`
-- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1` with final BPC `42342.9611`, delta final BPC `+0.0000`, final BPF `42342.9611`, delta final BPF `+0.0000`, final log loss `1.0897`, delta final log loss `+0.0000`, final Brier score `0.6623`, delta final Brier score `+0.0000`, best ROC AUC `0.4874`, final ROC AUC `0.4780`, final-minus-best `+40609.0700`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.0s`
+- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1` with final BPC `42342.9611`, delta final bpc `+0.0000`, final BPF `42342.9611`, delta final bpf `+0.0000`, final log loss `1.0897`, delta final log loss `+0.0000`, final Brier score `0.6623`, delta final brier score `+0.0000`, final ROC AUC `0.4780`, delta final roc auc `+0.0000`, best ROC AUC `0.4874`, delta final training time `+0.0s`
 
 ### 2. `delta_data_manifest_root_tf_rd_010_missingness_mcar`
 
@@ -99,9 +100,9 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v2`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mcar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `0ddfec95f0b74003bc826f55d8c74642b4c18f845d213d8cd2c94a4b22ed305e`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v2'}`
+- Resolved surface fingerprint: `58f001166619ab5c584e27207b8f7b00d8c97da48716d88e7fe7b9f7e5763809`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
@@ -109,13 +110,14 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Adequacy knobs to dimension explicitly:
   - explicit MCAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at \<=1024 total rows per synthetic dataset.
+  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.
   - Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
@@ -125,7 +127,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_missingness_mcar/result_card.md`
-- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1` with final BPC `44073.4618`, delta final BPC `+1730.5007`, final BPF `44073.4612`, delta final BPF `+1730.5001`, final log loss `1.0993`, delta final log loss `+0.0096`, final Brier score `0.6680`, delta final Brier score `+0.0057`, best ROC AUC `0.4957`, final ROC AUC `0.5077`, final-minus-best `+41757.4350`, delta final ROC AUC `+0.0297`, delta drift `+1148.3650`, delta final training time `-7.9s`
+- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1` with final BPC `44073.4618`, delta final bpc `+1730.5007`, final BPF `44073.4612`, delta final bpf `+1730.5001`, final log loss `1.0993`, delta final log loss `+0.0096`, final Brier score `0.6680`, delta final brier score `+0.0057`, final ROC AUC `0.5077`, delta final roc auc `+0.0297`, best ROC AUC `0.4957`, delta final training time `-7.9s`
 
 ### 3. `delta_data_manifest_root_tf_rd_010_missingness_mar`
 
@@ -140,9 +142,9 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v2`.
 - Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `b44fe74951a9a9a5d4c86540d6444816d87813f4985544e29cc5180e99113841`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v2'}`
+- Resolved surface fingerprint: `ad89ccf3671c4045a6bf6047b13af2beadd6951e98c176f54ab65514d276a99f`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
@@ -150,13 +152,14 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Adequacy knobs to dimension explicitly:
   - explicit MAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at \<=1024 total rows per synthetic dataset.
+  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.
   - Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.
@@ -166,7 +169,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v3/delta_data_manifest_root_tf_rd_010_missingness_mar/result_card.md`
-- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1` with final BPC `33422.2219`, delta final BPC `-8920.7393`, final BPF `33422.2219`, delta final BPF `-8920.7393`, final log loss `1.0972`, delta final log loss `+0.0075`, final Brier score `0.6669`, delta final Brier score `+0.0046`, best ROC AUC `0.4871`, final ROC AUC `0.5093`, final-minus-best `+31165.1757`, delta final ROC AUC `+0.0313`, delta drift `-9443.8943`, delta final training time `+78.7s`
+- Registered run: `sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1` with final BPC `33422.2219`, delta final bpc `-8920.7393`, final BPF `33422.2219`, delta final bpf `-8920.7393`, final log loss `1.0972`, delta final log loss `+0.0075`, final Brier score `0.6669`, delta final brier score `+0.0046`, final ROC AUC `0.5093`, delta final roc auc `+0.0313`, best ROC AUC `0.4871`, delta final training time `+78.7s`
 
 ### 4. `delta_data_manifest_root_tf_rd_010_missingness_mnar`
 
@@ -181,9 +184,9 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v2`.
 - Expected effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_missingness_mnar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `ea0e050b642dd63199dbd8a0fec0f7d61dbccdfa74bb10fe85445a376c126029`
-- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v2'}`
+- Resolved surface fingerprint: `6dc80a19716aa7a3282feedd424ef8f2be997fd2708ce757f68c69ac6710cd9b`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 1, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated skew ladder to TF-RD-017.
@@ -191,13 +194,14 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Adequacy knobs to dimension explicitly:
   - explicit MNAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
 - Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
 - Interpretation status: `pending`
 - Decision: `None`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at \<=1024 total rows per synthetic dataset.
+  - This corpus keeps the same balanced 144-cell DAGZoo front shape but expands it to 159984 corpus manifest records/tasks: 144 invocation cells x 1111 datasets, still capped at <=1024 total rows per synthetic dataset.
   - Trusted executions use a single synthetic epoch only: one pass over 159984 corpus manifest records/tasks at `prior_dump_batch_size=64`, which resolves to `2500` optimizer steps with an allowed short final batch.
   - The medium validation pool follows the same hub bundle policy as the large rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.
   - Historical 400-step TF-RD-010 executions, the completed 3-step reset-contract rerun, and the completed clipped `tf_rd_010_classification_evolution_medium_v2` rerun remain historical context only.

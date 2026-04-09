@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import load_benchmark_run_registry
+from tab_foundry.external_benchmarks import (
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    normalize_external_benchmarks,
+)
 
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from .catalog import load_system_delta_sweep
 from .device_policy import resolve_sweep_execution_device
+from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS
 from .queue_loading import write_resolved_system_delta_queue
 from .paths_io import sweep_queue_path
 from .promote import promote_anchor
@@ -27,6 +33,21 @@ def _optional_non_empty_string(value: Any, *, context: str) -> str | None:
     if not isinstance(value, str) or not value.strip():
         raise RuntimeError(f"{context} must be a non-empty string when provided")
     return str(value).strip()
+
+
+def _resolved_external_benchmarks(sweep_meta: Mapping[str, Any]) -> tuple[str, ...]:
+    raw_values = sweep_meta.get("external_benchmarks")
+    values = (
+        list(cast(Sequence[str], raw_values))
+        if isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes))
+        else None
+    )
+    return normalize_external_benchmarks(
+        values,
+        context="sweep.external_benchmarks",
+        default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
+        allow_empty=True,
+    )
 
 
 def _queue_row_by_order(
@@ -203,7 +224,7 @@ def execute_sweep(
     *,
     sweep_id: str | None,
     prior_dump: Path | None,
-    nanotabpfn_root: Path,
+    nanotabpfn_root: Path | None,
     device: str,
     fallback_python: Path,
     reuse_nanotabpfn_only: bool = False,
@@ -226,6 +247,11 @@ def execute_sweep(
         index_path=resolved_paths.index_path,
         sweeps_root=resolved_paths.sweeps_root,
     )
+    external_benchmarks = _resolved_external_benchmarks(sweep_meta)
+    if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks and nanotabpfn_root is None:
+        raise RuntimeError(
+            "--nanotabpfn-root is required when sweep external_benchmarks include 'nanotabpfn'"
+        )
     resolved_sweep_id = str(sweep_meta["sweep_id"])
     queue_path = sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
     queue = read_yaml(queue_path)

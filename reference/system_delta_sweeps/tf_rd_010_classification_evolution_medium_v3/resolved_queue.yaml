@@ -162,6 +162,7 @@ rows:
   - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration,
     runtime, and stability as guardrails.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_010_classification_evolution_medium_v3_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
   followup_run_ids: []
   decision: defer
@@ -194,6 +195,7 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 125
@@ -238,8 +240,8 @@ rows:
       with the direct multiclass head.
     - Treat `dagzoo` as the synthetic training owner and `tab-realdata-hub` as the
       validation-manifest owner.
-    - Rank rows by `final_bpc_at_matched_regime_budget`, with raw log loss, calibration,
-      runtime, and stability reported as guardrails.
+    - Rank rows by `final_log_loss_at_matched_regime_budget`, with calibration, runtime,
+      stability, and any retained legacy cell-likelihood diagnostics reported as guardrails.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -260,6 +262,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -268,27 +272,14 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 3
         sandwich_self_attention_per_cross: 4
         sandwich_pre_row_attention_layers: 1
@@ -297,8 +288,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -315,6 +304,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -329,6 +320,8 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
+      requested_corpus_ref: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_v2
       corpus_id: tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/corpus_record.json
@@ -379,7 +372,7 @@ rows:
       overrides: {}
     training:
       surface_label: prior_cosine_warmup
-      loss_surface: cell_bpc
+      loss_surface: classification
       apply_schedule: true
       task_batch_size: 1
       optimizer_name: schedulefree_adamw
@@ -396,15 +389,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 53aad74ff3177004351d1a7cbce1163b1ecee5f9dd5d7d4b6a15e66d775090fd
+  resolved_surface_fingerprint: f00d58c1290a2d9183b22ad28dc44a29f60234b104d7cbf0c5e181ea85753b58
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mcar
   status: completed
@@ -467,6 +468,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_010_classification_evolution_medium_v3_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
   followup_run_ids: []
   decision: defer
@@ -499,6 +501,7 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 50
@@ -540,7 +543,7 @@ rows:
   adequacy_knobs:
   - explicit MCAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
   parameter_adequacy_policy:
     default_plan:
     - Compare against the TF-RD-010 control corpus before preferring any missingness
@@ -569,6 +572,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -577,27 +582,14 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 3
         sandwich_self_attention_per_cross: 4
         sandwich_pre_row_attention_layers: 1
@@ -606,8 +598,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -624,6 +614,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -638,6 +630,8 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
+      requested_corpus_ref: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mcar_v2
       corpus_id: tf_rd_010_missingness_mcar_v2__e727a421f6f2
       corpus_record_path: outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/corpus_record.json
@@ -689,7 +683,7 @@ rows:
       overrides: {}
     training:
       surface_label: prior_cosine_warmup
-      loss_surface: cell_bpc
+      loss_surface: classification
       apply_schedule: true
       task_batch_size: 1
       optimizer_name: schedulefree_adamw
@@ -706,15 +700,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: e8f17a3a1f66a542c11b417069a58b9c546f24bd2de37c39a601beefac222b85
+  resolved_surface_fingerprint: 58f001166619ab5c584e27207b8f7b00d8c97da48716d88e7fe7b9f7e5763809
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
   status: completed
@@ -778,6 +780,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: sd_tf_rd_010_classification_evolution_medium_v3_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
   followup_run_ids: []
   decision: defer
@@ -810,6 +813,7 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
     best_step: 125
@@ -851,7 +855,7 @@ rows:
   adequacy_knobs:
   - explicit MAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
   parameter_adequacy_policy:
     default_plan:
     - Compare against the TF-RD-010 control corpus plus the MCAR and MNAR rows before
@@ -880,6 +884,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -888,27 +894,14 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 3
         sandwich_self_attention_per_cross: 4
         sandwich_pre_row_attention_layers: 1
@@ -917,8 +910,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -935,6 +926,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -949,6 +942,8 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
+      requested_corpus_ref: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mar_v2
       corpus_id: tf_rd_010_missingness_mar_v2__decb0ecfb7c7
       corpus_record_path: outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/corpus_record.json
@@ -1000,7 +995,7 @@ rows:
       overrides: {}
     training:
       surface_label: prior_cosine_warmup
-      loss_surface: cell_bpc
+      loss_surface: classification
       apply_schedule: true
       task_batch_size: 1
       optimizer_name: schedulefree_adamw
@@ -1017,15 +1012,23 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: bd095677c7c851a2e5f3644215c06d889b043d2f2b4c134a373e27f1393403c9
+  resolved_surface_fingerprint: ad89ccf3671c4045a6bf6047b13af2beadd6951e98c176f54ab65514d276a99f
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mnar
   status: ready
@@ -1089,6 +1092,7 @@ rows:
   - Use the larger hub-backed validation rung later as the main transfer check for
     any kept missingness front.
   execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
   run_id: null
   followup_run_ids: []
   decision: null
@@ -1118,6 +1122,7 @@ rows:
     `tf_rd_010_classification_evolution_medium_v4` now owns the active batching/LR
     pilot.'
   dynamic_model_overrides: null
+  reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -1136,7 +1141,7 @@ rows:
   adequacy_knobs:
   - explicit MNAR provenance in the dagzoo training front
   - fixed medium and large hub-owned validation manifests
-  - BPC/log-loss ranking under the direct multiclass head contract
+  - natural-log CE/log-loss ranking under the direct multiclass head contract
   parameter_adequacy_policy:
     default_plan:
     - Compare against the TF-RD-010 control corpus plus the MCAR and MAR rows before
@@ -1165,6 +1170,8 @@ rows:
       feature_group_size: 1
       many_class_base: 10
       build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
         input_normalization: train_zscore_clip
         feature_group_size: 1
         many_class_train_mode: path_nll
@@ -1173,27 +1180,14 @@ rows:
         many_class_base: 10
         d_col: 128
         d_icl: 60
-        tfcol_n_heads: 8
-        tfcol_n_layers: 3
-        tfcol_n_inducing: 128
-        tfrow_n_heads: 8
-        tfrow_n_layers: 3
-        tfrow_cls_tokens: 4
-        tfrow_norm: layernorm
-        tficl_n_heads: 8
-        tficl_n_layers: 12
-        tficl_ff_expansion: 2
         head_hidden_dim: 96
-        use_digit_position_embed: true
-        stage: null
-        stage_label: null
-        module_overrides: null
-        staged_dropout: 0.0
         pre_encoder_clip: null
         sandwich_latents: 24
         sandwich_layers: 2
         sandwich_heads: 4
         sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         sandwich_summary_tokens_per_axis: 3
         sandwich_self_attention_per_cross: 4
         sandwich_pre_row_attention_layers: 1
@@ -1202,8 +1196,6 @@ rows:
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
-        task: classification
-        arch: tabfoundry_sandwich
       architecture:
         initial_input_tokens: full_cell_plus_row_col_summary_stream
         initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
@@ -1220,6 +1212,8 @@ rows:
         feature_type_encoding: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
         latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
         layer_semantics: stage0_hybrid_then_summary_repeated_stages
         readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
@@ -1234,6 +1228,8 @@ rows:
       filter_policy: null
       allow_missing_values: true
       corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10
+      requested_corpus_ref: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_missingness_mnar_v2
       corpus_id: tf_rd_010_missingness_mnar_v2__b64d33193f10
       corpus_record_path: outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/corpus_record.json
@@ -1285,7 +1281,7 @@ rows:
       overrides: {}
     training:
       surface_label: prior_cosine_warmup
-      loss_surface: cell_bpc
+      loss_surface: classification
       apply_schedule: true
       task_batch_size: 1
       optimizer_name: schedulefree_adamw
@@ -1302,14 +1298,22 @@ rows:
       seed: 1
       mixed_precision: 'no'
       num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
       grad_clip: 0.0
       grad_accum_steps: 1
+      compile_model: false
+      compile_dynamic: false
+      compile_backend: inductor
+      compile_mode: max-autotune-no-cudagraphs
       trace_activations: false
       activation_checkpointing: false
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 5adb86da27f9dc61c4acb0084d20aa463af79361b351bf6fbac4f76bf82cd96f
+  resolved_surface_fingerprint: 6dc80a19716aa7a3282feedd424ef8f2be997fd2708ce757f68c69ac6710cd9b
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/resolved_queue.yaml
-inputs_fingerprint: ecbafb46745c580935988c0dcdee78a30d7b03d107ac3ee6a08ff2f0a491b35c
+inputs_fingerprint: 643118ad7230c4743ec67fd9617fef25e6382ca3b81e830da5c8d8d1f0bf5e94

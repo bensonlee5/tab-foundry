@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_024_classificati
 - Parent sweep id: `tf_rd_024_classification_knob_sweep_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `f17ed01ad4d49b7eac5312bf06300f073427e3f565c58b100ac3790e4d5ae13a`
+- Resolved queue inputs fingerprint: `367ca82024634deffd03e0c78e0d5006bdb7ddcf4843927ccdbbbfda54411844`
 
 ## Locked Surface
 

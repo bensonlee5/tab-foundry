@@ -7,7 +7,7 @@ It is the design-note contract for
 handoff into the sweep-program design issue
 [#140](https://github.com/bensonlee5/tab-foundry/issues/140).
 
-- Status: `planned`
+- Status: `in_progress`
 - Milestone: `Next`
 - Dependency position: follows
   [TF-RD-010](tf_rd_010_many_class_promotion.md),
@@ -16,9 +16,14 @@ handoff into the sweep-program design issue
   simplified-parent phase of
   [TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion)
 - GitHub issue chain: umbrella
-  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), design-note
-  child [#229](https://github.com/bensonlee5/tab-foundry/issues/229), then
-  sweep-program design child [#140](https://github.com/bensonlee5/tab-foundry/issues/140)
+  [#51](https://github.com/bensonlee5/tab-foundry/issues/51), completed
+  design-note child [#229](https://github.com/bensonlee5/tab-foundry/issues/229),
+  completed sweep-program design child
+  [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active
+  fixed-budget family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
+  completed width-transfer child
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), then active
+  joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 
 ## Core Reading Path
 
@@ -383,44 +388,68 @@ they were already proven on the sandwich classification surface.
   - do not reinterpret historical BPC-era comparisons as the live ranking rule
   - do not reopen TF-RD-021, regression, or missingness as prerequisites
 
-## Handoff To #140
+## Width-Transfer Execution Summary
 
-This note should give
-[#140](https://github.com/bensonlee5/tab-foundry/issues/140) a much sharper
-design input than "run some scaling sweeps."
+The sweep-program design work under
+[#140](https://github.com/bensonlee5/tab-foundry/issues/140) is complete, and
+[#254](https://github.com/bensonlee5/tab-foundry/issues/254) has now executed
+the first fixed-budget TF-RD-009 width-transfer family on the carried medium
+multiclass rung.
 
-The created issue tree under
-[#140](https://github.com/bensonlee5/tab-foundry/issues/140) should preserve
-these separations explicitly and execute them in this order:
+Execution recap:
 
-- fixed-budget classification law family epic
-  [#253](https://github.com/bensonlee5/tab-foundry/issues/253)
-- fixed-budget width transfer on the medium multiclass rung
-  [#254](https://github.com/bensonlee5/tab-foundry/issues/254)
-  - vary `model.d_icl`
-  - keep `model.sandwich_layers` fixed
-  - keep matched `token_budget`, `unique_task_budget`, and `curriculum_id`
-- fixed-budget joint width-depth scaling on the medium multiclass rung
+- replay requirement:
+  - replay the carried TF-RD-024 `sandwich_heads=1` row because the historical
+    follow-up queue result was not benchmark-registry-backed on `main`
+- formal replay anchor:
+  - run id
+    `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+  - `d_icl=60`
+  - `final_log_loss=0.6620`
+- executed width ladder:
+  - `d_icl=48`
+  - `d_icl=60` as the replayed anchor
+  - `d_icl=96`
+  - `d_icl=128`
+- row outcomes at matched regime budget:
+  - `d_icl=48`: `final_log_loss=0.6939`; clear underperformer versus anchor
+  - `d_icl=96`: `final_log_loss=0.6331`; improved log loss, Brier score, and
+    ROC AUC with health verdict `ok`
+  - `d_icl=128`: `final_log_loss=0.6225`; best raw objective result, but it
+    also carried health verdict `warn`, `max_grad_norm=54.6871`, and sharply
+    worse legacy BPC/BPF diagnostics
+- width-only family conclusion:
+  - keep width-only as a live empirical baseline because the upper-width rows
+    clearly beat the replay anchor on the matched-regime-budget objective
+  - carry `d_icl=96` into
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255) as the explicit
+    joint width-depth baseline because it is the cleanest improved row
+  - keep `d_icl=128` only as higher-risk upper-width evidence rather than the
+    default handoff point
+
+Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
+
+- keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
+  fixed-budget family epic, but treat
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254) as completed
+  execution input rather than the final TF-RD-009 law claim
+- use `d_icl=96` and run id
+  `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+  as the carried width baseline for the first joint width-depth family
+- vary `model.d_icl` and `model.sandwich_layers` together inside
   [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
-  - vary `model.d_icl` and `model.sandwich_layers`
-  - treat optimizer transfer as a lower-confidence empirical question
-  - keep non-scaling sandwich knobs frozen
-- fixed-budget law-fit and report synthesis
-  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
-- large-rung validation of the kept fixed-budget law
-  [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
-- post-fit frontier and robustness extensions epic
-  [#258](https://github.com/bensonlee5/tab-foundry/issues/258)
-- compute-optimal parameter-token frontier
-  [#259](https://github.com/bensonlee5/tab-foundry/issues/259)
-  - co-design model size and `regime_budget.token_budget`
-  - do not mix these rows into the fixed-budget law fit
-- curriculum and repeated-data slice robustness
+- keep `token_budget`, `unique_task_budget`, `curriculum_id`, benchmark slice,
+  runtime policy, objective metric, and the non-scaling sandwich knobs fixed
+- keep `sandwich_heads=1` as the carried TF-RD-024 handoff winner
+- treat optimizer transfer as a lower-confidence empirical question that stays
+  secondary to the architecture-law read in
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- keep compute-optimal parameter-token work in
+  [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and curriculum or
+  repeated-data slice work in
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
-  - hold one architecture family fixed
-  - vary `curriculum_id` or repetition regime explicitly
 
-The issue tree should also preserve these rules:
+The issue tree should still preserve these rules:
 
 - dimensions that must be co-designed:
   - `model.d_icl` and `model.sandwich_layers` for architecture laws
