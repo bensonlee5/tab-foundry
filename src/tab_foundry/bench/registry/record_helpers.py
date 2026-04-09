@@ -210,6 +210,30 @@ def _load_training_telemetry(run_dir: Path) -> dict[str, Any] | None:
     return cast(dict[str, Any], payload)
 
 
+def _wandb_identity_from_telemetry(
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, str] | None:
+    if not isinstance(telemetry_payload, Mapping):
+        return None
+    raw_wandb = telemetry_payload.get("wandb")
+    if not isinstance(raw_wandb, Mapping):
+        return None
+    normalized: dict[str, str] = {}
+    for key in ("entity", "project", "run_id", "run_name"):
+        raw_value = raw_wandb.get(key)
+        if raw_value is None:
+            continue
+        if not isinstance(raw_value, str):
+            raise RuntimeError(f"telemetry wandb.{key} must be a string when present")
+        stripped = raw_value.strip()
+        if stripped:
+            normalized[key] = stripped
+    required = ("project", "run_id", "run_name")
+    if any(field not in normalized for field in required):
+        return None
+    return normalized
+
+
 def _normalized_optional_mapping(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None

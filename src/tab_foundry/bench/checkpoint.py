@@ -15,6 +15,7 @@ from tab_foundry.bench.openml_benchmark.metrics import (
     BenchmarkClassificationFold,
     BenchmarkClassificationFoldResult,
 )
+from tab_foundry.checkpoint_state import normalize_checkpoint_model_state_dict
 from tab_foundry.input_normalization import (
     InputNormalizationMode,
     normalize_train_test_arrays,
@@ -40,32 +41,6 @@ from tab_foundry.task_batching import collate_task_batch, move_batch
 from tab_foundry.types import TaskBatch
 
 
-def _normalize_checkpoint_model_state_dict(
-    model_state: Mapping[str, Any],
-    *,
-    checkpoint_path: Path | None = None,
-) -> dict[str, Any]:
-    """Normalize compile-wrapped state-dict keys for benchmark loading."""
-
-    normalized: dict[str, Any] = {}
-    normalized_sources: dict[str, str] = {}
-    for raw_key, value in model_state.items():
-        source_key = str(raw_key)
-        normalized_key = source_key
-        while normalized_key.startswith("_orig_mod."):
-            normalized_key = normalized_key.removeprefix("_orig_mod.")
-        existing_source = normalized_sources.get(normalized_key)
-        if existing_source is not None and existing_source != source_key:
-            location = "" if checkpoint_path is None else f" in checkpoint {checkpoint_path}"
-            raise RuntimeError(
-                "compiled checkpoint state_dict normalization produced duplicate key "
-                f"{normalized_key!r} from {existing_source!r} and {source_key!r}{location}"
-            )
-        normalized[normalized_key] = value
-        normalized_sources[normalized_key] = source_key
-    return normalized
-
-
 def _checkpoint_model_state_dict(
     payload: Mapping[str, Any],
     *,
@@ -74,7 +49,7 @@ def _checkpoint_model_state_dict(
     model_state = payload.get("model")
     if not isinstance(model_state, Mapping):
         return None
-    return _normalize_checkpoint_model_state_dict(model_state, checkpoint_path=checkpoint_path)
+    return normalize_checkpoint_model_state_dict(model_state, checkpoint_path=checkpoint_path)
 
 
 def _checkpoint_model_spec(

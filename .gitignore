@@ -51,6 +51,7 @@ site/site/
 # Runtime outputs / generated data
 /data/
 /outputs/
+/.artifacts/
 /wandb/
 benchmarks/results/
 *.parquet

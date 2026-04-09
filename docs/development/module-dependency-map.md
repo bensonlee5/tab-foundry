@@ -18,6 +18,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.benchmark_registry`,
   `tab_foundry.hardware_architecture_registry`,
   `tab_foundry.hardware_profiles`,
+  `tab_foundry.checkpoint_state`,
   `tab_foundry.input_normalization`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.registry`,
   `tab_foundry.repo_paths`, `tab_foundry.task_batching`,
@@ -46,7 +47,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.task_batching`, `tab_foundry.timestamps`, and
   `tab_foundry.types`.
-- `tab_foundry.export` depends on `tab_foundry.feature_types`,
+- `tab_foundry.export` depends on `tab_foundry.checkpoint_state`,
+  `tab_foundry.feature_types`,
   `tab_foundry.hashing`, `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.feature_types`,
@@ -81,6 +83,7 @@ Observed cycle status:
 - `tab_foundry.config`, `tab_foundry.repo_paths`,
   `tab_foundry.device`, `tab_foundry.registry`,
   `tab_foundry.benchmark_registry`,
+  `tab_foundry.checkpoint_state`,
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.hardware_architecture_registry`,
   `tab_foundry.hardware_profiles`,

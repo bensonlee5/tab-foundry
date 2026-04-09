@@ -11,6 +11,11 @@ import click
 import torch
 
 import tab_foundry.cli.groups.data as data_group
+from tab_foundry.bench.checkpoint_artifacts import (
+    backfill_benchmark_checkpoint_artifact,
+    resolve_benchmark_checkpoint,
+)
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.cli.click_utils import (
     DEVICE_CHOICES,
     GROUP_KWARGS,
@@ -419,6 +424,35 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_checkpoint_resolve_text(payload: Mapping[str, Any]) -> str:
+    lines = [
+        "Checkpoint resolved.",
+        f"run_id={payload['run_id']}",
+        f"source={payload['source']}",
+        f"checkpoint_path={payload['checkpoint_path']}",
+    ]
+    artifact_ref = payload.get("artifact_ref")
+    if artifact_ref is not None:
+        lines.append(f"artifact_ref={artifact_ref}")
+    return "\n".join(lines)
+
+
+def render_checkpoint_publish_text(payload: Mapping[str, Any]) -> str:
+    lines = [
+        "Checkpoint artifact published.",
+        f"run_id={payload['run_id']}",
+        f"checkpoint_path={payload['checkpoint_path']}",
+        f"artifact_ref={payload['artifact_ref']}",
+        f"wandb.project={payload['wandb']['project']}",
+        f"wandb.run_id={payload['wandb']['run_id']}",
+        f"wandb.run_name={payload['wandb']['run_name']}",
+    ]
+    entity = payload["wandb"].get("entity")
+    if entity is not None:
+        lines.append(f"wandb.entity={entity}")
+    return "\n".join(lines)
+
+
 def _run_resolve_config(*, json_mode: bool, overrides: Sequence[str]) -> int:
     payload = resolve_config_payload(overrides)
     emit_payload(payload, json_mode=json_mode, render_text=render_resolve_config_text)
@@ -469,6 +503,58 @@ def _run_health_check(*, run_dir: Path, json_mode: bool) -> int:
 def _run_run_inspect(*, run_dir: Path, json_mode: bool) -> int:
     payload = run_inspect(run_dir)
     emit_payload(payload, json_mode=json_mode, render_text=render_run_inspect_text)
+    return 0
+
+
+def _run_checkpoint_resolve(
+    *,
+    run_id: str,
+    allow_remote: bool,
+    cache_root: Path | None,
+    registry_path: Path,
+    json_mode: bool,
+) -> int:
+    payload = resolve_benchmark_checkpoint(
+        run_id=run_id,
+        registry_path=registry_path,
+        allow_remote=allow_remote,
+        cache_root=cache_root,
+    )
+    emit_payload(
+        {
+            "run_id": payload.run_id,
+            "source": payload.source,
+            "checkpoint_path": str(payload.checkpoint_path),
+            "artifact_ref": payload.artifact_ref,
+        },
+        json_mode=json_mode,
+        render_text=render_checkpoint_resolve_text,
+    )
+    return 0
+
+
+def _run_checkpoint_publish(
+    *,
+    run_id: str,
+    run_dir: Path | None,
+    registry_path: Path,
+    json_mode: bool,
+) -> int:
+    payload = backfill_benchmark_checkpoint_artifact(
+        run_id=run_id,
+        registry_path=registry_path,
+        run_dir_override=run_dir,
+    )
+    emit_payload(
+        {
+            "run_id": payload.run_id,
+            "checkpoint_path": str(payload.checkpoint_path),
+            "artifact_ref": payload.artifact_ref,
+            "wandb": dict(payload.wandb),
+        },
+        json_mode=json_mode,
+        render_text=render_checkpoint_publish_text,
+    )
     return 0
 
 
@@ -573,6 +659,79 @@ def RUN_INSPECT_COMMAND(run_dir: Path, json_mode: bool) -> int:
     return _run_run_inspect(run_dir=run_dir, json_mode=json_mode)
 
 
+@click.command(
+    name="checkpoint-resolve",
+    help="Resolve one benchmark checkpoint locally or recover it from W&B artifacts",
+)
+@click.option("--run-id", required=True, type=str, help="Benchmark registry run id to resolve")
+@click.option(
+    "--registry-path",
+    default=default_benchmark_run_registry_path(),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Path to benchmark_run_registry_v1.json",
+)
+@click.option(
+    "--allow-remote",
+    is_flag=True,
+    help="Allow W&B artifact recovery when the local checkpoint path is missing",
+)
+@click.option(
+    "--cache-root",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional checkpoint cache root; omit to use .artifacts/checkpoints under the repo root",
+)
+@json_output_option
+def CHECKPOINT_RESOLVE_COMMAND(
+    run_id: str,
+    registry_path: Path,
+    allow_remote: bool,
+    cache_root: Path | None,
+    json_mode: bool,
+) -> int:
+    return _run_checkpoint_resolve(
+        run_id=run_id,
+        allow_remote=allow_remote,
+        cache_root=cache_root,
+        registry_path=registry_path,
+        json_mode=json_mode,
+    )
+
+
+@click.command(
+    name="checkpoint-publish",
+    help="Publish one historical benchmark checkpoint to W&B and persist its registry metadata",
+)
+@click.option("--run-id", required=True, type=str, help="Benchmark registry run id to publish")
+@click.option(
+    "--registry-path",
+    default=default_benchmark_run_registry_path(),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Path to benchmark_run_registry_v1.json",
+)
+@click.option(
+    "--run-dir",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional override run directory for telemetry and checkpoint discovery during backfill",
+)
+@json_output_option
+def CHECKPOINT_PUBLISH_COMMAND(
+    run_id: str,
+    registry_path: Path,
+    run_dir: Path | None,
+    json_mode: bool,
+) -> int:
+    return _run_checkpoint_publish(
+        run_id=run_id,
+        run_dir=run_dir,
+        registry_path=registry_path,
+        json_mode=json_mode,
+    )
+
+
 @click.group(name="dev", help="Developer-focused inspection tools", **GROUP_KWARGS)
 def GROUP() -> None:
     """Developer tooling group."""
@@ -584,4 +743,6 @@ GROUP.add_command(DIFF_CONFIG_COMMAND)
 GROUP.add_command(EXPORT_CHECK_COMMAND)
 GROUP.add_command(HEALTH_CHECK_COMMAND)
 GROUP.add_command(RUN_INSPECT_COMMAND)
+GROUP.add_command(CHECKPOINT_RESOLVE_COMMAND)
+GROUP.add_command(CHECKPOINT_PUBLISH_COMMAND)
 GROUP.add_command(data_group.DEV_GROUP)

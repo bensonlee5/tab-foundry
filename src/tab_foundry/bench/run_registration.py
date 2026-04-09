@@ -10,6 +10,10 @@ import torch
 import tab_foundry.benchmark_registry as read_benchmark_registry
 from tab_foundry.bench.artifacts import load_history, write_json
 from tab_foundry.bench.openml_benchmark import resolve_tab_foundry_run_artifact_paths
+from tab_foundry.bench.checkpoint_artifacts import (
+    publish_benchmark_checkpoint_artifact,
+    remote_artifacts_payload,
+)
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
     _hardware_summary_from_telemetry,
@@ -20,6 +24,7 @@ from tab_foundry.bench.registry.record_helpers import (
     _training_diagnostics_from_history,
     _training_surface_record,
     _runtime_summary_from_telemetry,
+    _wandb_identity_from_telemetry,
 )
 from tab_foundry.bench.registry.schema import (
     _BenchmarkRunEntryPayload,
@@ -376,6 +381,7 @@ def derive_benchmark_run_record(
             if training_surface_path is None
             else _normalize_registry_path(training_surface_path),
         },
+        "wandb": _wandb_identity_from_telemetry(telemetry_payload),
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
@@ -484,6 +490,7 @@ def derive_benchmark_run_entry(
         "seed_set": list(record["seed_set"]),
         "benchmark_bundle": record["benchmark_bundle"],
         "artifacts": record["artifacts"],
+        "wandb": record.get("wandb"),
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
         "runtime_summary": record.get("runtime_summary"),
@@ -577,6 +584,22 @@ def register_benchmark_run(
         run_kind=run_kind,
         registry_path=registry_path,
     )
+    telemetry_payload = _load_training_telemetry(run_dir.expanduser().resolve())
+    raw_wandb = None if telemetry_payload is None else telemetry_payload.get("wandb")
+    if isinstance(raw_wandb, Mapping):
+        raw_mode = raw_wandb.get("mode")
+        normalized_mode = None if raw_mode is None else str(raw_mode).strip().lower()
+        if normalized_mode != "offline":
+            published = publish_benchmark_checkpoint_artifact(
+                run_id=run_id,
+                entry=entry,
+                registry_root=repo_root(),
+                run_dir_override=run_dir.expanduser().resolve(),
+            )
+            entry["wandb"] = dict(published.wandb)
+            entry["remote_artifacts"] = remote_artifacts_payload(
+                artifact_ref=published.artifact_ref
+            )
     resolved_registry_path = upsert_benchmark_run_entry(entry, registry_path=registry_path)
     return {
         "registry_path": str(resolved_registry_path),

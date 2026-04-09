@@ -98,6 +98,17 @@ class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
     training_surface_record_path: StrictStr | None = None
 
 
+class _WandbIdentityPayload(_RegistryPayloadModel):
+    entity: StrictStr | None = None
+    project: StrictStr
+    run_id: StrictStr
+    run_name: StrictStr
+
+
+class _RemoteArtifactsPayload(_RegistryPayloadModel):
+    best_checkpoint_wandb_artifact: StrictStr
+
+
 class _TabFoundryMetricsPayload(_RegistryPayloadModel):
     best_step: FiniteFloat | None = None
     best_training_time: FiniteFloat | None = None
@@ -213,6 +224,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     model: _BenchmarkRunModelPayload
     benchmark_bundle: _BenchmarkBundlePayload
     artifacts: _BenchmarkArtifactsPayload
+    wandb: _WandbIdentityPayload | None = None
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
@@ -236,6 +248,8 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     seed_set: list[StrictInt] = Field(min_length=1)
     benchmark_bundle: _BenchmarkBundlePayload
     artifacts: _BenchmarkArtifactsPayload
+    wandb: _WandbIdentityPayload | None = None
+    remote_artifacts: _RemoteArtifactsPayload | None = None
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None

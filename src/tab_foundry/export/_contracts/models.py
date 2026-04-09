@@ -100,6 +100,14 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     sandwich_ff_expansion: StrictInt | None = None
     sandwich_activation: StrictStr | None = None
     sandwich_block_norm: StrictStr | None = None
+    sandwich_summary_tokens_per_axis: StrictInt | None = None
+    sandwich_self_attention_per_cross: StrictInt | None = None
+    sandwich_pre_row_attention_layers: StrictInt | None = None
+    sandwich_pre_column_attention_layers: StrictInt | None = None
+    sandwich_pre_column_inducing_tokens: StrictInt | None = None
+    feature_type_conditioning: StrictStr | None = None
+    floating_likelihood: StrictStr | None = None
+    integer_likelihood: StrictStr | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -326,6 +334,14 @@ class ExportModelSpec:
     sandwich_ff_expansion: int
     sandwich_activation: str
     sandwich_block_norm: str
+    sandwich_summary_tokens_per_axis: int
+    sandwich_self_attention_per_cross: int
+    sandwich_pre_row_attention_layers: int
+    sandwich_pre_column_attention_layers: int
+    sandwich_pre_column_inducing_tokens: int
+    feature_type_conditioning: str
+    floating_likelihood: str
+    integer_likelihood: str
 
     @classmethod
     def from_build_spec(
@@ -369,6 +385,14 @@ class ExportModelSpec:
             sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
             sandwich_activation=str(spec.sandwich_activation),
             sandwich_block_norm=str(spec.sandwich_block_norm),
+            sandwich_summary_tokens_per_axis=int(spec.sandwich_summary_tokens_per_axis),
+            sandwich_self_attention_per_cross=int(spec.sandwich_self_attention_per_cross),
+            sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
+            sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
+            sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
+            feature_type_conditioning=str(spec.feature_type_conditioning),
+            floating_likelihood=str(spec.floating_likelihood),
+            integer_likelihood=str(spec.integer_likelihood),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -409,6 +433,14 @@ class ExportModelSpec:
                 "sandwich_ff_expansion": self.sandwich_ff_expansion,
                 "sandwich_activation": self.sandwich_activation,
                 "sandwich_block_norm": self.sandwich_block_norm,
+                "sandwich_summary_tokens_per_axis": self.sandwich_summary_tokens_per_axis,
+                "sandwich_self_attention_per_cross": self.sandwich_self_attention_per_cross,
+                "sandwich_pre_row_attention_layers": self.sandwich_pre_row_attention_layers,
+                "sandwich_pre_column_attention_layers": self.sandwich_pre_column_attention_layers,
+                "sandwich_pre_column_inducing_tokens": self.sandwich_pre_column_inducing_tokens,
+                "feature_type_conditioning": self.feature_type_conditioning,
+                "floating_likelihood": self.floating_likelihood,
+                "integer_likelihood": self.integer_likelihood,
             },
         )
 
@@ -432,6 +464,14 @@ class ExportModelSpec:
                 "sandwich_ff_expansion",
                 "sandwich_activation",
                 "sandwich_block_norm",
+                "sandwich_summary_tokens_per_axis",
+                "sandwich_self_attention_per_cross",
+                "sandwich_pre_row_attention_layers",
+                "sandwich_pre_column_attention_layers",
+                "sandwich_pre_column_inducing_tokens",
+                "feature_type_conditioning",
+                "floating_likelihood",
+                "integer_likelihood",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -446,6 +486,14 @@ class ExportModelSpec:
                 "sandwich_ff_expansion",
                 "sandwich_activation",
                 "sandwich_block_norm",
+                "sandwich_summary_tokens_per_axis",
+                "sandwich_self_attention_per_cross",
+                "sandwich_pre_row_attention_layers",
+                "sandwich_pre_column_attention_layers",
+                "sandwich_pre_column_inducing_tokens",
+                "feature_type_conditioning",
+                "floating_likelihood",
+                "integer_likelihood",
             ):
                 payload.pop(field_name, None)
             return payload
