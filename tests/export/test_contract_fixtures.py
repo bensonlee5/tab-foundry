@@ -277,6 +277,14 @@ def test_manifest_validation_accepts_tabfoundry_sandwich_fields() -> None:
     model_payload["sandwich_layers"] = 2
     model_payload["sandwich_heads"] = 4
     model_payload["sandwich_ff_expansion"] = 2
+    model_payload["sandwich_summary_tokens_per_axis"] = 3
+    model_payload["sandwich_self_attention_per_cross"] = 4
+    model_payload["sandwich_pre_row_attention_layers"] = 1
+    model_payload["sandwich_pre_column_attention_layers"] = 1
+    model_payload["sandwich_pre_column_inducing_tokens"] = 16
+    model_payload["feature_type_conditioning"] = "film"
+    model_payload["floating_likelihood"] = "single_gaussian"
+    model_payload["integer_likelihood"] = "hybrid_mixture"
     model_payload.pop("stage", None)
     model_payload.pop("stage_label", None)
     model_payload.pop("module_overrides", None)
@@ -299,6 +307,14 @@ def test_manifest_validation_accepts_tabfoundry_sandwich_fields() -> None:
     assert manifest.model.sandwich_layers == 2
     assert manifest.model.sandwich_heads == 4
     assert manifest.model.sandwich_ff_expansion == 2
+    assert manifest.model.sandwich_summary_tokens_per_axis == 3
+    assert manifest.model.sandwich_self_attention_per_cross == 4
+    assert manifest.model.sandwich_pre_row_attention_layers == 1
+    assert manifest.model.sandwich_pre_column_attention_layers == 1
+    assert manifest.model.sandwich_pre_column_inducing_tokens == 16
+    assert manifest.model.feature_type_conditioning == "film"
+    assert manifest.model.floating_likelihood == "single_gaussian"
+    assert manifest.model.integer_likelihood == "hybrid_mixture"
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "tabfoundry_sandwich"
     assert manifest.inference.model_stage is None

@@ -57,6 +57,8 @@ tab-foundry dev forward-check experiment=cls_smoke
 tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
 tab-foundry dev run-inspect --run-dir outputs/cls_smoke
 tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+tab-foundry dev checkpoint-publish --run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+tab-foundry dev checkpoint-resolve --run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 --allow-remote
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
 

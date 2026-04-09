@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 import json
 import math
 from netrc import NetrcParseError, netrc
@@ -11,6 +12,15 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from omegaconf import DictConfig, OmegaConf
+
+
+@dataclass(frozen=True, slots=True)
+class WandbArtifactReference:
+    """One uploaded or downloaded W&B artifact reference."""
+
+    artifact_name: str
+    artifact_ref: str
+    local_path: Path
 
 
 def _normalize_wandb_value(value: object) -> Any | None:
@@ -281,6 +291,142 @@ def finish_wandb_run(run: Any | None) -> None:
     finish = getattr(run, "finish", None)
     if callable(finish):
         finish()
+
+
+def _require_wandb_sdk() -> Any:
+    _ = resolve_wandb_api_key()
+    try:
+        import wandb
+    except Exception as exc:  # pragma: no cover - import failure depends on environment
+        raise RuntimeError("wandb is required for checkpoint artifact publication") from exc
+    return wandb
+
+
+def _normalize_artifact_metadata(payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if payload is None:
+        return None
+    normalized = _normalized_wandb_payload(payload)
+    return normalized or None
+
+
+def publish_checkpoint_artifact(
+    *,
+    checkpoint_path: Path,
+    artifact_name: str,
+    entity: str | None,
+    project: str,
+    run_id: str,
+    run_name: str | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    aliases: list[str] | None = None,
+) -> WandbArtifactReference:
+    """Upload one checkpoint as a versioned W&B artifact and return its exact ref."""
+
+    resolved_checkpoint = checkpoint_path.expanduser().resolve()
+    if not resolved_checkpoint.exists():
+        raise RuntimeError(f"checkpoint path does not exist: {resolved_checkpoint}")
+    normalized_project = str(project).strip()
+    normalized_run_id = str(run_id).strip()
+    normalized_artifact_name = str(artifact_name).strip()
+    if not normalized_project:
+        raise RuntimeError("project must be a non-empty string for W&B checkpoint publication")
+    if not normalized_run_id:
+        raise RuntimeError("run_id must be a non-empty string for W&B checkpoint publication")
+    if not normalized_artifact_name:
+        raise RuntimeError("artifact_name must be a non-empty string for W&B checkpoint publication")
+    normalized_entity = None if entity is None else str(entity).strip() or None
+    normalized_run_name = None if run_name is None else str(run_name).strip() or None
+    normalized_aliases = [str(value).strip() for value in (aliases or ["best"]) if str(value).strip()]
+    if not normalized_aliases:
+        normalized_aliases = ["best"]
+
+    wandb = _require_wandb_sdk()
+    init_kwargs: dict[str, Any] = {
+        "project": normalized_project,
+        "id": normalized_run_id,
+        "resume": "allow",
+        "job_type": "benchmark-checkpoint-publish",
+        "mode": "online",
+    }
+    if normalized_entity is not None:
+        init_kwargs["entity"] = normalized_entity
+    if normalized_run_name is not None:
+        init_kwargs["name"] = normalized_run_name
+
+    run = wandb.init(**init_kwargs)
+    if run is None:  # pragma: no cover - defensive branch
+        raise RuntimeError("wandb.init returned no run while publishing checkpoint artifact")
+    try:
+        artifact = wandb.Artifact(
+            name=normalized_artifact_name,
+            type="model",
+            metadata=_normalize_artifact_metadata(metadata),
+        )
+        artifact.add_file(str(resolved_checkpoint), name="best.pt")
+        logged_artifact = run.log_artifact(artifact, aliases=normalized_aliases)
+        logged_artifact = logged_artifact.wait()
+        resolved_ref = str(getattr(logged_artifact, "name", "")).strip()
+        if resolved_ref:
+            path_parts = [part for part in resolved_ref.split("/") if part]
+            if len(path_parts) == 1:
+                base = f"{normalized_project}/{resolved_ref}"
+                resolved_ref = base if normalized_entity is None else f"{normalized_entity}/{base}"
+            elif len(path_parts) == 2 and normalized_entity is not None:
+                resolved_ref = f"{normalized_entity}/{resolved_ref}"
+        else:
+            base = f"{normalized_project}/{normalized_artifact_name}:{normalized_aliases[0]}"
+            resolved_ref = base if normalized_entity is None else f"{normalized_entity}/{base}"
+        return WandbArtifactReference(
+            artifact_name=normalized_artifact_name,
+            artifact_ref=resolved_ref,
+            local_path=resolved_checkpoint,
+        )
+    finally:
+        finish_wandb_run(run)
+
+
+def download_checkpoint_artifact(
+    *,
+    artifact_ref: str,
+    out_dir: Path,
+) -> WandbArtifactReference:
+    """Download one checkpoint artifact and return the resolved local best.pt path."""
+
+    normalized_ref = str(artifact_ref).strip()
+    if not normalized_ref:
+        raise RuntimeError("artifact_ref must be a non-empty string")
+    resolved_out_dir = out_dir.expanduser().resolve()
+    resolved_out_dir.mkdir(parents=True, exist_ok=True)
+    cached_checkpoint = resolved_out_dir / "best.pt"
+    if cached_checkpoint.exists():
+        return WandbArtifactReference(
+            artifact_name=normalized_ref.split("/")[-1].split(":")[0],
+            artifact_ref=normalized_ref,
+            local_path=cached_checkpoint,
+        )
+
+    wandb = _require_wandb_sdk()
+    try:
+        api = wandb.Api()
+        artifact = api.artifact(normalized_ref)
+        downloaded_root = Path(artifact.download(root=str(resolved_out_dir))).expanduser().resolve()
+    except Exception as exc:  # pragma: no cover - network/API behavior
+        raise RuntimeError(f"failed to download W&B artifact {normalized_ref!r}") from exc
+
+    candidate = downloaded_root / "best.pt"
+    if not candidate.exists():
+        matches = sorted(downloaded_root.rglob("best.pt"))
+        if len(matches) != 1:
+            raise RuntimeError(
+                "downloaded W&B artifact does not contain exactly one best.pt: "
+                f"artifact_ref={normalized_ref} download_root={downloaded_root}"
+            )
+        candidate = matches[0]
+    return WandbArtifactReference(
+        artifact_name=normalized_ref.split("/")[-1].split(":")[0],
+        artifact_ref=normalized_ref,
+        local_path=candidate.resolve(),
+    )
 
 
 def _telemetry_wandb_payload(telemetry_path: Path) -> dict[str, Any] | None:
