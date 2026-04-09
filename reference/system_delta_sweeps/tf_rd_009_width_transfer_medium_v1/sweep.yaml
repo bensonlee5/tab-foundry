@@ -17,7 +17,7 @@ upstream_reference:
 anchor_surface:
   notes:
   - The locked anchor is benchmark registry run `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
-    on manifest `/workspace/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    on local benchmark-manifest id `openml_classification_medium_v1`
     sourced from `nanotabpfn_openml_classification_medium` (242 tasks).
   - The anchor model surface is taken from the registry-resolved staged selection
     labeled `tabfoundry_sandwich`.
@@ -68,7 +68,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark manifest `/workspace/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    anchor: Local benchmark-manifest id `openml_classification_medium_v1`
       sourced from `nanotabpfn_openml_classification_medium` (242 tasks (missing values
       permitted)) with data surface label `tf_rd_010_dagzoo_medium_control`.
     interpretation: Manifest and training-data changes are first-class sweep rows
