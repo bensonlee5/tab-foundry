@@ -8,7 +8,7 @@ from typing import Any
 import pyarrow.parquet as pq
 import pytest
 
-from tab_realdata_hub.dagzoo_handoff import (
+from tab_foundry.data.dagzoo_handoff_support import (
     DAGZOO_HANDOFF_SCHEMA_NAME,
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,
@@ -146,10 +146,15 @@ def _write_filter_outputs(
     )
 
 
-def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path) -> None:
+@pytest.mark.parametrize("schema_version", [4, 5])
+def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(
+    tmp_path: Path,
+    schema_version: int,
+) -> None:
     handoff_manifest_path = _write_handoff_manifest(
         tmp_path / "handoff",
         generated_dir_rel="nested/generated",
+        schema_version=schema_version,
     )
 
     info = load_dagzoo_handoff_info(handoff_manifest_path)
@@ -161,6 +166,31 @@ def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path
     assert info.to_summary_dict()["generated_dir"] == str(
         (handoff_manifest_path.parent / "nested" / "generated").resolve()
     )
+
+
+def test_load_dagzoo_handoff_info_preserves_schema_v5_provenance(tmp_path: Path) -> None:
+    handoff_manifest_path = _write_handoff_manifest(
+        tmp_path / "handoff",
+        schema_version=5,
+    )
+    payload = json.loads(handoff_manifest_path.read_text(encoding="utf-8"))
+    payload["provenance"] = {
+        "target_derivation": "tabiclv2_latent_node",
+        "target_relevant_feature_count_range": {"min": 5, "max": 6},
+        "target_relevant_feature_fraction_range": {"min": 0.5, "max": 0.75},
+    }
+    handoff_manifest_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    info = load_dagzoo_handoff_info(handoff_manifest_path)
+
+    assert info.provenance == {
+        "target_derivation": "tabiclv2_latent_node",
+        "target_relevant_feature_count_range": {"min": 5, "max": 6},
+        "target_relevant_feature_fraction_range": {"min": 0.5, "max": 0.75},
+    }
 
 
 @pytest.mark.parametrize(

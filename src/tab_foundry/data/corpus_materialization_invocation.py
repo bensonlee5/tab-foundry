@@ -16,7 +16,7 @@ import time
 from typing import Any, Mapping, Sequence, cast
 import yaml
 
-from tab_realdata_hub.dagzoo_handoff import (
+from .dagzoo_handoff_support import (
     DagzooGeneratedIdentityAccumulator,
     DagzooHandoffInfo,
     load_dagzoo_handoff_info,

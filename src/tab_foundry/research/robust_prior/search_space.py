@@ -108,26 +108,21 @@ _MECHANISM_PRESETS: dict[str, dict[str, Any]] = {
     },
 }
 _SHIFT_PRESETS: dict[str, dict[str, Any]] = {
-    "none": {"enabled": False, "graph_scale": 0.0, "variance_scale": 0.0, "mechanism_scale": 0.0},
+    "none": {"enabled": False, "mode": "off"},
     "noise_drift": {
         "enabled": True,
         "mode": "noise_drift",
-        "graph_scale": 0.0,
         "variance_scale": 0.35,
-        "mechanism_scale": 0.0,
     },
     "mixed": {
         "enabled": True,
         "mode": "mixed",
         "graph_scale": 0.35,
         "variance_scale": 0.35,
-        "mechanism_scale": 0.0,
     },
     "mechanism_drift": {
         "enabled": True,
         "mode": "mechanism_drift",
-        "graph_scale": 0.0,
-        "variance_scale": 0.0,
         "mechanism_scale": 0.35,
     },
 }

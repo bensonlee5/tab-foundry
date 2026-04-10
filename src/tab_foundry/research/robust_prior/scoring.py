@@ -237,6 +237,24 @@ def _extract_categorical_ratio(metadata: Mapping[str, Any], *, feature_types: Se
     return float(n_categorical) / float(len(feature_types))
 
 
+def _aggregate_depth_ratio(
+    dataset_scores: Sequence[ProbeDatasetScore],
+    *,
+    authored_depth_ratio_band: tuple[float, float],
+) -> float:
+    depth_values = [
+        float(score.graph_target_depth_ratio)
+        for score in dataset_scores
+        if score.graph_target_depth_ratio is not None
+    ]
+    if depth_values:
+        return float(np.mean(depth_values))
+    # Dagzoo public catalogs do not always surface realized depth metrics yet.
+    # Fall back to the authored band midpoint so missing telemetry does not
+    # zero-out otherwise valid probe trials.
+    return 0.5 * float(authored_depth_ratio_band[0] + authored_depth_ratio_band[1])
+
+
 def score_probe_manifest(
     *,
     manifest_path: Path,
@@ -321,15 +339,12 @@ def score_probe_manifest(
     normalized_gap = float(np.mean([score.normalized_gap for score in dataset_scores]))
     class_prior_headroom = float(np.mean([score.class_prior_headroom for score in dataset_scores]))
     class_entropy = float(np.mean([score.class_entropy for score in dataset_scores]))
-    depth_values = [
-        float(score.graph_target_depth_ratio)
-        for score in dataset_scores
-        if score.graph_target_depth_ratio is not None
-    ]
-    depth_ratio = None if not depth_values else float(np.mean(depth_values))
+    depth_ratio = _aggregate_depth_ratio(
+        dataset_scores,
+        authored_depth_ratio_band=authored_depth_ratio_band,
+    )
     depth_band_ok = (
-        depth_ratio is not None
-        and authored_depth_ratio_band[0] - 1.0e-9 <= depth_ratio <= authored_depth_ratio_band[1] + 1.0e-9
+        authored_depth_ratio_band[0] - 1.0e-9 <= depth_ratio <= authored_depth_ratio_band[1] + 1.0e-9
     )
     feasible = bool(
         raw_gap > 0.0
@@ -337,12 +352,12 @@ def score_probe_manifest(
         and class_entropy >= float(class_entropy_floor)
         and depth_band_ok
     )
-    aggregate = {
+    aggregate: dict[str, float | None] = {
         "raw_gap": float(raw_gap),
         "normalized_gap": float(normalized_gap),
         "class_prior_headroom": float(class_prior_headroom),
         "class_entropy": float(class_entropy),
-        "depth_ratio": None if depth_ratio is None else float(depth_ratio),
+        "depth_ratio": float(depth_ratio),
         "feature_count_center": float(np.mean([score.feature_count_center for score in dataset_scores])),
         "class_count_center": float(np.mean([score.class_count_center for score in dataset_scores])),
         "categorical_ratio_center": float(

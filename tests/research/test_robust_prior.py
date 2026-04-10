@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 from typing import Any
 
 from click.testing import CliRunner
@@ -11,7 +12,12 @@ import tab_foundry.cli as cli_module
 import tab_foundry.cli.research_robust_prior as robust_prior_cli_module
 import tab_foundry.research.robust_prior.pilot as pilot_module
 from tab_foundry.research.robust_prior.proposer import sample_proposal
-from tab_foundry.research.robust_prior.scoring import ProbeDatasetScore, ProbeTrialScore, compute_gap_metrics
+from tab_foundry.research.robust_prior.scoring import (
+    ProbeDatasetScore,
+    ProbeTrialScore,
+    _aggregate_depth_ratio,
+    compute_gap_metrics,
+)
 from tab_foundry.research.robust_prior.search_space import RobustPriorProposal, robust_prior_search_space_v1
 from tab_foundry.types import TrainResult
 
@@ -60,6 +66,114 @@ def test_compute_gap_metrics_matches_hand_worked_example() -> None:
     assert metrics["raw_gap"] == pytest.approx(0.30)
     assert metrics["class_prior_headroom"] == pytest.approx(0.60)
     assert metrics["normalized_gap"] == pytest.approx(0.50)
+
+
+def test_aggregate_depth_ratio_falls_back_to_authored_band_midpoint_when_missing() -> None:
+    dataset_score = ProbeDatasetScore(
+        dataset_id="dataset_000001",
+        tfm_log_loss=0.80,
+        class_prior_log_loss=1.20,
+        baseline_log_losses={"catboost": 0.50},
+        raw_gap=0.30,
+        normalized_gap=0.43,
+        class_prior_headroom=0.70,
+        class_entropy=0.9,
+        graph_target_depth_ratio=None,
+        feature_count_center=32.0,
+        class_count_center=4.0,
+        categorical_ratio_center=0.4,
+    )
+
+    depth_ratio = _aggregate_depth_ratio(
+        (dataset_score,),
+        authored_depth_ratio_band=(0.35, 0.55),
+    )
+
+    assert depth_ratio == pytest.approx(0.45)
+
+
+def test_configure_round_training_cfg_inherits_anchor_model_surface(tmp_path: Path) -> None:
+    anchor_checkpoint = tmp_path / "anchor" / "checkpoints" / "best.pt"
+    anchor_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": {}}, anchor_checkpoint)
+    surface_record_path = anchor_checkpoint.parent.parent / "training_surface_record.json"
+    surface_record_path.write_text(
+        """
+{
+  "model": {
+    "arch": "tabfoundry_sandwich",
+    "build_spec": {
+      "arch": "tabfoundry_sandwich",
+      "task": "classification",
+      "d_col": 128,
+      "d_icl": 60,
+      "sandwich_layers": 2,
+      "sandwich_heads": 1,
+      "sandwich_latents": 24,
+      "sandwich_ff_expansion": 2,
+      "sandwich_summary_tokens_per_axis": 3,
+      "sandwich_self_attention_per_cross": 4,
+      "sandwich_pre_row_attention_layers": 1,
+      "sandwich_pre_column_attention_layers": 1,
+      "sandwich_pre_column_inducing_tokens": 16,
+      "feature_group_size": 1,
+      "feature_type_conditioning": "film",
+      "sandwich_activation": "gelu",
+      "sandwich_block_norm": "layernorm",
+      "input_normalization": "train_zscore_clip",
+      "floating_likelihood": "single_gaussian",
+      "integer_likelihood": "hybrid_mixture",
+      "head_hidden_dim": 96,
+      "many_class_base": 10
+    }
+  }
+}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    study_path = tmp_path / "pilot.yaml"
+    benchmark_manifest = tmp_path / "bench" / "manifest.parquet"
+    benchmark_manifest.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_manifest.write_bytes(b"manifest")
+    study_path.write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-robust-prior-v1",
+                "study_id: smoke",
+                "description: smoke",
+                f"output_root: {tmp_path / 'outputs' / 'robust_prior'}",
+                f"anchor_checkpoint_path: {anchor_checkpoint}",
+                "base_experiment: cls_benchmark_staged_corpus",
+                "control_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5",
+                f"benchmark_manifest_path: {benchmark_manifest}",
+                "outer_rounds: 1",
+                "trials_per_round: 1",
+                "probe_datasets_per_trial: 1",
+                "topk_training_candidates: 1",
+                "round_train_datasets: 1",
+                "train_steps_per_round: 1",
+                "matched_control: true",
+                "logging_use_wandb: false",
+                "benchmark_device: cpu",
+                "benchmark_checkpoint_selection: all",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    config = pilot_module.load_robust_prior_study_config(study_path=study_path)
+
+    cfg = pilot_module._configure_round_training_cfg(
+        config=config,
+        output_dir=tmp_path / "run",
+        corpus_ref="corpus/ref",
+        initial_checkpoint_path=anchor_checkpoint,
+    )
+
+    assert cfg.model.arch == "tabfoundry_sandwich"
+    assert cfg.model.sandwich_summary_tokens_per_axis == 3
+    assert cfg.runtime.device == "cpu"
 
 
 def test_sample_proposal_applies_entropy_floor_and_uniform_exploration() -> None:
@@ -176,6 +290,7 @@ def test_run_robust_prior_pilot_emits_round_artifacts_and_beats_control(
     def _fake_train(cfg):
         nonlocal train_calls
         train_calls += 1
+        assert cfg.runtime.device == "cpu"
         output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
         checkpoint = output_dir / "checkpoints" / "best.pt"
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
@@ -220,6 +335,282 @@ def test_run_robust_prior_pilot_emits_round_artifacts_and_beats_control(
     assert inspect_payload["final_decision"] == "keep"
     assert (output_root / "summary.json").exists()
     assert benchmark_calls
+
+
+def test_run_robust_prior_pilot_marks_bad_probe_trials_infeasible_and_continues(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    study_path = tmp_path / "pilot.yaml"
+    anchor_checkpoint = tmp_path / "anchor" / "checkpoints" / "best.pt"
+    anchor_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": {}}, anchor_checkpoint)
+    benchmark_manifest = tmp_path / "bench" / "manifest.parquet"
+    benchmark_manifest.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_manifest.write_bytes(b"manifest")
+    output_root = tmp_path / "outputs" / "robust_prior"
+    study_path.write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-robust-prior-v1",
+                "study_id: smoke",
+                "description: smoke",
+                f"output_root: {output_root}",
+                f"anchor_checkpoint_path: {anchor_checkpoint}",
+                "base_experiment: cls_benchmark_staged_corpus",
+                "control_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5",
+                f"benchmark_manifest_path: {benchmark_manifest}",
+                "outer_rounds: 1",
+                "trials_per_round: 3",
+                "probe_datasets_per_trial: 2",
+                "topk_training_candidates: 1",
+                "round_train_datasets: 8",
+                "train_steps_per_round: 2",
+                "matched_control: true",
+                "logging_use_wandb: false",
+                "benchmark_device: cpu",
+                "benchmark_checkpoint_selection: all",
+                "guardrails:",
+                "  class_entropy_floor: 0.1",
+                "  min_class_prior_headroom: 0.01",
+                "  depth_ratio_tolerance: 0.2",
+                "  diversity_min_distance: 0.0",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    probe_calls = 0
+
+    def _fake_materialize_corpus_recipe_object(*, recipe, **_kwargs):
+        nonlocal probe_calls
+        if "_probe_" in recipe.recipe_id:
+            probe_calls += 1
+            if probe_calls == 1:
+                raise RuntimeError("bad proposal")
+        manifest_path = tmp_path / f"{recipe.recipe_id}.parquet"
+        manifest_path.write_bytes(b"manifest")
+        return {
+            "corpus_ref": f"{recipe.recipe_id}/materialized",
+            "corpus_record_path": str(tmp_path / f"{recipe.recipe_id}.json"),
+            "manifest": {"manifest_path": str(manifest_path)},
+        }
+
+    def _fake_score_probe_manifest(**_kwargs):
+        dataset_score = ProbeDatasetScore(
+            dataset_id="dataset_000001",
+            tfm_log_loss=0.80,
+            class_prior_log_loss=1.20,
+            baseline_log_losses={"catboost": 0.50},
+            raw_gap=0.30,
+            normalized_gap=0.43,
+            class_prior_headroom=0.70,
+            class_entropy=0.9,
+            graph_target_depth_ratio=0.55,
+            feature_count_center=32.0,
+            class_count_center=4.0,
+            categorical_ratio_center=0.4,
+        )
+        return ProbeTrialScore(
+            dataset_scores=(dataset_score,),
+            aggregate={
+                "raw_gap": 0.30,
+                "normalized_gap": 0.43,
+                "class_prior_headroom": 0.70,
+                "class_entropy": 0.9,
+                "depth_ratio": 0.55,
+                "feature_count_center": 32.0,
+                "class_count_center": 4.0,
+                "categorical_ratio_center": 0.4,
+            },
+            feasible=True,
+        )
+
+    def _fake_train(cfg):
+        assert cfg.runtime.device == "cpu"
+        output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
+        checkpoint = output_dir / "checkpoints" / "best.pt"
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"model": {}}, checkpoint)
+        (output_dir / "training_surface_record.json").write_text("{}", encoding="utf-8")
+        return TrainResult(
+            output_dir=output_dir,
+            best_checkpoint=checkpoint,
+            latest_checkpoint=checkpoint,
+            global_step=int(cfg.runtime.max_steps),
+            metrics={},
+        )
+
+    def _fake_benchmark_summary_for_run(*, run_dir: Path, **_kwargs):
+        is_control = "control_train" in str(run_dir)
+        return {
+            "objective_metric": "final_log_loss_at_matched_regime_budget",
+            "final_log_loss": 0.48 if is_control else 0.42,
+            "best_log_loss": 0.46 if is_control else 0.41,
+            "best_to_final_log_loss_delta": 0.02 if is_control else 0.01,
+            "curve_records": [{"step": 2, "log_loss": 0.48 if is_control else 0.42}],
+        }
+
+    monkeypatch.setattr(pilot_module, "materialize_corpus_recipe_object", _fake_materialize_corpus_recipe_object)
+    monkeypatch.setattr(pilot_module, "score_probe_manifest", _fake_score_probe_manifest)
+    monkeypatch.setattr(pilot_module, "train", _fake_train)
+    monkeypatch.setattr(pilot_module, "_benchmark_summary_for_run", _fake_benchmark_summary_for_run)
+
+    payload = pilot_module.run_robust_prior_pilot(
+        study_path=study_path,
+        dagzoo_root=tmp_path / "dagzoo",
+    )
+
+    round_summary = payload["round_summaries"][0]
+    failed_trial = next(
+        trial
+        for trial in round_summary["trial_results"]
+        if not bool(trial.get("feasible", False))
+    )
+    assert payload["final_decision"] == "keep"
+    assert failed_trial["error"]["type"] == "RuntimeError"
+    assert failed_trial["error"]["message"] == "bad proposal"
+
+
+def test_run_robust_prior_pilot_drops_unmaterializable_round_candidate_and_continues(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    study_path = tmp_path / "pilot.yaml"
+    anchor_checkpoint = tmp_path / "anchor" / "checkpoints" / "best.pt"
+    anchor_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": {}}, anchor_checkpoint)
+    benchmark_manifest = tmp_path / "bench" / "manifest.parquet"
+    benchmark_manifest.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_manifest.write_bytes(b"manifest")
+    output_root = tmp_path / "outputs" / "robust_prior"
+    study_path.write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-robust-prior-v1",
+                "study_id: smoke",
+                "description: smoke",
+                f"output_root: {output_root}",
+                f"anchor_checkpoint_path: {anchor_checkpoint}",
+                "base_experiment: cls_benchmark_staged_corpus",
+                "control_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5",
+                f"benchmark_manifest_path: {benchmark_manifest}",
+                "outer_rounds: 1",
+                "trials_per_round: 3",
+                "probe_datasets_per_trial: 2",
+                "topk_training_candidates: 2",
+                "round_train_datasets: 8",
+                "train_steps_per_round: 2",
+                "matched_control: true",
+                "logging_use_wandb: false",
+                "benchmark_device: cpu",
+                "benchmark_checkpoint_selection: all",
+                "guardrails:",
+                "  class_entropy_floor: 0.1",
+                "  min_class_prior_headroom: 0.01",
+                "  depth_ratio_tolerance: 0.2",
+                "  diversity_min_distance: 0.0",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    adversarial_calls = 0
+
+    def _fake_materialize_corpus_recipe_object(*, recipe, **_kwargs):
+        nonlocal adversarial_calls
+        if recipe.recipe_id.endswith("_adversarial"):
+            adversarial_calls += 1
+            if adversarial_calls == 1:
+                raise subprocess.CalledProcessError(
+                    1,
+                    [
+                        "dagzoo",
+                        "generate",
+                        "--config",
+                        str(tmp_path / "invocations" / "candidate_01" / "dagzoo_config.yaml"),
+                    ],
+                )
+        manifest_path = tmp_path / f"{recipe.recipe_id}.parquet"
+        manifest_path.write_bytes(b"manifest")
+        return {
+            "corpus_ref": f"{recipe.recipe_id}/materialized",
+            "corpus_record_path": str(tmp_path / f"{recipe.recipe_id}.json"),
+            "manifest": {"manifest_path": str(manifest_path)},
+        }
+
+    def _fake_score_probe_manifest(**_kwargs):
+        dataset_score = ProbeDatasetScore(
+            dataset_id="dataset_000001",
+            tfm_log_loss=0.80,
+            class_prior_log_loss=1.20,
+            baseline_log_losses={"catboost": 0.50},
+            raw_gap=0.30,
+            normalized_gap=0.43,
+            class_prior_headroom=0.70,
+            class_entropy=0.9,
+            graph_target_depth_ratio=0.45,
+            feature_count_center=32.0,
+            class_count_center=4.0,
+            categorical_ratio_center=0.4,
+        )
+        return ProbeTrialScore(
+            dataset_scores=(dataset_score,),
+            aggregate={
+                "raw_gap": 0.30,
+                "normalized_gap": 0.43,
+                "class_prior_headroom": 0.70,
+                "class_entropy": 0.9,
+                "depth_ratio": 0.45,
+                "feature_count_center": 32.0,
+                "class_count_center": 4.0,
+                "categorical_ratio_center": 0.4,
+            },
+            feasible=True,
+        )
+
+    def _fake_train(cfg):
+        assert cfg.runtime.device == "cpu"
+        output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
+        checkpoint = output_dir / "checkpoints" / "best.pt"
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"model": {}}, checkpoint)
+        (output_dir / "training_surface_record.json").write_text("{}", encoding="utf-8")
+        return TrainResult(
+            output_dir=output_dir,
+            best_checkpoint=checkpoint,
+            latest_checkpoint=checkpoint,
+            global_step=int(cfg.runtime.max_steps),
+            metrics={},
+        )
+
+    def _fake_benchmark_summary_for_run(*, run_dir: Path, **_kwargs):
+        is_control = "control_train" in str(run_dir)
+        return {
+            "objective_metric": "final_log_loss_at_matched_regime_budget",
+            "final_log_loss": 0.48 if is_control else 0.42,
+            "best_log_loss": 0.46 if is_control else 0.41,
+            "best_to_final_log_loss_delta": 0.02 if is_control else 0.01,
+            "curve_records": [{"step": 2, "log_loss": 0.48 if is_control else 0.42}],
+        }
+
+    monkeypatch.setattr(pilot_module, "materialize_corpus_recipe_object", _fake_materialize_corpus_recipe_object)
+    monkeypatch.setattr(pilot_module, "score_probe_manifest", _fake_score_probe_manifest)
+    monkeypatch.setattr(pilot_module, "train", _fake_train)
+    monkeypatch.setattr(pilot_module, "_benchmark_summary_for_run", _fake_benchmark_summary_for_run)
+
+    payload = pilot_module.run_robust_prior_pilot(
+        study_path=study_path,
+        dagzoo_root=tmp_path / "dagzoo",
+    )
+
+    round_summary = payload["round_summaries"][0]
+    assert payload["final_decision"] == "keep"
+    assert adversarial_calls == 2
+    assert round_summary["selected_candidate_count"] == 1
+    assert round_summary["candidate_materialization_failures"][0]["failed_invocation_id"] == "candidate_01"
 
 
 def test_research_robust_prior_cli_dispatches_to_run_and_inspect(

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   state, and the packaged CLI now exposes
   `tab-foundry research robust-prior run|inspect` plus the first
   adversarial Dagzoo prior-optimization pilot surface.
+- User-facing note: robust-prior smoke executions now accept Dagzoo handoff
+  schema v5, fall back to authored depth bands when realized depth telemetry is
+  absent, and continue cleanly when probe proposals or selected adversarial
+  candidates are structurally infeasible instead of aborting the pilot.
 - User-facing note: benchmark run registration now persists optional W&B run
   identity plus a versioned remote checkpoint artifact ref in the benchmark run
   registry, and new `tab-foundry dev checkpoint-publish` /

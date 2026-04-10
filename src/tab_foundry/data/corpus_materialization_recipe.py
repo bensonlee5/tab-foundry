@@ -9,12 +9,12 @@ import shutil
 import time
 from typing import Any, cast
 
-from tab_realdata_hub.dagzoo_handoff import load_dagzoo_handoff_info
 from tab_realdata_hub.manifest import build_manifest
 
 from tab_foundry.hashing import sha256_path
 from tab_foundry.timestamps import utc_now
 
+from .dagzoo_handoff_support import load_dagzoo_handoff_info
 from .corpus_loading import (
     CORPUS_RECORD_SCHEMA,
     CorpusRecipe,

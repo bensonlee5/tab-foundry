@@ -43,7 +43,7 @@ from tab_foundry.data.corpus_reporting import (
     corpus_compare_payload,
     corpus_results_payload,
 )
-from tab_realdata_hub.dagzoo_handoff import (
+from tab_foundry.data.dagzoo_handoff_support import (
     DAGZOO_HANDOFF_SCHEMA_NAME,
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,

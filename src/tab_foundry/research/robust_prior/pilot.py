@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
+import re
 from typing import Any, Mapping, Sequence, cast
 
 import numpy as np
@@ -67,6 +68,13 @@ def _anchor_training_surface_record_path(checkpoint_path: Path) -> Path:
     return checkpoint_path.expanduser().resolve().parent.parent / "training_surface_record.json"
 
 
+def _anchor_training_surface_record(checkpoint_path: Path) -> dict[str, Any] | None:
+    surface_path = _anchor_training_surface_record_path(checkpoint_path)
+    if not surface_path.exists():
+        return None
+    return _read_json_mapping(surface_path, context="anchor training surface record")
+
+
 def _control_corpus_ref(
     config: RobustPriorStudyConfig,
     *,
@@ -74,8 +82,10 @@ def _control_corpus_ref(
 ) -> str:
     if config.control_corpus_ref is not None:
         return str(config.control_corpus_ref)
+    payload = _anchor_training_surface_record(anchor_checkpoint_path)
     surface_path = _anchor_training_surface_record_path(anchor_checkpoint_path)
-    payload = _read_json_mapping(surface_path, context="anchor training surface record")
+    if payload is None:
+        raise RuntimeError(f"anchor training surface record does not exist: {surface_path}")
     data_payload = payload.get("data")
     if not isinstance(data_payload, Mapping):
         raise RuntimeError("anchor training surface record is missing the data payload")
@@ -106,7 +116,25 @@ def _configure_round_training_cfg(
     initial_checkpoint_path: Path,
 ) -> Any:
     cfg = compose_config([f"experiment={config.base_experiment}"])
+    anchor_surface = _anchor_training_surface_record(initial_checkpoint_path)
+    if anchor_surface is not None:
+        model_payload = anchor_surface.get("model")
+        if isinstance(model_payload, Mapping):
+            model_mapping = cast(Mapping[str, Any], model_payload)
+            build_spec_payload = model_mapping.get("build_spec")
+            preferred_payload = (
+                cast(Mapping[str, Any], build_spec_payload)
+                if isinstance(build_spec_payload, Mapping)
+                else model_mapping
+            )
+            cfg.model = OmegaConf.create(
+                {
+                    str(key): value
+                    for key, value in preferred_payload.items()
+                }
+            )
     cfg.runtime.output_dir = str(output_dir)
+    cfg.runtime.device = str(config.benchmark_device)
     cfg.runtime.max_steps = int(config.train_steps_per_round)
     cfg.runtime.eval_every = max(1, min(int(config.train_steps_per_round), 25))
     cfg.runtime.checkpoint_every = max(1, min(int(config.train_steps_per_round), 25))
@@ -299,6 +327,17 @@ def _round_training_recipe(
     )
 
 
+def _failed_invocation_id_from_exception(exc: Exception) -> str | None:
+    message = str(exc)
+    match = re.search(r"invocations/(candidate_\d+)", message)
+    if match is not None:
+        return str(match.group(1))
+    match = re.search(r"\b(candidate_\d+)\b", message)
+    if match is not None:
+        return str(match.group(1))
+    return None
+
+
 def _trial_distance_vector(trial: Mapping[str, Any]) -> np.ndarray:
     aggregate = cast(Mapping[str, Any], trial.get("aggregate", {}))
     proposal_vector = cast(Mapping[str, Any], trial.get("proposal_vector", {}))
@@ -381,40 +420,55 @@ def _score_trial(
         proposal=proposal,
         num_datasets=int(config.probe_datasets_per_trial),
     )
-    corpus_record = materialize_corpus_recipe_object(
-        recipe=probe_recipe,
-        dagzoo_root=dagzoo_root,
-        materialize_worker_threads=config.materialize_worker_threads,
-    )
-    manifest_path = Path(str(cast(Mapping[str, Any], corpus_record["manifest"])["manifest_path"]))
-    probe_score = score_probe_manifest(
-        manifest_path=manifest_path,
-        checkpoint_path=checkpoint_path,
-        device=str(config.benchmark_device),
-        seed=int(round_index * 10_000 + trial_index),
-        class_entropy_floor=float(config.guardrails.class_entropy_floor),
-        min_class_prior_headroom=float(config.guardrails.min_class_prior_headroom),
-        authored_depth_ratio_band=(
-            max(
-                0.0,
-                search_space.authored_depth_ratio_band(proposal)[0]
-                - float(config.guardrails.depth_ratio_tolerance),
-            ),
-            min(
-                1.0,
-                search_space.authored_depth_ratio_band(proposal)[1]
-                + float(config.guardrails.depth_ratio_tolerance),
-            ),
-        ),
-    )
-    payload = {
+    payload: dict[str, Any] = {
         "trial_index": int(trial_index),
         "proposal": proposal.to_dict(),
         "proposal_vector": search_space.proposal_vector(proposal),
-        "corpus_ref": str(corpus_record.get("corpus_ref", "")),
-        "corpus_record_path": str(corpus_record.get("corpus_record_path", "")),
-        **probe_score.as_dict(),
+        "corpus_ref": "",
+        "corpus_record_path": "",
     }
+    try:
+        corpus_record = materialize_corpus_recipe_object(
+            recipe=probe_recipe,
+            dagzoo_root=dagzoo_root,
+            materialize_worker_threads=config.materialize_worker_threads,
+        )
+        payload["corpus_ref"] = str(corpus_record.get("corpus_ref", ""))
+        payload["corpus_record_path"] = str(corpus_record.get("corpus_record_path", ""))
+        manifest_path = Path(str(cast(Mapping[str, Any], corpus_record["manifest"])["manifest_path"]))
+        probe_score = score_probe_manifest(
+            manifest_path=manifest_path,
+            checkpoint_path=checkpoint_path,
+            device=str(config.benchmark_device),
+            seed=int(round_index * 10_000 + trial_index),
+            class_entropy_floor=float(config.guardrails.class_entropy_floor),
+            min_class_prior_headroom=float(config.guardrails.min_class_prior_headroom),
+            authored_depth_ratio_band=(
+                max(
+                    0.0,
+                    search_space.authored_depth_ratio_band(proposal)[0]
+                    - float(config.guardrails.depth_ratio_tolerance),
+                ),
+                min(
+                    1.0,
+                    search_space.authored_depth_ratio_band(proposal)[1]
+                    + float(config.guardrails.depth_ratio_tolerance),
+                ),
+            ),
+        )
+        payload.update(probe_score.as_dict())
+    except Exception as exc:
+        payload.update(
+            {
+                "dataset_scores": [],
+                "aggregate": {},
+                "feasible": False,
+                "error": {
+                    "type": type(exc).__name__,
+                    "message": str(exc),
+                },
+            }
+        )
     write_json(round_root / f"trial_{trial_index:02d}.json", payload)
     return payload
 
@@ -492,6 +546,7 @@ def run_robust_prior_pilot(
         round_summary: dict[str, Any] = {
             "round_index": int(round_index),
             "trial_count": int(len(round_trials)),
+            "trial_results": round_trials,
             "selected_candidate_count": int(len(selected_trials)),
             "proposer": None if proposer is None else {
                 "probabilities": proposer.probabilities,
@@ -505,16 +560,61 @@ def run_robust_prior_pilot(
             write_json(round_root / "round_summary.json", round_summary)
             round_summaries.append(round_summary)
             break
-        adversarial_recipe = _round_training_recipe(
-            config=config,
-            round_index=round_index,
-            selected_trials=selected_trials,
-        )
-        adversarial_record = materialize_corpus_recipe_object(
-            recipe=adversarial_recipe,
-            dagzoo_root=dagzoo_root,
-            materialize_worker_threads=config.materialize_worker_threads,
-        )
+        candidate_materialization_failures: list[dict[str, Any]] = []
+        materializable_trials = list(selected_trials)
+        adversarial_record = None
+        while materializable_trials:
+            adversarial_recipe = _round_training_recipe(
+                config=config,
+                round_index=round_index,
+                selected_trials=materializable_trials,
+            )
+            try:
+                adversarial_record = materialize_corpus_recipe_object(
+                    recipe=adversarial_recipe,
+                    dagzoo_root=dagzoo_root,
+                    materialize_worker_threads=config.materialize_worker_threads,
+                )
+                selected_trials = materializable_trials
+                break
+            except Exception as exc:
+                failed_invocation_id = _failed_invocation_id_from_exception(exc)
+                candidate_materialization_failures.append(
+                    {
+                        "failed_invocation_id": failed_invocation_id,
+                        "error": {
+                            "type": type(exc).__name__,
+                            "message": str(exc),
+                        },
+                    }
+                )
+                if not materializable_trials:
+                    break
+                filtered_trials = materializable_trials
+                if failed_invocation_id is not None:
+                    resolved_index = None
+                    for index in range(1, len(materializable_trials) + 1):
+                        if f"candidate_{index:02d}" == failed_invocation_id:
+                            resolved_index = index - 1
+                            break
+                    if resolved_index is not None:
+                        filtered_trials = [
+                            trial
+                            for index, trial in enumerate(materializable_trials)
+                            if index != resolved_index
+                        ]
+                if filtered_trials == materializable_trials:
+                    filtered_trials = materializable_trials[1:]
+                materializable_trials = filtered_trials
+        round_summary["candidate_materialization_failures"] = candidate_materialization_failures
+        round_summary["selected_trials"] = selected_trials
+        round_summary["selected_candidate_count"] = int(len(selected_trials))
+        if adversarial_record is None:
+            defer_reason = "adversarial_materialization_failed"
+            round_summary["status"] = "deferred"
+            write_json(round_root / "round_summary.json", round_summary)
+            round_summaries.append(round_summary)
+            break
         adversarial_corpus_ref = str(adversarial_record["corpus_ref"])
         adversarial_train_cfg = _configure_round_training_cfg(
             config=config,
