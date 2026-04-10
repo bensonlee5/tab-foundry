@@ -9,11 +9,22 @@ from typing import Any, Mapping, cast
 
 import numpy as np
 
+from tab_foundry.device import resolve_torch_device
+from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
+from tab_foundry.hardware_profiles import build_hardware_summary
 from tab_foundry.model.inspection import model_surface_payload, synthetic_reference_arrays
 
 from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, SUPPORTED_SCHEMA_VERSIONS
 from .exporter import export_checkpoint, validate_export_bundle
-from .loader_ref import run_reference_consumer
+from .loader_ref import benchmark_reference_consumer, run_reference_consumer
+
+
+_TIMING_FIXTURE_ID = "classification_medium_reference_v1"
+_TIMING_FIXTURE_TRAIN_ROWS = 160
+_TIMING_FIXTURE_TEST_ROWS = 40
+_TIMING_FIXTURE_FEATURE_COUNT = 10
+_TIMING_WARMUP_ITERATIONS = 3
+_TIMING_MEASURED_ITERATIONS = 10
 
 
 def _reference_arrays(
@@ -47,11 +58,46 @@ def _reference_arrays(
     }
 
 
+def _timing_reference_arrays(
+    *,
+    manifest_task: str,
+    model_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    if manifest_task != "classification":
+        raise RuntimeError(
+            "export-check timing fixture only supports classification bundles in this branch; "
+            f"got task={manifest_task!r}"
+        )
+    num_classes = max(2, int(model_payload["build_spec_obj"].many_class_base))
+    total_rows = _TIMING_FIXTURE_TRAIN_ROWS + _TIMING_FIXTURE_TEST_ROWS
+    values = np.arange(total_rows * _TIMING_FIXTURE_FEATURE_COUNT, dtype=np.float32)
+    x_all = values.reshape(total_rows, _TIMING_FIXTURE_FEATURE_COUNT)
+    x_all = np.sin(x_all / 7.0) + np.cos(x_all / 11.0)
+    x_all = x_all.astype(np.float32, copy=False)
+    x_train = x_all[:_TIMING_FIXTURE_TRAIN_ROWS]
+    x_test = x_all[_TIMING_FIXTURE_TRAIN_ROWS:]
+    y_train = (np.arange(_TIMING_FIXTURE_TRAIN_ROWS, dtype=np.int64) % num_classes) + 100
+    feature_types = (
+        [DEFAULT_FEATURE_TYPE] * _TIMING_FIXTURE_FEATURE_COUNT
+        if str(model_payload["arch"]).strip().lower() == "tabfoundry_sandwich"
+        else None
+    )
+    return {
+        "fixture_id": _TIMING_FIXTURE_ID,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "feature_types": feature_types,
+        "num_classes": int(num_classes),
+    }
+
+
 def _run_export_check(
     checkpoint_path: Path,
     *,
     bundle_dir: Path,
     artifact_version: str,
+    device: str,
 ) -> dict[str, Any]:
     if artifact_version not in SUPPORTED_SCHEMA_VERSIONS:
         raise RuntimeError(f"unsupported artifact version: {artifact_version!r}")
@@ -84,6 +130,7 @@ def _run_export_check(
         y_train=arrays["y_train"],
         x_test=arrays["x_test"],
         feature_types=arrays["feature_types"],
+        device=device,
     )
     class_probs = reference_output.class_probs
     if class_probs is None:
@@ -97,6 +144,33 @@ def _run_export_check(
             f"expected {expected_shape}, got {tuple(class_probs.shape)}"
         )
     elapsed_seconds = float(time.perf_counter() - started)
+    resolved_device = resolve_torch_device(device)
+    timing_arrays = _timing_reference_arrays(
+        manifest_task=validated.manifest.task,
+        model_payload=model_payload,
+    )
+    inference_timing = benchmark_reference_consumer(
+        result.bundle_dir,
+        x_train=timing_arrays["x_train"],
+        y_train=timing_arrays["y_train"],
+        x_test=timing_arrays["x_test"],
+        feature_types=timing_arrays["feature_types"],
+        device=device,
+        warmup_iterations=_TIMING_WARMUP_ITERATIONS,
+        measured_iterations=_TIMING_MEASURED_ITERATIONS,
+    )
+    hardware_summary = build_hardware_summary(resolved_device)
+    if isinstance(hardware_summary, Mapping):
+        inference_timing.update(
+            {
+                "device_type": hardware_summary.get("device_type"),
+                "raw_device_name": hardware_summary.get("raw_device_name"),
+                "gpu_class": hardware_summary.get("gpu_class"),
+                "vram_class_gb": hardware_summary.get("vram_class_gb"),
+                "hardware_profile_id": hardware_summary.get("hardware_profile_id"),
+            }
+        )
+    inference_timing["fixture_id"] = str(timing_arrays["fixture_id"])
     model_payload.pop("build_spec_obj", None)
     return {
         "checkpoint": str(checkpoint),
@@ -116,6 +190,7 @@ def _run_export_check(
             "output_dtype": str(class_probs.dtype),
             "num_classes": int(reference_output.batch.num_classes or 0),
         },
+        "inference_timing": inference_timing,
         "elapsed_seconds": elapsed_seconds,
     }
 
@@ -125,6 +200,7 @@ def export_check(
     *,
     out_dir: Path | None,
     artifact_version: str,
+    device: str = "auto",
 ) -> dict[str, Any]:
     """Export one checkpoint, validate the bundle, and run a reference smoke."""
 
@@ -135,6 +211,7 @@ def export_check(
                 checkpoint_path,
                 bundle_dir=bundle_dir,
                 artifact_version=artifact_version,
+                device=device,
             )
         payload["bundle_dir_kept"] = False
         payload["bundle_dir_exists_after"] = bool(Path(str(payload["bundle_dir"])).exists())
@@ -144,6 +221,7 @@ def export_check(
         checkpoint_path,
         bundle_dir=out_dir.expanduser().resolve(),
         artifact_version=artifact_version,
+        device=device,
     )
     payload["bundle_dir_kept"] = True
     payload["bundle_dir_exists_after"] = True

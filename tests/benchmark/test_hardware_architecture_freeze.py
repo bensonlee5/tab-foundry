@@ -15,8 +15,11 @@ def _run_entry(
     delta_id: str,
     d_icl: int,
     layers: int,
+    total_params: int,
     final_log_loss: float,
 ) -> dict[str, object]:
+    reserved_gb = 6.47 + 2.36e-6 * float(total_params)
+    train_wall_seconds = 8407.97 + 1.01e-4 * float(total_params)
     return {
         "run_id": run_id,
         "track": "system_delta_classification_medium_v1",
@@ -27,7 +30,7 @@ def _run_entry(
             "arch": "tabfoundry_sandwich",
             "d_icl": d_icl,
             "tficl_n_heads": 1,
-            "tficl_n_layers": layers,
+            "tficl_n_layers": 12,
             "head_hidden_dim": 96,
             "input_normalization": "train_zscore_clip",
             "many_class_base": 10,
@@ -80,12 +83,12 @@ def _run_entry(
             "mean_grad_norm": 1.0,
             "max_grad_norm": 6.0,
             "final_grad_norm": 0.8,
-            "train_elapsed_seconds": 100.0,
-            "wall_elapsed_seconds": 110.0,
+            "train_elapsed_seconds": train_wall_seconds,
+            "wall_elapsed_seconds": train_wall_seconds,
         },
         "runtime_summary": {
-            "peak_vram_allocated": 9201039872,
-            "peak_vram_reserved": 10930356224,
+            "peak_vram_allocated": int((reserved_gb - 0.75) * float(1024**3)),
+            "peak_vram_reserved": int(reserved_gb * float(1024**3)),
             "throughput_examples_per_second": 18.06,
             "throughput_tokens_per_second": 107589.79,
             "non_train_overhead_seconds": 18.9,
@@ -94,9 +97,9 @@ def _run_entry(
             "device_type": "cuda",
             "raw_device_name": "Quadro RTX 8000",
             "gpu_class": "rtx8000",
-            "total_device_vram_bytes": 45 * 1024**3,
-            "vram_class_gb": 45,
-            "hardware_profile_id": "rtx8000_45gb",
+            "total_device_vram_bytes": 47560916992,
+            "vram_class_gb": 44,
+            "hardware_profile_id": "rtx8000_44gb",
         },
         "regime_budget": {
             "token_budget": 917716352,
@@ -104,7 +107,7 @@ def _run_entry(
             "objective_metric": "final_log_loss_at_matched_regime_budget",
             "curriculum_id": "tf_rd_010_dagzoo_medium_control",
         },
-        "model_size": {"total_params": 1000000, "trainable_params": 1000000},
+        "model_size": {"total_params": total_params, "trainable_params": total_params},
         "surface_labels": {
             "model": "tabfoundry_sandwich",
             "data": "tf_rd_010_dagzoo_medium_control",
@@ -136,6 +139,7 @@ def _write_benchmark_registry(path: Path) -> None:
                 delta_id="delta_tf_rd_024_followup_cls_sandwich_heads1_v1",
                 d_icl=60,
                 layers=2,
+                total_params=646970,
                 final_log_loss=0.6620,
             ),
             "baseline_96x2": _run_entry(
@@ -143,20 +147,31 @@ def _write_benchmark_registry(path: Path) -> None:
                 delta_id="delta_tf_rd_009_cls_sandwich_dicl96_v1",
                 d_icl=96,
                 layers=2,
+                total_params=1618286,
                 final_log_loss=0.6331,
             ),
-            "joint_88x1": _run_entry(
-                "joint_88x1",
-                delta_id="delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1",
-                d_icl=88,
+            "upper_128x2": _run_entry(
+                "upper_128x2",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl128_v1",
+                d_icl=128,
+                layers=2,
+                total_params=2849422,
+                final_log_loss=0.6225,
+            ),
+            "joint_72x1": _run_entry(
+                "joint_72x1",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+                d_icl=72,
                 layers=1,
+                total_params=671809,
                 final_log_loss=0.6410,
             ),
-            "joint_104x3": _run_entry(
-                "joint_104x3",
-                delta_id="delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1",
-                d_icl=104,
+            "joint_112x3": _run_entry(
+                "joint_112x3",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+                d_icl=112,
                 layers=3,
+                total_params=2798089,
                 final_log_loss=0.6290,
             ),
         },
@@ -170,11 +185,17 @@ def test_freeze_hardware_architecture_baseline_derives_preferred_entry(tmp_path:
     _write_benchmark_registry(registry_path)
 
     result = hardware_freeze_module.freeze_hardware_architecture_baseline(
-        baseline_id="tf_rd_009_rtx8000_45gb_classification_medium_v1",
+        baseline_id="tf_rd_009_rtx8000_44gb_classification_medium_v1",
         preferred_run_id="baseline_96x2",
         formal_anchor_run_id="anchor_60x2",
         baseline_run_id="baseline_96x2",
-        evidence_run_ids=("anchor_60x2", "baseline_96x2", "joint_88x1", "joint_104x3"),
+        evidence_run_ids=(
+            "anchor_60x2",
+            "baseline_96x2",
+            "upper_128x2",
+            "joint_72x1",
+            "joint_112x3",
+        ),
         rationale="RTX 8000 medium classification baseline retained at 96x2 after healthy-only width-depth comparison.",
         decision="keep",
         surface_role="classification_scaling_law",
@@ -184,18 +205,105 @@ def test_freeze_hardware_architecture_baseline_derives_preferred_entry(tmp_path:
 
     baseline = result["baseline"]
     assert result["registry_path"] == str(hardware_registry_path.resolve())
-    assert baseline["hardware_profile_id"] == "rtx8000_45gb"
+    assert baseline["hardware_profile_id"] == "rtx8000_44gb"
     assert baseline["gpu_class"] == "rtx8000"
-    assert baseline["vram_class_gb"] == 45
+    assert baseline["vram_class_gb"] == 44
     assert baseline["preferred_run_id"] == "baseline_96x2"
     assert baseline["preferred_delta_ref"] == "delta_tf_rd_009_cls_sandwich_dicl96_v1"
     assert baseline["preferred_architecture"]["d_icl"] == 96
-    assert baseline["preferred_architecture"]["tficl_n_layers"] == 2
+    assert baseline["preferred_architecture"]["tficl_n_layers"] == 12
+    assert baseline["preferred_architecture"]["sandwich_layers"] == 2
     assert baseline["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert baseline["selection_rule"] == "best_loss_healthy_only"
+    assert baseline["constraint_model"]["baseline_row"] == "96x2"
+    assert baseline["constraint_model"]["effective_size_expression"] == "S(d, L) = L * d^2"
+    parameter_formula = baseline["constraint_model"]["formulas"]["parameter_count"]
+    assert parameter_formula["fit_kind"] == "affine_depth_aware_least_squares"
+    assert " + " in parameter_formula["expression"]
+    assert "d^2 + " in parameter_formula["expression"]
+    assert [row["row"] for row in baseline["constraint_model"]["rows"]] == [
+        "60x2",
+        "72x1",
+        "96x2",
+        "112x3",
+        "128x2",
+    ]
+    predicted_rows = {row["row"]: row["predicted"]["total_params"] for row in baseline["constraint_model"]["rows"]}
+    assert predicted_rows["72x1"] == pytest.approx(670661, abs=2500)
+    assert predicted_rows["112x3"] == pytest.approx(2797614, abs=2500)
+    assert "89.00 * L * d^2" not in parameter_formula["expression"]
 
     written = json.loads(hardware_registry_path.read_text(encoding="utf-8"))
-    assert "tf_rd_009_rtx8000_45gb_classification_medium_v1" in written["baselines"]
+    assert "tf_rd_009_rtx8000_44gb_classification_medium_v1" in written["baselines"]
+
+
+def test_fit_parameter_bridge_uses_depth_aware_affine_model_for_mixed_depth_evidence() -> None:
+    entries = list(
+        json.loads(
+            json.dumps(
+                {
+                    "runs": {
+                        key: value
+                        for key, value in {
+                            "anchor_60x2": _run_entry(
+                                "anchor_60x2",
+                                delta_id="delta_tf_rd_024_followup_cls_sandwich_heads1_v1",
+                                d_icl=60,
+                                layers=2,
+                                total_params=646970,
+                                final_log_loss=0.6620,
+                            ),
+                            "baseline_96x2": _run_entry(
+                                "baseline_96x2",
+                                delta_id="delta_tf_rd_009_cls_sandwich_dicl96_v1",
+                                d_icl=96,
+                                layers=2,
+                                total_params=1618286,
+                                final_log_loss=0.6331,
+                            ),
+                            "upper_128x2": _run_entry(
+                                "upper_128x2",
+                                delta_id="delta_tf_rd_009_cls_sandwich_dicl128_v1",
+                                d_icl=128,
+                                layers=2,
+                                total_params=2849422,
+                                final_log_loss=0.6225,
+                            ),
+                            "joint_72x1": _run_entry(
+                                "joint_72x1",
+                                delta_id="delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+                                d_icl=72,
+                                layers=1,
+                                total_params=671809,
+                                final_log_loss=0.6410,
+                            ),
+                            "joint_112x3": _run_entry(
+                                "joint_112x3",
+                                delta_id="delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+                                d_icl=112,
+                                layers=3,
+                                total_params=2798089,
+                                final_log_loss=0.6290,
+                            ),
+                        }.items()
+                    }
+                }
+            )
+        )["runs"].values()
+    )
+
+    formula, predictor = hardware_freeze_module._fit_parameter_bridge(  # pyright: ignore[reportPrivateUsage]
+        entries,
+        evidence_run_ids=("anchor_60x2", "baseline_96x2", "upper_128x2", "joint_72x1", "joint_112x3"),
+    )
+
+    assert formula["fit_kind"] == "affine_depth_aware_least_squares"
+    coefficients = formula["coefficients"]
+    assert coefficients["intercept"] == pytest.approx(29249.24, abs=5.0)
+    assert coefficients["d_squared_coefficient"] == pytest.approx(75.25, abs=0.05)
+    assert coefficients["layered_d_squared_coefficient"] == pytest.approx(48.48, abs=0.05)
+    assert predictor(72, 1, 72 * 72) == pytest.approx(670661, abs=2500)
+    assert predictor(112, 3, 3 * 112 * 112) == pytest.approx(2797614, abs=2500)
 
 
 def test_freeze_hardware_architecture_baseline_cli_parses_expected_flags(

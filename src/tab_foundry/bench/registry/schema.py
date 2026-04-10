@@ -152,6 +152,18 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     non_train_overhead_seconds: FiniteFloat | None = None
 
 
+class _BenchmarkTimingPayload(_RegistryPayloadModel):
+    wall_elapsed_seconds: FiniteFloat | None = None
+    mean_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    max_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    attempted_checkpoint_count: StrictInt | None = None
+    successful_checkpoint_count: StrictInt | None = None
+    failed_checkpoint_count: StrictInt | None = None
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    host_fingerprint: StrictStr | None = None
+
+
 class _HardwareSummaryPayload(_RegistryPayloadModel):
     device_type: StrictStr | None = None
     raw_device_name: StrictStr | None = None
@@ -159,6 +171,28 @@ class _HardwareSummaryPayload(_RegistryPayloadModel):
     total_device_vram_bytes: StrictInt | None = None
     vram_class_gb: StrictInt | None = None
     hardware_profile_id: StrictStr | None = None
+
+
+class _InferenceTimingPayload(_RegistryPayloadModel):
+    fixture_id: StrictStr
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    device_type: StrictStr | None = None
+    raw_device_name: StrictStr | None = None
+    gpu_class: StrictStr | None = None
+    vram_class_gb: StrictInt | None = None
+    hardware_profile_id: StrictStr | None = None
+    warmup_iterations: StrictInt
+    measured_iterations: StrictInt
+    n_train: StrictInt
+    n_test: StrictInt
+    n_features: StrictInt
+    num_classes: StrictInt
+    mean_ms: FiniteFloat | None = None
+    p50_ms: FiniteFloat | None = None
+    p95_ms: FiniteFloat | None = None
+    max_ms: FiniteFloat | None = None
+    total_measured_seconds: FiniteFloat | None = None
 
 
 class _RegimeBudgetPayload(_RegistryPayloadModel):
@@ -228,7 +262,9 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
+    inference_timing: _InferenceTimingPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
@@ -253,7 +289,9 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
+    inference_timing: _InferenceTimingPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None

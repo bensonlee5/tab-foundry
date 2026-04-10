@@ -38,6 +38,8 @@ class _PreferredArchitecturePayload(_RegistryPayloadModel):
     head_hidden_dim: StrictInt
     tficl_n_heads: StrictInt
     tficl_n_layers: StrictInt
+    sandwich_heads: StrictInt | None = None
+    sandwich_layers: StrictInt | None = None
     architecture: dict[StrictStr, Any] | None = None
     build_spec: dict[StrictStr, Any] | None = None
 
@@ -50,11 +52,96 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     non_train_overhead_seconds: FiniteFloat | None = None
 
 
+class _BenchmarkTimingPayload(_RegistryPayloadModel):
+    wall_elapsed_seconds: FiniteFloat | None = None
+    mean_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    max_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    attempted_checkpoint_count: StrictInt | None = None
+    successful_checkpoint_count: StrictInt | None = None
+    failed_checkpoint_count: StrictInt | None = None
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    host_fingerprint: StrictStr | None = None
+
+
+class _InferenceTimingPayload(_RegistryPayloadModel):
+    fixture_id: StrictStr
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    device_type: StrictStr | None = None
+    raw_device_name: StrictStr | None = None
+    gpu_class: StrictStr | None = None
+    vram_class_gb: StrictInt | None = None
+    hardware_profile_id: StrictStr | None = None
+    warmup_iterations: StrictInt
+    measured_iterations: StrictInt
+    n_train: StrictInt
+    n_test: StrictInt
+    n_features: StrictInt
+    num_classes: StrictInt
+    mean_ms: FiniteFloat | None = None
+    p50_ms: FiniteFloat | None = None
+    p95_ms: FiniteFloat | None = None
+    max_ms: FiniteFloat | None = None
+    total_measured_seconds: FiniteFloat | None = None
+
+
 class _SurfaceLabelsPayload(_RegistryPayloadModel):
     model: StrictStr
     data: StrictStr
     preprocessing: StrictStr
     training: StrictStr | None = None
+
+
+class _ConstraintFormulaPayload(_RegistryPayloadModel):
+    expression: StrictStr
+    fit_kind: StrictStr
+    coefficients: dict[StrictStr, Any] | None = None
+    evidence_run_ids: list[StrictStr]
+
+
+class _ConstraintPointPayload(_RegistryPayloadModel):
+    total_params: StrictInt | None = None
+    reserved_vram_gb: FiniteFloat | None = None
+    train_wall_seconds: FiniteFloat | None = None
+    benchmark_wall_seconds: FiniteFloat | None = None
+    inference_mean_ms: FiniteFloat | None = None
+    inference_p50_ms: FiniteFloat | None = None
+    inference_p95_ms: FiniteFloat | None = None
+
+
+class _ConstraintObservedPayload(_ConstraintPointPayload):
+    run_id: StrictStr | None = None
+    delta_ref: StrictStr | None = None
+    health: StrictStr | None = None
+
+
+class _ConstraintHeadroomPayload(_RegistryPayloadModel):
+    hardware_vram_ceiling_gb: FiniteFloat
+    reserved_vram_gb_to_ceiling: FiniteFloat | None = None
+    train_wall_seconds_delta_vs_baseline: FiniteFloat | None = None
+    benchmark_wall_seconds_delta_vs_baseline: FiniteFloat | None = None
+    inference_mean_ms_delta_vs_baseline: FiniteFloat | None = None
+    inference_p50_ms_delta_vs_baseline: FiniteFloat | None = None
+    inference_p95_ms_delta_vs_baseline: FiniteFloat | None = None
+
+
+class _ConstraintRowPayload(_RegistryPayloadModel):
+    row: StrictStr
+    d_icl: StrictInt
+    sandwich_layers: StrictInt
+    effective_size: StrictInt
+    predicted: _ConstraintPointPayload
+    observed: _ConstraintObservedPayload | None = None
+    headroom: _ConstraintHeadroomPayload
+
+
+class _ConstraintModelPayload(_RegistryPayloadModel):
+    effective_size_expression: StrictStr
+    formulas: dict[StrictStr, _ConstraintFormulaPayload]
+    evidence_run_ids: list[StrictStr]
+    baseline_row: StrictStr
+    rows: list[_ConstraintRowPayload]
 
 
 class _HardwareArchitectureBaselineEntryPayload(_RegistryPayloadModel):
@@ -81,6 +168,9 @@ class _HardwareArchitectureBaselineEntryPayload(_RegistryPayloadModel):
     decision: StrictStr
     rationale: StrictStr
     preferred_runtime_summary: _RuntimeSummaryPayload | None = None
+    preferred_benchmark_timing: _BenchmarkTimingPayload | None = None
+    preferred_inference_timing: _InferenceTimingPayload | None = None
+    constraint_model: _ConstraintModelPayload | None = None
 
 
 def default_hardware_architecture_registry_path() -> Path:

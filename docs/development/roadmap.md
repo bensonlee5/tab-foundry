@@ -978,7 +978,8 @@ Legacy wording note:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
   - execute [#255](https://github.com/bensonlee5/tab-foundry/issues/255) next,
-    using the theory-constrained diagonal `88x1 -> 96x2 -> 104x3`, with `60x2`
+    using the theory-constrained dense diagonal
+    `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6`, with `60x2`
     retained as the formal external anchor and `96x2` retained as the carried
     in-family baseline
   - document the paper-vs-repo derivation explicitly for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
@@ -986,13 +987,17 @@ Legacy wording note:
     parameter-token coupling out of this fixed-budget branch, use μP to justify
     carrying the width winner `96x2`, use the spectral μP paper to require
     joint width-depth movement once `sandwich_layers` changes, and derive the
-    integer rows through the repo-local bridge `S(d, L) = L * d^2` with
-    `P_local(d, L) ≈ 89 * L * d^2`
+    integer rows through the repo-local planning axis `S(d, L) = L * d^2`, the
+    empirical mixed-depth fit
+    `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`, and the
+    current RTX 8000 memory fit `reserved_gb ≈ 6.47 + 2.36e-6 * params`
   - maintain the preferred architecture statefully in
     `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
     hardware profile plus sweep surface rather than by GitHub issue state; the
-    first TF-RD-009 entry should be the retained `rtx8000_45gb` medium
+    first TF-RD-009 entry should be the retained `rtx8000_44gb` medium
     classification surface selected from the healthy benchmark-backed evidence
+    only after the dense diagonal is complete enough to freeze a real
+    constraint model and preferred row
   - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257), after the
     joint width-depth family is complete
@@ -1009,6 +1014,10 @@ Legacy wording note:
   - keep the other sandwich knobs frozen at the retained compact hybrid anchor
     values while fitting the first width-depth classification laws, except for
     the TF-RD-024 carry-forward winner `sandwich_heads=1`
+  - keep one human-readable constraint budget table in the TF-RD-009 evidence
+    note, sourced from the same formulas and evidence that will later populate
+    the hardware baseline registry entry, so the repo records headroom to VRAM
+    and timing constraints rather than leaving that analysis in issue comments
   - use `final_log_loss_at_matched_regime_budget` as the primary ranking
     objective on the carried multiclass slice, with calibration, stability,
     and runtime as explicit guardrails rather than BPC-era stand-ins

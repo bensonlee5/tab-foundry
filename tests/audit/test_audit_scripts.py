@@ -44,6 +44,10 @@ bump_version = _load_script_module(
     REPO_ROOT / "scripts" / "bump_version.py",
     "bump_version_script",
 )
+tf_rd_009_width_depth_derivation = _load_script_module(
+    REPO_ROOT / "scripts" / "audit" / "tf_rd_009_width_depth_derivation.py",
+    "tf_rd_009_width_depth_derivation_script",
+)
 
 
 def test_check_repo_paths_reports_missing_reference(tmp_path: Path) -> None:
@@ -139,6 +143,17 @@ def test_docs_consistency_audit_passes_on_repo_docs() -> None:
     )
 
     assert errors == []
+
+
+def test_tf_rd_009_width_depth_derivation_script_verifies_canonical_queue(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = tf_rd_009_width_depth_derivation.main(["--verify"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr().out
+    assert "TF-RD-009 width-depth derivation" in captured
+    assert "verification passed:" in captured
 
 
 def test_docs_consistency_reports_stale_python_module_entrypoint(tmp_path: Path) -> None:

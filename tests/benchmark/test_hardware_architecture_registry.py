@@ -53,7 +53,13 @@ def _valid_baseline_entry(baseline_id: str = "tf_rd_009_a100_medium_v1") -> dict
         },
         "objective_metric": "final_log_loss_at_matched_regime_budget",
         "selection_rule": "best_loss_healthy_only",
-        "evidence_run_ids": ["anchor_60x2", "baseline_96x2", "joint_88x1", "joint_104x3"],
+        "evidence_run_ids": [
+            "anchor_60x2",
+            "baseline_96x2",
+            "upper_128x2",
+            "joint_72x1",
+            "joint_112x3",
+        ],
         "decision": "keep",
         "rationale": "A100 medium classification baseline retained at 96x2 after healthy-only width-depth comparison.",
         "preferred_runtime_summary": {
@@ -123,7 +129,13 @@ def test_hardware_architecture_registry_load_entry_returns_deep_copy(tmp_path: P
         registry_path=registry_path,
     )
 
-    assert reloaded["evidence_run_ids"] == ["anchor_60x2", "baseline_96x2", "joint_88x1", "joint_104x3"]
+    assert reloaded["evidence_run_ids"] == [
+        "anchor_60x2",
+        "baseline_96x2",
+        "upper_128x2",
+        "joint_72x1",
+        "joint_112x3",
+    ]
     assert reloaded["preferred_architecture"]["d_icl"] == 96
 
 

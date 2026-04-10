@@ -2,17 +2,17 @@ schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_009_width_depth_medium_v1
 rows:
 - order: 1
-  delta_ref: delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
   status: ready
-  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1` against
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
   hypothesis: ''
-  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1`
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
     against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
   model:
     arch: tabfoundry_sandwich
-    d_icl: 88
+    d_icl: 72
     input_normalization: train_zscore_clip
     many_class_base: 10
     head_hidden_dim: 96
@@ -63,12 +63,13 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only
-    baseline for `#255`.
+    baseline for `#255`; this row is the empirical depth-aware parameter fit's lower
+    anchor-equivalent probe.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
   - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
-    inside the diagonal family `{88x1, 96x2, 104x3}` rather than as a standalone keep/reject
-    claim.
+    inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather
+    than as a standalone keep/reject claim.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
   run_id: null
@@ -85,17 +86,17 @@ rows:
   benchmark_metrics: null
   parent_delta_ref: null
 - order: 2
-  delta_ref: delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
-  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1` against
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
   hypothesis: ''
-  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1`
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
     against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
   model:
     arch: tabfoundry_sandwich
-    d_icl: 104
+    d_icl: 112
     input_normalization: train_zscore_clip
     many_class_base: 10
     head_hidden_dim: 96
@@ -145,8 +146,9 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Execute after the lower diagonal `88x1` row so the first TF-RD-009 joint family
-    remains an ordered diagonal rather than a grid.
+  - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family
+    remains an ordered diagonal around the width-only `128x2` upper evidence target
+    rather than a grid.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
   - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently
@@ -160,6 +162,254 @@ rows:
   confounders: []
   next_action: Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower
     diagonal row is benchmark-backed.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` against
+    anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 128
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after `112x3` is benchmark-backed so the broadened family preserves
+    an ordered dense diagonal.
+  - Compare directly against the carried `96x2` baseline at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Treat this row as an intermediate curve-fit point, not a final keep/reject
+    decision in isolation.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 3 in `tf_rd_009_width_depth_medium_v1` after `112x3`
+    is benchmark-backed.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against
+    anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 152
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 5
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after `128x4` is benchmark-backed so the family remains a dense diagonal
+    rather than a sparse extrapolation.
+  - Compare directly against the carried `96x2` baseline at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Keep any health=`warn` outcome as explicit ceiling evidence rather than silently
+    replacing this row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 4 in `tf_rd_009_width_depth_medium_v1` after `128x4`
+    is benchmark-backed.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` against
+    anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 176
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 6
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute last as the explicit `rtx8000_44gb` ceiling probe for the first broadened
+    TF-RD-009 family; this rounded row is chosen to land near the empirical `32-33 GB`
+    reserved-memory target rather than the older underfit `144x6` estimate.
+  - Compare directly against the carried `96x2` baseline at matched regime budget
+    using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - If the row fails before benchmark registration, keep that failure as valid ceiling
+    evidence and leave `#255` open rather than substituting a new upper row in the
+    same branch.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 5 in `tf_rd_009_width_depth_medium_v1` after `152x5`
+    is benchmark-backed; treat failure as ceiling evidence.
   notes: []
   dynamic_model_overrides: null
   reuse_train_artifact: null

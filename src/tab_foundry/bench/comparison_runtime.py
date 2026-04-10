@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import subprocess
+import time
 from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
@@ -356,6 +357,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         },
     )
 
+    tab_foundry_benchmark_started = time.perf_counter()
     tab_foundry_records = evaluate_tab_foundry_run(
         tab_foundry_run_dir,
         datasets=datasets,
@@ -374,6 +376,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
             bootstrap_seed=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
         )["records"],
     )
+    tab_foundry_benchmark_wall_seconds = float(time.perf_counter() - tab_foundry_benchmark_started)
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
     nanotabpfn_records: list[dict[str, Any]] = []
@@ -474,6 +477,32 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         tabiclv2_python=tabiclv2_python,
         control_baseline=control_baseline,
     )
+    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
+    checkpoint_elapsed_values = [
+        float(record["benchmark_elapsed_seconds"])
+        for record in tab_foundry_records
+        if record.get("benchmark_elapsed_seconds") is not None
+    ]
+    failed_checkpoint_count = sum(
+        1 for record in tab_foundry_records if record.get("evaluation_error") is not None
+    )
+    tab_foundry_summary["benchmark_timing"] = {
+        "wall_elapsed_seconds": tab_foundry_benchmark_wall_seconds,
+        "mean_checkpoint_elapsed_seconds": (
+            None
+            if not checkpoint_elapsed_values
+            else float(sum(checkpoint_elapsed_values) / float(len(checkpoint_elapsed_values)))
+        ),
+        "max_checkpoint_elapsed_seconds": (
+            None if not checkpoint_elapsed_values else float(max(checkpoint_elapsed_values))
+        ),
+        "attempted_checkpoint_count": int(len(tab_foundry_records)),
+        "successful_checkpoint_count": int(len(tab_foundry_records) - failed_checkpoint_count),
+        "failed_checkpoint_count": int(failed_checkpoint_count),
+        "requested_device": str(config.device).strip(),
+        "resolved_device": resolve_device(str(config.device).strip()),
+        "host_fingerprint": benchmark_host_fingerprint(),
+    }
     primary_external_benchmark = _resolve_primary_external_benchmark(
         requested_external_benchmarks,
         nanotabpfn_records=nanotabpfn_records,

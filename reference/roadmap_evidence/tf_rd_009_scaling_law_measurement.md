@@ -240,76 +240,184 @@ the sandwich architecture used here.
 
 ### Repo-Local Size Bridge
 
-For the frozen TF-RD-009 sandwich surface, use the following effective-size
-proxy for the first joint family:
+The papers do not provide a closed-form sandwich width-depth exchange rule. For
+the frozen TF-RD-009 sandwich surface, use:
 
-- `S(d, L) = L * d^2`
-- repo-local parameter bridge:
-  - `P_local(d, L) ≈ 89 * L * d^2`
+- planning axis:
+  - `S(d, L) = L * d^2`
+  - interpretation: a monotone family index only, not the parameter predictor
+- repo-local parameter fit:
+  - `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`
 
-This bridge is empirical, not paper-claimed. It is derived from the benchmarked
-TF-RD-009 evidence already on `main`:
+This fit is empirical, not paper-claimed. It is derived from two sources:
 
-- formal external anchor `60x2`:
-  - `d_icl=60`
-  - `sandwich_layers=2`
-  - `total_params=646,970`
-  - implied coefficient `646,970 / (2 * 60^2) = 89.86`
-- carried width baseline `96x2`:
-  - `d_icl=96`
-  - `sandwich_layers=2`
-  - `total_params=1,618,286`
-  - implied coefficient `1,618,286 / (2 * 96^2) = 87.80`
-- upper width evidence `128x2`:
-  - `d_icl=128`
-  - `sandwich_layers=2`
-  - `total_params=2,849,422`
-  - implied coefficient `2,849,422 / (2 * 128^2) = 86.96`
+- benchmark-backed width evidence already on `main`:
+  - formal external anchor `60x2`:
+    - `d_icl=60`
+    - `sandwich_layers=2`
+    - `total_params=646,970`
+  - carried width baseline `96x2`:
+    - `d_icl=96`
+    - `sandwich_layers=2`
+    - `total_params=1,618,286`
+  - upper width evidence `128x2`:
+    - `d_icl=128`
+    - `sandwich_layers=2`
+    - `total_params=2,849,422`
+- the previously materialized draft joint-family rows that exposed the mixed-depth
+  drift:
+  - `88x1`: `986,886`
+  - `104x3`: `2,419,862`
+  - `112x4`: `3,410,046`
+  - `128x5`: `5,234,830`
+  - `144x6`: `7,615,262`
 
-Rounded to one simple planning constant, the carried surface fits
-`P_local(d, L) ≈ 89 * L * d^2`.
+Why the old bridge changed:
 
-### Exact Diagonal Locked For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- the width-only `L=2` evidence fits `P_local(d, L) ≈ 88.20 * L * d^2`
+- once depth varies, that width-only bridge breaks materially:
+  - `88x1` is only `+7.6%` in `L * d^2` versus `60x2`, but `+52.5%` in params
+  - `104x3` is only `-1.0%` in `L * d^2` versus `128x2`, but `-15.1%` in params
+- TF-RD-009 adoption decision:
+  - keep `S(d, L)` only as a planning axis
+  - use the affine depth-aware fit for parameter and VRAM targeting
+  - treat the older `89 * L * d^2` rule as a width-only diagnostic that should
+    not be reused for mixed-depth sweep design
+
+### Dense Diagonal Locked For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 
 Keep the formal external TF-RD-009 anchor at `60x2`, carry `96x2` as the
-in-family baseline, and queue only the new joint rows `88x1` and `104x3`.
+in-family baseline, and widen the fixed-budget width-depth family to the dense
+diagonal:
+
+- formal external anchor for lane interpretation: `60x2`
+- in-family ladder for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
+  - `72x1`
+  - `96x2`
+  - `112x3`
+  - `128x4`
+  - `152x5`
+  - `176x6`
 
 Derivation:
 
 - formal external anchor:
   - `60x2`
-  - anchor-equivalent effective size
-    `S_anchor = 2 * 60^2 = 7200`
-- lower joint row:
+  - parameter target:
+    `P_anchor = 646,970`
+- lower joint seed:
   - choose `L = 1`
-  - solve `d = sqrt(7200 / 1) = 84.9`
-  - round to the nearest practical `d_icl` rung: `88`
-  - resulting row: `88x1`
-  - resulting effective size: `S = 1 * 88^2 = 7744`
+  - solve `P_local(d, 1) = 646,970`, giving `d = 70.6`
+  - round to the nearest practical `d_icl` rung: `72`
+  - resulting row: `72x1`
+  - predicted parameter count: `0.672M`
 - carried in-family baseline:
   - `96x2`
-  - resulting effective size: `S = 2 * 96^2 = 18432`
-- upper joint row target:
-  - match the width-only upper evidence scale rather than extrapolating beyond
-    it
-  - width-only upper evidence scale:
-    `S_upper = 2 * 128^2 = 32768`
+  - observed parameter count: `1.618M`
+- upper joint seed:
+  - match the width-only upper evidence row `128x2` in parameter scale rather
+    than in `L * d^2`
   - choose `L = 3`
-  - solve `d = sqrt(32768 / 3) = 104.5`
-  - round to the nearest practical `d_icl` rung: `104`
-  - resulting row: `104x3`
-  - resulting effective size: `S = 3 * 104^2 = 32448`
+  - solve `P_local(d, 3) = 2,849,422`, giving `d = 113.0`
+  - round to the nearest practical `d_icl` rung: `112`
+  - resulting row: `112x3`
+  - predicted parameter count: `2.798M`
+- ceiling probe:
+  - current RTX 8000 planning fit:
+    `reserved_gb ≈ 6.47 + 2.36e-6 * params`
+  - TF-RD-009 adoption decision: use the retained `rtx8000_44gb` surface more
+    meaningfully by targeting an upper row near `32-33 GB` reserved rather than
+    stopping around the already-observed `13.23 GB` width-only `128x2` row
+  - using the affine parameter fit, a `32-33 GB` reserved target implies
+    roughly `11.1M` parameters
+  - choose `L = 6`
+  - solve `P_local(d, 6) = 11.1M`, giving `d = 173.9`
+  - round to the nearest practical `d_icl` rung: `176`
+  - resulting row: `176x6`
+  - predicted parameter count: `11.366M`
+  - predicted reserved VRAM: `33.29 GB`
+- dense upper interpolation:
+  - keep the family one-dimensional by interpolating in log-space in predicted
+    parameter count between `112x3` and `176x6`
+  - for `L = 4`:
+    - interpolated parameter target: `4.519M`
+    - solve `P_local(d, 4) = 4.519M`, giving `d = 129.2`
+    - round to the nearest practical `d_icl` rung: `128`
+    - resulting row: `128x4`
+    - predicted parameter count: `4.439M`
+  - for `L = 5`:
+    - interpolated parameter target: `7.055M`
+    - solve `P_local(d, 5) = 7.055M`, giving `d = 148.7`
+    - round to the nearest practical `d_icl` rung: `152`
+    - resulting row: `152x5`
+    - predicted parameter count: `7.366M`
 
-This keeps the first joint family narrow and interpretable:
+The old `144x6` draft no longer survives the corrected fit: the materialized row
+lands at only `7.615M` parameters, which maps to roughly `24.44 GB` reserved
+under the same VRAM fit, so it is not a genuine ceiling probe.
 
-- formal external anchor: `60x2`
-- carried baseline: `96x2`
-- new lower joint probe: `88x1`
-- new upper joint probe: `104x3`
+This keeps [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+theory-constrained but large enough to fit an actual curve:
 
-It also avoids the unsupported jump to `128x4`. That row is not derived from
-the current evidence bridge, and it extrapolates well past the already-warned
-`128x2` width-only regime.
+- external anchor for interpretation: `60x2`
+- lower seed from anchor-matched parameter scale: `72x1`
+- carried width-transfer baseline: `96x2`
+- upper seed matched to the width-only upper evidence row: `112x3`
+- near-saturating upper diagonal extension: `128x4`, `152x5`, `176x6`
+
+It also remains honest about what is paper-backed versus repo-local:
+
+- the papers constrain the family shape and what must scale together
+- the repo-local bridge and hardware budget model choose the integer rows
+
+## Constraint Budget Table
+
+These tables are the planning view for the future
+`hardware_architecture_baselines_v1.json` entry for the retained
+`rtx8000_44gb` classification surface. The formulas are repo-local and should
+be frozen in the hardware baseline registry only after the broadened
+[#255](https://github.com/bensonlee5/tab-foundry/issues/255) family completes.
+
+Current planning formulas:
+
+- planning-axis expression:
+  - `S(d, L) = L * d^2`
+- current fitted mixed-depth parameter bridge:
+  - `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`
+- deprecated width-only diagnostic bridge:
+  - `P_local(d, L) ≈ 88.20 * L * d^2` on the historical `L=2` family only
+- current RTX 8000 reserved-memory fit from the benchmarked width evidence:
+  - `reserved_gb ≈ 6.47 + 2.36e-6 * params`
+- current RTX 8000 train-wall fit from the benchmarked width evidence:
+  - `train_wall_seconds ≈ 8407.97 + 1.01e-4 * params`
+
+The historical width-family rows predate first-class `benchmark_timing` and
+`inference_timing`, so those timing columns remain intentionally pending until
+the widened width-depth family is registered under the new schema.
+
+### Capacity Table
+
+| Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Headroom to 44 GB |
+|-----|---------|-------------------|---------------|---------------------|-----------------------|----------------------|-------------------|
+| `60x2` | 60 | 2 | 7200 | 0.650M | 8.00 | 8.05 | 36.00 |
+| `72x1` | 72 | 1 | 5184 | 0.672M | 8.06 | pending | 35.94 |
+| `96x2` | 96 | 2 | 18432 | 1.617M | 10.29 | 10.18 | 33.71 |
+| `112x3` | 112 | 3 | 37632 | 2.798M | 13.07 | pending | 30.93 |
+| `128x4` | 128 | 4 | 65536 | 4.439M | 16.95 | pending | 27.05 |
+| `152x5` | 152 | 5 | 115520 | 7.366M | 23.85 | pending | 20.15 |
+| `176x6` | 176 | 6 | 185856 | 11.366M | 33.29 | pending | 10.71 |
+
+### Timing Table
+
+| Row | Predicted train wall seconds | Observed train wall seconds | Delta vs `96x2` | Predicted benchmark wall seconds | Observed benchmark wall seconds | Predicted inference mean ms | Observed inference mean ms |
+|-----|------------------------------|-----------------------------|-----------------|----------------------------------|---------------------------------|-----------------------------|----------------------------|
+| `60x2` | 8474 | 8486 | -97 | pending | pending | pending | pending |
+| `72x1` | 8476 | pending | -95 | pending | pending | pending | pending |
+| `96x2` | 8571 | 8548 | +0 | pending | pending | pending | pending |
+| `112x3` | 8691 | pending | +120 | pending | pending | pending | pending |
+| `128x4` | 8856 | pending | +285 | pending | pending | pending | pending |
+| `152x5` | 9152 | pending | +581 | pending | pending | pending | pending |
+| `176x6` | 9556 | pending | +985 | pending | pending | pending | pending |
 
 ## Literature Synthesis
 
@@ -541,16 +649,28 @@ Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
 - use `d_icl=96` and run id
   `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
   as the carried width baseline for the first joint width-depth family
-- execute the exact diagonal `88x1 -> 96x2 -> 104x3` inside
-  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), where `88x1`
-  and `104x3` come from the repo-local bridge `S(d, L) = L * d^2` and
-  `P_local(d, L) ≈ 89 * L * d^2`
+- execute the dense diagonal
+  `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6` inside
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), where:
+  - `72x1` comes from matching the formal `60x2` anchor against the empirical
+    mixed-depth sandwich parameter fit
+  - `112x3` comes from matching the width-only upper evidence row `128x2`
+    against the same empirical fit
+  - `128x4` and `152x5` are intermediate log-spaced parameter-scale rows
+    between the `112x3` upper seed and the intended ceiling probe
+  - `176x6` is the explicit RTX 8000 capacity-targeted ceiling probe chosen to
+    land near the retained `32-33 GB` reserved-memory band under the carried
+    repo-local VRAM fit
 - keep `token_budget`, `unique_task_budget`, `curriculum_id`, benchmark slice,
   runtime policy, objective metric, and the non-scaling sandwich knobs fixed
 - keep `sandwich_heads=1` as the carried TF-RD-024 handoff winner
 - treat optimizer transfer as a lower-confidence empirical question that stays
   secondary to the architecture-law read in
   [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- do not freeze the first
+  `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` entry until
+  the broadened family is complete enough to choose the best
+  matched-regime-budget row among `health=ok` runs on `rtx8000_44gb`
 - keep compute-optimal parameter-token work in
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and curriculum or
   repeated-data slice work in
@@ -583,11 +703,15 @@ Selection contract:
 
 First TF-RD-009 use:
 
-- create the first entry for the retained `rtx8000_45gb` medium classification
-  surface after the joint width-depth family lands
+- create the first entry for the retained `rtx8000_44gb` medium classification
+  surface only after the dense width-depth family is complete enough to support
+  a real hardware-aware decision
 - keep the formal external anchor `60x2` for lane interpretation
 - keep the carried baseline `96x2` as the fallback preferred architecture if
-  `104x3` is benchmark-backed but unstable
+  the widened family does not produce a cleaner healthy winner
+- include the machine-readable `constraint_model` block so the registry records
+  the exact effective-size, parameter, VRAM, train-wall, benchmark-wall, and
+  inference-latency formulas together with the evidence rows used to fit them
 
 The issue tree should still preserve these rules:
 

@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_width_depth_
 - Parent sweep id: `tf_rd_009_width_transfer_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_width_depth_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `70ba02580c81e5644dd0d4a1e757264cac20b40870315985baf093d1579d6798`
+- Resolved queue inputs fingerprint: `19b55fda6af2052b1c2c59e76427c567800de2cdf52eb64b6952ba59c7d2b2db`
 
 ## Locked Surface
 
@@ -45,31 +45,34 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=88`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor-equivalent effective size under the repo-local bridge `S(d, L) = L * d^2`. | Execute as order 1 in `tf_rd_009_width_depth_medium_v1` against the carried `96x2` baseline. |
-| 2 | `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=104`, `sandwich_layers=3`, derived by matching the effective size of the width-only upper evidence row `128x2` under the repo-local bridge `S(d, L) = L * d^2`. | Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower diagonal row is benchmark-backed. |
+| 1 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter fit rather than the older `L * d^2` proxy. | Execute as order 1 in `tf_rd_009_width_depth_medium_v1` against the carried `96x2` baseline. |
+| 2 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter fit. | Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower diagonal row is benchmark-backed. |
+| 3 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute as order 3 in `tf_rd_009_width_depth_medium_v1` after `112x3` is benchmark-backed. |
+| 4 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute as order 4 in `tf_rd_009_width_depth_medium_v1` after `128x4` is benchmark-backed. |
+| 5 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | ready | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute as order 5 in `tf_rd_009_width_depth_medium_v1` after `152x5` is benchmark-backed; treat failure as ceiling evidence. |
 
 ## Detailed Rows
 
-### 1. `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1`
+### 1. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=88`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor-equivalent effective size under the repo-local bridge `S(d, L) = L * d^2`.
-- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
+- Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter fit rather than the older `L * d^2` proxy.
+- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
 - Hypothesis: 
-- Upstream delta: TF-RD-009 uses the literature-backed rule that width and depth must be co-designed once depth moves, then converts that into an exact repo-local row through the measured sandwich size bridge `P_local(d, L) ≈ 89 * L * d^2`.
-- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
-- Expected effect: If the sandwich target can trade one layer for more width while preserving anchor-equivalent effective size, `88x1` should show whether the lower diagonal stays competitive against the carried `96x2` baseline at matched regime budget.
+- Upstream delta: TF-RD-009 uses the literature-backed rule that width and depth must be co-designed once depth moves, then picks the concrete lower row from the empirical sandwich fit `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2` on the frozen medium surface.
+- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+- Expected effect: If the sandwich target can trade one layer for more width while staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1` should show whether the lower diagonal stays competitive against the carried `96x2` baseline at matched regime budget.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `97bec332be54c42ac85bd41275e3f270b9f8a889838c804692b495184ed40933`
+- Resolved surface fingerprint: `811297672caa02afb3965067d1ed845e75598d3b7dfc5b1b462c1ec1cbfcceab`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 88, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 1, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
+- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 72, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 1, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
-  - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only baseline for `#255`.
+  - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only baseline for `#255`; this row is the empirical depth-aware parameter fit's lower anchor-equivalent probe.
   - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
-  - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row inside the diagonal family `{88x1, 96x2, 104x3}` rather than as a standalone keep/reject claim.
+  - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather than as a standalone keep/reject claim.
 - Adequacy knobs to dimension explicitly:
   - fixed TF-RD-010 curated medium benchmark contract
   - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -80,27 +83,27 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl88_layers1_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
 - Benchmark metrics: pending
 
-### 2. `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1`
+### 2. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=104`, `sandwich_layers=3`, derived by matching the effective size of the width-only upper evidence row `128x2` under the repo-local bridge `S(d, L) = L * d^2`.
-- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
+- Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter fit.
+- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
 - Hypothesis: 
-- Upstream delta: TF-RD-009 treats this as the first upper joint probe allowed by the literature-backed width-depth co-design rule without extrapolating to a non-derived `128x4` regime.
-- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
-- Expected effect: If the fixed-budget law continues above the carried `96x2` baseline, `104x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
+- Upstream delta: TF-RD-009 treats this as the paper-constrained upper seed for the broadened medium-rung curve-fit family, after which the ladder extends toward the retained `rtx8000_44gb` ceiling using the same empirical fit instead of a grid search.
+- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+- Expected effect: If the fixed-budget law continues above the carried `96x2` baseline, `112x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `aa83bafa62db2d5a3a67fa7361fa50aa9ca6f58e5c51d4019dbceba96b28b36d`
+- Resolved surface fingerprint: `1a3c3253b50711655df3dee13106f0b051ff4db858e06b3e9ec786a51aec1583`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
-- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 104, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 3, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
+- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 112, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 3, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
-  - Execute after the lower diagonal `88x1` row so the first TF-RD-009 joint family remains an ordered diagonal rather than a grid.
+  - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family remains an ordered diagonal around the width-only `128x2` upper evidence target rather than a grid.
   - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
   - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently replace it with a different upper geometry in the same branch.
 - Adequacy knobs to dimension explicitly:
@@ -113,5 +116,104 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl104_layers3_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 3. `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
+
+- Dimension family: `model`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface.
+- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
+- Hypothesis: 
+- Upstream delta: TF-RD-009 keeps the literature-backed width-depth co-design shape, then extends the upper ladder by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe under the empirical depth-aware fit.
+- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+- Expected effect: If the joint law remains smooth beyond the first upper seed, `128x4` should continue the matched-budget trend without consuming an outsized share of the `rtx8000_44gb` VRAM budget.
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `5c472a66d458a9149ba21381a8af720511b2895f38e601879e8c3cc59836c787`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 128, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
+- Parameter adequacy plan:
+  - Execute after `112x3` is benchmark-backed so the broadened family preserves an ordered dense diagonal.
+  - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Treat this row as an intermediate curve-fit point, not a final keep/reject decision in isolation.
+- Adequacy knobs to dimension explicitly:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 4. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
+
+- Dimension family: `model`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
+- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
+- Hypothesis: 
+- Upstream delta: TF-RD-009 uses this row to extend the empirically fitted parameter ladder far enough to fit curvature and identify where hardware guardrails begin to dominate, without switching to a width-depth grid.
+- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+- Expected effect: If the medium-rung joint law is still smooth at higher effective size, `152x5` should improve the matched-budget objective or expose the first clear bend in the runtime and stability guardrails.
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 152, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 5, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
+- Parameter adequacy plan:
+  - Execute after `128x4` is benchmark-backed so the family remains a dense diagonal rather than a sparse extrapolation.
+  - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - Keep any health=`warn` outcome as explicit ceiling evidence rather than silently replacing this row.
+- Adequacy knobs to dimension explicitly:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 5. `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
+
+- Dimension family: `model`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family.
+- Rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` for sweep `tf_rd_009_width_depth_medium_v1`.
+- Hypothesis: 
+- Upstream delta: TF-RD-009 treats this as an intentional hardware-ceiling probe derived from the empirical sandwich parameter fit and the carried RTX 8000 VRAM fit rather than a paper-claimed closed-form exponent.
+- Anchor delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+- Expected effect: `176x6` should either extend the matched-budget law into the near-saturation regime or fail cleanly enough to mark the first medium-rung hardware ceiling on the carried runtime surface.
+- Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `b74f3dc0759fef1e2c75f5b45d99cdb94c46bfe3a529584a1cf25d01ac78536c`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
+- Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 176, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 6, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
+- Parameter adequacy plan:
+  - Execute last as the explicit `rtx8000_44gb` ceiling probe for the first broadened TF-RD-009 family; this rounded row is chosen to land near the empirical `32-33 GB` reserved-memory target rather than the older underfit `144x6` estimate.
+  - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+  - If the row fails before benchmark registration, keep that failure as valid ceiling evidence and leave `#255` open rather than substituting a new upper row in the same branch.
+- Adequacy knobs to dimension explicitly:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/result_card.md`
 - Benchmark metrics: pending

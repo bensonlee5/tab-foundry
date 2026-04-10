@@ -13110,9 +13110,9 @@
         "device_type": "cuda",
         "raw_device_name": "Quadro RTX 8000",
         "gpu_class": "rtx8000",
-        "total_device_vram_bytes": 48318382080,
-        "vram_class_gb": 45,
-        "hardware_profile_id": "rtx8000_45gb"
+        "total_device_vram_bytes": 47560916992,
+        "vram_class_gb": 44,
+        "hardware_profile_id": "rtx8000_44gb"
       }
     },
     "sd_tf_rd_009_width_transfer_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1": {
@@ -13585,9 +13585,9 @@
         "device_type": "cuda",
         "raw_device_name": "Quadro RTX 8000",
         "gpu_class": "rtx8000",
-        "total_device_vram_bytes": 48318382080,
-        "vram_class_gb": 45,
-        "hardware_profile_id": "rtx8000_45gb"
+        "total_device_vram_bytes": 47560916992,
+        "vram_class_gb": 44,
+        "hardware_profile_id": "rtx8000_44gb"
       }
     },
     "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1": {
@@ -14063,9 +14063,9 @@
         "device_type": "cuda",
         "raw_device_name": "Quadro RTX 8000",
         "gpu_class": "rtx8000",
-        "total_device_vram_bytes": 48318382080,
-        "vram_class_gb": 45,
-        "hardware_profile_id": "rtx8000_45gb"
+        "total_device_vram_bytes": 47560916992,
+        "vram_class_gb": 44,
+        "hardware_profile_id": "rtx8000_44gb"
       },
       "wandb": {
         "entity": "bensonlee55-none",
@@ -14544,9 +14544,9 @@
         "device_type": "cuda",
         "raw_device_name": "Quadro RTX 8000",
         "gpu_class": "rtx8000",
-        "total_device_vram_bytes": 48318382080,
-        "vram_class_gb": 45,
-        "hardware_profile_id": "rtx8000_45gb"
+        "total_device_vram_bytes": 47560916992,
+        "vram_class_gb": 44,
+        "hardware_profile_id": "rtx8000_44gb"
       }
     },
     "sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1": {

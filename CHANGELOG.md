@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `feature_type_conditioning`, likelihood settings, and sandwich summary / pre-
   attention fields, and compiled `_orig_mod.*` checkpoint keys now normalize on
   the canonical export path instead of requiring downstream compatibility shims.
+- User-facing note: the pending TF-RD-009 width-depth medium sweep now uses the
+  corrected empirical mixed-depth parameter ladder
+  `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6` instead of the older
+  `L * d^2` shortcut, and the canonical sweep note, queue, resolved queue, and
+  matrix artifacts were re-derived around that fit.
+- User-facing note: hardware architecture freeze now exports a depth-aware
+  mixed-depth parameter-fit expression in `constraint_model.formulas` when the
+  evidence family spans multiple sandwich depths, instead of assuming a single
+  `params / (L * d^2)` coefficient across the whole family.
 
 ## [0.16.12] - 2026-04-09
 

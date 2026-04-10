@@ -236,6 +236,10 @@ For each queue row:
    freeze or update that decision in
    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` with
    `tab-foundry bench registry freeze-hardware-baseline`.
+1. When freezing a hardware baseline, carry the machine-readable
+   `constraint_model` block with the formulas, evidence rows, predicted versus
+   observed headroom, and any available benchmark/inference timing fields for
+   that hardware profile and sweep surface.
 1. If `execution_policy=benchmark_full`, write `result_card.md`.
 1. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
 1. Update the queue row status, run ids, interpretation, and next action.
