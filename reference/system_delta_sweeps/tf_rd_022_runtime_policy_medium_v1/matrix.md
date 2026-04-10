@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_022_runtime_poli
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_022_runtime_policy_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `67e0ff766a6d29fed43c64ef60e000939213020a3261395ec29b6f8948c5599e`
+- Resolved queue inputs fingerprint: `6cb57e2f603d9ce9d2d7ba6e07c39148b1a9608859e0f3796d8efb1a11899cf5`
 
 ## Locked Surface
 
@@ -58,7 +58,7 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 - Anchor delta: Re-run the closed TF-RD-010 classification control recipe with `mixed_precision='no'`, `trace_activations=false`, and `activation_checkpointing=false` on the medium benchmark contract.
 - Expected effect: Establish the benchmark-safe runtime and VRAM baseline before any low-risk runtime knob is considered.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `ca3aadfde8968c65d71fe6101418fb0b868106edb7c8452cae95fe0529c126a9`
+- Resolved surface fingerprint: `8cfb97d6c9a54e9db704cdc7b104d1cfda9ed74404936242df6467b40ca04592`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Training overrides: `{'optimizer': {'min_lr': 1e-05}, 'runtime': {'mixed_precision': 'no', 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
@@ -93,7 +93,7 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 - Anchor delta: Starting from row 1, switch only `runtime.mixed_precision` from `"no"` to `bf16`.
 - Expected effect: If AMP is benchmark-safe on the carried sandwich recipe, bf16 should preserve log loss while reducing runtime or VRAM cost versus the no-AMP control.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `a79e2d19b324ff71a2285525f4f315188505c2b62961e0f2989f4817ebbc7e80`
+- Resolved surface fingerprint: `28d50650fcfa4ddd57235a4824ee1a148527c3150ad6cadec72c6a9fa2d59d1d`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Training overrides: `{'optimizer': {'min_lr': 1e-05}, 'runtime': {'mixed_precision': 'bf16', 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
@@ -128,7 +128,7 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 - Anchor delta: Starting from row 2, switch only `runtime.trace_activations` from `false` to `true`.
 - Expected effect: Benchmark-facing activation tracing should remain a measurable overhead unless it is effectively free on the carried classification recipe.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `930a3ae6ee77e503cb12a4ba24c30aa6a4ee003381a5df94ea49ac3b8ead9424`
+- Resolved surface fingerprint: `de1513184a77957bff60a4f9cfc5b0efa44a5e7277a9c34a65a607829c6ce3b2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': True, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Training overrides: `{'optimizer': {'min_lr': 1e-05}, 'runtime': {'mixed_precision': 'bf16', 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': True, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
@@ -163,7 +163,7 @@ Upstream reference: `PyTorch AMP` from `https://pytorch.org/docs/stable/amp.html
 - Anchor delta: Starting from row 2, switch only `runtime.activation_checkpointing` from `false` to `true`.
 - Expected effect: Activation checkpointing may reduce reserved VRAM at the cost of runtime; it should stay deferred unless that trade remains benchmark-safe and materially useful.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `e0f946c09ba2bb1d706dbb6b5e75e858943f08a57fa3cee1a73734850dd2b6b1`
+- Resolved surface fingerprint: `4be8e8be7b0b1f97355c720a1eddd91bf47d0057984e072789a1c90138a55901`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Training overrides: `{'optimizer': {'min_lr': 1e-05}, 'runtime': {'mixed_precision': 'bf16', 'grad_clip': 0.0, 'grad_accum_steps': 4, 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:

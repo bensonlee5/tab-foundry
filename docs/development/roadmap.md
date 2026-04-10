@@ -982,15 +982,33 @@ Legacy wording note:
     `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6`, with `60x2`
     retained as the formal external anchor and `96x2` retained as the carried
     in-family baseline
+  - keep the TF-RD-009 reporting split explicit:
+    `tf_rd_009_width_depth_medium_v1` remains the Phase-1 fixed-budget
+    width-depth queue where the repo-local mixed-depth bridge is used only for
+    integer row construction, while the new Phase-2 study runs on
+    `tf_rd_009_ns_medium_v1`, `tf_rd_009_batch_critical_medium_v1`, and
+    `reference/scaling_studies/tf_rd_009_phase2.yaml`
   - document the paper-vs-repo derivation explicitly for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
     use Kaplan to justify a smooth effective-size axis, keep Chinchilla-style
     parameter-token coupling out of this fixed-budget branch, use μP to justify
     carrying the width winner `96x2`, use the spectral μP paper to require
     joint width-depth movement once `sandwich_layers` changes, and derive the
     integer rows through the repo-local planning axis `S(d, L) = L * d^2`, the
-    empirical mixed-depth fit
+    empirical mixed-depth bridge
     `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`, and the
-    current RTX 8000 memory fit `reserved_gb ≈ 6.47 + 2.36e-6 * params`
+    current RTX 8000 memory fit `reserved_gb ≈ 6.47 + 2.36e-6 * params`; use
+    that bridge only for integer row construction, then fit the first reported
+    law on measured benchmark-registry `model_size.total_params` from completed
+    in-family rows `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` only, starting
+    with a Kaplan-style power-law family and treating the exponent/intercept as
+    repo-specific empirical quantities rather than paper constants
+  - carry Phase 2 on inspected run metadata rather than code-derived estimates:
+    persist strict-versus-expanded parameter accounting, define canonical
+    paper-style `N` as strict non-embedding params, derive `D = B_eff * S`
+    from measured telemetry, derive training-only `C` from inspected analytic
+    FLOPs, and fit the paper-backed family
+    `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and the derived
+    `L(Cmin)` frontier with JSON/PNG/Markdown/W&B artifacts
   - maintain the preferred architecture statefully in
     `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
     hardware profile plus sweep surface rather than by GitHub issue state; the

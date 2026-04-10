@@ -5,6 +5,10 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.research.tf_rd_009_width_depth_derivation import (
+    collect_tf_rd_009_completed_measured_fit_points,
+)
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
 from tests.support_research.helpers import assert_training_surface_semantics
 
@@ -82,7 +86,7 @@ def test_tf_rd_009_width_depth_medium_v1_tracks_the_corrected_dense_diagonal() -
     lower = _row_by_ref(queue, "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1")
     assert lower["model"]["d_icl"] == 72
     assert lower["model"]["sandwich_layers"] == 1
-    assert "empirical depth-aware parameter fit" in lower["parameter_adequacy_plan"][0]
+    assert "empirical depth-aware parameter bridge" in lower["parameter_adequacy_plan"][0]
     assert "72x1" in lower["parameter_adequacy_plan"][2]
 
     upper_seed = _row_by_ref(queue, "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1")
@@ -142,3 +146,19 @@ def test_tf_rd_009_width_depth_medium_v1_materialized_queue_and_matrix_match_can
     assert "88x1" not in matrix
     assert "104x3" not in matrix
 
+
+def test_tf_rd_009_width_depth_medium_v1_reported_fit_inputs_use_completed_in_family_rows_only() -> None:
+    queue = load_system_delta_queue(
+        sweep_id=SWEEP_ID,
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+
+    points = collect_tf_rd_009_completed_measured_fit_points(
+        queue=queue,
+        registry_path=default_benchmark_run_registry_path(),
+    )
+
+    assert [point.row_label for point in points] == ["96x2"]
+    assert [point.run_id for point in points] == [ANCHOR_RUN_ID]
+    assert all(point.row_label not in {"88x1", "104x3", "112x4", "128x5", "144x6"} for point in points)

@@ -12,7 +12,11 @@ from tab_foundry.bench.openml_benchmark import (
     resolve_tab_foundry_run_artifact_paths,
 )
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.inspection import model_surface_payload
+from tab_foundry.model.inspection import (
+    compute_accounting_from_model_spec,
+    model_surface_payload,
+    parameter_accounting_from_model_spec,
+)
 from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
     ModelBuildSpec,
@@ -148,6 +152,15 @@ def _count_parameters_from_cfg(
     }
 
 
+def _parameter_accounting_from_cfg(
+    raw_cfg: dict[str, Any],
+    *,
+    state_dict: dict[str, Any] | None,
+) -> dict[str, Any]:
+    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
+    return parameter_accounting_from_model_spec(model_spec)
+
+
 def _model_payload_from_cfg(
     raw_cfg: dict[str, Any],
     *,
@@ -268,6 +281,17 @@ def _runtime_summary_from_telemetry(
     return summary or None
 
 
+def _training_shape_summary_from_telemetry(
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(telemetry_payload, Mapping):
+        return None
+    summary = _normalized_optional_mapping(telemetry_payload.get("training_shape_summary"))
+    if summary is None:
+        return None
+    return summary or None
+
+
 def _hardware_summary_from_telemetry(
     telemetry_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
@@ -359,6 +383,31 @@ def _regime_budget_from_artifacts(
             if tokens_seen is not None and final_step is not None and final_step > 0:
                 payload["tokens_per_step"] = float(tokens_seen) / float(final_step)
     return payload or None
+
+
+def _compute_accounting_from_cfg(
+    raw_cfg: dict[str, Any],
+    *,
+    state_dict: dict[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
+    training_shape_summary = _training_shape_summary_from_telemetry(telemetry_payload)
+    regime_budget = _normalized_optional_mapping(
+        None if telemetry_payload is None else telemetry_payload.get("regime_budget")
+    )
+    if regime_budget is None:
+        return None
+    tokens_seen_raw = regime_budget.get("tokens_seen")
+    tokens_per_step_raw = regime_budget.get("tokens_per_step")
+    tokens_seen = None if tokens_seen_raw is None else int(tokens_seen_raw)
+    tokens_per_step = None if tokens_per_step_raw is None else float(tokens_per_step_raw)
+    return compute_accounting_from_model_spec(
+        model_spec,
+        training_shape_summary=training_shape_summary,
+        tokens_seen=tokens_seen,
+        tokens_per_step=tokens_per_step,
+    )
 
 
 def _coerce_integral_step(value: Any) -> int | None:

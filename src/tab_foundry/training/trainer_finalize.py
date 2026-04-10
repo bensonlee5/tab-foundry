@@ -17,6 +17,7 @@ from .instability import (
     build_training_telemetry,
     grad_norm_summary_from_running_totals,
     peak_device_memory_summary,
+    training_shape_summary_from_signature_task_counts,
     write_training_telemetry,
 )
 from .trainer_loop import TrainingLoopState
@@ -73,6 +74,9 @@ def finalize_training_run(
             runtime_summary=runtime_summary,
             hardware_summary=hardware_summary,
             regime_budget=regime_budget,
+            training_shape_summary=training_shape_summary_from_signature_task_counts(
+                state.signature_task_counts
+            ),
             training_surface_record=training_surface_payload,
             wandb=wandb_identity_payload(run, cfg=cfg),
             error=error,

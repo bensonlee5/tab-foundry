@@ -63,7 +63,7 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only
-    baseline for `#255`; this row is the empirical depth-aware parameter fit's lower
+    baseline for `#255`; this row is the empirical depth-aware parameter bridge's lower
     anchor-equivalent probe.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
@@ -233,8 +233,8 @@ rows:
     an ordered dense diagonal.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
-  - Treat this row as an intermediate curve-fit point, not a final keep/reject
-    decision in isolation.
+  - Treat this row as an intermediate reported-fit point once benchmark-backed,
+    not a final keep/reject decision in isolation.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
   run_id: null

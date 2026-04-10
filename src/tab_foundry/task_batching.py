@@ -67,6 +67,23 @@ def task_batch_signature_text(signature: tuple[int, int, int, int | None]) -> st
     return f"{int(n_train)}x{int(n_test)}x{int(n_features)}x{class_text}"
 
 
+def parse_task_batch_signature_text(signature_text: str) -> tuple[int, int, int, int | None]:
+    """Parse one compact task signature back into structured dimensions."""
+
+    parts = str(signature_text).strip().split("x")
+    if len(parts) != 4:
+        raise ValueError(
+            "task batch signature text must have four `x`-delimited components, "
+            f"got {signature_text!r}"
+        )
+    n_train_text, n_test_text, n_features_text, class_text = parts
+    n_train = int(n_train_text)
+    n_test = int(n_test_text)
+    n_features = int(n_features_text)
+    num_classes = None if class_text == "na" else int(class_text)
+    return n_train, n_test, n_features, num_classes
+
+
 def task_batch_diagnostics(batch: TaskBatch) -> dict[str, Any]:
     """Return normalized task-batching diagnostics for one batch."""
 

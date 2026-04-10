@@ -16,12 +16,15 @@ from tab_foundry.bench.checkpoint_artifacts import (
 )
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
+    _compute_accounting_from_cfg,
     _hardware_summary_from_telemetry,
     _load_training_telemetry,
     _model_payload_from_cfg,
+    _parameter_accounting_from_cfg,
     _regime_budget_from_artifacts,
     _resolve_record_checkpoint_path,
     _training_diagnostics_from_history,
+    _training_shape_summary_from_telemetry,
     _training_surface_record,
     _runtime_summary_from_telemetry,
     _wandb_identity_from_telemetry,
@@ -46,6 +49,7 @@ from tab_foundry.bench.registry.summary_metrics import (
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.export.contracts import SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check as _export_check
+from tab_foundry.model.accounting import write_accounting_artifact_payload
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
 from tab_foundry.registry.common import load_comparison_summary, resolve_config_path as _resolve_config_path_common
 from tab_foundry.repo_paths import repo_root
@@ -210,6 +214,19 @@ def _resolve_summary_path_value(
     if relocated is not None:
         return relocated
     return _resolve_registry_path_value(str(raw_value))
+
+
+def _accounting_artifact_path(
+    *,
+    comparison_summary_path: Path,
+    benchmark_run_record_path: Path | None,
+) -> Path:
+    artifact_root = (
+        benchmark_run_record_path.expanduser().resolve().parent
+        if benchmark_run_record_path is not None
+        else comparison_summary_path.expanduser().resolve().parent
+    )
+    return artifact_root / "model_accounting.json"
 
 
 def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
@@ -535,6 +552,28 @@ def derive_benchmark_run_record(
         benchmark_run_record_path=benchmark_run_record_path,
     )
     telemetry_payload = _load_training_telemetry(resolved_run_dir)
+    training_shape_summary = _training_shape_summary_from_telemetry(telemetry_payload)
+    parameter_accounting = _parameter_accounting_from_cfg(
+        raw_cfg,
+        state_dict=raw_state_dict,
+    )
+    compute_accounting = _compute_accounting_from_cfg(
+        raw_cfg,
+        state_dict=raw_state_dict,
+        telemetry_payload=telemetry_payload,
+    )
+    accounting_artifact_path = _accounting_artifact_path(
+        comparison_summary_path=resolved_summary_path,
+        benchmark_run_record_path=benchmark_run_record_path,
+    )
+    write_json(
+        accounting_artifact_path,
+        write_accounting_artifact_payload(
+            parameter_accounting=parameter_accounting,
+            compute_accounting=compute_accounting,
+            training_shape_summary=training_shape_summary,
+        ),
+    )
     inference_timing = _inference_timing_from_summary(tab_foundry)
     if inference_timing is None:
         inference_timing = _inference_timing_from_checkpoint(
@@ -565,6 +604,7 @@ def derive_benchmark_run_record(
             "training_surface_record_path": None
             if training_surface_path is None
             else _normalize_registry_path(training_surface_path),
+            "accounting_artifact_path": _normalize_registry_path(accounting_artifact_path),
         },
         "wandb": _wandb_identity_from_telemetry(telemetry_payload),
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
@@ -580,6 +620,8 @@ def derive_benchmark_run_record(
             telemetry_payload=telemetry_payload,
         ),
         "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
+        "parameter_accounting": parameter_accounting,
+        "compute_accounting": compute_accounting,
         "surface_labels": None
         if training_surface_payload is None
         else dict(cast(dict[str, Any], training_surface_payload["labels"])),
@@ -686,6 +728,8 @@ def derive_benchmark_run_entry(
         "inference_timing": record.get("inference_timing"),
         "regime_budget": record.get("regime_budget"),
         "model_size": record["model_size"],
+        "parameter_accounting": record.get("parameter_accounting"),
+        "compute_accounting": record.get("compute_accounting"),
         "surface_labels": record.get("surface_labels"),
         "sweep": record.get("sweep"),
         "comparisons": {

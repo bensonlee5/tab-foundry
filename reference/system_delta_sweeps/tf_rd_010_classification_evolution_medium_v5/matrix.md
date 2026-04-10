@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v5/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `9409665cd8ce88476b4d964350ce2e15c456069f3e83c47c2e5f752144bb80c2`
+- Resolved queue inputs fingerprint: `d8312d63790e184e67c70f373ce5dc82f85bdfd3a11c61b10607543c09b54ffd`
 
 ## Locked Surface
 
@@ -55,7 +55,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and retrain `tf_rd_010_dagzoo_medium_control_curated_v5` under the current sorted-order code path before benchmarking on the hub-owned medium classification manifest.
 - Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `ca3aadfde8968c65d71fe6101418fb0b868106edb7c8452cae95fe0529c126a9`
+- Resolved surface fingerprint: `8cfb97d6c9a54e9db704cdc7b104d1cfda9ed74404936242df6467b40ca04592`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_curated_v5'}`
 - Parameter adequacy plan:

@@ -1,0 +1,4988 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_009_batch_critical_medium_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_009_batch_critical_medium_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_009_batch_critical_medium_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_009_batch_critical_medium_v1/matrix.md
+sweep_id: tf_rd_009_batch_critical_medium_v1
+parent_sweep_id: tf_rd_009_ns_medium_v1
+sweep_status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_scaling_law_phase2_batch
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    on local benchmark-manifest id `openml_classification_medium_v1` sourced from
+    `nanotabpfn_openml_classification_medium` (242 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `tabfoundry_sandwich`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - The manifest surface keeps the same bundle provenance (missing values permitted).
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest local id `openml_classification_medium_v1` sourced
+      from `nanotabpfn_openml_classification_medium` (242 tasks (missing values permitted))
+      with data surface label `tf_rd_010_dagzoo_medium_control`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 1 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: fc87f87a3eba085b0403c58c3c07d396c44b842648ab06210bc0d382ec250a91
+- order: 2
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 2 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: 9aa6273988655fd46a1a3d0c6306e5b929ef64d862c669e068aa5e31a4089e8b
+- order: 3
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 3 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 6950ea1ba3773de7007acce985f45e09eadfed7388c35d5c19e53823391885fa
+- order: 4
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 4 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 1
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: be17e341274835145cf413964caad10aad2c676c42e265bf8fe45145f09239cd
+- order: 5
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 5 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 2
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: 3ea72988c04a4acb355e5d3a23e996beb5e506d648e013780e17f3276c563074
+- order: 6
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 6 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 2
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: 074bf0a7440b9c77e713ca4df6794a9b9c017256b2e7ba9c1d4b4387e095c41d
+- order: 7
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 7 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 2
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 477d4d86b9531246c5e5fc6e107f188a541aba1a275036cdef9cb3f6e6f81a3f
+- order: 8
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 8 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 2
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 8ad39092552df873d04aedf0c676efd7ac0cc5973a7569dca29d6f6f3550c5d3
+- order: 9
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 9 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: 6c90c66128e6bf96308cb20bdf2a6e8652026e43309ce3618b3f465ca94569e1
+- order: 10
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 10 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: d3f0c2d72b4a258722bbc81a032ea7b6b208cfee86664a8d58d9f90e64f6f3d0
+- order: 11
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 11 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: c3a7e99b88ae55fc3546d8df3241f411768ce91bf05f474f2e7d8b8653b1dbe9
+- order: 12
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 12 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: b603f709d7b760e1df005764c4d3fd522d1f2f2a059d3d2fecf649565cee722a
+- order: 13
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 13 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: 523a2c12bf0cbcea537abb5211a9dac365d0ccf73829d79473389a8d6e909f57
+- order: 14
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 14 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: 5b7c3d234c105e97890e84cb0ceec46519274a1647f398e0d171e19b84b319d4
+- order: 15
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 15 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: deabe7b16a20982c4934feac7c96566a86d3b77fc36181ab969365533386270a
+- order: 16
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 16 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: fbc58b90b80911561a0d9ace2f3903802a2734a4e258d0e2c059ff917380996f
+- order: 17
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 17 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: c92a6d3bbc8f7e7c24ab82f8408fc6c7dec08c4a90700db8742421d0d251f449
+- order: 18
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 18 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: 701f81a142032dcefcceb86ac515ca7ae4bd0042f5fc42a5ec218f60dfe782b8
+- order: 19
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 19 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: a3b4dbf0c533a0317e032fde21e645f286f93da773a0fe201cf981f9896b40f9
+- order: 20
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 20 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to
+    `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022
+    runtime bundle fixed.
+  upstream_delta: TF-RD-009 treats width as the clean first transfer axis after the
+    heads1 replay anchor is benchmark-registry-backed.
+  entangled_legacy_stage: none
+  expected_effect: If the carried heads1 classification surface is still width-limited
+    on the closed medium contract, increasing to `d_icl=96` should improve benchmark
+    fit without reopening any other sandwich knob.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - width only; no layers, optimizer retune, curriculum, or token-budget reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the TF-RD-009 heads1 replay anchor is registered and promoted.
+    - Compare directly against the replayed `d_icl=60` anchor at matched regime budget
+      using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Use the result to decide whether width-only movement remains a live TF-RD-009
+      family before joint width-depth work opens.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 96
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 2
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: db8cbfd9f96a8ed614b4261d60265dcdfaa3a3f8bb3e0bb6f47c7fb33a29a5ad
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_batch_critical_medium_v1/resolved_queue.yaml
+inputs_fingerprint: 6cbcf18a54a3397e042c5a41004d564ffe645462393f9c6ded85cf6e37253a9b

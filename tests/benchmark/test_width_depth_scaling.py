@@ -6,6 +6,7 @@ from tab_foundry.bench.width_depth_scaling import (
     WidthDepthParameterPoint,
     fit_affine_width_depth_parameter_bridge,
     fit_linear,
+    fit_power_law,
     log_space_parameter_targets,
     round_to_width_rung,
 )
@@ -78,3 +79,18 @@ def test_tf_rd_009_upper_interpolation_targets_remain_log_spaced() -> None:
     assert round_to_width_rung(
         fit.solve_width_for_target_params(layers=5, target_params=interpolation_targets[1])
     ) == 152
+
+
+def test_fit_power_law_recovers_positive_log_log_relationship() -> None:
+    fit = fit_power_law(
+        (
+            (1.0e6, 0.80 * (1.0e6 ** -0.08)),
+            (2.0e6, 0.80 * (2.0e6 ** -0.08)),
+            (4.0e6, 0.80 * (4.0e6 ** -0.08)),
+        )
+    )
+
+    assert fit.fit_kind == "power_law"
+    assert fit.exponent == pytest.approx(-0.08, abs=1.0e-6)
+    assert fit.coefficient == pytest.approx(0.80, abs=1.0e-6)
+    assert fit.predict(3.0e6) == pytest.approx(0.80 * (3.0e6 ** -0.08), rel=1.0e-6)

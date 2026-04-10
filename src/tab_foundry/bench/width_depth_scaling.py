@@ -50,6 +50,35 @@ class LinearFit:
 
 
 @dataclass(frozen=True, slots=True)
+class PowerLawFit:
+    """Least-squares fit of ``log(y) ≈ intercept + exponent * log(x)``."""
+
+    intercept: float
+    exponent: float
+    fit_kind: str
+
+    @property
+    def coefficient(self) -> float:
+        if self.fit_kind == "unfit":
+            return 0.0
+        return float(math.exp(self.intercept))
+
+    def expression(self, *, x_label: str = "x", y_label: str = "y") -> str:
+        if self.fit_kind == "unfit":
+            return f"{y_label} power-law fit unavailable"
+        if self.fit_kind == "constant":
+            return f"{y_label} ≈ {self.coefficient:.6g}"
+        return f"log({y_label}) ≈ {self.intercept:.6f} + {self.exponent:.6f} * log({x_label})"
+
+    def predict(self, x_value: float) -> float | None:
+        if self.fit_kind == "unfit":
+            return None
+        if x_value <= 0.0:
+            raise ValueError("power-law prediction requires a strictly positive x_value")
+        return float(self.coefficient * (float(x_value) ** self.exponent))
+
+
+@dataclass(frozen=True, slots=True)
 class AffineWidthDepthParameterFit:
     """Mixed-depth parameter fit ``P(d, L) ≈ a + b*d^2 + c*L*d^2``."""
 
@@ -140,6 +169,36 @@ def fit_linear(samples: Sequence[tuple[float, float]]) -> LinearFit:
     slope = sum((x - x_mean) * (y - y_mean) for x, y in finite) / float(denom)
     intercept = y_mean - slope * x_mean
     return LinearFit(intercept=float(intercept), slope=float(slope), fit_kind="linear")
+
+
+def fit_power_law(samples: Sequence[tuple[float, float]]) -> PowerLawFit:
+    positive_finite = [
+        (float(x), float(y))
+        for x, y in samples
+        if math.isfinite(x) and math.isfinite(y) and x > 0.0 and y > 0.0
+    ]
+    if not positive_finite:
+        return PowerLawFit(intercept=0.0, exponent=0.0, fit_kind="unfit")
+    if len(positive_finite) == 1:
+        _, y_value = positive_finite[0]
+        return PowerLawFit(intercept=float(math.log(y_value)), exponent=0.0, fit_kind="constant")
+    log_x_values = [math.log(sample[0]) for sample in positive_finite]
+    log_y_values = [math.log(sample[1]) for sample in positive_finite]
+    x_mean = sum(log_x_values) / float(len(log_x_values))
+    y_mean = sum(log_y_values) / float(len(log_y_values))
+    denom = sum((value - x_mean) ** 2 for value in log_x_values)
+    if denom <= LINEAR_SOLVER_PIVOT_TOLERANCE:
+        return PowerLawFit(intercept=float(y_mean), exponent=0.0, fit_kind="constant")
+    exponent = sum(
+        (x_value - x_mean) * (y_value - y_mean)
+        for x_value, y_value in zip(log_x_values, log_y_values, strict=False)
+    ) / float(denom)
+    intercept = y_mean - exponent * x_mean
+    return PowerLawFit(
+        intercept=float(intercept),
+        exponent=float(exponent),
+        fit_kind="power_law",
+    )
 
 
 def fit_affine_width_depth_parameter_bridge(

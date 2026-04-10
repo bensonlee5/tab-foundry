@@ -76,7 +76,11 @@ def _text_report(registry_path: Path | None = None) -> str:
     derivation = derive_tf_rd_009_width_depth_family(registry_path=registry_path)
     lines = [
         "TF-RD-009 width-depth derivation",
-        f"parameter_fit: {derivation.parameter_fit.expression()}",
+        f"queue_parameter_bridge: {derivation.parameter_bridge.expression()}",
+        (
+            "reported_fit_policy: fit the law only on measured "
+            "`model_size.total_params` from completed benchmark-backed in-family runs"
+        ),
         (
             "vram_fit: "
             f"reserved_gb ≈ {derivation.vram_fit.intercept:.2f} + "

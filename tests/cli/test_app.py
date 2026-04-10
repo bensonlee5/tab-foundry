@@ -1066,11 +1066,14 @@ def test_cli_groups_register_expected_commands() -> None:
     assert isinstance(diagnose_group, click.Group)
     assert _command_names(diagnose_group) == ["bounce"]
 
-    assert _command_names(research_group.GROUP) == ["adequacy", "sweep"]
+    assert _command_names(research_group.GROUP) == ["adequacy", "scaling", "sweep"]
     research_ctx = click.Context(research_group.GROUP)
     adequacy_group = research_group.GROUP.get_command(research_ctx, "adequacy")
     assert isinstance(adequacy_group, click.Group)
     assert _command_names(adequacy_group) == ["finalize", "pilot"]
+    scaling_group = research_group.GROUP.get_command(research_ctx, "scaling")
+    assert isinstance(scaling_group, click.Group)
+    assert _command_names(scaling_group) == ["fit", "inspect"]
     sweep_group = research_group.GROUP.get_command(research_ctx, "sweep")
     assert isinstance(sweep_group, click.Group)
     assert _command_names(sweep_group) == [

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
 from tab_foundry.model.inspection import (
+    compute_accounting_from_model_spec,
     model_surface_payload,
+    parameter_accounting_from_model_spec,
     parameter_counts_from_model_spec,
     synthetic_forward_batch,
 )
@@ -120,3 +124,46 @@ def test_parameter_counts_and_surface_payload_include_sandwich_metadata() -> Non
     }
     assert batch.expected_output_kind == "logits"
     assert batch.expected_num_classes == 4
+
+
+def test_parameter_accounting_uses_strict_non_embedding_params_as_canonical_n() -> None:
+    spec = _sandwich_spec()
+
+    accounting = parameter_accounting_from_model_spec(spec)
+
+    assert accounting["total_params"] == accounting["strict"]["embedding_params"] + accounting["strict"]["non_embedding_params"]
+    assert accounting["total_params"] == accounting["expanded"]["embedding_like_params"] + accounting["expanded"]["non_embedding_params"]
+    assert accounting["canonical_non_embedding_params"] == accounting["strict"]["non_embedding_params"]
+    assert accounting["expanded"]["embedding_like_params"] >= accounting["strict"]["embedding_params"]
+    assert any(
+        entry["expanded_partition"] == "embedding_like"
+        and entry["expanded_reason"] == "learned_test_token"
+        for entry in accounting["parameter_breakdown"]
+    )
+
+
+def test_compute_accounting_reports_training_flops_from_inspected_shapes() -> None:
+    spec = _sandwich_spec()
+
+    compute = compute_accounting_from_model_spec(
+        spec,
+        training_shape_summary={
+            "signature_task_counts": [
+                {"signature": "3x2x4x4", "task_count": 8},
+                {"signature": "2x2x4x4", "task_count": 4},
+            ]
+        },
+        tokens_seen=320,
+        tokens_per_step=64.0,
+    )
+
+    assert compute["train_flops_per_token"] == pytest.approx(
+        compute["forward_flops_per_token"] * compute["training_multiplier"]
+    )
+    assert compute["train_flops_per_step"] == pytest.approx(
+        compute["train_flops_per_token"] * compute["tokens_per_step"]
+    )
+    assert compute["total_train_flops"] == pytest.approx(
+        compute["train_flops_per_token"] * compute["tokens_seen"]
+    )
+    assert all("Embedding" not in entry["module_op"] for entry in compute["module_forward_flop_totals"])

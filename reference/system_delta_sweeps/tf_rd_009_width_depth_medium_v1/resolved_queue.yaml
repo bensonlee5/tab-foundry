@@ -166,8 +166,8 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only
-    baseline for `#255`; this row is the empirical depth-aware parameter fit's lower
-    anchor-equivalent probe.
+    baseline for `#255`; this row is the empirical depth-aware parameter bridge's
+    lower anchor-equivalent probe.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
   - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
@@ -193,11 +193,13 @@ rows:
   binary_applicable: false
   description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`,
     `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the
-    empirical depth-aware sandwich parameter fit rather than the older `L * d^2` proxy.
+    empirical depth-aware sandwich parameter bridge rather than the older `L * d^2`
+    proxy.
   upstream_delta: "TF-RD-009 uses the literature-backed rule that width and depth\
     \ must be co-designed once depth moves, then picks the concrete lower row from\
-    \ the empirical sandwich fit `P_local(d, L) \u2248 29966.47 + 75.38 * d^2 + 48.43\
-    \ * L * d^2` on the frozen medium surface."
+    \ the empirical sandwich bridge `P_local(d, L) \u2248 29966.47 + 75.38 * d^2 +\
+    \ 48.43 * L * d^2` on the frozen medium surface. That bridge chooses the queue\
+    \ row only; the reported law fit is deferred to measured benchmark-registry `model_size.total_params`."
   entangled_legacy_stage: none
   expected_effect: If the sandwich target can trade one layer for more width while
     staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1`
@@ -213,7 +215,7 @@ rows:
     default_plan:
     - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried
       width-only baseline for `#255`; this row is the empirical depth-aware parameter
-      fit's lower anchor-equivalent probe.
+      bridge's lower anchor-equivalent probe.
     - Compare directly against the carried `96x2` baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
@@ -295,82 +297,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -426,7 +361,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 811297672caa02afb3965067d1ed845e75598d3b7dfc5b1b462c1ec1cbfcceab
+  resolved_surface_fingerprint: 5341a2ba42e1ee093f6f26393bcaf1f441d4064d5888e84098357e550e2e345d
 - order: 2
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
@@ -515,11 +450,11 @@ rows:
   binary_applicable: false
   description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`,
     `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2`
-    against the empirical depth-aware sandwich parameter fit.
+    against the empirical depth-aware sandwich parameter bridge.
   upstream_delta: TF-RD-009 treats this as the paper-constrained upper seed for the
-    broadened medium-rung curve-fit family, after which the ladder extends toward
-    the retained `rtx8000_44gb` ceiling using the same empirical fit instead of a
-    grid search.
+    broadened medium-rung family, after which the ladder extends toward the retained
+    `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid
+    search.
   entangled_legacy_stage: none
   expected_effect: If the fixed-budget law continues above the carried `96x2` baseline,
     `112x3` should improve the matched-regime-budget objective while staying within
@@ -615,82 +550,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -746,7 +614,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 1a3c3253b50711655df3dee13106f0b051ff4db858e06b3e9ec786a51aec1583
+  resolved_surface_fingerprint: 21b1145f4e210135482236978601819e7b08b53ed009e3a63f9996766025c4b3
 - order: 3
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
   status: ready
@@ -812,8 +680,8 @@ rows:
     ordered dense diagonal.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
-  - Treat this row as an intermediate curve-fit point, not a final keep/reject decision
-    in isolation.
+  - Treat this row as an intermediate reported-fit point once benchmark-backed, not
+    a final keep/reject decision in isolation.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
   run_id: null
@@ -839,7 +707,7 @@ rows:
   upstream_delta: TF-RD-009 keeps the literature-backed width-depth co-design shape,
     then extends the upper ladder by log-spacing predicted parameter scale between
     the `112x3` seed and the intended `176x6` ceiling probe under the empirical depth-aware
-    fit.
+    bridge.
   entangled_legacy_stage: none
   expected_effect: If the joint law remains smooth beyond the first upper seed, `128x4`
     should continue the matched-budget trend without consuming an outsized share of
@@ -856,8 +724,8 @@ rows:
       an ordered dense diagonal.
     - Compare directly against the carried `96x2` baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
-    - Treat this row as an intermediate curve-fit point, not a final keep/reject decision
-      in isolation.
+    - Treat this row as an intermediate reported-fit point once benchmark-backed,
+      not a final keep/reject decision in isolation.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -934,82 +802,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -1065,7 +866,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 5c472a66d458a9149ba21381a8af720511b2895f38e601879e8c3cc59836c787
+  resolved_surface_fingerprint: d433732226811e802ad786a88f152a37fa4b3027bb94f09fbe5468a0f5b156cf
 - order: 4
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
   status: ready
@@ -1154,7 +955,7 @@ rows:
   description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`,
     `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb`
     ceiling probe.
-  upstream_delta: TF-RD-009 uses this row to extend the empirically fitted parameter
+  upstream_delta: TF-RD-009 uses this row to extend the empirically bridged parameter
     ladder far enough to fit curvature and identify where hardware guardrails begin
     to dominate, without switching to a width-depth grid.
   entangled_legacy_stage: none
@@ -1251,82 +1052,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -1382,7 +1116,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
+  resolved_surface_fingerprint: 846853cba0c44d719d5ace101c3f6d8c8ae35eee4b1ae8c3a6c5e1c4e95220e9
 - order: 5
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
   status: ready
@@ -1474,8 +1208,9 @@ rows:
     chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory
     target while staying on the same dense diagonal family.
   upstream_delta: TF-RD-009 treats this as an intentional hardware-ceiling probe derived
-    from the empirical sandwich parameter fit and the carried RTX 8000 VRAM fit rather
-    than a paper-claimed closed-form exponent.
+    from the empirical sandwich parameter bridge and the carried RTX 8000 VRAM fit
+    rather than a paper-claimed closed-form exponent. The final reported law is still
+    fit later on measured benchmark-registry `model_size.total_params`.
   entangled_legacy_stage: none
   expected_effect: '`176x6` should either extend the matched-budget law into the near-saturation
     regime or fail cleanly enough to mark the first medium-rung hardware ceiling on
@@ -1572,82 +1307,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -1703,6 +1371,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: b74f3dc0759fef1e2c75f5b45d99cdb94c46bfe3a529584a1cf25d01ac78536c
+  resolved_surface_fingerprint: cc53a2c49b417ab63a448bc18941816a42df63c08e60ea3bf443932d6f24a262
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_width_depth_medium_v1/resolved_queue.yaml
-inputs_fingerprint: 19b55fda6af2052b1c2c59e76427c567800de2cdf52eb64b6952ba59c7d2b2db
+inputs_fingerprint: a3281a4aab25bc048ac8ad4900594c94c81c9f5778a439592376be0f59c4fa8c
