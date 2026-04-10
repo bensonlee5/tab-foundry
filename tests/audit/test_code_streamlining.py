@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+import re
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -40,17 +41,21 @@ def test_deleted_compatibility_shims_are_not_reintroduced() -> None:
     for path in deleted_paths:
         assert not path.exists()
 
-    blocked_imports = [
+    blocked_modules = [
         ".".join(("tab_foundry", "data", "validation")),
         ".".join(("tab_foundry", "data", "dagzoo_handoff")),
         ".".join(("tab_foundry", "training", "batching")),
     ]
+    blocked_patterns = {
+        blocked: re.compile(rf"(?<![A-Za-z0-9_]){re.escape(blocked)}(?![A-Za-z0-9_])")
+        for blocked in blocked_modules
+    }
     offenders: list[str] = []
     for root in (REPO_ROOT / "src", REPO_ROOT / "tests"):
         for path in sorted(root.rglob("*.py")):
             text = path.read_text(encoding="utf-8")
-            for blocked in blocked_imports:
-                if blocked in text:
+            for blocked, pattern in blocked_patterns.items():
+                if pattern.search(text):
                     offenders.append(f"{path.relative_to(REPO_ROOT)} references {blocked}")
     assert offenders == []
 
