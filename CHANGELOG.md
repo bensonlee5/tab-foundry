@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: training now supports
+  `training.initial_checkpoint_path` for model-weight-only checkpoint
+  initialization without resuming optimizer, scheduler, or prior output-dir
+  state, and the packaged CLI now exposes
+  `tab-foundry research robust-prior run|inspect` plus the first
+  adversarial Dagzoo prior-optimization pilot surface.
 - User-facing note: benchmark run registration now persists optional W&B run
   identity plus a versioned remote checkpoint artifact ref in the benchmark run
   registry, and new `tab-foundry dev checkpoint-publish` /

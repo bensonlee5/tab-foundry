@@ -109,7 +109,12 @@ into the canonical library modules.
   under `research/sweep/configuration.py`, `research/sweep/runtime_env.py`,
   `research/sweep/curve_reuse.py`, `research/sweep/training_state.py`,
   `research/sweep/row_dependencies.py`, `research/sweep/row_sync.py`, and
-  `research/sweep/row_execution.py`.
+  `research/sweep/row_execution.py`. The anchored adversarial prior-optimizer
+  pilot now lives under `src/tab_foundry/research/robust_prior/`, where
+  `config.py` owns the study schema, `search_space.py` owns the discrete
+  Dagzoo controller surface, `proposer.py` owns the transformer proposer,
+  `scoring.py` owns probe scoring against TabFoundry plus classical baselines,
+  and `pilot.py` owns round orchestration plus study inspection.
 
 ## 3. Workflow Surfaces
 
@@ -141,6 +146,9 @@ Stable packaged CLI groups:
 - `train`, `eval`, `export`: manifest-backed training and inference-bundle flows
 - `bench`: smoke, comparison, tuning, bundle, and registry flows
 - `research sweep`: sweep queue, inspection, execution, graphing, and promotion
+- `research adequacy`: synthetic adequacy workflows
+- `research robust-prior`: adversarial Dagzoo-prior pilot workflows
+- `research scaling`: scaling-study workflows
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should

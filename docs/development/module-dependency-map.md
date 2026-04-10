@@ -61,8 +61,9 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.task_batching` depends on `tab_foundry.feature_types`
   and `tab_foundry.types`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
-  `tab_foundry.device`, `tab_foundry.feature_types`,
-  `tab_foundry.hashing`, `tab_foundry.likelihoods`,
+  `tab_foundry.checkpoint_state`, `tab_foundry.device`,
+  `tab_foundry.feature_types`, `tab_foundry.hashing`,
+  `tab_foundry.likelihoods`,
   `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, `tab_foundry.task_batching`,
   `tab_foundry.timestamps`, and `tab_foundry.types`.
@@ -95,7 +96,8 @@ Observed cycle status:
   shared task-batching helpers when manifest packing needs them, but it should
   not depend on `bench`, `training`, or `research`.
 - `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
-  shared helpers such as `tab_foundry.config`, `tab_foundry.device`,
+  shared helpers such as `tab_foundry.checkpoint_state`,
+  `tab_foundry.config`, `tab_foundry.device`,
   `tab_foundry.feature_types`, `tab_foundry.repo_paths`, and
   `tab_foundry.task_batching`, but it should not depend on `bench` or
   `research`.

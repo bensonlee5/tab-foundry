@@ -12,6 +12,7 @@ from .corpus_materialization_recipe import (
     finalize_staged_corpus_recipe,
     load_staged_corpus_recipe_preview,
     materialize_corpus_recipe,
+    materialize_corpus_recipe_object,
 )
 from .corpus_materialization_shared import (
     default_materialize_processes,
@@ -28,5 +29,6 @@ __all__ = [
     "materialize_corpus_ref",
     "materialize_corpus_refs_batch",
     "materialize_corpus_recipe",
+    "materialize_corpus_recipe_object",
     "materialize_recipe_invocation",
 ]

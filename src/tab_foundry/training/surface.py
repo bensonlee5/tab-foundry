@@ -50,6 +50,15 @@ def _utc_now() -> str:
     return _shared_utc_now()
 
 
+def _normalized_surface_path(value: Any) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    return normalize_repo_relative_path(Path(normalized))
+
+
 def _normalize_runtime_surface_cfg(raw_runtime_cfg: Mapping[str, Any]) -> dict[str, Any]:
     runtime_cfg = {
         str(key): value
@@ -339,6 +348,9 @@ def build_training_surface_record(
                 "loss_surface": str(training_cfg.get("loss_surface", "classification")),
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
                 "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
+                "initial_checkpoint_path": _normalized_surface_path(
+                    training_cfg.get("initial_checkpoint_path")
+                ),
                 "optimizer_name": None
                 if optimizer_cfg is None or optimizer_cfg.get("name") is None
                 else str(optimizer_cfg["name"]),

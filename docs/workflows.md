@@ -133,6 +133,16 @@ tab-foundry train run \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
+Warm-start a fresh run from model weights only without resuming optimizer or
+schedule state:
+
+```bash
+tab-foundry train run \
+  experiment=cls_workstation_sandwich \
+  data.corpus_ref=tf_rd_013_current_corpus_default_v1 \
+  training.initial_checkpoint_path=outputs/cls_workstation_sandwich/checkpoints/best.pt
+```
+
 `cls_workstation_sandwich` is the default sandwich training surface for new
 development work. Regression remains intentionally removed in the current repo
 state.
@@ -171,6 +181,41 @@ tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_s
 tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
+
+## Research Pilots
+
+Run the anchored adversarial Dagzoo prior pilot from a tracked study config:
+
+```bash
+tab-foundry research robust-prior run \
+  --study anchor_pilot_v1 \
+  --dagzoo-root ../dagzoo
+tab-foundry research robust-prior inspect \
+  --study anchor_pilot_v1
+```
+
+Use `reference/robust_prior/<study_id>.yaml` for the study contract. The
+reference example at `reference/robust_prior/anchor_pilot_v1.yaml` defines:
+
+- the frozen anchor checkpoint
+- the control corpus reference
+- the benchmark manifest
+- the discrete `robust_prior_search_space_v1`
+- the short pilot budget and matched-control policy
+
+The robust-prior pilot writes operator-facing artifacts under the configured
+`output_root`, including:
+
+- `config.json`
+- `summary.json`
+- `round_XX/trial_YY.json`
+- `round_XX/round_summary.json`
+- `round_XX/adversarial_train/`
+- `round_XX/control_train/` when `matched_control: true`
+
+`summary.json` is the top-level inspect target; it records the final
+keep/defer decision, defer reason when present, and one benchmark summary per
+completed round.
 
 ## Standard Workflow Artifacts
 

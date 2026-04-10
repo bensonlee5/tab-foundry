@@ -96,11 +96,29 @@ _SWEEP_GROUP = LazyGroup(
     **GROUP_KWARGS,
 )
 
+_ROBUST_PRIOR_GROUP = LazyGroup(
+    name="robust-prior",
+    help="Adversarial dagzoo-prior workflows",
+    lazy_commands={
+        "inspect": LazyCommandSpec(
+            module="tab_foundry.cli.research_robust_prior",
+            attr="INSPECT_COMMAND",
+            help="Inspect one robust-prior pilot and its completed rounds",
+        ),
+        "run": LazyCommandSpec(
+            module="tab_foundry.cli.research_robust_prior",
+            attr="RUN_COMMAND",
+            help="Run one robust-prior pilot from an anchor checkpoint",
+        ),
+    },
+    **GROUP_KWARGS,
+)
 GROUP = LazyGroup(
     name="research",
     help="Research workflows",
     lazy_commands={
         "adequacy": _ADEQUACY_GROUP,
+        "robust-prior": _ROBUST_PRIOR_GROUP,
         "sweep": _SWEEP_GROUP,
     },
     **GROUP_KWARGS,

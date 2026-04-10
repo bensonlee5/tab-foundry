@@ -9,6 +9,7 @@ from typing import Any, cast
 import torch
 from omegaconf import DictConfig, OmegaConf
 
+from tab_foundry.checkpoint_state import normalize_checkpoint_model_state_dict
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
@@ -64,6 +65,55 @@ __all__ = [
 ]
 
 
+def _resolve_initial_checkpoint_path(training_cfg: Any) -> Path | None:
+    if training_cfg is None:
+        return None
+    raw_path = getattr(training_cfg, "initial_checkpoint_path", None)
+    if raw_path is None:
+        return None
+    normalized = str(raw_path).strip()
+    if not normalized:
+        return None
+    resolved = Path(normalized).expanduser().resolve()
+    if not resolved.exists():
+        raise RuntimeError(f"training.initial_checkpoint_path does not exist: {resolved}")
+    return resolved
+
+
+def _checkpoint_model_state_dict_from_payload(
+    payload: Any,
+    *,
+    checkpoint_path: Path,
+) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise RuntimeError(
+            "training.initial_checkpoint_path must point to a checkpoint payload mapping or "
+            f"state-dict mapping, got {type(payload).__name__}: {checkpoint_path}"
+        )
+    model_state = payload.get("model")
+    if isinstance(model_state, dict):
+        return normalize_checkpoint_model_state_dict(model_state, checkpoint_path=checkpoint_path)
+    if all(isinstance(key, str) for key in payload):
+        return normalize_checkpoint_model_state_dict(payload, checkpoint_path=checkpoint_path)
+    raise RuntimeError(
+        "training.initial_checkpoint_path checkpoint is missing a loadable model state dict: "
+        f"{checkpoint_path}"
+    )
+
+
+def _load_initial_checkpoint_weights(
+    model: torch.nn.Module,
+    *,
+    checkpoint_path: Path | None,
+) -> Path | None:
+    if checkpoint_path is None:
+        return None
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state_dict = _checkpoint_model_state_dict_from_payload(payload, checkpoint_path=checkpoint_path)
+    model.load_state_dict(state_dict, strict=True)
+    return checkpoint_path
+
+
 def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     """Train from config."""
 
@@ -111,6 +161,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         model_spec=model_spec,
         backend=TRAINING_BACKEND_MANIFEST,
     )
+    initial_checkpoint_path = _resolve_initial_checkpoint_path(cfg.get("training"))
 
     train_ds = build_task_dataset(
         cfg.data,
@@ -164,6 +215,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         )
     model = build_model_from_spec(model_spec)
     configure_model_loss_surface(model, loss_surface=loss_surface)
+    _ = _load_initial_checkpoint_weights(model, checkpoint_path=initial_checkpoint_path)
     activation_checkpointing = _resolve_activation_checkpointing(cfg.runtime)
     if activation_checkpointing:
         enable_activation_checkpointing = getattr(model, "enable_activation_checkpointing", None)

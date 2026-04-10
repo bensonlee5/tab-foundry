@@ -1,0 +1,30 @@
+schema: tab-foundry-robust-prior-v1
+study_id: anchor_pilot_v1
+description: >
+  Short anchored adversarial Dagzoo prior-optimization pilot with a transformer
+  proposer over the discrete v1 search space and matched-control continuation.
+output_root: outputs/research/robust_prior/anchor_pilot_v1
+anchor_checkpoint_path: outputs/cls_benchmark_staged/checkpoints/best.pt
+base_experiment: cls_benchmark_staged_corpus
+control_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+benchmark_manifest_path: data/manifests/bench/openml_binary_medium_v1/manifest.parquet
+search_space_id: robust_prior_search_space_v1
+dagzoo_base_config_ref: configs/default.yaml
+outer_rounds: 3
+trials_per_round: 32
+probe_datasets_per_trial: 6
+topk_training_candidates: 8
+round_train_datasets: 8192
+train_steps_per_round: 150
+matched_control: true
+benchmark_device: cpu
+benchmark_checkpoint_selection: all
+logging_use_wandb: false
+exploration_rate: 0.2
+entropy_floor_ratio: 0.65
+materialize_worker_threads: null
+guardrails:
+  class_entropy_floor: 0.35
+  min_class_prior_headroom: 0.02
+  depth_ratio_tolerance: 0.08
+  diversity_min_distance: 0.08

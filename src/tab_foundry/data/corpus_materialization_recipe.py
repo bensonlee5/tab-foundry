@@ -31,7 +31,9 @@ from .corpus_loading import (
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
 from .corpus_materialization_shared import (
     _STAGED_VERIFY_MODES,
+    _clamp_expected_acceptance_rate,
     _drop_none_values,
+    _float_or_none,
     _git_info,
     _int_or_none,
     _read_json_mapping,
@@ -123,6 +125,44 @@ def _prepare_recipe_materialization(
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
     )
+    storage = _recipe_storage_context(recipe, repo_root=repo_root)
+    existing_record = _load_reusable_recipe_record(
+        recipe=recipe,
+        storage=storage,
+        force=force,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if existing_record is not None:
+        return existing_record
+
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe.recipe_id
+    stage_root = recipe_root / ".staging"
+    if stage_root.exists():
+        shutil.rmtree(stage_root)
+    stage_root.mkdir(parents=True, exist_ok=True)
+    return _PendingCorpusMaterialization(
+        recipe=recipe,
+        storage=storage,
+        dagzoo_root=dagzoo_root,
+        repo_root=repo_root,
+        recipe_root=recipe_root,
+        stage_root=stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+
+
+def _prepare_recipe_object_materialization(
+    *,
+    recipe: CorpusRecipe,
+    dagzoo_root: Path,
+    force: bool,
+    repo_root: Path,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> dict[str, Any] | _PendingCorpusMaterialization:
     storage = _recipe_storage_context(recipe, repo_root=repo_root)
     existing_record = _load_reusable_recipe_record(
         recipe=recipe,
@@ -266,6 +306,62 @@ def _build_staged_manifest(
         dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
     )
     return manifest_path
+
+
+def _materialize_pending_recipe_invocations_serial(
+    pending: _PendingCorpusMaterialization,
+    *,
+    materialize_worker_threads: int | None,
+) -> dict[str, Any]:
+    shape_acceptance_rates: dict[tuple[int | None, int | None, int | None], list[float]] = {}
+    row_acceptance_rates: dict[int, list[float]] = {}
+    invocation_start_time = time.perf_counter()
+    for spec in pending.recipe.invocations:
+        shape_key = invocation_module._invocation_shape_key(spec)
+        shape_rates = shape_acceptance_rates.get(shape_key)
+        initial_expected_acceptance_rate = None
+        if shape_rates:
+            initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                sum(shape_rates) / float(len(shape_rates))
+            )
+        elif shape_key[0] is not None:
+            row_rates = row_acceptance_rates.get(int(shape_key[0]))
+            if row_rates:
+                initial_expected_acceptance_rate = _clamp_expected_acceptance_rate(
+                    sum(row_rates) / float(len(row_rates))
+                )
+        invocation_module._materialize_invocation(
+            dagzoo_root=pending.dagzoo_root,
+            corpus_root=pending.stage_root,
+            spec=spec,
+            filter_policy=str(pending.recipe.manifest_policy.filter_policy),
+            materialize_worker_threads=materialize_worker_threads,
+            initial_expected_acceptance_rate=initial_expected_acceptance_rate,
+        )
+        summary_path = invocation_module._invocation_materialization_summary_path(
+            corpus_root=pending.stage_root,
+            invocation_id=spec.invocation_id,
+        )
+        if summary_path.exists():
+            summary_payload = _read_json_mapping(
+                summary_path,
+                context=(
+                    f"accepted_only materialization summary for invocation "
+                    f"{spec.invocation_id!r}"
+                ),
+            )
+            acceptance_rate = _clamp_expected_acceptance_rate(
+                _float_or_none(summary_payload.get("acceptance_rate"))
+            )
+            if acceptance_rate is not None:
+                shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
+                row_total = shape_key[0]
+                if row_total is not None:
+                    row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
+    return {
+        "invocation_fanout_elapsed_seconds": _elapsed_seconds_since(invocation_start_time),
+        "fanout_mode": "serial_direct_recipe",
+    }
 
 
 def build_staged_corpus_manifest(
@@ -806,6 +902,45 @@ def materialize_corpus_recipe(
                     invocation_fanout_start_time
                 ),
             },
+            recipe_start_time=recipe_start_time,
+        )
+    finally:
+        if prepared.stage_root.exists():
+            shutil.rmtree(prepared.stage_root)
+
+
+def materialize_corpus_recipe_object(
+    *,
+    recipe: CorpusRecipe,
+    dagzoo_root: Path,
+    force: bool = False,
+    materialize_worker_threads: int | None = None,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    recipe_start_time = time.perf_counter()
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    prepared = _prepare_recipe_object_materialization(
+        recipe=recipe,
+        dagzoo_root=resolved_dagzoo_root,
+        force=force,
+        repo_root=resolved_repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if isinstance(prepared, dict):
+        return prepared
+    try:
+        materialization_timing = _materialize_pending_recipe_invocations_serial(
+            prepared,
+            materialize_worker_threads=materialize_worker_threads,
+        )
+        return _finalize_materialized_recipe(
+            prepared,
+            force=force,
+            materialization_timing=materialization_timing,
             recipe_start_time=recipe_start_time,
         )
     finally:

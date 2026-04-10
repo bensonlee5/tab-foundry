@@ -109,7 +109,7 @@ Use `--help` in this order:
 | `dev` | Fast inspection and verification surfaces for local development. | `docs/workflows.md` |
 | `train`, `eval`, `export` | Manifest-backed training, checkpoint evaluation, and inference-bundle workflows. | `docs/workflows.md` |
 | `bench` | Smoke harnesses, benchmark comparisons, and baseline-registry flows. | `docs/workflows.md` |
-| `research` | Sweep queues, inspection, execution, and sweep-aware corpus materialization. | `program.md` |
+| `research` | Sweep queues, synthetic adequacy studies, robust-prior pilots, scaling studies, and sweep-aware corpus materialization. | `program.md` |
 
 Use [docs/workflows.md](docs/workflows.md) for representative commands and
 [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md)
@@ -140,6 +140,8 @@ for package ownership and entry points.
   evaluation surfaces with a tracked benchmark registry
 - **Research sweep framework** for systematic architecture and data-surface
   experiments with full attribution
+- **Offline robust-prior pilot** for adversarial Dagzoo search over a discrete
+  generator space with matched-control continuation from an anchor checkpoint
 - **Export pipeline** for packaging inference bundles
 - **Evidence-backed decisions** every architecture choice has a pinned
   benchmark, sweep result, and research card
