@@ -17,7 +17,7 @@ def materialized_row_map(*, sweep_id: str, paths: ExecutionPaths) -> dict[str, d
         sweeps_root=paths.sweeps_root,
     )
     rows = cast(list[dict[str, Any]], materialized["rows"])
-    return {str(row["delta_id"]): row for row in rows}
+    return {str(row["order"]): row for row in rows}
 
 
 def sync_sweep_matrix(*, sweep_id: str, paths: ExecutionPaths) -> None:

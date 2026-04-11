@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
@@ -939,6 +940,53 @@ def test_execute_sweep_reuses_failed_row_run_id_for_retry(
     updated_queue = _load_yaml(queue_path)
     assert updated_queue['rows'][0]['status'] == 'completed'
     assert updated_queue['rows'][0]['run_id'] == failed_run_id
+
+
+def test_execute_sweep_uses_order_specific_materialized_row_for_repeated_delta_refs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    repeated_delta_ref = str(queue['rows'][0]['delta_ref'])
+    queue['rows'][0]['status'] = 'ready'
+    row_1_training = queue['rows'][0].setdefault('training', {})
+    row_1_training.pop('synthetic_epoch_budget', None)
+    row_1_training.setdefault('overrides', {}).setdefault('runtime', {})['max_steps'] = 625
+    queue['rows'][1]['status'] = 'completed'
+    queue['rows'][1]['delta_ref'] = repeated_delta_ref
+    queue['rows'][1]['training'] = deepcopy(queue['rows'][0]['training'])
+    queue['rows'][1]['training']['overrides']['runtime']['max_steps'] = 5000
+    _write_yaml(queue_path, queue)
+
+    captured_materialized_rows: list[dict[str, Any]] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        captured_materialized_rows.append(cast(dict[str, Any], kwargs['materialized_row']))
+        kwargs['queue_row']['status'] = 'completed'
+        kwargs['queue_row']['decision'] = 'defer'
+        kwargs['queue_row']['interpretation_status'] = 'completed'
+        kwargs['queue_row']['benchmark_metrics'] = {'final_log_loss': 0.39}
+        return 'order_specific_row_1_v1'
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['order_specific_row_1_v1']
+    assert [row['order'] for row in captured_materialized_rows] == [1]
+    assert (
+        captured_materialized_rows[0]['training']['overrides']['runtime']['max_steps']
+        == 625
+    )
 
 
 def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

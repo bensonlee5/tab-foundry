@@ -451,7 +451,7 @@ def execute_sweep(
         )
         queue_rows = sorted_rows(queue)
         queue_row = _queue_row_by_order(sweep_id=resolved_sweep_id, queue=queue, order=order)
-        materialized_row = materialized_rows[str(queue_row["delta_ref"])]
+        materialized_row = materialized_rows[str(order)]
         try:
             run_id = run_row(
                 sweep_id=resolved_sweep_id,

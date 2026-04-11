@@ -13,6 +13,7 @@ from tests.support_research.system_delta_execute import (
     test_execute_sweep_rejects_anchor_only_resume_without_anchor,
     test_execute_sweep_rejects_mps_device_programmatically,
     test_execute_sweep_requires_explicit_sweep_id,
+    test_execute_sweep_uses_order_specific_materialized_row_for_repeated_delta_refs,
     test_execute_sweep_preserves_screened_rows_when_syncing_queue,
     test_execute_sweep_uses_completed_parent_delta_ref,
     test_execute_sweep_uses_same_invocation_parent_delta_ref,
