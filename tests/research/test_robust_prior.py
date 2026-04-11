@@ -166,6 +166,8 @@ def test_configure_round_training_cfg_inherits_anchor_model_surface(tmp_path: Pa
 
     cfg = pilot_module._configure_round_training_cfg(
         config=config,
+        round_index=1,
+        arm="adversarial",
         output_dir=tmp_path / "run",
         corpus_ref="corpus/ref",
         initial_checkpoint_path=anchor_checkpoint,
@@ -174,6 +176,8 @@ def test_configure_round_training_cfg_inherits_anchor_model_surface(tmp_path: Pa
     assert cfg.model.arch == "tabfoundry_sandwich"
     assert cfg.model.sandwich_summary_tokens_per_axis == 3
     assert cfg.runtime.device == "cpu"
+    assert cfg.logging.group == "smoke"
+    assert cfg.logging.run_name == "smoke-r01-adversarial"
 
 
 def test_sample_proposal_applies_entropy_floor_and_uniform_exploration() -> None:

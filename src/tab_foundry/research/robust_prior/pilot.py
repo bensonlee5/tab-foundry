@@ -108,9 +108,24 @@ def _first_stage_template(cfg: Any) -> dict[str, Any]:
     return {"name": "round", "steps": 1, "lr_max": 8.0e-4}
 
 
+def _study_wandb_group(config: RobustPriorStudyConfig) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", str(config.study_id).strip())
+
+
+def _round_wandb_run_name(
+    *,
+    config: RobustPriorStudyConfig,
+    round_index: int,
+    arm: str,
+) -> str:
+    return f"{_study_wandb_group(config)}-r{int(round_index):02d}-{str(arm).strip()}"
+
+
 def _configure_round_training_cfg(
     *,
     config: RobustPriorStudyConfig,
+    round_index: int,
+    arm: str,
     output_dir: Path,
     corpus_ref: str,
     initial_checkpoint_path: Path,
@@ -139,6 +154,12 @@ def _configure_round_training_cfg(
     cfg.runtime.eval_every = max(1, min(int(config.train_steps_per_round), 25))
     cfg.runtime.checkpoint_every = max(1, min(int(config.train_steps_per_round), 25))
     cfg.logging.use_wandb = bool(config.logging_use_wandb)
+    cfg.logging.group = _study_wandb_group(config)
+    cfg.logging.run_name = _round_wandb_run_name(
+        config=config,
+        round_index=round_index,
+        arm=arm,
+    )
     OmegaConf.update(cfg, "data.source", "manifest", merge=False, force_add=True)
     OmegaConf.update(cfg, "data.requested_corpus_ref", str(corpus_ref), merge=False, force_add=True)
     OmegaConf.update(cfg, "data.corpus_ref", str(corpus_ref), merge=False, force_add=True)
@@ -668,6 +689,8 @@ def run_robust_prior_pilot(
         adversarial_corpus_ref = str(adversarial_record["corpus_ref"])
         adversarial_train_cfg = _configure_round_training_cfg(
             config=config,
+            round_index=round_index,
+            arm="adversarial",
             output_dir=round_root / "adversarial_train",
             corpus_ref=adversarial_corpus_ref,
             initial_checkpoint_path=adversarial_checkpoint,
@@ -685,6 +708,8 @@ def run_robust_prior_pilot(
         if config.matched_control:
             control_train_cfg = _configure_round_training_cfg(
                 config=config,
+                round_index=round_index,
+                arm="control",
                 output_dir=round_root / "control_train",
                 corpus_ref=control_corpus_ref,
                 initial_checkpoint_path=control_checkpoint,

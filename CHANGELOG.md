@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registry, and new `tab-foundry dev checkpoint-publish` /
   `tab-foundry dev checkpoint-resolve` commands now backfill and recover those
   best-checkpoint artifacts through W&B when local registry paths are missing.
+- User-facing note: robust-prior pilot training runs now publish W&B names as
+  `<study_id>-rNN-{adversarial|control}` and group them by `study_id`, so
+  matched-control rounds are legible from the W&B run list without inheriting
+  the generic base experiment name.
 - User-facing note: export bundles now preserve the full live sandwich contract
   needed by the TF-RD-009 `d_icl=96` candidate, including
   `feature_type_conditioning`, likelihood settings, and sandwich summary / pre-
