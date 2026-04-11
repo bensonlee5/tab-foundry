@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_fe
 - Parent sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
 - Complexity level: `binary_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_021b_sandwich_feature_removal_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `73ffadc084d14729b37366d0e9e6f85a5d1c78a398d1e585bbe0b1eab9aaeed5`
+- Resolved queue inputs fingerprint: `445f9a3f61dd4cb061c546425e41e0d90cd698e8c840ea02d57bf6b96e3a3f14`
 
 ## Locked Surface
 

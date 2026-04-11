@@ -11,7 +11,12 @@ from typing import Any, Iterator, Mapping, cast
 import torch
 from omegaconf import DictConfig
 
-from tab_foundry.task_batching import move_batch, task_batch_diagnostics
+from tab_foundry.task_batching import (
+    move_batch,
+    task_batch_diagnostics,
+    task_batch_signature,
+    task_batch_signature_text,
+)
 from tab_foundry.types import TaskBatch
 
 from .artifacts import (
@@ -71,6 +76,7 @@ class TrainingLoopState:
     checkpoint_snapshots: list[dict[str, Any]] = field(default_factory=list)
     examples_seen: int = 0
     tokens_seen: int = 0
+    signature_task_counts: dict[str, int] = field(default_factory=dict)
 
 
 def _empty_task_batch_step_payload(*, requested_task_batch_size: int) -> dict[str, Any]:
@@ -183,6 +189,18 @@ def _apply_guard_update(
     state.examples_seen = guard_update.examples_seen
     state.tokens_seen = guard_update.tokens_seen
     state.stop_requested = guard_update.stop_requested
+
+
+def _accumulate_training_shape_signature(
+    state: TrainingLoopState,
+    *,
+    batch: TaskBatch,
+    task_count: int,
+) -> None:
+    if task_count <= 0:
+        return
+    signature = task_batch_signature_text(task_batch_signature(batch))
+    state.signature_task_counts[signature] = state.signature_task_counts.get(signature, 0) + int(task_count)
 
 
 def _save_eval_mode_artifact(
@@ -464,6 +482,11 @@ def run_training_loop(
                     microstep_payload=microstep_batch_payload,
                 )
                 actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
+                _accumulate_training_shape_signature(
+                    state,
+                    batch=batch,
+                    task_count=actual_task_count,
+                )
                 step_total_task_count += actual_task_count
                 step_examples_seen += task_batch_examples_seen(batch)
                 step_tokens_seen += task_batch_token_count(batch)

@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_024_classificati
 - Parent sweep id: `tf_rd_024_classification_knob_sweep_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `367ca82024634deffd03e0c78e0d5006bdb7ddcf4843927ccdbbbfda54411844`
+- Resolved queue inputs fingerprint: `d3c3b494d8d2e8712cb2df3210249d4a8ed890a228dfbab5c9dfcffa96549b83`
 
 ## Locked Surface
 
@@ -56,7 +56,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_heads` from `4` to `1` while holding `d_icl=60`, `sandwich_layers=2`, `sandwich_latents=24`, the compile-eager-dynamic runtime surface, and the closed TF-RD-010 medium benchmark contract fixed.
 - Expected effect: If the medium gain from the lower-head bracket reflects excess head factorization rather than a narrow `2`-head sweet spot, `sandwich_heads=1` may remain competitive or improve further on the closed medium contract.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `0b3be75f60d2d62aa06d1f7efcfa44229dc3a32efa606b43230e2c3b1a807252`
+- Resolved surface fingerprint: `92905d867965718e3766be0070018497600ac85dff3a2d919ad8e8e20ddb0ba7`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
@@ -99,7 +99,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Changes `model.sandwich_pre_row_attention_layers` from `1` to `2` while holding `d_icl=60`, `sandwich_layers=2`, `sandwich_heads=4`, the compile-eager-dynamic runtime surface, and the closed TF-RD-010 medium benchmark contract fixed.
 - Expected effect: If the row-wise pre-Perceiver mixer is still capacity-limited on the current multiclass contract, the deeper row pre-mixer bracket may improve medium benchmark fit enough to justify the scaling handoff.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `3622a8d310525faf142d32a42055dc79e98823a7e305a274adcde9f9add45eda`
+- Resolved surface fingerprint: `39b626e039519bff0d1d2b888359f4469a81e1ae70bd50aee549cfff3aecbce6`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 2, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:

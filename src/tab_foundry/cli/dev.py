@@ -312,6 +312,7 @@ def render_export_check_text(payload: Mapping[str, Any]) -> str:
     model_payload = cast(Mapping[str, Any], payload["model"])
     reference_smoke = cast(Mapping[str, Any], payload["reference_smoke"])
     preprocessor = cast(Mapping[str, Any] | None, payload.get("preprocessor"))
+    inference_timing = cast(Mapping[str, Any] | None, payload.get("inference_timing"))
     lines = [
         "Export check passed.",
         f"checkpoint={payload['checkpoint']}",
@@ -328,6 +329,12 @@ def render_export_check_text(payload: Mapping[str, Any]) -> str:
         f"reference_used_missing_inputs={reference_smoke['used_missing_inputs']}",
         f"elapsed_seconds={payload['elapsed_seconds']:.3f}",
     ]
+    if isinstance(inference_timing, Mapping):
+        lines.append(f"inference.fixture_id={inference_timing.get('fixture_id')}")
+        lines.append(f"inference.resolved_device={inference_timing.get('resolved_device')}")
+        lines.append(f"inference.mean_ms={inference_timing.get('mean_ms')}")
+        lines.append(f"inference.p50_ms={inference_timing.get('p50_ms')}")
+        lines.append(f"inference.p95_ms={inference_timing.get('p95_ms')}")
     if isinstance(preprocessor, Mapping):
         missing_value_policy = preprocessor.get("missing_value_policy")
         classification_label_policy = preprocessor.get("classification_label_policy")
@@ -401,6 +408,15 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     runtime_summary = payload.get("runtime_summary")
     if isinstance(runtime_summary, Mapping):
         lines.append(f"runtime_summary={_format_jsonable(dict(runtime_summary))}")
+    benchmark_timing = payload.get("benchmark_timing")
+    if isinstance(benchmark_timing, Mapping):
+        lines.append(f"benchmark_timing={_format_jsonable(dict(benchmark_timing))}")
+    hardware_summary = payload.get("hardware_summary")
+    if isinstance(hardware_summary, Mapping):
+        lines.append(f"hardware_summary={_format_jsonable(dict(hardware_summary))}")
+    inference_timing = payload.get("inference_timing")
+    if isinstance(inference_timing, Mapping):
+        lines.append(f"inference_timing={_format_jsonable(dict(inference_timing))}")
     regime_budget = payload.get("regime_budget")
     if isinstance(regime_budget, Mapping):
         lines.append(f"regime_budget={_format_jsonable(dict(regime_budget))}")
@@ -480,12 +496,14 @@ def _run_export_check(
     checkpoint: Path,
     out_dir: Path | None,
     artifact_version: str,
+    device: str,
     json_mode: bool,
 ) -> int:
     payload = export_check(
         checkpoint,
         out_dir=out_dir,
         artifact_version=artifact_version,
+        device=device,
     )
     emit_payload(payload, json_mode=json_mode, render_text=render_export_check_text)
     return 0
@@ -624,17 +642,20 @@ def DIFF_CONFIG_COMMAND(
     show_default=True,
     help="Export artifact schema version",
 )
+@device_option(default="auto", choices=DEVICE_CHOICES)
 @json_output_option
 def EXPORT_CHECK_COMMAND(
     checkpoint: Path,
     out_dir: Path | None,
     artifact_version: str,
+    device: str,
     json_mode: bool,
 ) -> int:
     return _run_export_check(
         checkpoint=checkpoint,
         out_dir=out_dir,
         artifact_version=artifact_version,
+        device=device,
         json_mode=json_mode,
     )
 

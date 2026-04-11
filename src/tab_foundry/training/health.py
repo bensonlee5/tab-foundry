@@ -394,6 +394,59 @@ def _runtime_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _benchmark_timing_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "wall_elapsed_seconds": _summary_value(payload, "wall_elapsed_seconds"),
+        "mean_checkpoint_elapsed_seconds": _summary_value(
+            payload, "mean_checkpoint_elapsed_seconds"
+        ),
+        "max_checkpoint_elapsed_seconds": _summary_value(
+            payload, "max_checkpoint_elapsed_seconds"
+        ),
+        "attempted_checkpoint_count": _summary_value(payload, "attempted_checkpoint_count"),
+        "successful_checkpoint_count": _summary_value(payload, "successful_checkpoint_count"),
+        "failed_checkpoint_count": _summary_value(payload, "failed_checkpoint_count"),
+        "requested_device": _summary_value(payload, "requested_device"),
+        "resolved_device": _summary_value(payload, "resolved_device"),
+        "host_fingerprint": _summary_value(payload, "host_fingerprint"),
+    }
+
+
+def _hardware_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "device_type": _summary_value(payload, "device_type"),
+        "raw_device_name": _summary_value(payload, "raw_device_name"),
+        "gpu_class": _summary_value(payload, "gpu_class"),
+        "total_device_vram_bytes": _summary_value(payload, "total_device_vram_bytes"),
+        "vram_class_gb": _summary_value(payload, "vram_class_gb"),
+        "hardware_profile_id": _summary_value(payload, "hardware_profile_id"),
+    }
+
+
+def _inference_timing_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "fixture_id": _summary_value(payload, "fixture_id"),
+        "requested_device": _summary_value(payload, "requested_device"),
+        "resolved_device": _summary_value(payload, "resolved_device"),
+        "device_type": _summary_value(payload, "device_type"),
+        "raw_device_name": _summary_value(payload, "raw_device_name"),
+        "gpu_class": _summary_value(payload, "gpu_class"),
+        "vram_class_gb": _summary_value(payload, "vram_class_gb"),
+        "hardware_profile_id": _summary_value(payload, "hardware_profile_id"),
+        "warmup_iterations": _summary_value(payload, "warmup_iterations"),
+        "measured_iterations": _summary_value(payload, "measured_iterations"),
+        "n_train": _summary_value(payload, "n_train"),
+        "n_test": _summary_value(payload, "n_test"),
+        "n_features": _summary_value(payload, "n_features"),
+        "num_classes": _summary_value(payload, "num_classes"),
+        "mean_ms": _summary_value(payload, "mean_ms"),
+        "p50_ms": _summary_value(payload, "p50_ms"),
+        "p95_ms": _summary_value(payload, "p95_ms"),
+        "max_ms": _summary_value(payload, "max_ms"),
+        "total_measured_seconds": _summary_value(payload, "total_measured_seconds"),
+    }
+
+
 def _regime_budget_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "tokens_per_step": _summary_value(payload, "tokens_per_step"),
@@ -435,6 +488,56 @@ def _preferred_regime_budget(
     return None
 
 
+def _preferred_hardware_summary(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("hardware_summary"),
+        Mapping,
+    ):
+        return _hardware_summary_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["hardware_summary"])
+        )
+    if isinstance(telemetry_payload, Mapping) and isinstance(
+        telemetry_payload.get("hardware_summary"),
+        Mapping,
+    ):
+        return _hardware_summary_excerpt(
+            cast(Mapping[str, Any], telemetry_payload["hardware_summary"])
+        )
+    return None
+
+
+def _preferred_benchmark_timing(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("benchmark_timing"),
+        Mapping,
+    ):
+        return _benchmark_timing_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["benchmark_timing"])
+        )
+    return None
+
+
+def _preferred_inference_timing(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("inference_timing"),
+        Mapping,
+    ):
+        return _inference_timing_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["inference_timing"])
+        )
+    return None
+
+
 def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "run_id": _summary_value(record, "run_id"),
@@ -459,6 +562,21 @@ def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_summary": (
             _runtime_summary_excerpt(cast(Mapping[str, Any], record.get("runtime_summary")))
             if isinstance(record.get("runtime_summary"), Mapping)
+            else None
+        ),
+        "benchmark_timing": (
+            _benchmark_timing_excerpt(cast(Mapping[str, Any], record.get("benchmark_timing")))
+            if isinstance(record.get("benchmark_timing"), Mapping)
+            else None
+        ),
+        "hardware_summary": (
+            _hardware_summary_excerpt(cast(Mapping[str, Any], record.get("hardware_summary")))
+            if isinstance(record.get("hardware_summary"), Mapping)
+            else None
+        ),
+        "inference_timing": (
+            _inference_timing_excerpt(cast(Mapping[str, Any], record.get("inference_timing")))
+            if isinstance(record.get("inference_timing"), Mapping)
             else None
         ),
         "regime_budget": (
@@ -569,6 +687,16 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         "runtime_summary": _preferred_runtime_summary(
             benchmark_run_record=benchmark_run_record,
             telemetry_payload=telemetry_payload,
+        ),
+        "benchmark_timing": _preferred_benchmark_timing(
+            benchmark_run_record=benchmark_run_record,
+        ),
+        "hardware_summary": _preferred_hardware_summary(
+            benchmark_run_record=benchmark_run_record,
+            telemetry_payload=telemetry_payload,
+        ),
+        "inference_timing": _preferred_inference_timing(
+            benchmark_run_record=benchmark_run_record,
         ),
         "regime_budget": _preferred_regime_budget(
             benchmark_run_record=benchmark_run_record,

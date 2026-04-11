@@ -56,11 +56,16 @@ tab-foundry dev resolve-config experiment=cls_smoke
 tab-foundry dev forward-check experiment=cls_smoke
 tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
 tab-foundry dev run-inspect --run-dir outputs/cls_smoke
-tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt --device cuda
 tab-foundry dev checkpoint-publish --run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
 tab-foundry dev checkpoint-resolve --run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 --allow-remote
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
+
+`tab-foundry dev run-inspect` now reports `runtime_summary`,
+`benchmark_timing`, and `inference_timing` when those payloads exist on the
+selected run. `tab-foundry dev export-check` now accepts `--device` and emits a
+reference-consumer latency sample for the selected hardware surface.
 
 Docs and reference changes are covered by the audit checks in `./scripts/dev verify affected`
 and `./scripts/dev verify paths`.
@@ -168,7 +173,7 @@ Prefer inspect-first surfaces before full training or smoke reruns:
 tab-foundry dev resolve-config experiment=cls_smoke
 tab-foundry dev forward-check experiment=cls_smoke
 tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
-tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt --device cuda
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
 
@@ -303,8 +308,26 @@ tab-foundry bench registry register-run \
   --conclusion "Exact staged repro matches the frozen anchor contract."
 ```
 
+Freeze a preferred architecture for one hardware surface with:
+
+```bash
+tab-foundry bench registry freeze-hardware-baseline \
+  --baseline-id tf_rd_009_rtx8000_44gb_classification_medium_v1 \
+  --preferred-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --formal-anchor-run-id sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2 \
+  --baseline-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --evidence-run-id sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2 \
+  --evidence-run-id sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1 \
+  --surface-role classification_scaling_law \
+  --decision keep \
+  --rationale "Retain the healthiest matched-budget architecture for the retained RTX 8000 medium classification surface."
+```
+
 Use `wandb` for live observation and debugging. Use the benchmark registries
-for the repo's historical system of record.
+for the repo's historical system of record. Use the hardware architecture
+registry to persist the preferred architecture for a specific hardware profile
+plus benchmark surface, including the compact constraint model that records the
+effective-size, parameter, VRAM, and timing fits used to justify that choice.
 
 ### Benchmark Cost Policy
 

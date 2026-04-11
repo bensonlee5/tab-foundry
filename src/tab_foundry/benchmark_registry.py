@@ -15,8 +15,10 @@ from tab_foundry.registry.storage import load_json_object_payload
 from tab_foundry.repo_paths import repo_root
 
 
-REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v1"
-REGISTRY_VERSION = 1
+REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v2"
+REGISTRY_VERSION = 2
+LEGACY_REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v1"
+LEGACY_REGISTRY_VERSION = 1
 _TOP_LEVEL_KEYS = {"schema", "version", "runs"}
 
 
@@ -74,15 +76,21 @@ def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
             f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
             f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
         )
-    if payload["schema"] != REGISTRY_SCHEMA:
+    schema = payload["schema"]
+    version = int(payload["version"])
+    if schema not in {REGISTRY_SCHEMA, LEGACY_REGISTRY_SCHEMA}:
         raise RuntimeError(
             "benchmark run registry schema mismatch: "
-            f"expected={REGISTRY_SCHEMA!r}, actual={payload['schema']!r}"
+            f"expected one of {[LEGACY_REGISTRY_SCHEMA, REGISTRY_SCHEMA]!r}, actual={schema!r}"
         )
-    if int(payload["version"]) != REGISTRY_VERSION:
+    if (schema, version) not in {
+        (LEGACY_REGISTRY_SCHEMA, LEGACY_REGISTRY_VERSION),
+        (REGISTRY_SCHEMA, REGISTRY_VERSION),
+    }:
         raise RuntimeError(
             "benchmark run registry version mismatch: "
-            f"expected={REGISTRY_VERSION}, actual={payload['version']}"
+            f"expected one of {[(LEGACY_REGISTRY_SCHEMA, LEGACY_REGISTRY_VERSION), (REGISTRY_SCHEMA, REGISTRY_VERSION)]!r}, "
+            f"actual={(schema, version)!r}"
         )
     runs = payload["runs"]
     if not isinstance(runs, dict):
@@ -92,8 +100,8 @@ def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
             raise RuntimeError("benchmark run registry run_id ids must be non-empty strings")
         _validate_run_entry(entry, run_id=str(run_id))
     return {
-        "schema": REGISTRY_SCHEMA,
-        "version": REGISTRY_VERSION,
+        "schema": str(schema),
+        "version": int(version),
         "runs": {str(key): value for key, value in cast(dict[str, Any], runs).items()},
     }
 

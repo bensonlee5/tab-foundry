@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import platform
 from pathlib import Path
+import time
 from typing import Any, Mapping
 
 import torch
@@ -222,6 +223,7 @@ def evaluate_tab_foundry_run(
         checkpoint_selection=checkpoint_selection,
     ):
         checkpoint_path = Path(str(snapshot["path"]))
+        benchmark_started = time.perf_counter()
         try:
             predictor: Any
             if task_type == _CLASSIFICATION_TASK_TYPE:
@@ -249,6 +251,7 @@ def evaluate_tab_foundry_run(
                     "checkpoint_path": str(checkpoint_path),
                     "step": int(snapshot["step"]),
                     "training_time": float(snapshot["elapsed_seconds"]),
+                    "benchmark_elapsed_seconds": float(time.perf_counter() - benchmark_started),
                     "evaluation_error": str(exc),
                     "evaluation_error_type": error_type,
                     "failed_dataset": failed_dataset,
@@ -263,6 +266,7 @@ def evaluate_tab_foundry_run(
             "checkpoint_path": str(checkpoint_path),
             "step": int(snapshot["step"]),
             "training_time": float(snapshot["elapsed_seconds"]),
+            "benchmark_elapsed_seconds": float(time.perf_counter() - benchmark_started),
             "model_arch": model_arch,
             "model_stage": model_stage,
             "benchmark_profile": None

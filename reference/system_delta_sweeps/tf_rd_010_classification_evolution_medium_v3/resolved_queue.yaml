@@ -153,7 +153,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: local_corpus_record
+      resolution_source: recipe_definition
   parameter_adequacy_plan:
   - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
     from `openml_classification_medium_v1.json` before execution.
@@ -318,38 +318,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
+      allow_missing_values: false
       corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
       requested_corpus_ref: null
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_v2
       corpus_id: tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec/manifest.parquet
-        manifest_sha256: f5028c341cecb349b7fb2212b4352d4ef17da19d44b4f006fbc1768d7054c436
-      dagzoo_provenance:
-        corpus_ref: tf_rd_010_dagzoo_medium_control_v2/tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
-        recipe_id: tf_rd_010_dagzoo_medium_control_v2
-        corpus_id: tf_rd_010_dagzoo_medium_control_v2__f5028c341cec
-        recipe_kind: dagzoo_multi_invocation_manifest
-        surface_label: tf_rd_010_dagzoo_medium_control
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v2
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 99
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          task_grid: balanced_rows_features_classes_v1
-        invocation_count: 144
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -405,7 +382,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: f00d58c1290a2d9183b22ad28dc44a29f60234b104d7cbf0c5e181ea85753b58
+  resolved_surface_fingerprint: 0971967d0bce0364121bf374e9b2d70e752b26d3a0263687b79c03c1944f2172
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mcar
   status: completed
@@ -460,7 +437,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: local_corpus_record
+      resolution_source: recipe_definition
   parameter_adequacy_plan:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
@@ -628,39 +605,15 @@ rows:
       surface_label: tf_rd_010_missingness_mcar
       source: manifest
       filter_policy: null
-      allow_missing_values: true
+      allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
       requested_corpus_ref: null
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mcar_v2
       corpus_id: tf_rd_010_missingness_mcar_v2__e727a421f6f2
-      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2/manifest.parquet
-        manifest_sha256: e727a421f6f206043284b918c192db4918d9e6a44b7ff8081670eed9067db6d5
-      dagzoo_provenance:
-        corpus_ref: tf_rd_010_missingness_mcar_v2/tf_rd_010_missingness_mcar_v2__e727a421f6f2
-        recipe_id: tf_rd_010_missingness_mcar_v2
-        corpus_id: tf_rd_010_missingness_mcar_v2__e727a421f6f2
-        recipe_kind: dagzoo_multi_invocation_manifest
-        surface_label: tf_rd_010_missingness_mcar
-        corpus_variant: tf_rd_010_missingness_mcar
-        comparator_role: tf_rd_010_candidate
-        config_refs:
-        - configs/default.yaml
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: tf_rd_010_candidate
-          corpus_recipe_version: v2
-          corpus_variant: tf_rd_010_missingness_mcar
-          downstream_issue: 99
-          manifest_record_count: 159984
-          missingness_mechanism: mcar
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          task_grid: balanced_rows_features_classes_v1
-        invocation_count: 144
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -716,7 +669,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 58f001166619ab5c584e27207b8f7b00d8c97da48716d88e7fe7b9f7e5763809
+  resolved_surface_fingerprint: 6ab47c192d4ed544189ce4c3e376aa961f6396878d0ffbb14b53ccda8ac94ac3
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mar
   status: completed
@@ -771,7 +724,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: local_corpus_record
+      resolution_source: recipe_definition
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring
     structured missingness.
@@ -940,39 +893,15 @@ rows:
       surface_label: tf_rd_010_missingness_mar
       source: manifest
       filter_policy: null
-      allow_missing_values: true
+      allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
       requested_corpus_ref: null
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mar_v2
       corpus_id: tf_rd_010_missingness_mar_v2__decb0ecfb7c7
-      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7/manifest.parquet
-        manifest_sha256: decb0ecfb7c71e02cebf36fe8c228031f3091724d668f774ffcd42596447d3c8
-      dagzoo_provenance:
-        corpus_ref: tf_rd_010_missingness_mar_v2/tf_rd_010_missingness_mar_v2__decb0ecfb7c7
-        recipe_id: tf_rd_010_missingness_mar_v2
-        corpus_id: tf_rd_010_missingness_mar_v2__decb0ecfb7c7
-        recipe_kind: dagzoo_multi_invocation_manifest
-        surface_label: tf_rd_010_missingness_mar
-        corpus_variant: tf_rd_010_missingness_mar
-        comparator_role: tf_rd_010_candidate
-        config_refs:
-        - configs/default.yaml
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: tf_rd_010_candidate
-          corpus_recipe_version: v2
-          corpus_variant: tf_rd_010_missingness_mar
-          downstream_issue: 99
-          manifest_record_count: 159984
-          missingness_mechanism: mar
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          task_grid: balanced_rows_features_classes_v1
-        invocation_count: 144
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -1028,7 +957,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: ad89ccf3671c4045a6bf6047b13af2beadd6951e98c176f54ab65514d276a99f
+  resolved_surface_fingerprint: d8ac0403dcbfd877aba3fd31604b0f1a943674aab6b909f8419928b0637f103a
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_010_missingness_mnar
   status: ready
@@ -1083,7 +1012,7 @@ rows:
       allow_partial_final_batch: true
       resolved_task_count: 159984
       resolved_max_steps: 2500
-      resolution_source: local_corpus_record
+      resolution_source: recipe_definition
   parameter_adequacy_plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring
     the strongest self-masking option.
@@ -1226,39 +1155,15 @@ rows:
       surface_label: tf_rd_010_missingness_mnar
       source: manifest
       filter_policy: null
-      allow_missing_values: true
+      allow_missing_values: false
       corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10
       requested_corpus_ref: null
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_missingness_mnar_v2
       corpus_id: tf_rd_010_missingness_mnar_v2__b64d33193f10
-      corpus_record_path: outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10/manifest.parquet
-        manifest_sha256: b64d33193f107e14ef206ea632ec773bb8fe520634ec6916bd73e30bb8d1b27d
-      dagzoo_provenance:
-        corpus_ref: tf_rd_010_missingness_mnar_v2/tf_rd_010_missingness_mnar_v2__b64d33193f10
-        recipe_id: tf_rd_010_missingness_mnar_v2
-        corpus_id: tf_rd_010_missingness_mnar_v2__b64d33193f10
-        recipe_kind: dagzoo_multi_invocation_manifest
-        surface_label: tf_rd_010_missingness_mnar
-        corpus_variant: tf_rd_010_missingness_mnar
-        comparator_role: tf_rd_010_candidate
-        config_refs:
-        - configs/default.yaml
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: tf_rd_010_candidate
-          corpus_recipe_version: v2
-          corpus_variant: tf_rd_010_missingness_mnar
-          downstream_issue: 99
-          manifest_record_count: 159984
-          missingness_mechanism: mnar
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          task_grid: balanced_rows_features_classes_v1
-        invocation_count: 144
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -1314,6 +1219,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 6dc80a19716aa7a3282feedd424ef8f2be997fd2708ce757f68c69ac6710cd9b
+  resolved_surface_fingerprint: 762030f303007ad8538957a2d00410ea47b66934c495d36acbbab4d68845712b
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v3/resolved_queue.yaml
-inputs_fingerprint: 643118ad7230c4743ec67fd9617fef25e6382ca3b81e830da5c8d8d1f0bf5e94
+inputs_fingerprint: cda0bbe72b900584b2cb37dbbcbda999e1151b77ea98236fea92123a7708b4f0

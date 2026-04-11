@@ -300,82 +300,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -431,7 +364,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 0b3be75f60d2d62aa06d1f7efcfa44229dc3a32efa606b43230e2c3b1a807252
+  resolved_surface_fingerprint: 92905d867965718e3766be0070018497600ac85dff3a2d919ad8e8e20ddb0ba7
 - order: 2
   delta_id: delta_tf_rd_024_followup_cls_sandwich_prerow2_v1
   status: completed
@@ -644,82 +577,15 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: true
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
-      materialization_state: finalized
+      materialization_state: null
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
-      manifest:
-        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
-        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
-      dagzoo_provenance:
-        acceptance_rate: 0.9986650538337475
-        accepted_datasets: 183283
-        comparator_role: control
-        config_refs:
-        - configs/default.yaml
-        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
-        corpus_variant: tf_rd_010_dagzoo_medium_control
-        curated_accepted_datasets: 159984
-        filter_policy: accepted_only
-        generator_fingerprint: f781789b135e
-        invocation_count: 144
-        manifest_record_count: 159984
-        provenance_labels:
-          balanced_front_shape: inherited_from_v1
-          benchmark_family: tf_rd_010
-          comparator_role: control
-          corpus_recipe_version: v5
-          corpus_variant: tf_rd_010_dagzoo_medium_control
-          downstream_issue: 205
-          manifest_record_count: 159984
-          per_invocation_num_datasets: 1111
-          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
-          target_derivation: tabiclv2_latent_node
-          task_grid: balanced_rows_features_classes_v1
-        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
-        recipe_kind: dagzoo_python_generated
-        rejected_datasets: 245
-        review_summary:
-          class_counts:
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          config_refs:
-          - configs/default.yaml
-          feature_counts:
-          - 6
-          - 10
-          - 14
-          - 20
-          grid_family: balanced_rows_features_classes_v1
-          invocation_count: 144
-          manifest_record_count: 159984
-          missingness: null
-          num_datasets_per_invocation: 1111
-          row_totals:
-          - 128
-          - 256
-          - 512
-          - 1024
-          target_derivation: tabiclv2_latent_node
-        surface_label: tf_rd_010_dagzoo_medium_control
-        target_derivation: tabiclv2_latent_node
-        target_relevant_feature_count_range:
-          max: 20
-          min: 0
-        target_relevant_feature_fraction_range:
-          max: 1.0
-          min: 0.0
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
       overrides:
         source: manifest
         manifest_path: null
@@ -775,6 +641,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 3622a8d310525faf142d32a42055dc79e98823a7e305a274adcde9f9add45eda
+  resolved_surface_fingerprint: 39b626e039519bff0d1d2b888359f4469a81e1ae70bd50aee549cfff3aecbce6
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_024_classification_heads_prerow_followup_v1/resolved_queue.yaml
-inputs_fingerprint: 367ca82024634deffd03e0c78e0d5006bdb7ddcf4843927ccdbbbfda54411844
+inputs_fingerprint: d3c3b494d8d2e8712cb2df3210249d4a8ed890a228dfbab5c9dfcffa96549b83

@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `feature_type_conditioning`, likelihood settings, and sandwich summary / pre-
   attention fields, and compiled `_orig_mod.*` checkpoint keys now normalize on
   the canonical export path instead of requiring downstream compatibility shims.
+- User-facing note: the pending TF-RD-009 width-depth medium sweep now uses the
+  corrected empirical mixed-depth parameter ladder
+  `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6` instead of the older
+  `L * d^2` shortcut, and the canonical sweep note, queue, resolved queue, and
+  matrix artifacts were re-derived around that fit.
+- User-facing note: hardware architecture freeze now exports a depth-aware
+  mixed-depth parameter-fit expression in `constraint_model.formulas` when the
+  evidence family spans multiple sandwich depths, instead of assuming a single
+  `params / (L * d^2)` coefficient across the whole family.
+- User-facing note: benchmark run registration now writes schema-v2 Phase-2
+  scaling metadata, including inspected strict-versus-expanded parameter
+  accounting, training-shape summaries, analytic training-only FLOP estimates,
+  and a per-run `model_accounting.json` artifact path.
+- User-facing note: the packaged CLI now exposes
+  `tab-foundry research scaling inspect` and
+  `tab-foundry research scaling fit`, and the repo now carries the TF-RD-009
+  Phase-2 study config plus the pending `tf_rd_009_ns_medium_v1` and
+  `tf_rd_009_batch_critical_medium_v1` sweep families for paper-faithful
+  `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and `L(Cmin)`
+  reporting.
 
 ## [0.16.12] - 2026-04-09
 

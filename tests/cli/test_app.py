@@ -15,6 +15,7 @@ import tab_foundry.bench.comparison_contract as comparison_contract_library_modu
 import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_library_module
 import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_library_module
 import tab_foundry.bench.envs as env_library_module
+import tab_foundry.bench.hardware_architecture_freeze as hardware_architecture_freeze_library_module
 import tab_foundry.bench.iris_smoke as iris_smoke_library_module
 import tab_foundry.bench.openml_bundle as bundle_library_module
 import tab_foundry.bench.run_registration as run_registration_library_module
@@ -25,6 +26,7 @@ import tab_foundry.cli.bench_bundle_openml as bundle_cli_module
 import tab_foundry.cli.bench_compare as compare_cli_module
 import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_cli_module
 import tab_foundry.cli.bench_env_bootstrap as env_bootstrap_cli_module
+import tab_foundry.cli.bench_hardware_architecture_freeze as hardware_architecture_freeze_cli_module
 import tab_foundry.cli.bench_run_registration as run_registration_cli_module
 import tab_foundry.cli.bench_smoke_dagzoo as dagzoo_smoke_cli_module
 import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli_module
@@ -327,6 +329,44 @@ DISPATCH_CASES = (
             },
         ),
         id="bench-registry-freeze-baseline",
+    ),
+    pytest.param(
+        DispatchCase(
+            argv=(
+                "bench",
+                "registry",
+                "freeze-hardware-baseline",
+                "--baseline-id",
+                "tf_rd_009_a100_medium_v1",
+                "--preferred-run-id",
+                "baseline_96x2",
+                "--formal-anchor-run-id",
+                "anchor_60x2",
+                "--baseline-run-id",
+                "baseline_96x2",
+                "--evidence-run-id",
+                "anchor_60x2",
+                "--rationale",
+                "ok",
+                "--decision",
+                "keep",
+                "--surface-role",
+                "classification_scaling_law",
+                "--registry-path",
+                "/tmp/hardware_architecture_baselines_v1.json",
+            ),
+            module=hardware_architecture_freeze_cli_module,
+            attribute="_freeze_hardware_baseline_command",
+            fields={
+                "baseline_id": _str_attr("baseline_id"),
+                "registry_path": _path_attr("registry_path"),
+            },
+            expected={
+                "baseline_id": "tf_rd_009_a100_medium_v1",
+                "registry_path": "/tmp/hardware_architecture_baselines_v1.json",
+            },
+        ),
+        id="bench-registry-freeze-hardware-baseline",
     ),
     pytest.param(
         DispatchCase(
@@ -1017,16 +1057,23 @@ def test_cli_groups_register_expected_commands() -> None:
     assert _command_names(smoke_group) == ["dagzoo", "iris"]
     registry_group = bench_group.GROUP.get_command(bench_ctx, "registry")
     assert isinstance(registry_group, click.Group)
-    assert _command_names(registry_group) == ["freeze-baseline", "register-run"]
+    assert _command_names(registry_group) == [
+        "freeze-baseline",
+        "freeze-hardware-baseline",
+        "register-run",
+    ]
     diagnose_group = bench_group.GROUP.get_command(bench_ctx, "diagnose")
     assert isinstance(diagnose_group, click.Group)
     assert _command_names(diagnose_group) == ["bounce"]
 
-    assert _command_names(research_group.GROUP) == ["adequacy", "sweep"]
+    assert _command_names(research_group.GROUP) == ["adequacy", "scaling", "sweep"]
     research_ctx = click.Context(research_group.GROUP)
     adequacy_group = research_group.GROUP.get_command(research_ctx, "adequacy")
     assert isinstance(adequacy_group, click.Group)
     assert _command_names(adequacy_group) == ["finalize", "pilot"]
+    scaling_group = research_group.GROUP.get_command(research_ctx, "scaling")
+    assert isinstance(scaling_group, click.Group)
+    assert _command_names(scaling_group) == ["fit", "inspect"]
     sweep_group = research_group.GROUP.get_command(research_ctx, "sweep")
     assert isinstance(sweep_group, click.Group)
     assert _command_names(sweep_group) == [
@@ -1069,6 +1116,7 @@ def test_cli_groups_register_expected_commands() -> None:
         bounce_diagnosis_library_module,
         run_registration_library_module,
         control_baseline_freeze_library_module,
+        hardware_architecture_freeze_library_module,
         prior_train_library_module,
         sweep_catalog_module,
         adequacy_pilot_module,

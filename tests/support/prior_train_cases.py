@@ -2294,6 +2294,8 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     assert fake_run.summary["runtime_summary/non_train_overhead_seconds"] >= 0.0
     assert fake_run.summary["runtime_summary/throughput_examples_per_second"] > 0.0
     assert fake_run.summary["runtime_summary/throughput_tokens_per_second"] > 0.0
+    assert fake_run.summary["hardware_summary/device_type"] == "cpu"
+    assert fake_run.summary["hardware_summary/gpu_class"] == "cpu"
     assert fake_run.summary["regime_budget/tokens_seen"] > 0
     assert fake_run.summary["regime_budget/token_budget"] == fake_run.summary["regime_budget/tokens_seen"]
     assert fake_run.summary["regime_budget/tokens_per_step"] > 0.0
@@ -2319,6 +2321,8 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
         "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
         "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
     }
+    assert telemetry["hardware_summary"]["device_type"] == "cpu"
+    assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"
     assert telemetry["regime_budget"]["tokens_seen"] == fake_run.summary["regime_budget/tokens_seen"]
     assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
     assert telemetry["regime_budget"]["tokens_per_step"] == fake_run.summary["regime_budget/tokens_per_step"]

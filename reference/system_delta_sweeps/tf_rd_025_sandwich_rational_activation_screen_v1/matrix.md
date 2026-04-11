@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_025_sandwich_rat
 - Parent sweep id: `tf_rd_010_classification_evolution_medium_v4`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_025_sandwich_rational_activation_screen_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `8243b280951c0002cb644f8c9c886c72638c3165b8881266924bd50e0923ef04`
+- Resolved queue inputs fingerprint: `30278181cf5bbe5d0d07c14948a4197034699ba6c2ee0d454a0bd5280d321cdb`
 
 ## Locked Surface
 
@@ -56,7 +56,7 @@ Upstream reference: `Rational-activation transformer theory` from `https://arxiv
 - Anchor delta: Starting from the carried TF-RD-010 anchor, switch only the sandwich-internal block norm from `layernorm` to `none` on the CPU no-AMP screening surface.
 - Expected effect: Removing the internal block norms may improve the sandwich family's core FF routing on this surface, but it also risks a training-stability regression.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `3f3a61fbdd80abfd87d2c6da3e7101f30535887bd0babd2169ac57d0fa5cbc98`
+- Resolved surface fingerprint: `dddd3f70c6339440f994bffb16b473a3abd11c289dfc0dabd5d706632ae2b91b`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_activation': 'gelu', 'sandwich_block_norm': 'none', 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
@@ -93,7 +93,7 @@ Upstream reference: `Rational-activation transformer theory` from `https://arxiv
 - Anchor delta: Starting from row `01`, switch only `model.sandwich_activation` from `gelu` to `rational` while keeping `sandwich_block_norm=none`, the curated dagzoo corpus, and the CPU no-AMP runtime fixed.
 - Expected effect: The rational activation may preserve more useful curvature than GELU on the norm-free sandwich surface, with the main risk being optimizer or stability regressions.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `775964a7de0772b6e402ceb561727f0667139fd78270f9f7611cf9ee4974a018`
+- Resolved surface fingerprint: `5f9fb2e6be344419a955db989dbe3aa7a2f2433c2db08417a14d174a7b3d6bb9`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'no', 'num_workers': 0, 'loader_pin_memory': False, 'loader_persistent_workers': False, 'loader_prefetch_factor': None, 'non_blocking_device_transfer': False, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': False, 'compile_dynamic': False, 'compile_backend': 'inductor', 'compile_mode': 'max-autotune-no-cudagraphs', 'trace_activations': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_activation': 'rational', 'sandwich_block_norm': 'none', 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
