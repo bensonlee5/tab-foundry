@@ -935,9 +935,11 @@ Legacy wording note:
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active fixed-budget
   family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
   completed width-transfer child
-  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), then active
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), completed
   joint width-depth child
-  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), and active
+  Kaplan-exact Phase-2 fit/report child
+  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
   TF-RD-022 runtime policy, one TF-RD-024 bounded architecture read, and a
@@ -971,18 +973,81 @@ Legacy wording note:
     but carry `d_icl=96` into [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
     as the explicit joint width-depth handoff because it is the cleanest
     improved row
+  - `tf_rd_009_width_depth_medium_v1` is now complete on the corrected dense
+    diagonal `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6` under the same
+    closed TF-RD-010 contract and matched regime budget
+  - `72x1` improved over the formal `60x2` anchor to `final_log_loss=0.6376`
+    and kept the lower diagonal viable without changing the runtime policy
+  - `112x3` improved the matched-budget objective to `final_log_loss=0.6046`
+    and `final_roc_auc=0.6966`, establishing the first clear mixed-depth gain
+    above the carried `96x2` baseline
+  - `128x4` regressed to `final_log_loss=0.6348`, so the completed diagonal is
+    not monotone in depth and should be fit on measured rows rather than on the
+    queue-construction planning axis
+  - `152x5` is the current fixed-budget winner at `final_log_loss=0.5740` and
+    `final_roc_auc=0.7351`
+  - `176x6` completed cleanly at `final_log_loss=0.5816` and
+    `final_roc_auc=0.7238`; keep it as upper-family and near-ceiling evidence,
+    but do not add extra near-ceiling rows on this branch because
+    capacity-targeted probes would no longer preserve the original TF-RD-009
+    width-depth relationship
+  - observed training VRAM reserved for the top rows was `16.59 GiB` at
+    `152x5` and `17.84 GiB` at `176x6`, materially below the pre-run
+    width-evidence memory bridge; the hardware-freeze work in
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) now needs to
+    fit constraints from the completed mixed-depth evidence rather than treat
+    the old memory bridge as authoritative
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
-  - execute [#255](https://github.com/bensonlee5/tab-foundry/issues/255) next,
-    using `d_icl=96` as the carried width baseline while introducing controlled
-    `model.sandwich_layers` movement
-  - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256), then
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257), after the
-    joint width-depth family is complete
+  - treat [#255](https://github.com/bensonlee5/tab-foundry/issues/255) as the
+    completed Phase-1 fixed-budget family, using the theory-constrained dense diagonal
+    `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6`, with `60x2`
+    retained as the formal external anchor and `96x2` retained as the carried
+    in-family baseline
+  - keep the TF-RD-009 reporting split explicit:
+    `tf_rd_009_width_depth_medium_v1` remains the Phase-1 fixed-budget
+    width-depth queue where the repo-local mixed-depth bridge is used only for
+    integer row construction, while [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
+    is the authoritative Kaplan-exact Phase-2 study for this branch and runs
+    on `tf_rd_009_ns_medium_v1`, `tf_rd_009_batch_critical_medium_v1`, and
+    `reference/scaling_studies/tf_rd_009_phase2.yaml`
+  - document the paper-vs-repo derivation explicitly for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
+    use Kaplan to justify a smooth effective-size axis, keep Chinchilla-style
+    parameter-token coupling out of this fixed-budget branch, use μP to justify
+    carrying the width winner `96x2`, use the spectral μP paper to require
+    joint width-depth movement once `sandwich_layers` changes, and derive the
+    integer rows through the repo-local planning axis `S(d, L) = L * d^2`, the
+    empirical mixed-depth bridge
+    `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`, and the
+    current RTX 8000 memory fit `reserved_gb ≈ 6.47 + 2.36e-6 * params`; use
+    that bridge only for integer row construction, then fit the first reported
+    law on measured benchmark-registry `model_size.total_params` from completed
+    in-family rows `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` only, starting
+    with a Kaplan-style power-law family and treating the exponent/intercept as
+    repo-specific empirical quantities rather than paper constants
+  - carry Phase 2 on inspected run metadata rather than code-derived estimates:
+    persist strict-versus-expanded parameter accounting, define canonical
+    paper-style `N` as strict non-embedding params, derive `D = B_eff * S`
+    from measured telemetry, derive training-only `C` from inspected analytic
+    FLOPs, and fit the paper-backed family
+    `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and the derived
+    `L(Cmin)` frontier with JSON/PNG/Markdown/W&B artifacts
+  - maintain the preferred architecture statefully in
+    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
+    hardware profile plus sweep surface rather than by GitHub issue state; the
+    first TF-RD-009 entry should be the retained `rtx8000_44gb` medium
+    classification surface selected from the healthy benchmark-backed evidence
+    only after the completed dense diagonal and the follow-on freeze work are
+    enough to freeze a real constraint model and preferred row
+  - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256) now as the
+    Kaplan-exact `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and
+    `L(Cmin)` fit-and-report issue, then
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) to freeze the
+    hardware baseline from the completed joint width-depth family
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
     the first fixed-budget law family
@@ -996,6 +1061,10 @@ Legacy wording note:
   - keep the other sandwich knobs frozen at the retained compact hybrid anchor
     values while fitting the first width-depth classification laws, except for
     the TF-RD-024 carry-forward winner `sandwich_heads=1`
+  - keep one human-readable constraint budget table in the TF-RD-009 evidence
+    note, sourced from the same formulas and evidence that will later populate
+    the hardware baseline registry entry, so the repo records headroom to VRAM
+    and timing constraints rather than leaving that analysis in issue comments
   - use `final_log_loss_at_matched_regime_budget` as the primary ranking
     objective on the carried multiclass slice, with calibration, stability,
     and runtime as explicit guardrails rather than BPC-era stand-ins

@@ -16,8 +16,8 @@ from pydantic import (
 )
 
 
-REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v1"
-REGISTRY_VERSION = 1
+REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v2"
+REGISTRY_VERSION = 2
 DEFAULT_BUDGET_CLASS = "short-run"
 ALLOWED_DECISIONS = ("keep", "reject", "defer")
 
@@ -49,7 +49,7 @@ _RegistryPayloadT = TypeVar("_RegistryPayloadT", bound="_RegistryPayloadModel")
 
 
 class _RegistryPayloadModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
     @field_validator("*")
     @classmethod
@@ -96,6 +96,7 @@ class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
     comparison_curve_path: StrictStr
     benchmark_run_record_path: StrictStr | None = None
     training_surface_record_path: StrictStr | None = None
+    accounting_artifact_path: StrictStr | None = None
 
 
 class _WandbIdentityPayload(_RegistryPayloadModel):
@@ -152,6 +153,49 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     non_train_overhead_seconds: FiniteFloat | None = None
 
 
+class _BenchmarkTimingPayload(_RegistryPayloadModel):
+    wall_elapsed_seconds: FiniteFloat | None = None
+    mean_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    max_checkpoint_elapsed_seconds: FiniteFloat | None = None
+    attempted_checkpoint_count: StrictInt | None = None
+    successful_checkpoint_count: StrictInt | None = None
+    failed_checkpoint_count: StrictInt | None = None
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    host_fingerprint: StrictStr | None = None
+
+
+class _HardwareSummaryPayload(_RegistryPayloadModel):
+    device_type: StrictStr | None = None
+    raw_device_name: StrictStr | None = None
+    gpu_class: StrictStr | None = None
+    total_device_vram_bytes: StrictInt | None = None
+    vram_class_gb: StrictInt | None = None
+    hardware_profile_id: StrictStr | None = None
+
+
+class _InferenceTimingPayload(_RegistryPayloadModel):
+    fixture_id: StrictStr
+    requested_device: StrictStr | None = None
+    resolved_device: StrictStr | None = None
+    device_type: StrictStr | None = None
+    raw_device_name: StrictStr | None = None
+    gpu_class: StrictStr | None = None
+    vram_class_gb: StrictInt | None = None
+    hardware_profile_id: StrictStr | None = None
+    warmup_iterations: StrictInt
+    measured_iterations: StrictInt
+    n_train: StrictInt
+    n_test: StrictInt
+    n_features: StrictInt
+    num_classes: StrictInt
+    mean_ms: FiniteFloat | None = None
+    p50_ms: FiniteFloat | None = None
+    p95_ms: FiniteFloat | None = None
+    max_ms: FiniteFloat | None = None
+    total_measured_seconds: FiniteFloat | None = None
+
+
 class _RegimeBudgetPayload(_RegistryPayloadModel):
     tokens_per_step: FiniteFloat | None = None
     tokens_seen: StrictInt | None = None
@@ -166,6 +210,39 @@ class _RegimeBudgetPayload(_RegistryPayloadModel):
 class _ModelSizePayload(_RegistryPayloadModel):
     total_params: StrictInt
     trainable_params: StrictInt
+
+
+class _ParameterAccountingPartitionPayload(_RegistryPayloadModel):
+    embedding_params: StrictInt | None = None
+    embedding_like_params: StrictInt | None = None
+    non_embedding_params: StrictInt
+
+
+class _ParameterAccountingPayload(_RegistryPayloadModel):
+    schema_: StrictStr | None = Field(default=None, alias="schema")
+    method: StrictStr
+    total_params: StrictInt
+    trainable_params: StrictInt
+    strict: _ParameterAccountingPartitionPayload
+    expanded: _ParameterAccountingPartitionPayload
+    canonical_non_embedding_params: StrictInt
+    module_breakdown: list[dict[StrictStr, Any]] | None = None
+    parameter_breakdown: list[dict[StrictStr, Any]] | None = None
+
+
+class _ComputeAccountingPayload(_RegistryPayloadModel):
+    schema_: StrictStr | None = Field(default=None, alias="schema")
+    method: StrictStr
+    training_multiplier: FiniteFloat
+    forward_flops_per_token: FiniteFloat
+    train_flops_per_token: FiniteFloat
+    train_flops_per_step: FiniteFloat | None = None
+    total_train_flops: FiniteFloat | None = None
+    tokens_seen: StrictInt | None = None
+    tokens_per_step: FiniteFloat | None = None
+    training_shape_summary: dict[StrictStr, Any] | None = None
+    signature_breakdown: list[dict[StrictStr, Any]] | None = None
+    module_forward_flop_totals: list[dict[StrictStr, Any]] | None = None
 
 
 class _ComparisonPayload(_RegistryPayloadModel):
@@ -219,8 +296,13 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    benchmark_timing: _BenchmarkTimingPayload | None = None
+    hardware_summary: _HardwareSummaryPayload | None = None
+    inference_timing: _InferenceTimingPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
+    parameter_accounting: _ParameterAccountingPayload | None = None
+    compute_accounting: _ComputeAccountingPayload | None = None
     surface_labels: _SurfaceLabelsPayload | None = None
     sweep: _SweepPayload | None = None
     generated_at_utc: StrictStr
@@ -243,8 +325,13 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    benchmark_timing: _BenchmarkTimingPayload | None = None
+    hardware_summary: _HardwareSummaryPayload | None = None
+    inference_timing: _InferenceTimingPayload | None = None
     regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
+    parameter_accounting: _ParameterAccountingPayload | None = None
+    compute_accounting: _ComputeAccountingPayload | None = None
     surface_labels: _SurfaceLabelsPayload | None = None
     sweep: _SweepPayload | None = None
     comparisons: _ComparisonsPayload

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 import torch
 
 from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
 from tab_foundry.types import TaskBatch
 
+from .accounting import compute_accounting_from_model, parameter_accounting_from_model
 from .architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from .factory import build_model_from_spec
 from .spec import ModelBuildSpec, SANDWICH_MODEL_ARCH
@@ -52,6 +53,31 @@ def parameter_counts_from_model_spec(spec: ModelBuildSpec) -> dict[str, int]:
         "total_params": int(total_params),
         "trainable_params": int(trainable_params),
     }
+
+
+def parameter_accounting_from_model_spec(spec: ModelBuildSpec) -> dict[str, Any]:
+    """Return inspected parameter accounting for one resolved model spec."""
+
+    model = build_model_from_spec(spec)
+    return parameter_accounting_from_model(model)
+
+
+def compute_accounting_from_model_spec(
+    spec: ModelBuildSpec,
+    *,
+    training_shape_summary: Mapping[str, Any] | None,
+    tokens_seen: int | None,
+    tokens_per_step: float | None,
+) -> dict[str, Any]:
+    """Return inspected analytic compute accounting for one resolved model spec."""
+
+    model = build_model_from_spec(spec)
+    return compute_accounting_from_model(
+        model,
+        training_shape_summary=training_shape_summary,
+        tokens_seen=tokens_seen,
+        tokens_per_step=tokens_per_step,
+    )
 
 
 def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:

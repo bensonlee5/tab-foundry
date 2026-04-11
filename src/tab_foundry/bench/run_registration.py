@@ -16,11 +16,15 @@ from tab_foundry.bench.checkpoint_artifacts import (
 )
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
+    _compute_accounting_from_cfg,
+    _hardware_summary_from_telemetry,
     _load_training_telemetry,
     _model_payload_from_cfg,
+    _parameter_accounting_from_cfg,
     _regime_budget_from_artifacts,
     _resolve_record_checkpoint_path,
     _training_diagnostics_from_history,
+    _training_shape_summary_from_telemetry,
     _training_surface_record,
     _runtime_summary_from_telemetry,
     _wandb_identity_from_telemetry,
@@ -43,6 +47,9 @@ from tab_foundry.bench.registry.summary_metrics import (
     tab_foundry_metrics_from_summary,
 )
 from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.export.contracts import SCHEMA_VERSION_V3
+from tab_foundry.export.inspection import export_check as _export_check
+from tab_foundry.model.accounting import write_accounting_artifact_payload
 from tab_foundry.registry.common import copy_jsonable as _copy_jsonable
 from tab_foundry.registry.common import load_comparison_summary, resolve_config_path as _resolve_config_path_common
 from tab_foundry.repo_paths import repo_root
@@ -209,6 +216,19 @@ def _resolve_summary_path_value(
     return _resolve_registry_path_value(str(raw_value))
 
 
+def _accounting_artifact_path(
+    *,
+    comparison_summary_path: Path,
+    benchmark_run_record_path: Path | None,
+) -> Path:
+    artifact_root = (
+        benchmark_run_record_path.expanduser().resolve().parent
+        if benchmark_run_record_path is not None
+        else comparison_summary_path.expanduser().resolve().parent
+    )
+    return artifact_root / "model_accounting.json"
+
+
 def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, Any]:
     benchmark_bundle_source = ensure_non_empty_string(
         benchmark_bundle.get("source_path"),
@@ -222,6 +242,183 @@ def _benchmark_bundle_payload(benchmark_bundle: Mapping[str, Any]) -> dict[str, 
         "task_count": int(benchmark_bundle["task_count"]),
         "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
     }
+
+
+def _benchmark_timing_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, Any] | None:
+    raw_timing = tab_foundry.get("benchmark_timing")
+    if not isinstance(raw_timing, Mapping):
+        return None
+    payload = {
+        "wall_elapsed_seconds": ensure_optional_finite_number(
+            raw_timing.get("wall_elapsed_seconds"),
+            context="comparison_summary.tab_foundry.benchmark_timing.wall_elapsed_seconds",
+        ),
+        "mean_checkpoint_elapsed_seconds": ensure_optional_finite_number(
+            raw_timing.get("mean_checkpoint_elapsed_seconds"),
+            context="comparison_summary.tab_foundry.benchmark_timing.mean_checkpoint_elapsed_seconds",
+        ),
+        "max_checkpoint_elapsed_seconds": ensure_optional_finite_number(
+            raw_timing.get("max_checkpoint_elapsed_seconds"),
+            context="comparison_summary.tab_foundry.benchmark_timing.max_checkpoint_elapsed_seconds",
+        ),
+        "attempted_checkpoint_count": ensure_optional_positive_int(
+            raw_timing.get("attempted_checkpoint_count"),
+            context="comparison_summary.tab_foundry.benchmark_timing.attempted_checkpoint_count",
+        ),
+        "successful_checkpoint_count": ensure_optional_positive_int(
+            raw_timing.get("successful_checkpoint_count"),
+            context="comparison_summary.tab_foundry.benchmark_timing.successful_checkpoint_count",
+        ),
+        "failed_checkpoint_count": ensure_optional_positive_int(
+            raw_timing.get("failed_checkpoint_count"),
+            context="comparison_summary.tab_foundry.benchmark_timing.failed_checkpoint_count",
+        ),
+        "requested_device": ensure_optional_string(
+            raw_timing.get("requested_device"),
+            context="comparison_summary.tab_foundry.benchmark_timing.requested_device",
+        ),
+        "resolved_device": ensure_optional_string(
+            raw_timing.get("resolved_device"),
+            context="comparison_summary.tab_foundry.benchmark_timing.resolved_device",
+        ),
+        "host_fingerprint": ensure_optional_string(
+            raw_timing.get("host_fingerprint"),
+            context="comparison_summary.tab_foundry.benchmark_timing.host_fingerprint",
+        ),
+    }
+    return payload if any(value is not None for value in payload.values()) else None
+
+
+def _inference_timing_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, Any] | None:
+    raw_timing = tab_foundry.get("inference_timing")
+    if not isinstance(raw_timing, Mapping):
+        return None
+    fixture_id = ensure_optional_string(
+        raw_timing.get("fixture_id"),
+        context="comparison_summary.tab_foundry.inference_timing.fixture_id",
+    )
+    if fixture_id is None:
+        return None
+    return {
+        "fixture_id": fixture_id,
+        "requested_device": ensure_optional_string(
+            raw_timing.get("requested_device"),
+            context="comparison_summary.tab_foundry.inference_timing.requested_device",
+        ),
+        "resolved_device": ensure_optional_string(
+            raw_timing.get("resolved_device"),
+            context="comparison_summary.tab_foundry.inference_timing.resolved_device",
+        ),
+        "device_type": ensure_optional_string(
+            raw_timing.get("device_type"),
+            context="comparison_summary.tab_foundry.inference_timing.device_type",
+        ),
+        "raw_device_name": ensure_optional_string(
+            raw_timing.get("raw_device_name"),
+            context="comparison_summary.tab_foundry.inference_timing.raw_device_name",
+        ),
+        "gpu_class": ensure_optional_string(
+            raw_timing.get("gpu_class"),
+            context="comparison_summary.tab_foundry.inference_timing.gpu_class",
+        ),
+        "vram_class_gb": ensure_optional_positive_int(
+            raw_timing.get("vram_class_gb"),
+            context="comparison_summary.tab_foundry.inference_timing.vram_class_gb",
+        ),
+        "hardware_profile_id": ensure_optional_string(
+            raw_timing.get("hardware_profile_id"),
+            context="comparison_summary.tab_foundry.inference_timing.hardware_profile_id",
+        ),
+        "warmup_iterations": int(
+            ensure_optional_positive_int(
+                raw_timing.get("warmup_iterations"),
+                context="comparison_summary.tab_foundry.inference_timing.warmup_iterations",
+            )
+            or 0
+        ),
+        "measured_iterations": int(
+            ensure_optional_positive_int(
+                raw_timing.get("measured_iterations"),
+                context="comparison_summary.tab_foundry.inference_timing.measured_iterations",
+            )
+            or 0
+        ),
+        "n_train": int(
+            ensure_optional_positive_int(
+                raw_timing.get("n_train"),
+                context="comparison_summary.tab_foundry.inference_timing.n_train",
+            )
+            or 0
+        ),
+        "n_test": int(
+            ensure_optional_positive_int(
+                raw_timing.get("n_test"),
+                context="comparison_summary.tab_foundry.inference_timing.n_test",
+            )
+            or 0
+        ),
+        "n_features": int(
+            ensure_optional_positive_int(
+                raw_timing.get("n_features"),
+                context="comparison_summary.tab_foundry.inference_timing.n_features",
+            )
+            or 0
+        ),
+        "num_classes": int(
+            ensure_optional_positive_int(
+                raw_timing.get("num_classes"),
+                context="comparison_summary.tab_foundry.inference_timing.num_classes",
+            )
+            or 0
+        ),
+        "mean_ms": ensure_optional_finite_number(
+            raw_timing.get("mean_ms"),
+            context="comparison_summary.tab_foundry.inference_timing.mean_ms",
+        ),
+        "p50_ms": ensure_optional_finite_number(
+            raw_timing.get("p50_ms"),
+            context="comparison_summary.tab_foundry.inference_timing.p50_ms",
+        ),
+        "p95_ms": ensure_optional_finite_number(
+            raw_timing.get("p95_ms"),
+            context="comparison_summary.tab_foundry.inference_timing.p95_ms",
+        ),
+        "max_ms": ensure_optional_finite_number(
+            raw_timing.get("max_ms"),
+            context="comparison_summary.tab_foundry.inference_timing.max_ms",
+        ),
+        "total_measured_seconds": ensure_optional_finite_number(
+            raw_timing.get("total_measured_seconds"),
+            context="comparison_summary.tab_foundry.inference_timing.total_measured_seconds",
+        ),
+    }
+
+
+def _inference_timing_from_checkpoint(
+    *,
+    checkpoint_path: Path,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    requested_device = "auto"
+    if isinstance(telemetry_payload, Mapping):
+        raw_hardware = telemetry_payload.get("hardware_summary")
+        if isinstance(raw_hardware, Mapping):
+            raw_device_type = raw_hardware.get("device_type")
+            if isinstance(raw_device_type, str) and raw_device_type.strip():
+                requested_device = str(raw_device_type).strip().lower()
+    try:
+        payload = _export_check(
+            checkpoint_path,
+            out_dir=None,
+            artifact_version=SCHEMA_VERSION_V3,
+            device=requested_device,
+        )
+    except Exception:
+        return None
+    raw_timing = payload.get("inference_timing")
+    if not isinstance(raw_timing, Mapping):
+        return None
+    return dict(cast(Mapping[str, Any], raw_timing))
 
 
 def comparison_delta(
@@ -355,6 +552,34 @@ def derive_benchmark_run_record(
         benchmark_run_record_path=benchmark_run_record_path,
     )
     telemetry_payload = _load_training_telemetry(resolved_run_dir)
+    training_shape_summary = _training_shape_summary_from_telemetry(telemetry_payload)
+    parameter_accounting = _parameter_accounting_from_cfg(
+        raw_cfg,
+        state_dict=raw_state_dict,
+    )
+    compute_accounting = _compute_accounting_from_cfg(
+        raw_cfg,
+        state_dict=raw_state_dict,
+        telemetry_payload=telemetry_payload,
+    )
+    accounting_artifact_path = _accounting_artifact_path(
+        comparison_summary_path=resolved_summary_path,
+        benchmark_run_record_path=benchmark_run_record_path,
+    )
+    write_json(
+        accounting_artifact_path,
+        write_accounting_artifact_payload(
+            parameter_accounting=parameter_accounting,
+            compute_accounting=compute_accounting,
+            training_shape_summary=training_shape_summary,
+        ),
+    )
+    inference_timing = _inference_timing_from_summary(tab_foundry)
+    if inference_timing is None:
+        inference_timing = _inference_timing_from_checkpoint(
+            checkpoint_path=best_checkpoint_path,
+            telemetry_payload=telemetry_payload,
+        )
 
     record = {
         "manifest_path": _normalize_registry_path(manifest_path),
@@ -379,11 +604,15 @@ def derive_benchmark_run_record(
             "training_surface_record_path": None
             if training_surface_path is None
             else _normalize_registry_path(training_surface_path),
+            "accounting_artifact_path": _normalize_registry_path(accounting_artifact_path),
         },
         "wandb": _wandb_identity_from_telemetry(telemetry_payload),
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
+        "benchmark_timing": _benchmark_timing_from_summary(tab_foundry),
+        "hardware_summary": _hardware_summary_from_telemetry(telemetry_payload),
+        "inference_timing": inference_timing,
         "regime_budget": _regime_budget_from_artifacts(
             raw_cfg=raw_cfg,
             history=history,
@@ -391,6 +620,8 @@ def derive_benchmark_run_record(
             telemetry_payload=telemetry_payload,
         ),
         "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
+        "parameter_accounting": parameter_accounting,
+        "compute_accounting": compute_accounting,
         "surface_labels": None
         if training_surface_payload is None
         else dict(cast(dict[str, Any], training_surface_payload["labels"])),
@@ -492,8 +723,13 @@ def derive_benchmark_run_entry(
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
         "runtime_summary": record.get("runtime_summary"),
+        "benchmark_timing": record.get("benchmark_timing"),
+        "hardware_summary": record.get("hardware_summary"),
+        "inference_timing": record.get("inference_timing"),
         "regime_budget": record.get("regime_budget"),
         "model_size": record["model_size"],
+        "parameter_accounting": record.get("parameter_accounting"),
+        "compute_accounting": record.get("compute_accounting"),
         "surface_labels": record.get("surface_labels"),
         "sweep": record.get("sweep"),
         "comparisons": {

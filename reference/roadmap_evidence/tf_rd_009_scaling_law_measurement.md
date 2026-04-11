@@ -210,6 +210,367 @@ the medium classification rung. Any later compute-optimal parameter-token
 frontier belongs to a distinct sweep family designed by
 [#140](https://github.com/bensonlee5/tab-foundry/issues/140).
 
+## Phase Split
+
+TF-RD-009 now has two explicit reporting layers and they must stay separate in
+the code, the sweep tree, and the interpretation prose.
+
+- Phase 1:
+  - keep the running width-depth queue on
+    `tf_rd_009_width_depth_medium_v1`
+  - use the repo-local mixed-depth bridge only to derive executable integer
+    rows on the dense diagonal
+  - report the first fixed-budget law against measured
+    `model_size.total_params` from completed in-family rows only
+- Phase 2:
+  - run the paper-faithful loss study on
+    `tf_rd_009_ns_medium_v1` and
+    `tf_rd_009_batch_critical_medium_v1`
+  - fit `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and the
+    derived `L(Cmin)` frontier from completed benchmark-backed rows only
+  - persist per-run inspected parameter and compute accounting so the study
+    never estimates `N` or `C` by reading source code heuristics
+
+TF-RD-009 adoption decision: the queue-construction bridge and the final loss
+fits are now separate surfaces. Phase 1 keeps the bridge for row selection,
+whereas Phase 2 fits the laws on inspected run metadata only.
+
+## Inspected Parameter And Compute Accounting
+
+Phase 2 uses direct model inspection plus measured training telemetry to define
+all canonical axes.
+
+- strict embedding params:
+  - parameters owned by explicit `nn.Embedding` modules only
+- strict non-embedding params:
+  - every remaining trainable parameter after removing explicit embeddings
+  - this is the canonical paper-style `N` axis
+- expanded embedding-like params:
+  - strict embeddings plus learned lookup/query/seed tensors such as
+    `test_token`, summary queries, latent seeds, BOS/CLS-like tokens, and
+    inducing seeds
+  - this split is diagnostic only and must not replace the canonical `N`
+    axis in the reported fits
+- expanded non-embedding params:
+  - complement of the expanded embedding-like partition
+
+Canonical Phase-2 variables are:
+
+- `N = parameter_accounting.canonical_non_embedding_params`
+- `S = tab_foundry_metrics.final_step`
+- `B_eff = regime_budget.tokens_per_step`
+- `D = regime_budget.tokens_seen = B_eff * S`
+- `C = compute_accounting.total_train_flops = train_flops_per_token * D`
+
+The inspected compute contract is training-only:
+
+- embedding tables count toward parameter accounting
+- embedding lookups do not count as dense matmul FLOPs
+- learned embedding-adjacent seeds/queries count toward parameters under the
+  documented strict/expanded rules, but their compute is charged only through
+  downstream attention and MLP operations
+- `train_flops_per_token`, `train_flops_per_step`, and `total_train_flops`
+  are derived from instantiated-module shapes plus measured training-shape
+  telemetry
+
+TF-RD-009 adoption decision: Phase 2 must reject rows that do not satisfy the
+measured identity `D = B_eff * S` within telemetry tolerance, and it must treat
+strict non-embedding params as the canonical `N` axis even when the expanded
+diagnostic partition is also reported.
+
+## Phase-2 Functional Forms
+
+The literature-backed Phase-2 study uses the paper family as the default fit
+hypothesis, while treating every fitted scale and exponent as repo-specific
+empirical quantities rather than imported constants.
+
+The branch tracks this Kaplan-exact Phase-2 study in
+[#256](https://github.com/bensonlee5/tab-foundry/issues/256), with the
+canonical study config in `reference/scaling_studies/tf_rd_009_phase2.yaml`
+and executable sweep surfaces `tf_rd_009_ns_medium_v1` and
+`tf_rd_009_batch_critical_medium_v1`.
+
+- one-dimensional fits:
+  - `L(N) = E + (N_c / N)^alpha_N`
+  - `L(D) = E + (D_c / D)^alpha_D`
+  - `L(C) = E + (C_c / C)^alpha_C`
+- joint fits:
+  - `L(N,D) = E + ((N_c / N)^(alpha_N / alpha_D) + D_c / D)^alpha_D`
+  - `L(N,S) = E + ((N_c / N)^(alpha_N / alpha_S) + S_c / S)^alpha_S`
+- batch-critical law:
+  - `Bcrit(L) = B_* / L^(1 / alpha_B)`
+- compute frontier relation:
+  - `Cmin = C / (1 + B_eff / Bcrit(L))`
+
+Phase-2 reporting targets are:
+
+- benchmark-backed matched-budget log loss as the repo-facing canonical target
+  for `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, and `L(Cmin)`
+- validation loss as the paper-faithful companion target and the primary
+  checkpointwise target for `L(N,S)` and `Bcrit(L)`
+
+The study must emit inspectable artifacts for every reported fit:
+
+- JSON payloads with raw points, chosen subsets, fitted scales, alphas,
+  residuals, and direct-vs-implied diagnostics
+- PNG graphs for every one-dimensional law, residual surface, joint-law plot,
+  and the compute frontier
+- a Markdown summary rooted under `outputs/research_scaling/tf_rd_009_phase2/`
+- posthoc W&B summary payloads that surface the fitted alphas and artifact root
+
+## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+
+The first joint width-depth family should be derived in two layers: paper
+constraints first, then a repo-local integer-row bridge. The papers constrain
+the family shape, but they do not provide a closed-form integer schedule for
+the sandwich architecture used here.
+
+### Paper Constraints
+
+- *Scaling Laws for Neural Language Models*:
+  - use a smooth, approximately power-law size axis
+  - TF-RD-009 adoption decision: use a log-spaced effective-size family rather
+    than an ad hoc width-depth grid
+- *Training Compute-Optimal Large Language Models*:
+  - under fixed compute, parameters and tokens should scale together
+  - TF-RD-009 adoption decision: keep `token_budget` fixed in
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255), so this
+    branch is explicitly not the compute-optimal frontier
+- *Tensor Programs V (muP)*:
+  - width is the cleanest first transfer axis
+  - TF-RD-009 adoption decision: carry the width-only winner `96x2` forward as
+    the in-family baseline rather than re-deriving the whole family from
+    parameter count alone
+- *Spectral Condition for μP under Width-Depth Scaling*:
+  - once depth moves, width and depth must be co-designed together
+  - TF-RD-009 adoption decision: use a diagonal co-scaling family instead of
+    independent width and depth sweeps
+
+### Repo-Local Size Bridge
+
+The papers do not provide a closed-form sandwich width-depth exchange rule. For
+the frozen TF-RD-009 sandwich surface, use the following queue-construction
+bridge:
+
+- planning axis:
+  - `S(d, L) = L * d^2`
+  - interpretation: a monotone family index only, not the final reported
+    scaling-law x-axis
+- repo-local parameter bridge:
+  - `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`
+
+This bridge is empirical, not paper-claimed. It is for integer row selection
+only, not the final reported law fit. It is derived from two sources:
+
+- benchmark-backed width evidence already on `main`:
+  - formal external anchor `60x2`:
+    - `d_icl=60`
+    - `sandwich_layers=2`
+    - `total_params=646,970`
+  - carried width baseline `96x2`:
+    - `d_icl=96`
+    - `sandwich_layers=2`
+    - `total_params=1,618,286`
+  - upper width evidence `128x2`:
+    - `d_icl=128`
+    - `sandwich_layers=2`
+    - `total_params=2,849,422`
+- the previously materialized draft joint-family rows that exposed the mixed-depth
+  drift:
+  - `88x1`: `986,886`
+  - `104x3`: `2,419,862`
+  - `112x4`: `3,410,046`
+  - `128x5`: `5,234,830`
+  - `144x6`: `7,615,262`
+
+Why the old bridge changed:
+
+- the width-only `L=2` evidence fits `P_local(d, L) ≈ 88.20 * L * d^2`
+- once depth varies, that width-only bridge breaks materially:
+  - `88x1` is only `+7.6%` in `L * d^2` versus `60x2`, but `+52.5%` in params
+  - `104x3` is only `-1.0%` in `L * d^2` versus `128x2`, but `-15.1%` in params
+- TF-RD-009 adoption decision:
+  - keep `S(d, L)` only as a planning axis
+  - use the affine depth-aware bridge for parameter and VRAM targeting while
+    constructing the queue
+  - exclude the historical draft points from the final reported scaling-law fit;
+    they remain queue-construction context only
+  - treat the older `89 * L * d^2` rule as a width-only diagnostic that should
+    not be reused for mixed-depth sweep design
+
+### Dense Diagonal Locked For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+
+Keep the formal external TF-RD-009 anchor at `60x2`, carry `96x2` as the
+in-family baseline, and widen the fixed-budget width-depth family to the dense
+diagonal:
+
+- formal external anchor for lane interpretation: `60x2`
+- in-family ladder for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
+  - `72x1`
+  - `96x2`
+  - `112x3`
+  - `128x4`
+  - `152x5`
+  - `176x6`
+
+Derivation:
+
+- formal external anchor:
+  - `60x2`
+  - parameter target:
+    `P_anchor = 646,970`
+- lower joint seed:
+  - choose `L = 1`
+  - solve `P_local(d, 1) = 646,970`, giving `d = 70.6`
+  - round to the nearest practical `d_icl` rung: `72`
+  - resulting row: `72x1`
+  - predicted parameter count: `0.672M`
+- carried in-family baseline:
+  - `96x2`
+  - observed parameter count: `1.618M`
+- upper joint seed:
+  - match the width-only upper evidence row `128x2` in parameter scale rather
+    than in `L * d^2`
+  - choose `L = 3`
+  - solve `P_local(d, 3) = 2,849,422`, giving `d = 113.0`
+  - round to the nearest practical `d_icl` rung: `112`
+  - resulting row: `112x3`
+  - predicted parameter count: `2.798M`
+- ceiling probe:
+  - current RTX 8000 planning fit:
+    `reserved_gb ≈ 6.47 + 2.36e-6 * params`
+  - TF-RD-009 adoption decision: use the retained `rtx8000_44gb` surface more
+    meaningfully by targeting an upper row near `32-33 GB` reserved rather than
+    stopping around the already-observed `13.23 GB` width-only `128x2` row
+  - using the affine parameter bridge, a `32-33 GB` reserved target implies
+    roughly `11.1M` parameters
+  - choose `L = 6`
+  - solve `P_local(d, 6) = 11.1M`, giving `d = 173.9`
+  - round to the nearest practical `d_icl` rung: `176`
+  - resulting row: `176x6`
+  - predicted parameter count: `11.366M`
+  - predicted reserved VRAM: `33.29 GB`
+- dense upper interpolation:
+  - keep the family one-dimensional by interpolating in log-space in predicted
+    parameter count between `112x3` and `176x6`
+  - for `L = 4`:
+    - interpolated parameter target: `4.519M`
+    - solve `P_local(d, 4) = 4.519M`, giving `d = 129.2`
+    - round to the nearest practical `d_icl` rung: `128`
+    - resulting row: `128x4`
+    - predicted parameter count: `4.439M`
+  - for `L = 5`:
+    - interpolated parameter target: `7.055M`
+    - solve `P_local(d, 5) = 7.055M`, giving `d = 148.7`
+    - round to the nearest practical `d_icl` rung: `152`
+    - resulting row: `152x5`
+    - predicted parameter count: `7.366M`
+
+The old `144x6` draft no longer survives the corrected fit: the materialized row
+lands at only `7.615M` parameters, which maps to roughly `24.44 GB` reserved
+under the same VRAM fit, so it is not a genuine ceiling probe.
+
+This keeps [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+theory-constrained but large enough to fit an actual curve:
+
+- external anchor for interpretation: `60x2`
+- lower seed from anchor-matched parameter scale: `72x1`
+- carried width-transfer baseline: `96x2`
+- upper seed matched to the width-only upper evidence row: `112x3`
+- near-saturating upper diagonal extension: `128x4`, `152x5`, `176x6`
+
+It also remains honest about what is paper-backed versus repo-local:
+
+- the papers constrain the family shape and what must scale together
+- the repo-local bridge and hardware budget model choose the integer rows
+
+### Reported Law-Fit Policy
+
+Now that the dense diagonal has landed benchmark-backed rows, the first
+reported fixed-budget TF-RD-009 law fit should use:
+
+- in-family completed rows only:
+  - `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}`
+- measured x-axis:
+  - benchmark-registry `model_size.total_params`
+- ranking metric:
+  - matched-budget `final_log_loss_at_matched_regime_budget`
+- first fit family:
+  - a Kaplan-style power law on the measured parameter counts, with the fitted
+    exponent and intercept reported as repo-specific empirical quantities
+
+Do not use the queue-construction bridge, historical draft rows, or incomplete
+pending rows as direct inputs to the reported law fit.
+
+## Constraint Budget Table
+
+These tables are the planning view for the future
+`hardware_architecture_baselines_v1.json` entry for the retained
+`rtx8000_44gb` classification surface. The width-depth family is now complete,
+but the formulas remain repo-local planning aids until
+[#257](https://github.com/bensonlee5/tab-foundry/issues/257) freezes the
+hardware baseline from the measured mixed-depth evidence rather than from the
+historical width-only bridge.
+
+Current planning formulas:
+
+- planning-axis expression:
+  - `S(d, L) = L * d^2`
+- current fitted mixed-depth parameter bridge:
+  - `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`
+- deprecated width-only diagnostic bridge:
+  - `P_local(d, L) ≈ 88.20 * L * d^2` on the historical `L=2` family only
+- current RTX 8000 reserved-memory fit from the benchmarked width evidence:
+  - `reserved_gb ≈ 6.47 + 2.36e-6 * params`
+- current RTX 8000 train-wall fit from the benchmarked width evidence:
+  - `train_wall_seconds ≈ 8407.97 + 1.01e-4 * params`
+
+The historical width-family rows predate first-class `benchmark_timing` and
+`inference_timing`, so those timing columns remain intentionally pending for
+`60x2` and `96x2`. The completed widened width-depth rows now register those
+timings directly.
+
+### Capacity Table
+
+| Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Observed headroom to 44 GB |
+|-----|---------|-------------------|---------------|---------------------|-----------------------|----------------------|----------------------------|
+| `60x2` | 60 | 2 | 7200 | 0.650M | 8.00 | 8.05 | 35.95 |
+| `72x1` | 72 | 1 | 5184 | 0.672M | 8.06 | 8.75 | 35.25 |
+| `96x2` | 96 | 2 | 18432 | 1.617M | 10.29 | 10.18 | 33.82 |
+| `112x3` | 112 | 3 | 37632 | 2.798M | 13.07 | 11.65 | 32.35 |
+| `128x4` | 128 | 4 | 65536 | 4.439M | 16.95 | 14.55 | 29.45 |
+| `152x5` | 152 | 5 | 115520 | 7.366M | 23.85 | 16.59 | 27.41 |
+| `176x6` | 176 | 6 | 185856 | 11.366M | 33.29 | 17.84 | 26.16 |
+
+### Timing Table
+
+| Row | Predicted train wall seconds | Observed train wall seconds | Observed delta vs `96x2` | Observed benchmark wall seconds | Observed inference mean ms |
+|-----|------------------------------|-----------------------------|--------------------------|---------------------------------|----------------------------|
+| `60x2` | 8474 | 8486 | -62 | pending | pending |
+| `72x1` | 8476 | 8105 | -443 | 1230 | 10.64 |
+| `96x2` | 8571 | 8548 | +0 | pending | pending |
+| `112x3` | 8691 | 9136 | +587 | 1336 | 20.39 |
+| `128x4` | 8856 | 9594 | +1046 | 1391 | 23.91 |
+| `152x5` | 9152 | 10154 | +1606 | 1509 | 27.70 |
+| `176x6` | 9556 | 10635 | +2087 | 1610 | 24.23 |
+
+### Completed Phase-1 Outcome
+
+- the corrected dense diagonal is now benchmark-backed end to end on
+  `tf_rd_009_width_depth_medium_v1`
+- `152x5` is the current fixed-budget winner by both final log loss
+  (`0.5740`) and final ROC AUC (`0.7351`)
+- `176x6` completed cleanly and remains useful upper-family evidence, but it
+  did not beat `152x5` on the carried matched-budget objective
+- the observed upper-row training VRAM (`16.59 GiB` at `152x5`, `17.84 GiB` at
+  `176x6`) undershot the pre-run width-evidence reserved-memory fit
+  (`23.85 GB` and `33.29 GB` respectively), so that fit should remain a
+  conservative queue-construction heuristic rather than the freeze-time
+  hardware constraint model
+- no extra near-ceiling rows were added on this branch because solving
+  directly against the old memory fit would require off-diagonal rows that no
+  longer preserve the original TF-RD-009 width-depth relationship
+
 ## Literature Synthesis
 
 ### Size, Data, And Compute Laws
@@ -228,9 +589,12 @@ TF-RD-009 adoption decision:
 
 - measure the first architecture law under matched `token_budget` and matched
   benchmark slice so that width-depth quality differences are interpretable
-- report parameter count, but do not collapse the first fit to one scalar model
-  size because width and depth may not be interchangeable on the sandwich
-  surface
+- keep width and depth as the first-class queue-design axes because they may
+  not be interchangeable on the sandwich surface
+- fit the first reported law against measured benchmark-registry
+  `model_size.total_params` only after completed in-family rows land, and treat
+  the fitted exponent/intercept as empirical repo quantities rather than
+  imported paper constants
 
 #### *Training Compute-Optimal Large Language Models*
 
@@ -433,21 +797,76 @@ Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
   fixed-budget family epic, but treat
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254) as completed
   execution input rather than the final TF-RD-009 law claim
+- keep `60x2` and run id
+  `sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2`
+  as the formal external TF-RD-009 anchor for lane-level interpretation; do
+  not rerun it inside the joint family
 - use `d_icl=96` and run id
   `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
   as the carried width baseline for the first joint width-depth family
-- vary `model.d_icl` and `model.sandwich_layers` together inside
-  [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- execute the dense diagonal
+  `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6` inside
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), where:
+  - `72x1` comes from matching the formal `60x2` anchor against the empirical
+    mixed-depth sandwich parameter bridge
+  - `112x3` comes from matching the width-only upper evidence row `128x2`
+    against the same empirical bridge
+  - `128x4` and `152x5` are intermediate log-spaced parameter-scale rows
+    between the `112x3` upper seed and the intended ceiling probe
+  - `176x6` is the explicit RTX 8000 capacity-targeted ceiling probe chosen to
+    land near the retained `32-33 GB` reserved-memory band under the carried
+    repo-local VRAM fit
 - keep `token_budget`, `unique_task_budget`, `curriculum_id`, benchmark slice,
   runtime policy, objective metric, and the non-scaling sandwich knobs fixed
 - keep `sandwich_heads=1` as the carried TF-RD-024 handoff winner
 - treat optimizer transfer as a lower-confidence empirical question that stays
   secondary to the architecture-law read in
   [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+- do not freeze the first
+  `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` entry until
+  the broadened family is complete enough to choose the best
+  matched-regime-budget row among `health=ok` runs on `rtx8000_44gb`
 - keep compute-optimal parameter-token work in
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and curriculum or
   repeated-data slice work in
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
+
+## Hardware-Aware Preferred Architecture State
+
+TF-RD-009 should not leave the "best architecture for this hardware surface" as
+an issue comment or W&B memory. It should live in a repo-tracked registry with
+the same discipline as the benchmark and control-baseline registries.
+
+Canonical registry:
+
+- `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`
+
+Selection contract:
+
+- hardware identity:
+  - `gpu_class + vram_class_gb`
+- surface identity:
+  - `track`
+  - `surface_role`
+  - `runtime_profile`
+  - benchmark manifest path and associated surface labels
+- ranking rule:
+  - choose the benchmark-backed row with the best matched-budget objective
+    among `health=ok` runs
+  - record runtime and VRAM as guardrails and rationale fields, not as the
+    ranking metric itself
+
+First TF-RD-009 use:
+
+- create the first entry for the retained `rtx8000_44gb` medium classification
+  surface only after the dense width-depth family is complete enough to support
+  a real hardware-aware decision
+- keep the formal external anchor `60x2` for lane interpretation
+- keep the carried baseline `96x2` as the fallback preferred architecture if
+  the widened family does not produce a cleaner healthy winner
+- include the machine-readable `constraint_model` block so the registry records
+  the exact effective-size, parameter, VRAM, train-wall, benchmark-wall, and
+  inference-latency formulas together with the evidence rows used to fit them
 
 The issue tree should still preserve these rules:
 

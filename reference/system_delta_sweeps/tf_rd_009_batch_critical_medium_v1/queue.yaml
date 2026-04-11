@@ -1,0 +1,1583 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_batch_critical_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 1 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 2 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 3 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=1 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 4 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=1
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 5 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 6 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 7
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 7 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 8
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=2 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 8 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=2
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 9
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 9 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 10
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 10 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 11
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 11 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 12
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=4 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 12 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=4
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 13
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 13 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 14
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 14 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 15
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 15 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 16
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=8 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 16 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=8
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 17
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=625 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 17 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=625.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 18
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=1250 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 18 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=1250.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 19
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=2500 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 19 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=2500.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 20
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute 96x2 at max_steps=5000 and grad_accum_steps=16 for the TF-RD-009
+    Phase 2 scaling-law study.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 20 as the TF-RD-009 Phase 2 batch-critical row for grad_accum_steps=16
+    and max_steps=5000.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

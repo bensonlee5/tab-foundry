@@ -113,12 +113,32 @@ _ROBUST_PRIOR_GROUP = LazyGroup(
     },
     **GROUP_KWARGS,
 )
+
+_SCALING_GROUP = LazyGroup(
+    name="scaling",
+    help="Scaling-study workflows",
+    lazy_commands={
+        "fit": LazyCommandSpec(
+            module="tab_foundry.cli.research_scaling",
+            attr="FIT_COMMAND",
+            help="Fit one scaling study and write report artifacts",
+        ),
+        "inspect": LazyCommandSpec(
+            module="tab_foundry.cli.research_scaling",
+            attr="INSPECT_COMMAND",
+            help="Inspect one scaling study and its completed points",
+        ),
+    },
+    **GROUP_KWARGS,
+)
+
 GROUP = LazyGroup(
     name="research",
     help="Research workflows",
     lazy_commands={
         "adequacy": _ADEQUACY_GROUP,
         "robust-prior": _ROBUST_PRIOR_GROUP,
+        "scaling": _SCALING_GROUP,
         "sweep": _SWEEP_GROUP,
     },
     **GROUP_KWARGS,

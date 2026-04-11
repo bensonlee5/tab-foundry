@@ -448,6 +448,14 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
             tokens_seen=38400,
             peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
         ),
+        hardware_summary={
+            "device_type": "cuda",
+            "raw_device_name": "NVIDIA A100-SXM4-80GB",
+            "gpu_class": "a100",
+            "total_device_vram_bytes": 80 * 1024**3,
+            "vram_class_gb": 80,
+            "hardware_profile_id": "a100_80gb",
+        },
         regime_budget=build_regime_budget_summary(
             task="classification",
             loss_surface="classification",
@@ -465,6 +473,8 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
         "throughput_tokens_per_second": 12800.0,
         "non_train_overhead_seconds": pytest.approx(0.8),
     }
+    assert telemetry["hardware_summary"]["gpu_class"] == "a100"
+    assert telemetry["hardware_summary"]["vram_class_gb"] == 80
     assert telemetry["regime_budget"]["tokens_per_step"] == pytest.approx(512.0)
     assert telemetry["regime_budget"]["unique_task_budget"] == 96
     assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"

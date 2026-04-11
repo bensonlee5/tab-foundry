@@ -12,6 +12,7 @@ from typing import Any, Mapping, cast
 from omegaconf import DictConfig
 import torch
 
+from tab_foundry.hardware_profiles import build_hardware_summary
 from tab_foundry.training.artifacts import (
     append_history_record,
     append_jsonl_record,
@@ -36,6 +37,7 @@ from tab_foundry.training.instability import (
     tensor_batch_token_count,
     total_grad_norm,
     train_loss_delta,
+    training_shape_summary_from_signature_task_counts,
     update_loss_ema,
     write_training_telemetry,
 )
@@ -60,10 +62,12 @@ from tab_foundry.training.wandb import (
     update_wandb_summary,
     wandb_identity_payload,
 )
+from tab_foundry.task_batching import task_batch_signature_text
 from tab_foundry.types import TrainResult
 
 
 _PRIOR_STAGE_NAME = "prior_dump"
+_PRIOR_BATCH_NDIM = 3
 
 
 @dataclass(slots=True)
@@ -88,6 +92,7 @@ class PriorTrainingState:
     history_records: list[dict[str, Any]] = field(default_factory=list)
     gradient_records: list[dict[str, Any]] = field(default_factory=list)
     checkpoint_snapshots: list[dict[str, Any]] = field(default_factory=list)
+    signature_task_counts: dict[str, int] = field(default_factory=dict)
 
 
 def _global_grad_norm_kind(value: float) -> str:
@@ -96,6 +101,27 @@ def _global_grad_norm_kind(value: float) -> str:
     if math.isinf(value):
         return "pos_inf" if value > 0.0 else "neg_inf"
     return "finite"
+
+
+def _accumulate_prior_training_shape_signature(
+    state: PriorTrainingState,
+    *,
+    x_batch: torch.Tensor,
+    train_test_split_index: int,
+    task_count: int,
+) -> None:
+    if task_count <= 0 or x_batch.ndim != _PRIOR_BATCH_NDIM:
+        return
+    total_rows = int(x_batch.shape[1])
+    signature = task_batch_signature_text(
+        (
+            int(train_test_split_index),
+            int(total_rows - int(train_test_split_index)),
+            int(x_batch.shape[2]),
+            None,
+        )
+    )
+    state.signature_task_counts[signature] = state.signature_task_counts.get(signature, 0) + int(task_count)
 
 
 def _save_eval_mode_artifact(
@@ -645,6 +671,7 @@ def _build_prior_telemetry_payload(
         tokens_seen=state.tokens_seen,
         peak_memory_summary=peak_device_memory_summary(device),
     )
+    hardware_summary = build_hardware_summary(device)
     regime_budget = build_regime_budget_summary(
         task=task,
         loss_surface=loss_surface,
@@ -662,7 +689,11 @@ def _build_prior_telemetry_payload(
         history_records=state.history_records,
         gradient_records=state.gradient_records,
         runtime_summary=runtime_summary,
+        hardware_summary=hardware_summary,
         regime_budget=regime_budget,
+        training_shape_summary=training_shape_summary_from_signature_task_counts(
+            state.signature_task_counts
+        ),
         missingness=missingness_summary,
         training_surface_record=training_surface_payload,
         wandb=wandb_identity_payload(run, cfg=cfg),
@@ -812,6 +843,12 @@ def run_prior_training(
                 device=device,
             )
             step_examples_seen = tensor_batch_examples_seen(x_batch)
+            _accumulate_prior_training_shape_signature(
+                state,
+                x_batch=x_batch,
+                train_test_split_index=prior_step.train_test_split_index,
+                task_count=step_examples_seen,
+            )
             step_tokens_seen = tensor_batch_token_count(x_batch)
             x_batch, synthetic_missingness = _apply_prior_missingness(
                 x_batch,

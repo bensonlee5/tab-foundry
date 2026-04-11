@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import time
 from typing import Any
 
 import numpy as np
@@ -11,14 +12,19 @@ from safetensors.torch import load_file
 import torch
 from torch import nn
 
+from tab_foundry.device import resolve_device as _resolve_device_string
+from tab_foundry.device import resolve_torch_device
 from tab_foundry.feature_types import normalize_feature_types, resolve_feature_types
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
+from tab_foundry.task_batching import move_batch
 from tab_foundry.types import TaskBatch
 
 from .contracts import ExportPreprocessorState, ValidatedBundle
 from .exporter import validate_export_bundle
+
+_MATRIX_NDIM = 2
 
 
 @dataclass(slots=True)
@@ -36,7 +42,19 @@ class ReferenceConsumerOutput:
     quantile_levels: np.ndarray | None = None
 
 
-def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
+def _normalize_runtime_device(device: str | torch.device | None) -> torch.device | None:
+    if device is None:
+        return None
+    if isinstance(device, torch.device):
+        return device
+    return resolve_torch_device(str(device))
+
+
+def load_export_bundle(
+    bundle_dir: Path,
+    *,
+    device: str | torch.device | None = None,
+) -> LoadedExportBundle:
     """Load and validate an exported bundle into a model instance."""
 
     validated = validate_export_bundle(bundle_dir)
@@ -55,6 +73,9 @@ def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
             "Failed to load exported weights strictly: "
             f"missing={incompatible.missing_keys}, unexpected={incompatible.unexpected_keys}"
         )
+    resolved_device = _normalize_runtime_device(device)
+    if resolved_device is not None:
+        model = model.to(resolved_device)
     model.eval()
     return LoadedExportBundle(validated=validated, model=model)
 
@@ -88,6 +109,7 @@ def _reference_batch(
     y_train: Any,
     x_test: Any,
     feature_types: list[str] | None = None,
+    device: torch.device | None = None,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
     if manifest.task != "classification":
@@ -144,7 +166,7 @@ def _reference_batch(
             expected_count=int(processed.x_train.shape[1]),
             context="reference_consumer.feature_types",
         )
-    return TaskBatch(
+    batch = TaskBatch(
         x_train=torch.from_numpy(np.asarray(processed.x_train, dtype=np.float32)),
         y_train=y_train_tensor,
         x_test=torch.from_numpy(np.asarray(processed.x_test, dtype=np.float32)),
@@ -155,26 +177,16 @@ def _reference_batch(
         },
         num_classes=num_classes,
     )
+    if device is None:
+        return batch
+    return move_batch(batch, device)
 
 
-def run_reference_consumer(
-    bundle_dir: Path,
+def _resolve_classification_probs(
+    bundle: LoadedExportBundle,
     *,
-    x_train: Any,
-    y_train: Any,
-    x_test: Any,
-    feature_types: list[str] | None = None,
-) -> ReferenceConsumerOutput:
-    """Execute the reference-only inference path for one exported bundle."""
-
-    bundle = load_export_bundle(bundle_dir)
-    batch = _reference_batch(
-        bundle,
-        x_train=x_train,
-        y_train=y_train,
-        x_test=x_test,
-        feature_types=feature_types,
-    )
+    batch: TaskBatch,
+) -> tuple[torch.Tensor, int]:
     with torch.no_grad():
         output = bundle.model(batch)
     if not isinstance(output, ClassificationOutput):
@@ -194,8 +206,113 @@ def run_reference_consumer(
         raise RuntimeError("classification reference consumer did not produce probabilities")
     if not bool(torch.all(torch.isfinite(probs)).item()):
         raise RuntimeError("reference consumer produced non-finite class probabilities")
+    return probs, int(resolved_num_classes)
+
+
+def _synchronize_device(device: torch.device) -> None:
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+
+def run_reference_consumer(
+    bundle_dir: Path,
+    *,
+    x_train: Any,
+    y_train: Any,
+    x_test: Any,
+    feature_types: list[str] | None = None,
+    device: str | torch.device | None = None,
+) -> ReferenceConsumerOutput:
+    """Execute the reference-only inference path for one exported bundle."""
+
+    resolved_device = _normalize_runtime_device(device)
+    bundle = (
+        load_export_bundle(bundle_dir)
+        if resolved_device is None
+        else load_export_bundle(bundle_dir, device=resolved_device)
+    )
+    batch = _reference_batch(
+        bundle,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        feature_types=feature_types,
+        device=resolved_device,
+    )
+    probs, _resolved_num_classes = _resolve_classification_probs(bundle, batch=batch)
     return ReferenceConsumerOutput(
         task="classification",
         batch=batch,
         class_probs=probs.detach().cpu().numpy(),
     )
+
+
+def benchmark_reference_consumer(
+    bundle_dir: Path,
+    *,
+    x_train: Any,
+    y_train: Any,
+    x_test: Any,
+    feature_types: list[str] | None = None,
+    device: str | torch.device = "auto",
+    warmup_iterations: int = 3,
+    measured_iterations: int = 10,
+) -> dict[str, Any]:
+    """Benchmark reference-consumer latency on one fixed runtime batch."""
+
+    if int(warmup_iterations) < 0:
+        raise RuntimeError("warmup_iterations must be >= 0")
+    if int(measured_iterations) <= 0:
+        raise RuntimeError("measured_iterations must be >= 1")
+
+    resolved_device = _normalize_runtime_device(device)
+    if resolved_device is None:
+        resolved_device = resolve_torch_device("auto")
+    bundle = load_export_bundle(bundle_dir, device=resolved_device)
+    batch = _reference_batch(
+        bundle,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        feature_types=feature_types,
+        device=resolved_device,
+    )
+
+    for _ in range(int(warmup_iterations)):
+        _synchronize_device(resolved_device)
+        _ = _resolve_classification_probs(bundle, batch=batch)
+        _synchronize_device(resolved_device)
+
+    elapsed_seconds: list[float] = []
+    for _ in range(int(measured_iterations)):
+        _synchronize_device(resolved_device)
+        started = time.perf_counter()
+        _ = _resolve_classification_probs(bundle, batch=batch)
+        _synchronize_device(resolved_device)
+        elapsed_seconds.append(float(time.perf_counter() - started))
+
+    resolved_device_name = _resolve_device_string(str(resolved_device))
+    elapsed_ms = np.asarray(elapsed_seconds, dtype=np.float64) * 1000.0
+    return {
+        "requested_device": str(device),
+        "resolved_device": resolved_device_name,
+        "warmup_iterations": int(warmup_iterations),
+        "measured_iterations": int(measured_iterations),
+        "n_train": (
+            int(batch.x_train.shape[0])
+            if batch.x_train.ndim == _MATRIX_NDIM
+            else int(batch.x_train.shape[1])
+        ),
+        "n_test": (
+            int(batch.x_test.shape[0])
+            if batch.x_test.ndim == _MATRIX_NDIM
+            else int(batch.x_test.shape[1])
+        ),
+        "n_features": int(batch.x_train.shape[-1]),
+        "num_classes": int(batch.num_classes or 0),
+        "mean_ms": float(np.mean(elapsed_ms)),
+        "p50_ms": float(np.percentile(elapsed_ms, 50.0)),
+        "p95_ms": float(np.percentile(elapsed_ms, 95.0)),
+        "max_ms": float(np.max(elapsed_ms)),
+        "total_measured_seconds": float(np.sum(elapsed_seconds)),
+    }

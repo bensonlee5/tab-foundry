@@ -11,6 +11,7 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch import nn
 
+from tab_foundry.task_batching import parse_task_batch_signature_text
 from tab_foundry.timestamps import utc_now as _shared_utc_now
 from tab_foundry.types import TaskBatch
 
@@ -189,6 +190,54 @@ def tensor_batch_token_count(x_batch: torch.Tensor) -> int:
             f"(tasks, rows, features), got {tuple(int(dim) for dim in x_batch.shape)}"
         )
     return int(x_batch.shape[0] * x_batch.shape[1] * x_batch.shape[2])
+
+
+def training_shape_summary_from_signature_task_counts(
+    signature_task_counts: Mapping[str, int] | None,
+) -> dict[str, Any] | None:
+    """Summarize one observed task-shape distribution from exact task counts."""
+
+    if not isinstance(signature_task_counts, Mapping) or not signature_task_counts:
+        return None
+    total_task_count = 0
+    weighted_n_train = 0
+    weighted_n_test = 0
+    weighted_n_features = 0
+    weighted_num_classes = 0
+    num_classes_weight = 0
+    normalized_counts: dict[str, int] = {}
+    for signature_text, task_count in signature_task_counts.items():
+        if not isinstance(signature_text, str):
+            continue
+        resolved_task_count = int(task_count)
+        if resolved_task_count <= 0:
+            continue
+        n_train, n_test, n_features, num_classes = parse_task_batch_signature_text(signature_text)
+        normalized_counts[str(signature_text)] = resolved_task_count
+        total_task_count += resolved_task_count
+        weighted_n_train += resolved_task_count * int(n_train)
+        weighted_n_test += resolved_task_count * int(n_test)
+        weighted_n_features += resolved_task_count * int(n_features)
+        if num_classes is not None:
+            weighted_num_classes += resolved_task_count * int(num_classes)
+            num_classes_weight += resolved_task_count
+    if total_task_count <= 0:
+        return None
+    return {
+        "total_task_count": int(total_task_count),
+        "signature_task_counts": {
+            str(signature): int(count)
+            for signature, count in sorted(normalized_counts.items())
+        },
+        "mean_n_train": float(weighted_n_train / float(total_task_count)),
+        "mean_n_test": float(weighted_n_test / float(total_task_count)),
+        "mean_n_features": float(weighted_n_features / float(total_task_count)),
+        "mean_num_classes": (
+            None
+            if num_classes_weight <= 0
+            else float(weighted_num_classes / float(num_classes_weight))
+        ),
+    }
 
 
 def objective_metric_for_task(
@@ -1187,7 +1236,9 @@ def build_training_telemetry(
     task: str | None = None,
     global_step: int | None = None,
     runtime_summary: Mapping[str, Any] | None = None,
+    hardware_summary: Mapping[str, Any] | None = None,
     regime_budget: Mapping[str, Any] | None = None,
+    training_shape_summary: Mapping[str, Any] | None = None,
     missingness: Mapping[str, Any] | None = None,
     training_surface_record: Mapping[str, Any] | None = None,
     wandb: Mapping[str, Any] | None = None,
@@ -1237,8 +1288,16 @@ def build_training_telemetry(
         "runtime_summary": (
             None if runtime_summary is None else _normalize_payload_values(runtime_summary)
         ),
+        "hardware_summary": (
+            None if hardware_summary is None else _normalize_payload_values(hardware_summary)
+        ),
         "regime_budget": (
             None if regime_budget is None else _normalize_payload_values(regime_budget)
+        ),
+        "training_shape_summary": (
+            None
+            if training_shape_summary is None
+            else _normalize_payload_values(training_shape_summary)
         ),
         "missingness": None if missingness is None else _normalize_payload_values(missingness),
         "training_surface_context": training_surface_context,
