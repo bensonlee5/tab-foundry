@@ -11,7 +11,7 @@ import torch
 import tab_foundry.cli as cli_module
 import tab_foundry.cli.research_robust_prior as robust_prior_cli_module
 import tab_foundry.research.robust_prior.pilot as pilot_module
-from tab_foundry.research.robust_prior.proposer import sample_proposal
+from tab_foundry.research.robust_prior.proposer import fit_proposer_distribution, sample_proposal
 from tab_foundry.research.robust_prior.scoring import (
     ProbeDatasetScore,
     ProbeTrialScore,
@@ -198,6 +198,85 @@ def test_sample_proposal_applies_entropy_floor_and_uniform_exploration() -> None
     assert pytest.approx(sum(first_probs), rel=1.0e-9, abs=1.0e-9) == 1.0
     assert first_probs[0] < 1.0
     assert all(probability > 0.0 for probability in first_probs)
+
+
+def test_fit_proposer_distribution_returns_flat_probability_vectors() -> None:
+    search_space = robust_prior_search_space_v1()
+    trial_history = [
+        {
+            "proposal": RobustPriorProposal(
+                feature_count_bucket="compact",
+                class_count_bucket="small",
+                categorical_ratio_bucket="mixed_low",
+                max_categorical_cardinality_bucket="card16",
+                graph_node_bucket="graph_small",
+                target_depth_bucket="mid",
+                mechanism_preset="baseline",
+                shift_preset="none",
+                noise_preset="gaussian",
+            ).to_dict(),
+            "aggregate": {"normalized_gap": 0.10},
+            "feasible": True,
+        },
+        {
+            "proposal": RobustPriorProposal(
+                feature_count_bucket="balanced",
+                class_count_bucket="medium",
+                categorical_ratio_bucket="mixed_high",
+                max_categorical_cardinality_bucket="card24",
+                graph_node_bucket="graph_medium",
+                target_depth_bucket="deep",
+                mechanism_preset="piecewise",
+                shift_preset="mixed",
+                noise_preset="mixture",
+            ).to_dict(),
+            "aggregate": {"normalized_gap": 0.20},
+            "feasible": True,
+        },
+        {
+            "proposal": RobustPriorProposal(
+                feature_count_bucket="wide",
+                class_count_bucket="many",
+                categorical_ratio_bucket="categorical",
+                max_categorical_cardinality_bucket="card32",
+                graph_node_bucket="graph_large",
+                target_depth_bucket="deep",
+                mechanism_preset="compositional",
+                shift_preset="mechanism_drift",
+                noise_preset="student_t",
+            ).to_dict(),
+            "aggregate": {"normalized_gap": 0.30},
+            "feasible": True,
+        },
+        {
+            "proposal": RobustPriorProposal(
+                feature_count_bucket="wider",
+                class_count_bucket="binaryish",
+                categorical_ratio_bucket="continuous",
+                max_categorical_cardinality_bucket="card9",
+                graph_node_bucket="graph_max",
+                target_depth_bucket="shallow",
+                mechanism_preset="gp_bias",
+                shift_preset="noise_drift",
+                noise_preset="laplace",
+            ).to_dict(),
+            "aggregate": {"normalized_gap": 0.40},
+            "feasible": True,
+        },
+    ]
+
+    proposer = fit_proposer_distribution(
+        search_space=search_space,
+        trial_history=trial_history,
+        seed=7,
+    )
+
+    assert proposer is not None
+    for dimension in search_space.dimensions:
+        probabilities = proposer.probabilities[dimension.name]
+        assert len(probabilities) == len(dimension.values)
+        assert all(isinstance(value, float) for value in probabilities)
+        assert sum(probabilities) == pytest.approx(1.0)
 
 
 def test_run_robust_prior_pilot_emits_round_artifacts_and_beats_control(
@@ -471,6 +550,146 @@ def test_run_robust_prior_pilot_marks_bad_probe_trials_infeasible_and_continues(
     assert payload["final_decision"] == "keep"
     assert failed_trial["error"]["type"] == "RuntimeError"
     assert failed_trial["error"]["message"] == "bad proposal"
+
+
+def test_run_robust_prior_pilot_resumes_after_completed_round(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    study_path = tmp_path / "pilot.yaml"
+    anchor_checkpoint = tmp_path / "anchor" / "checkpoints" / "best.pt"
+    anchor_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": {}}, anchor_checkpoint)
+    benchmark_manifest = tmp_path / "bench" / "manifest.parquet"
+    benchmark_manifest.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_manifest.write_bytes(b"manifest")
+    output_root = tmp_path / "outputs" / "robust_prior"
+    study_path.write_text(
+        "\n".join(
+            [
+                "schema: tab-foundry-robust-prior-v1",
+                "study_id: smoke",
+                "description: smoke",
+                f"output_root: {output_root}",
+                f"anchor_checkpoint_path: {anchor_checkpoint}",
+                "base_experiment: cls_benchmark_staged_corpus",
+                "control_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5",
+                f"benchmark_manifest_path: {benchmark_manifest}",
+                "outer_rounds: 2",
+                "trials_per_round: 2",
+                "probe_datasets_per_trial: 2",
+                "topk_training_candidates: 1",
+                "round_train_datasets: 8",
+                "train_steps_per_round: 2",
+                "matched_control: true",
+                "logging_use_wandb: false",
+                "benchmark_device: cpu",
+                "benchmark_checkpoint_selection: all",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    round1_root = output_root / "round_01"
+    adversarial_round1_ckpt = round1_root / "adversarial_train" / "checkpoints" / "best.pt"
+    control_round1_ckpt = round1_root / "control_train" / "checkpoints" / "best.pt"
+    adversarial_round1_ckpt.parent.mkdir(parents=True, exist_ok=True)
+    control_round1_ckpt.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": {}}, adversarial_round1_ckpt)
+    torch.save({"model": {}}, control_round1_ckpt)
+    round1_summary = {
+        "round_index": 1,
+        "status": "completed",
+        "trial_count": 2,
+        "trial_results": [
+            {
+                "trial_index": 1,
+                "proposal": RobustPriorProposal(
+                    feature_count_bucket="compact",
+                    class_count_bucket="small",
+                    categorical_ratio_bucket="mixed_low",
+                    max_categorical_cardinality_bucket="card16",
+                    graph_node_bucket="graph_small",
+                    target_depth_bucket="mid",
+                    mechanism_preset="baseline",
+                    shift_preset="none",
+                    noise_preset="gaussian",
+                ).to_dict(),
+                "aggregate": {"normalized_gap": 0.1},
+                "feasible": True,
+            },
+            {
+                "trial_index": 2,
+                "proposal": RobustPriorProposal(
+                    feature_count_bucket="balanced",
+                    class_count_bucket="medium",
+                    categorical_ratio_bucket="mixed_high",
+                    max_categorical_cardinality_bucket="card24",
+                    graph_node_bucket="graph_medium",
+                    target_depth_bucket="deep",
+                    mechanism_preset="piecewise",
+                    shift_preset="mixed",
+                    noise_preset="mixture",
+                ).to_dict(),
+                "aggregate": {"normalized_gap": 0.2},
+                "feasible": True,
+            },
+        ],
+        "selected_candidate_count": 1,
+        "selected_trials": [],
+        "candidate_materialization_failures": [],
+        "adversarial_result": {
+            "output_dir": str((round1_root / "adversarial_train").resolve()),
+            "best_checkpoint": str(adversarial_round1_ckpt.resolve()),
+            "latest_checkpoint": str(adversarial_round1_ckpt.resolve()),
+            "global_step": 2,
+        },
+        "control_result": {
+            "output_dir": str((round1_root / "control_train").resolve()),
+            "best_checkpoint": str(control_round1_ckpt.resolve()),
+            "latest_checkpoint": str(control_round1_ckpt.resolve()),
+            "global_step": 2,
+        },
+        "benchmark": {
+            "adversarial": {"final_log_loss": 0.41},
+            "control": {"final_log_loss": 0.42},
+        },
+    }
+    round1_root.mkdir(parents=True, exist_ok=True)
+    (round1_root / "round_summary.json").write_text(
+        pilot_module.json.dumps(round1_summary),
+        encoding="utf-8",
+    )
+
+    fit_history_lengths: list[int] = []
+
+    def _fake_fit_proposer_distribution(**kwargs):
+        fit_history_lengths.append(len(kwargs["trial_history"]))
+        return None
+
+    def _fake_score_trial(**kwargs):
+        proposal = kwargs["proposal"]
+        return {
+            "trial_index": int(kwargs["trial_index"]),
+            "proposal": proposal.to_dict(),
+            "aggregate": {"normalized_gap": 0.05},
+            "feasible": True,
+        }
+
+    monkeypatch.setattr(pilot_module, "fit_proposer_distribution", _fake_fit_proposer_distribution)
+    monkeypatch.setattr(pilot_module, "_score_trial", _fake_score_trial)
+    monkeypatch.setattr(pilot_module, "_select_diverse_candidates", lambda **_kwargs: [])
+
+    payload = pilot_module.run_robust_prior_pilot(
+        study_path=study_path,
+        dagzoo_root=tmp_path / "dagzoo",
+    )
+
+    assert fit_history_lengths == [2]
+    assert [summary["round_index"] for summary in payload["round_summaries"]] == [1, 2]
+    assert payload["round_summaries"][0]["status"] == "completed"
+    assert payload["round_summaries"][1]["status"] == "deferred"
 
 
 def test_run_robust_prior_pilot_drops_unmaterializable_round_candidate_and_continues(

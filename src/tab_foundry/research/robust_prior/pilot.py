@@ -164,6 +164,23 @@ def _selected_checkpoint(result: TrainResult) -> Path:
     return checkpoint.expanduser().resolve()
 
 
+def _checkpoint_from_result_payload(
+    payload: Mapping[str, Any] | None,
+    *,
+    context: str,
+) -> Path | None:
+    if not isinstance(payload, Mapping):
+        return None
+    for key in ("best_checkpoint", "latest_checkpoint"):
+        checkpoint_path = payload.get(key)
+        if isinstance(checkpoint_path, str) and checkpoint_path.strip():
+            resolved = Path(checkpoint_path).expanduser().resolve()
+            if not resolved.exists():
+                raise RuntimeError(f"{context} checkpoint does not exist: {resolved}")
+            return resolved
+    return None
+
+
 def _benchmark_summary_for_run(
     *,
     run_dir: Path,
@@ -502,8 +519,41 @@ def run_robust_prior_pilot(
     control_checkpoint = anchor_checkpoint_path
     final_decision = "defer"
     defer_reason = None
+    start_round_index = 1
 
-    for round_index in range(1, int(config.outer_rounds) + 1):
+    for existing_round_index in range(1, int(config.outer_rounds) + 1):
+        existing_round_summary_path = paths.round_root(existing_round_index) / "round_summary.json"
+        if not existing_round_summary_path.exists():
+            break
+        existing_round_summary = _read_json_mapping(
+            existing_round_summary_path,
+            context=f"robust-prior round_{existing_round_index:02d} summary",
+        )
+        if str(existing_round_summary.get("status", "")) != "completed":
+            break
+        round_summaries.append(existing_round_summary)
+        trial_results = existing_round_summary.get("trial_results")
+        if isinstance(trial_results, list):
+            trial_history.extend(
+                dict(cast(Mapping[str, Any], trial))
+                for trial in trial_results
+                if isinstance(trial, Mapping)
+            )
+        resumed_adversarial_checkpoint = _checkpoint_from_result_payload(
+            cast(Mapping[str, Any] | None, existing_round_summary.get("adversarial_result")),
+            context=f"round_{existing_round_index:02d} adversarial",
+        )
+        if resumed_adversarial_checkpoint is not None:
+            adversarial_checkpoint = resumed_adversarial_checkpoint
+        resumed_control_checkpoint = _checkpoint_from_result_payload(
+            cast(Mapping[str, Any] | None, existing_round_summary.get("control_result")),
+            context=f"round_{existing_round_index:02d} control",
+        )
+        if resumed_control_checkpoint is not None:
+            control_checkpoint = resumed_control_checkpoint
+        start_round_index = existing_round_index + 1
+
+    for round_index in range(start_round_index, int(config.outer_rounds) + 1):
         round_root = paths.round_root(round_index)
         round_root.mkdir(parents=True, exist_ok=True)
         proposer = fit_proposer_distribution(

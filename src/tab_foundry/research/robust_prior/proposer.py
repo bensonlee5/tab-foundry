@@ -195,7 +195,13 @@ def fit_proposer_distribution(
     with torch.no_grad():
         logits = model(history_indices, history_stats)
         probabilities = {
-            dimension.name: F.softmax(logits[dimension.name], dim=-1).cpu().numpy().astype(np.float64)
+            dimension.name: (
+                F.softmax(logits[dimension.name], dim=-1)
+                .reshape(-1)
+                .cpu()
+                .numpy()
+                .astype(np.float64)
+            )
             for dimension in search_space.dimensions
         }
     return ProposerFitResult(
