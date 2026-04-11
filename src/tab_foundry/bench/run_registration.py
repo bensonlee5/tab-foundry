@@ -42,6 +42,7 @@ from tab_foundry.bench.registry.summary_metrics import (
     ensure_mapping,
     ensure_non_empty_string,
     ensure_optional_finite_number,
+    ensure_optional_non_negative_int,
     ensure_optional_positive_int,
     ensure_optional_string,
     tab_foundry_metrics_from_summary,
@@ -261,15 +262,15 @@ def _benchmark_timing_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, 
             raw_timing.get("max_checkpoint_elapsed_seconds"),
             context="comparison_summary.tab_foundry.benchmark_timing.max_checkpoint_elapsed_seconds",
         ),
-        "attempted_checkpoint_count": ensure_optional_positive_int(
+        "attempted_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("attempted_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.attempted_checkpoint_count",
         ),
-        "successful_checkpoint_count": ensure_optional_positive_int(
+        "successful_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("successful_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.successful_checkpoint_count",
         ),
-        "failed_checkpoint_count": ensure_optional_positive_int(
+        "failed_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("failed_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.failed_checkpoint_count",
         ),

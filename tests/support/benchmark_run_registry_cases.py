@@ -329,6 +329,38 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.42)
 
 
+def test_derive_benchmark_run_record_allows_zero_failed_checkpoint_count(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="zero_failed_checkpoint_count")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["tab_foundry"]["benchmark_timing"] = {
+        "wall_elapsed_seconds": 12.0,
+        "mean_checkpoint_elapsed_seconds": 12.0,
+        "max_checkpoint_elapsed_seconds": 12.0,
+        "attempted_checkpoint_count": 1,
+        "successful_checkpoint_count": 1,
+        "failed_checkpoint_count": 0,
+        "requested_device": "cuda",
+        "resolved_device": "cuda",
+        "host_fingerprint": "test-host",
+    }
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["benchmark_timing"]["attempted_checkpoint_count"] == 1
+    assert record["benchmark_timing"]["successful_checkpoint_count"] == 1
+    assert record["benchmark_timing"]["failed_checkpoint_count"] == 0
+
+
 def test_derive_benchmark_run_record_relocates_repo_anchored_paths_from_synced_summary(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

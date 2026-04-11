@@ -26,6 +26,14 @@ def ensure_optional_positive_int(value: Any, *, context: str) -> int | None:
     return int(value)
 
 
+def ensure_optional_non_negative_int(value: Any, *, context: str) -> int | None:
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise RuntimeError(f"{context} must be a non-negative int or null")
+    return int(value)
+
+
 def ensure_optional_finite_number(value: Any, *, context: str) -> float | None:
     if value is None:
         return None
