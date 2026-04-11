@@ -326,6 +326,7 @@ def run_row(
     reuse_train_artifact = _reuse_train_artifact_payload(materialized_row)
     if reuse_train_artifact is None:
         reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
+    suppress_reused_artifact_wandb = reuse_train_artifact is not None
     training_backend = resolve_training_backend(
         cfg,
         allow_unresolved_corpus_ref=reuse_train_artifact is not None,
@@ -584,6 +585,7 @@ def run_row(
             reuse_nanotabpfn_curve_path=reuse_curve_path,
             reuse_nanotabpfn_error=reuse_nanotabpfn_error,
             reuse_nanotabpfn_metadata=(None if reuse_selection is None else reuse_selection.metadata),
+            suppress_reused_artifact_wandb=suppress_reused_artifact_wandb,
         )
     )
     parent_sweep_id = sweep.parent_sweep_id if sweep is not None else sweep_meta.get("parent_sweep_id")
@@ -613,16 +615,18 @@ def run_row(
         queue_order=int(queue_row["order"]),
         run_kind="primary",
         registry_path=paths.registry_path,
+        suppress_reused_artifact_wandb=suppress_reused_artifact_wandb,
     )
     run_entry = cast(dict[str, Any], registration["run"])
     row_queue_metrics = queue_metrics(summary, run_dir=effective_train_dir, run_entry=run_entry)
-    _ = posthoc_update_wandb_summary(
-        telemetry_path=effective_train_dir / "telemetry.json",
-        payload=_sweep_wandb_summary_payload(
-            run_entry=run_entry,
-            queue_metrics=row_queue_metrics,
-        ),
-    )
+    if not suppress_reused_artifact_wandb:
+        _ = posthoc_update_wandb_summary(
+            telemetry_path=effective_train_dir / "telemetry.json",
+            payload=_sweep_wandb_summary_payload(
+                run_entry=run_entry,
+                queue_metrics=row_queue_metrics,
+            ),
+        )
     (delta_root / "result_card.md").write_text(
         result_card_text(
             row=materialized_row,

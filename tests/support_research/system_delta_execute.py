@@ -813,6 +813,134 @@ def test_execute_sweep_passes_resolved_auto_device_to_run_row(
     assert captured_devices == ['cpu']
 
 
+def test_execute_sweep_reserves_run_id_before_run_row(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'completed'
+    _write_yaml(queue_path, queue)
+
+    monkeypatch.setattr(sweep_execute_module, 'row_id_for_order', lambda *_args, **_kwargs: 'reserved_row_1_v1')
+
+    def fake_run_row(**kwargs: Any) -> str:
+        current = _load_yaml(queue_path)
+        reserved_row = current['rows'][0]
+        assert reserved_row['status'] == 'running'
+        assert reserved_row['run_id'] == 'reserved_row_1_v1'
+        kwargs['queue_row']['status'] = 'completed'
+        kwargs['queue_row']['decision'] = 'defer'
+        kwargs['queue_row']['interpretation_status'] = 'completed'
+        kwargs['queue_row']['benchmark_metrics'] = {'final_log_loss': 0.39}
+        return 'reserved_row_1_v1'
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['reserved_row_1_v1']
+    updated_queue = _load_yaml(queue_path)
+    assert updated_queue['rows'][0]['status'] == 'completed'
+    assert updated_queue['rows'][0]['run_id'] == 'reserved_row_1_v1'
+
+
+def test_execute_sweep_marks_row_failed_when_run_row_raises(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'completed'
+    _write_yaml(queue_path, queue)
+
+    monkeypatch.setattr(sweep_execute_module, 'row_id_for_order', lambda *_args, **_kwargs: 'reserved_row_1_v1')
+
+    def fake_run_row(**_kwargs: Any) -> str:
+        current = _load_yaml(queue_path)
+        reserved_row = current['rows'][0]
+        assert reserved_row['status'] == 'running'
+        assert reserved_row['run_id'] == 'reserved_row_1_v1'
+        raise RuntimeError('benchmark summary exploded')
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    with pytest.raises(RuntimeError, match='benchmark summary exploded'):
+        _ = execute_sweep(
+            sweep_id=sweep_id,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cpu',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            paths=paths,
+        )
+
+    updated_queue = _load_yaml(queue_path)
+    failed_row = updated_queue['rows'][0]
+    assert failed_row['status'] == 'failed'
+    assert failed_row['run_id'] == 'reserved_row_1_v1'
+    assert failed_row['decision'] is None
+    assert failed_row['interpretation_status'] == 'pending'
+    assert failed_row['screen_metrics'] is None
+    assert failed_row['benchmark_metrics'] is None
+    assert any('benchmark summary exploded' in note for note in failed_row['notes'])
+
+
+def test_execute_sweep_reuses_failed_row_run_id_for_retry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    failed_run_id = f"sd_{sweep_id}_01_delta_anchor_activation_trace_baseline_v1"
+    queue['rows'][0]['status'] = 'failed'
+    queue['rows'][0]['run_id'] = failed_run_id
+    queue['rows'][0]['decision'] = 'defer'
+    queue['rows'][0]['interpretation_status'] = 'completed'
+    queue['rows'][0]['benchmark_metrics'] = {'final_log_loss': 0.99}
+    _write_yaml(queue_path, queue)
+
+    def fake_run_row(**kwargs: Any) -> str:
+        assert kwargs['queue_row']['status'] == 'running'
+        assert kwargs['queue_row']['run_id'] == failed_run_id
+        assert kwargs['queue_row']['decision'] is None
+        assert kwargs['queue_row']['benchmark_metrics'] is None
+        kwargs['queue_row']['status'] = 'completed'
+        kwargs['queue_row']['decision'] = 'defer'
+        kwargs['queue_row']['interpretation_status'] = 'completed'
+        kwargs['queue_row']['benchmark_metrics'] = {'final_log_loss': 0.39}
+        return failed_run_id
+
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        orders=[1],
+        paths=paths,
+    )
+
+    assert executed == [failed_run_id]
+    updated_queue = _load_yaml(queue_path)
+    assert updated_queue['rows'][0]['status'] == 'completed'
+    assert updated_queue['rows'][0]['run_id'] == failed_run_id
+
+
 def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
     queue = _load_yaml(queue_path)
@@ -1067,7 +1195,14 @@ def test_execute_sweep_promotes_anchor_before_queue_write_and_matrix_sync(
     )
 
     assert executed == ['promoted_anchor_v2']
-    assert events == ['run_row', 'promote_anchor', 'write_yaml', 'sync_sweep_matrix']
+    assert events == [
+        'write_yaml',
+        'sync_sweep_matrix',
+        'run_row',
+        'promote_anchor',
+        'write_yaml',
+        'sync_sweep_matrix',
+    ]
 
 
 def test_execute_sweep_preserves_external_completed_rows_when_syncing_queue(
@@ -3606,6 +3741,7 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
         captured['benchmark_run_dir'] = config.tab_foundry_run_dir
         captured['benchmark_out_root'] = config.out_root
         captured['checkpoint_selection'] = config.tab_foundry_checkpoint_selection
+        captured['benchmark_suppress_reused_artifact_wandb'] = config.suppress_reused_artifact_wandb
         return {
             'external_benchmarks': [],
             'tab_foundry': {
@@ -3635,16 +3771,14 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
     monkeypatch.setattr(
         runner_module,
         'posthoc_update_wandb_summary',
-        lambda *, telemetry_path, payload: captured.update(
-            {'telemetry_path': telemetry_path, 'wandb_payload': payload}
-        )
-        or True,
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError('reused rows should skip wandb summary sync')),
     )
 
     def fake_register_benchmark_run(**kwargs: Any) -> dict[str, Any]:
         captured['registration_run_dir'] = kwargs['run_dir']
         captured['comparison_summary_path'] = kwargs['comparison_summary_path']
         captured['registration_track'] = kwargs['track']
+        captured['registration_suppress_reused_artifact_wandb'] = kwargs['suppress_reused_artifact_wandb']
         return {
             'run': {
                 'comparisons': {
@@ -3685,11 +3819,12 @@ def test_run_row_benchmark_full_reuses_pinned_train_artifact_without_retraining(
     assert captured['benchmark_run_dir'] == reusable_train_dir
     assert captured['benchmark_out_root'] == benchmark_dir
     assert captured['checkpoint_selection'] == 'best_and_final'
+    assert captured['benchmark_suppress_reused_artifact_wandb'] is True
     assert captured['registration_run_dir'] == reusable_train_dir
     assert captured['registration_track'] == 'system_delta_classification_medium_v1'
+    assert captured['registration_suppress_reused_artifact_wandb'] is True
     assert captured['comparison_summary_path'] == benchmark_dir / 'comparison_summary.json'
     assert captured['queue_metrics_run_dir'] == reusable_train_dir
-    assert captured['telemetry_path'] == reusable_train_dir / 'telemetry.json'
     assert train_dir.exists() is False
     assert queue_row['status'] == 'completed'
     assert queue_row['interpretation_status'] == 'completed'

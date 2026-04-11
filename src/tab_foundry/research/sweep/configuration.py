@@ -88,6 +88,24 @@ def _registry_consumed_versions(*, base: str, registry_path: Path | None) -> set
     return consumed_versions
 
 
+def _registry_has_run_id(*, run_id: str | None, registry_path: Path | None) -> bool:
+    if run_id is None or registry_path is None:
+        return False
+    resolved_registry_path = registry_path.expanduser().resolve()
+    if not resolved_registry_path.exists():
+        return False
+    try:
+        payload = json.loads(resolved_registry_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, Mapping):
+        return False
+    raw_runs = payload.get("runs")
+    if not isinstance(raw_runs, Mapping):
+        return False
+    return str(run_id) in raw_runs
+
+
 def row_id_for_order(
     sweep_id: str,
     order: int,
@@ -96,10 +114,18 @@ def row_id_for_order(
     *,
     delta_root: Path | None = None,
     registry_path: Path | None = None,
+    allow_existing_unregistered: bool = False,
 ) -> str:
     base = _row_run_id_base(sweep_id=sweep_id, order=order, delta_ref=delta_ref)
     consumed_versions: set[int] = set()
     existing_version = _row_run_id_version(base=base, candidate=existing_run_id)
+    if (
+        allow_existing_unregistered
+        and existing_version is not None
+        and existing_run_id is not None
+        and not _registry_has_run_id(run_id=existing_run_id, registry_path=registry_path)
+    ):
+        return str(existing_run_id)
     if existing_version is not None:
         consumed_versions.add(existing_version)
     consumed_versions.update(_delta_root_consumed_versions(base=base, delta_root=delta_root))

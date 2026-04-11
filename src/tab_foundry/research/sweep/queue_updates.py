@@ -430,6 +430,39 @@ def append_note(notes: list[str], note: str) -> list[str]:
     return updated
 
 
+def reserve_queue_row_run_id(
+    *,
+    queue_row: dict[str, Any],
+    run_id: str,
+) -> None:
+    queue_row["status"] = "running"
+    queue_row["run_id"] = run_id
+    queue_row["followup_run_ids"] = []
+    queue_row["decision"] = None
+    queue_row["interpretation_status"] = "pending"
+    queue_row["screen_metrics"] = None
+    queue_row["benchmark_metrics"] = None
+    queue_row["confounders"] = []
+
+
+def mark_queue_row_failed(
+    *,
+    queue_row: dict[str, Any],
+    run_id: str,
+    note: str,
+) -> None:
+    queue_row["status"] = "failed"
+    queue_row["run_id"] = run_id
+    queue_row["followup_run_ids"] = []
+    queue_row["decision"] = None
+    queue_row["interpretation_status"] = "pending"
+    queue_row["screen_metrics"] = None
+    queue_row["benchmark_metrics"] = None
+    queue_row["confounders"] = []
+    notes = cast(list[str], queue_row.get("notes", []))
+    queue_row["notes"] = append_note(notes, note)
+
+
 def update_queue_row(
     *,
     queue_row: dict[str, Any],

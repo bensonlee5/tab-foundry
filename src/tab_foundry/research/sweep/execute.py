@@ -15,11 +15,13 @@ from tab_foundry.external_benchmarks import (
 
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from .catalog import load_system_delta_sweep
+from .configuration import row_id_for_order
 from .device_policy import resolve_sweep_execution_device
 from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS
 from .queue_loading import write_resolved_system_delta_queue
 from .paths_io import sweep_queue_path
 from .promote import promote_anchor
+from .queue_updates import mark_queue_row_failed, reserve_queue_row_run_id
 from .queue_state import recover_completed_queue_row_from_registry_run
 from . import row_dependencies as _row_dependencies
 from . import row_sync as _row_sync
@@ -48,6 +50,9 @@ def _resolved_external_benchmarks(sweep_meta: Mapping[str, Any]) -> tuple[str, .
         default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
         allow_empty=True,
     )
+
+
+_FAILURE_NOTE_MAX_LEN = 240
 
 
 def _queue_row_by_order(
@@ -139,6 +144,122 @@ def _sync_terminal_queue_row(
         flush=True,
     )
     return queue
+
+
+def _queue_row_run_id(
+    *,
+    sweep_id: str,
+    queue_row: Mapping[str, Any],
+    paths: ExecutionPaths,
+) -> str:
+    delta_ref = _optional_non_empty_string(
+        queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} queue row delta_ref",
+    )
+    if delta_ref is None:
+        raise RuntimeError(f"sweep {sweep_id!r} queue row is missing delta_ref")
+    order = int(queue_row["order"])
+    delta_root = (
+        paths.repo_root
+        / "outputs"
+        / "staged_ladder"
+        / "research"
+        / sweep_id
+        / delta_ref
+    )
+    status = str(queue_row.get("status", "")).strip().lower()
+    existing_run_id = queue_row.get("run_id")
+    normalized_existing_run_id = (
+        str(existing_run_id).strip()
+        if isinstance(existing_run_id, str) and str(existing_run_id).strip()
+        else None
+    )
+    return row_id_for_order(
+        sweep_id,
+        order,
+        delta_ref,
+        normalized_existing_run_id,
+        delta_root=delta_root,
+        registry_path=paths.registry_path,
+        allow_existing_unregistered=status in {"running", "failed"},
+    )
+
+
+def _sync_running_queue_row(
+    *,
+    sweep_id: str,
+    queue_path: Path,
+    order: int,
+    run_id: str,
+    expected_delta_ref: str,
+    paths: ExecutionPaths,
+) -> dict[str, Any]:
+    queue = read_yaml(queue_path)
+    queue_row = _queue_row_by_order(sweep_id=sweep_id, queue=queue, order=order)
+    queue_delta_ref = _optional_non_empty_string(
+        queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} queue row {order}.delta_ref",
+    )
+    if queue_delta_ref != expected_delta_ref:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} queue row {order} delta_ref changed from "
+            f"{expected_delta_ref!r} to {queue_delta_ref!r} before execution"
+        )
+    reserve_queue_row_run_id(queue_row=queue_row, run_id=run_id)
+    write_yaml(queue_path, queue)
+    _row_sync.sync_sweep_matrix(sweep_id=sweep_id, paths=paths)
+    print(
+        "Reserved queue row run_id.",
+        f"sweep_id={sweep_id}",
+        f"order={order}",
+        f"run_id={run_id}",
+        flush=True,
+    )
+    return queue
+
+
+def _failure_note(exc: Exception, *, run_id: str) -> str:
+    message = " ".join(str(exc).split())
+    if len(message) > _FAILURE_NOTE_MAX_LEN:
+        message = f"{message[:_FAILURE_NOTE_MAX_LEN - 3]}..."
+    return f"Execution attempt `{run_id}` failed: {message or exc.__class__.__name__}"
+
+
+def _sync_failed_queue_row(
+    *,
+    sweep_id: str,
+    queue_path: Path,
+    order: int,
+    run_id: str,
+    expected_delta_ref: str,
+    paths: ExecutionPaths,
+    exc: Exception,
+) -> None:
+    queue = read_yaml(queue_path)
+    queue_row = _queue_row_by_order(sweep_id=sweep_id, queue=queue, order=order)
+    queue_delta_ref = _optional_non_empty_string(
+        queue_row.get("delta_ref"),
+        context=f"sweep {sweep_id!r} queue row {order}.delta_ref",
+    )
+    if queue_delta_ref != expected_delta_ref:
+        raise RuntimeError(
+            f"sweep {sweep_id!r} queue row {order} delta_ref changed from "
+            f"{expected_delta_ref!r} to {queue_delta_ref!r} while handling a failure"
+        )
+    mark_queue_row_failed(
+        queue_row=queue_row,
+        run_id=run_id,
+        note=_failure_note(exc, run_id=run_id),
+    )
+    write_yaml(queue_path, queue)
+    _row_sync.sync_sweep_matrix(sweep_id=sweep_id, paths=paths)
+    print(
+        "Marked queue row failed.",
+        f"sweep_id={sweep_id}",
+        f"order={order}",
+        f"run_id={run_id}",
+        flush=True,
+    )
 
 
 def _recover_partial_anchor_promotion(
@@ -315,32 +436,59 @@ def execute_sweep(
                 "anchor_only sweeps require a resolved anchor before executing non-anchor rows; "
                 f"sweep_id={resolved_sweep_id} order={order}"
             )
-        materialized_row = materialized_rows[str(queue_row["delta_ref"])]
-        run_id = run_row(
+        reserved_run_id = _queue_row_run_id(
             sweep_id=resolved_sweep_id,
-            sweep_meta=sweep_meta,
             queue_row=queue_row,
-            materialized_row=materialized_row,
-            anchor_run_id=None if promote_now else active_anchor,
-            parent_run_id=(
-                None
-                if promote_now
-                else _row_dependencies.resolve_parent_run_id(
-                    queue_row=queue_row,
-                    queue_rows=queue_rows,
-                    active_anchor=active_anchor,
-                )
-            ),
-            queue=queue,
-            prior_dump=prior_dump,
-            nanotabpfn_root=nanotabpfn_root,
-            reuse_nanotabpfn_only=reuse_nanotabpfn_only,
-            device=resolved_device,
-            fallback_python=fallback_python,
-            decision=decision,
-            conclusion=conclusion,
             paths=resolved_paths,
         )
+        queue = _sync_running_queue_row(
+            sweep_id=resolved_sweep_id,
+            queue_path=queue_path,
+            order=order,
+            run_id=reserved_run_id,
+            expected_delta_ref=str(queue_row["delta_ref"]),
+            paths=resolved_paths,
+        )
+        queue_rows = sorted_rows(queue)
+        queue_row = _queue_row_by_order(sweep_id=resolved_sweep_id, queue=queue, order=order)
+        materialized_row = materialized_rows[str(queue_row["delta_ref"])]
+        try:
+            run_id = run_row(
+                sweep_id=resolved_sweep_id,
+                sweep_meta=sweep_meta,
+                queue_row=queue_row,
+                materialized_row=materialized_row,
+                anchor_run_id=None if promote_now else active_anchor,
+                parent_run_id=(
+                    None
+                    if promote_now
+                    else _row_dependencies.resolve_parent_run_id(
+                        queue_row=queue_row,
+                        queue_rows=queue_rows,
+                        active_anchor=active_anchor,
+                    )
+                ),
+                queue=queue,
+                prior_dump=prior_dump,
+                nanotabpfn_root=nanotabpfn_root,
+                reuse_nanotabpfn_only=reuse_nanotabpfn_only,
+                device=resolved_device,
+                fallback_python=fallback_python,
+                decision=decision,
+                conclusion=conclusion,
+                paths=resolved_paths,
+            )
+        except Exception as exc:
+            _sync_failed_queue_row(
+                sweep_id=resolved_sweep_id,
+                queue_path=queue_path,
+                order=order,
+                run_id=reserved_run_id,
+                expected_delta_ref=str(queue_row["delta_ref"]),
+                paths=resolved_paths,
+                exc=exc,
+            )
+            raise
         if promote_now:
             _ = promote_anchor(
                 sweep_id=resolved_sweep_id,
