@@ -557,7 +557,9 @@ rows:
     at max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_transfer_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1/train
+    training_surface_fingerprint: 0724af85431f0e20692d70d56e2161bc033172bd2590ef3fb0ba6fc8aa23fe91
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -877,7 +879,9 @@ rows:
     at max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1/train
+    training_surface_fingerprint: 1a3c3253b50711655df3dee13106f0b051ff4db858e06b3e9ec786a51aec1583
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -1197,7 +1201,9 @@ rows:
     at max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1/train
+    training_surface_fingerprint: 5c472a66d458a9149ba21381a8af720511b2895f38e601879e8c3cc59836c787
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -1517,7 +1523,9 @@ rows:
     at max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train
+    training_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
@@ -1837,7 +1845,9 @@ rows:
     at max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1/train
+    training_surface_fingerprint: b74f3dc0759fef1e2c75f5b45d99cdb94c46bfe3a529584a1cf25d01ac78536c
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null

@@ -866,7 +866,9 @@ rows:
     and max_steps=2500.
   notes: []
   dynamic_model_overrides: null
-  reuse_train_artifact: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_transfer_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1/train
+    training_surface_fingerprint: 0724af85431f0e20692d70d56e2161bc033172bd2590ef3fb0ba6fc8aa23fe91
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
