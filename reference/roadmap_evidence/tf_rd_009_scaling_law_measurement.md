@@ -284,6 +284,12 @@ The literature-backed Phase-2 study uses the paper family as the default fit
 hypothesis, while treating every fitted scale and exponent as repo-specific
 empirical quantities rather than imported constants.
 
+The branch tracks this Kaplan-exact Phase-2 study in
+[#256](https://github.com/bensonlee5/tab-foundry/issues/256), with the
+canonical study config in `reference/scaling_studies/tf_rd_009_phase2.yaml`
+and executable sweep surfaces `tf_rd_009_ns_medium_v1` and
+`tf_rd_009_batch_critical_medium_v1`.
+
 - one-dimensional fits:
   - `L(N) = E + (N_c / N)^alpha_N`
   - `L(D) = E + (D_c / D)^alpha_D`
@@ -480,8 +486,8 @@ It also remains honest about what is paper-backed versus repo-local:
 
 ### Reported Law-Fit Policy
 
-Once the dense diagonal lands benchmark-backed rows, the first reported
-fixed-budget TF-RD-009 law fit should use:
+Now that the dense diagonal has landed benchmark-backed rows, the first
+reported fixed-budget TF-RD-009 law fit should use:
 
 - in-family completed rows only:
   - `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}`
@@ -500,9 +506,11 @@ pending rows as direct inputs to the reported law fit.
 
 These tables are the planning view for the future
 `hardware_architecture_baselines_v1.json` entry for the retained
-`rtx8000_44gb` classification surface. The formulas are repo-local and should
-be frozen in the hardware baseline registry only after the broadened
-[#255](https://github.com/bensonlee5/tab-foundry/issues/255) family completes.
+`rtx8000_44gb` classification surface. The width-depth family is now complete,
+but the formulas remain repo-local planning aids until
+[#257](https://github.com/bensonlee5/tab-foundry/issues/257) freezes the
+hardware baseline from the measured mixed-depth evidence rather than from the
+historical width-only bridge.
 
 Current planning formulas:
 
@@ -518,32 +526,50 @@ Current planning formulas:
   - `train_wall_seconds ≈ 8407.97 + 1.01e-4 * params`
 
 The historical width-family rows predate first-class `benchmark_timing` and
-`inference_timing`, so those timing columns remain intentionally pending until
-the widened width-depth family is registered under the new schema.
+`inference_timing`, so those timing columns remain intentionally pending for
+`60x2` and `96x2`. The completed widened width-depth rows now register those
+timings directly.
 
 ### Capacity Table
 
-| Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Headroom to 44 GB |
-|-----|---------|-------------------|---------------|---------------------|-----------------------|----------------------|-------------------|
-| `60x2` | 60 | 2 | 7200 | 0.650M | 8.00 | 8.05 | 36.00 |
-| `72x1` | 72 | 1 | 5184 | 0.672M | 8.06 | pending | 35.94 |
-| `96x2` | 96 | 2 | 18432 | 1.617M | 10.29 | 10.18 | 33.71 |
-| `112x3` | 112 | 3 | 37632 | 2.798M | 13.07 | pending | 30.93 |
-| `128x4` | 128 | 4 | 65536 | 4.439M | 16.95 | pending | 27.05 |
-| `152x5` | 152 | 5 | 115520 | 7.366M | 23.85 | pending | 20.15 |
-| `176x6` | 176 | 6 | 185856 | 11.366M | 33.29 | pending | 10.71 |
+| Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Observed headroom to 44 GB |
+|-----|---------|-------------------|---------------|---------------------|-----------------------|----------------------|----------------------------|
+| `60x2` | 60 | 2 | 7200 | 0.650M | 8.00 | 8.05 | 35.95 |
+| `72x1` | 72 | 1 | 5184 | 0.672M | 8.06 | 8.75 | 35.25 |
+| `96x2` | 96 | 2 | 18432 | 1.617M | 10.29 | 10.18 | 33.82 |
+| `112x3` | 112 | 3 | 37632 | 2.798M | 13.07 | 11.65 | 32.35 |
+| `128x4` | 128 | 4 | 65536 | 4.439M | 16.95 | 14.55 | 29.45 |
+| `152x5` | 152 | 5 | 115520 | 7.366M | 23.85 | 16.59 | 27.41 |
+| `176x6` | 176 | 6 | 185856 | 11.366M | 33.29 | 17.84 | 26.16 |
 
 ### Timing Table
 
-| Row | Predicted train wall seconds | Observed train wall seconds | Delta vs `96x2` | Predicted benchmark wall seconds | Observed benchmark wall seconds | Predicted inference mean ms | Observed inference mean ms |
-|-----|------------------------------|-----------------------------|-----------------|----------------------------------|---------------------------------|-----------------------------|----------------------------|
-| `60x2` | 8474 | 8486 | -97 | pending | pending | pending | pending |
-| `72x1` | 8476 | pending | -95 | pending | pending | pending | pending |
-| `96x2` | 8571 | 8548 | +0 | pending | pending | pending | pending |
-| `112x3` | 8691 | pending | +120 | pending | pending | pending | pending |
-| `128x4` | 8856 | pending | +285 | pending | pending | pending | pending |
-| `152x5` | 9152 | pending | +581 | pending | pending | pending | pending |
-| `176x6` | 9556 | pending | +985 | pending | pending | pending | pending |
+| Row | Predicted train wall seconds | Observed train wall seconds | Observed delta vs `96x2` | Observed benchmark wall seconds | Observed inference mean ms |
+|-----|------------------------------|-----------------------------|--------------------------|---------------------------------|----------------------------|
+| `60x2` | 8474 | 8486 | -62 | pending | pending |
+| `72x1` | 8476 | 8105 | -443 | 1230 | 10.64 |
+| `96x2` | 8571 | 8548 | +0 | pending | pending |
+| `112x3` | 8691 | 9136 | +587 | 1336 | 20.39 |
+| `128x4` | 8856 | 9594 | +1046 | 1391 | 23.91 |
+| `152x5` | 9152 | 10154 | +1606 | 1509 | 27.70 |
+| `176x6` | 9556 | 10635 | +2087 | 1610 | 24.23 |
+
+### Completed Phase-1 Outcome
+
+- the corrected dense diagonal is now benchmark-backed end to end on
+  `tf_rd_009_width_depth_medium_v1`
+- `152x5` is the current fixed-budget winner by both final log loss
+  (`0.5740`) and final ROC AUC (`0.7351`)
+- `176x6` completed cleanly and remains useful upper-family evidence, but it
+  did not beat `152x5` on the carried matched-budget objective
+- the observed upper-row training VRAM (`16.59 GiB` at `152x5`, `17.84 GiB` at
+  `176x6`) undershot the pre-run width-evidence reserved-memory fit
+  (`23.85 GB` and `33.29 GB` respectively), so that fit should remain a
+  conservative queue-construction heuristic rather than the freeze-time
+  hardware constraint model
+- no extra near-ceiling rows were added on this branch because solving
+  directly against the old memory fit would require off-diagonal rows that no
+  longer preserve the original TF-RD-009 width-depth relationship
 
 ## Literature Synthesis
 

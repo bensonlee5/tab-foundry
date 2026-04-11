@@ -23,6 +23,13 @@ EXPECTED_ROWS = [
     "delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1",
     "delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1",
 ]
+EXPECTED_COMPLETED_RUN_IDS = [
+    "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+    "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+    "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+    "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+    "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+]
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -74,19 +81,26 @@ def test_tf_rd_009_width_depth_medium_v1_tracks_the_corrected_dense_diagonal() -
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready", "ready", "ready"]
-    assert [row["interpretation_status"] for row in rows] == [
-        "pending",
-        "pending",
-        "pending",
-        "pending",
-        "pending",
+    assert [row["status"] for row in rows] == [
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+        "completed",
     ]
+    assert [row["interpretation_status"] for row in rows] == [
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+    ]
+    assert [row["run_id"] for row in rows] == EXPECTED_COMPLETED_RUN_IDS
 
     lower = _row_by_ref(queue, "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1")
     assert lower["model"]["d_icl"] == 72
     assert lower["model"]["sandwich_layers"] == 1
-    assert "empirical depth-aware parameter bridge" in lower["parameter_adequacy_plan"][0]
+    assert "empirical depth-aware parameter fit" in lower["parameter_adequacy_plan"][0]
     assert "72x1" in lower["parameter_adequacy_plan"][2]
 
     upper_seed = _row_by_ref(queue, "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1")
@@ -159,6 +173,13 @@ def test_tf_rd_009_width_depth_medium_v1_reported_fit_inputs_use_completed_in_fa
         registry_path=default_benchmark_run_registry_path(),
     )
 
-    assert [point.row_label for point in points] == ["96x2"]
-    assert [point.run_id for point in points] == [ANCHOR_RUN_ID]
+    assert [point.row_label for point in points] == ["72x1", "96x2", "112x3", "128x4", "152x5", "176x6"]
+    assert [point.run_id for point in points] == [
+        EXPECTED_COMPLETED_RUN_IDS[0],
+        ANCHOR_RUN_ID,
+        EXPECTED_COMPLETED_RUN_IDS[1],
+        EXPECTED_COMPLETED_RUN_IDS[2],
+        EXPECTED_COMPLETED_RUN_IDS[3],
+        EXPECTED_COMPLETED_RUN_IDS[4],
+    ]
     assert all(point.row_label not in {"88x1", "104x3", "112x4", "128x5", "144x6"} for point in points)

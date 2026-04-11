@@ -106,7 +106,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
@@ -166,8 +166,8 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only
-    baseline for `#255`; this row is the empirical depth-aware parameter bridge's
-    lower anchor-equivalent probe.
+    baseline for `#255`; this row is the empirical depth-aware parameter fit's lower
+    anchor-equivalent probe.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
   - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
@@ -175,18 +175,45 @@ rows:
     as a standalone keep/reject claim.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as order 1 in `tf_rd_009_width_depth_medium_v1` against the
     carried `96x2` baseline.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250.0
+    max_grad_norm: 5.76756575946425
+    best_bpc: 2.6327061868307435
+    best_bpf: 2.6326855173725594
+    best_roc_auc: 0.6056667517066399
+    best_log_loss: 0.6891729144340182
+    best_brier_score: 0.430152024126376
+    final_bpc: 3.6695113487984465
+    final_bpf: 3.6695139474531717
+    final_roc_auc: 0.6542371930642837
+    final_log_loss: 0.6375761664932476
+    final_brier_score: 0.39716440671091957
+    final_minus_best_bpc: 1.036805161967703
+    final_minus_best_bpf: 1.0368284300806123
+    final_minus_best_roc_auc: 0.04857044135764388
+    final_minus_best_log_loss: -0.051596747940770626
+    final_minus_best_brier_score: -0.032987617415456416
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.051596747940770626
+    delta_final_bpc: 1.3213873240436222
+    delta_final_bpf: 1.3214298605836272
+    delta_final_log_loss: 0.004428613609228527
+    delta_final_brier_score: 0.005733374919021816
+    delta_final_roc_auc: -0.01735621112205965
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -364,7 +391,7 @@ rows:
   resolved_surface_fingerprint: 5341a2ba42e1ee093f6f26393bcaf1f441d4064d5888e84098357e550e2e345d
 - order: 2
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
@@ -432,18 +459,45 @@ rows:
     replace it with a different upper geometry in the same branch.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower
     diagonal row is benchmark-backed.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 375.0
+    max_grad_norm: 8.12956877953557
+    best_bpc: 2.202963336574617
+    best_bpf: 2.202920084832364
+    best_roc_auc: 0.5176468028068677
+    best_log_loss: 0.7250829593054144
+    best_brier_score: 0.4535163827590309
+    final_bpc: 2.9665544706017606
+    final_bpf: 2.965980508107736
+    final_roc_auc: 0.6965773913096927
+    final_log_loss: 0.6045532049782596
+    final_brier_score: 0.3704584785985671
+    final_minus_best_bpc: 0.7635911340271435
+    final_minus_best_bpf: 0.7630604232753719
+    final_minus_best_roc_auc: 0.17893058850282495
+    final_minus_best_log_loss: -0.12052975432715485
+    final_minus_best_brier_score: -0.08305790416046377
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.12052975432715485
+    delta_final_bpc: 0.6184304458469363
+    delta_final_bpf: 0.6178964212381914
+    delta_final_log_loss: -0.028594347905759432
+    delta_final_brier_score: -0.020972553193330634
+    delta_final_roc_auc: 0.02498398712334926
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -617,7 +671,7 @@ rows:
   resolved_surface_fingerprint: 21b1145f4e210135482236978601819e7b08b53ed009e3a63f9996766025c4b3
 - order: 3
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
@@ -680,22 +734,49 @@ rows:
     ordered dense diagonal.
   - Compare directly against the carried `96x2` baseline at matched regime budget
     using `final_log_loss_at_matched_regime_budget` as the primary metric.
-  - Treat this row as an intermediate reported-fit point once benchmark-backed, not
-    a final keep/reject decision in isolation.
+  - Treat this row as an intermediate curve-fit point, not a final keep/reject decision
+    in isolation.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as order 3 in `tf_rd_009_width_depth_medium_v1` after `112x3`
     is benchmark-backed.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 750.0
+    max_grad_norm: 26.339260261750734
+    best_bpc: 2.230101777650009
+    best_bpf: 2.230015954108843
+    best_roc_auc: 0.6185117428938379
+    best_log_loss: 0.6769337309110721
+    best_brier_score: 0.41852557450228056
+    final_bpc: 2.729366812334579
+    final_bpf: 2.7291468781228705
+    final_roc_auc: 0.6456737175350544
+    final_log_loss: 0.634819658333467
+    final_brier_score: 0.39332182835494683
+    final_minus_best_bpc: 0.49926503468456973
+    final_minus_best_bpf: 0.4991309240140276
+    final_minus_best_roc_auc: 0.027161974641216502
+    final_minus_best_log_loss: -0.04211407257760513
+    final_minus_best_brier_score: -0.025203746147333728
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.04211407257760513
+    delta_final_bpc: 0.3812427875797546
+    delta_final_bpf: 0.381062791253326
+    delta_final_log_loss: 0.0016721054494479581
+    delta_final_brier_score: 0.0018907965630490797
+    delta_final_roc_auc: -0.025919686651288965
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -869,7 +950,7 @@ rows:
   resolved_surface_fingerprint: d433732226811e802ad786a88f152a37fa4b3027bb94f09fbe5468a0f5b156cf
 - order: 4
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
@@ -936,18 +1017,45 @@ rows:
     replacing this row.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as order 4 in `tf_rd_009_width_depth_medium_v1` after `128x4`
     is benchmark-backed.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 300.0
+    max_grad_norm: 54.525353839842566
+    best_bpc: 2.3104067480707267
+    best_bpf: 2.3103761592178977
+    best_roc_auc: 0.5136733221743388
+    best_log_loss: 0.7266952048753288
+    best_brier_score: 0.45450633857584605
+    final_bpc: 4.601366189329491
+    final_bpf: 4.601197531581834
+    final_roc_auc: 0.7351011718413472
+    final_log_loss: 0.5740466575801674
+    final_brier_score: 0.35024084771783215
+    final_minus_best_bpc: 2.2909594412587646
+    final_minus_best_bpf: 2.290821372363936
+    final_minus_best_roc_auc: 0.22142784966700835
+    final_minus_best_log_loss: -0.15264854729516142
+    final_minus_best_brier_score: -0.1042654908580139
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.15264854729516142
+    delta_final_bpc: 2.253242164574667
+    delta_final_bpf: 2.253113444712289
+    delta_final_log_loss: -0.05910089530385165
+    delta_final_brier_score: -0.041190184074065606
+    delta_final_roc_auc: 0.06350776765500377
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1119,7 +1227,7 @@ rows:
   resolved_surface_fingerprint: 846853cba0c44d719d5ace101c3f6d8c8ae35eee4b1ae8c3a6c5e1c4e95220e9
 - order: 5
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` against
     anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
     for sweep `tf_rd_009_width_depth_medium_v1`.
@@ -1188,18 +1296,45 @@ rows:
     same branch.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as order 5 in `tf_rd_009_width_depth_medium_v1` after `152x5`
     is benchmark-backed; treat failure as ceiling evidence.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 75.0
+    max_grad_norm: 14.866781936446937
+    best_bpc: 2.4220921872636345
+    best_bpf: 2.422084291164692
+    best_roc_auc: 0.4991067407563059
+    best_log_loss: 0.7450918140418499
+    best_brier_score: 0.46532754613372984
+    final_bpc: 4.029883826170457
+    final_bpf: 4.029723012042558
+    final_roc_auc: 0.7238419188185745
+    final_log_loss: 0.5816247920025776
+    final_brier_score: 0.35702911949448696
+    final_minus_best_bpc: 1.6077916389068228
+    final_minus_best_bpf: 1.607638720877866
+    final_minus_best_roc_auc: 0.22473517806226861
+    final_minus_best_log_loss: -0.16346702203927232
+    final_minus_best_brier_score: -0.10829842663924288
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.16346702203927232
+    delta_final_bpc: 1.681759801415633
+    delta_final_bpf: 1.6816389251730133
+    delta_final_log_loss: -0.051522760881441476
+    delta_final_brier_score: -0.0344019122974108
+    delta_final_roc_auc: 0.052248514632231124
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1373,4 +1508,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: cc53a2c49b417ab63a448bc18941816a42df63c08e60ea3bf443932d6f24a262
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_width_depth_medium_v1/resolved_queue.yaml
-inputs_fingerprint: a3281a4aab25bc048ac8ad4900594c94c81c9f5778a439592376be0f59c4fa8c
+inputs_fingerprint: e129e8f68719bfaac1aed608dc23140d754183fae3ece68059cc02ce024994ea
