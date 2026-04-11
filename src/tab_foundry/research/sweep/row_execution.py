@@ -264,6 +264,7 @@ def run_row(
         / str(queue_row["delta_ref"])
     )
     existing_run_id = queue_row.get("run_id")
+    row_status = str(queue_row.get("status", "")).strip().lower()
     run_id = row_id_for_order(
         sweep_id,
         int(queue_row["order"]),
@@ -271,6 +272,7 @@ def run_row(
         str(existing_run_id) if isinstance(existing_run_id, str) else None,
         delta_root=delta_root,
         registry_path=paths.registry_path,
+        allow_existing_unregistered=row_status in {"running", "failed"},
     )
     run_root = delta_root / run_id
     train_dir = run_root / "train"

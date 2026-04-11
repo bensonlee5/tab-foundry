@@ -2658,6 +2658,144 @@ def test_run_row_reset_tf_rd_010_style_row_allocates_fresh_run_id_and_retrains(
     assert queue_row['status'] == 'screened'
 
 
+def test_run_row_reuses_reserved_run_id_for_running_row(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'reserved_run_id_probe'
+    delta_ref = 'delta_reserved_surface'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    manifest_path = tmp_path / 'current_manifest.parquet'
+    manifest_path.write_text('stub', encoding='utf-8')
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'status': 'running',
+        'run_id': run_id,
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'surface_label': 'prior_cosine_warmup',
+            'overrides': {'schedule': {'stages': [{'name': 'prior_dump', 'steps': 3}]}},
+        },
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'data',
+        'family': 'provenance',
+        'description': 'Probe reserved run ids for resumable rows.',
+        'anchor_delta': 'Reuse the already reserved sweep row identity.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'arch': 'tabfoundry_sandwich'},
+        'data': {
+            'source': 'manifest',
+            'surface_label': 'tf_rd_010_dagzoo_medium_control',
+            'manifest_path': str(manifest_path),
+        },
+        'preprocessing': {'surface_label': 'runtime_default'},
+        'training': {
+            'backend': 'manifest',
+            'surface_label': 'prior_cosine_warmup',
+            'schedule_stages': [{'name': 'prior_dump', 'steps': 3}],
+        },
+    }
+    queue = {'rows': [queue_row]}
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    _write_minimal_run_registry(registry_path)
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    _write_control_baseline_registry(control_baseline_registry_path)
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+    (
+        paths.repo_root
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+    ).mkdir(parents=True, exist_ok=True)
+
+    captured: dict[str, Any] = {}
+
+    def fake_manifest_train(cfg: Any) -> Any:
+        captured['manifest_cfg'] = cfg
+        _write_cfg_training_surface_record(
+            Path(str(cfg.runtime.output_dir)) / 'training_surface_record.json',
+            cfg,
+        )
+        return SimpleNamespace(output_dir=Path(str(cfg.runtime.output_dir)))
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'train_from_manifest_cfg', fake_manifest_train)
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('prior trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 1.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_multiclass_medium_v1',
+            'benchmark_manifest_path': str(manifest_path),
+            'training_experiment': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'training_config_profile': 'cls_benchmark_sandwich_classification_evolution_v1',
+            'surface_role': 'custom',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=None,
+        nanotabpfn_root=tmp_path / 'nanotabpfn',
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Resume the reserved row identity.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert str(captured['manifest_cfg'].runtime.output_dir).endswith(f'{run_id}/train')
+    assert queue_row['status'] == 'screened'
+
+
 def test_run_row_archives_completed_but_incompatible_selected_train_dir_and_retrains(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
