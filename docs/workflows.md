@@ -424,6 +424,27 @@ Benchmark-facing writeups should cite the locked manifest path,
 `cls_benchmark_linear_v2`, `training_surface_record.json`,
 `research_card.md`, `campaign.yaml`, and `result_card.md`.
 
+For scaling studies whose benchmark-only runs were executed with
+`runtime.val_batches=0`, do not create a fresh validation-training sweep first.
+Backfill strict validation losses from completed checkpoints:
+
+```bash
+tab-foundry research scaling backfill-validation \
+  --study tf_rd_009_phase2 \
+  --launch-gcs-root gs://tab-foundry-execution/tab-foundry/launches/<launch-id> \
+  --preseed-gcs-root gs://tab-foundry-execution/tab-foundry/launches/<preseed-launch-id>/preseed \
+  --val-batches 16 \
+  --device cpu
+```
+
+This downloads only `latest.pt` plus small train metadata into a bounded local
+overlay, writes `validation_backfill_v1.json` sidecars, and lets strict scaling
+fits use validation-backed losses without substituting benchmark loss. Use the
+emitted `registry_overlay_path` with `research scaling inspect` and `research
+scaling fit` so the fitter resolves the local overlay sidecars. Fresh validation
+sweeps are the fallback only when the completed checkpoint artifacts or their
+checkpoint configs cannot be validated posthoc.
+
 ## Scope Boundaries
 
 - Use smoke for plumbing checks, not the canonical leaderboard.

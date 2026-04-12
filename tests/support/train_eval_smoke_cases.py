@@ -1084,6 +1084,52 @@ def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert "acc" in result.metrics
 
 
+def test_evaluate_checkpoint_normalizes_compiled_state_dict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    checkpoint = tmp_path / "compiled.pt"
+    model = _TinyClassifier()
+    compiled_state = {
+        f"_orig_mod.{key}": value
+        for key, value in model.state_dict().items()
+    }
+    torch.save(
+        {"model": compiled_state, "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+    cfg.eval.checkpoint = str(checkpoint)
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert result.checkpoint == checkpoint.resolve()
+    assert "loss" in result.metrics
+    assert "acc" in result.metrics
+
+
+def test_checkpoint_config_mapping_rebases_cloud_runner_repo_paths() -> None:
+    remote_sweeps_root = str(
+        Path("/") / "workspace" / "tab-foundry" / "reference" / "system_delta_sweeps"
+    )
+    payload = {
+        "config": {
+            "data": {
+                "surface_overrides": {
+                    "corpus_lookup_sweeps_root": remote_sweeps_root,
+                },
+            },
+        },
+    }
+
+    cfg = evaluate_module._checkpoint_config_mapping(payload)
+
+    assert cfg["data"]["surface_overrides"]["corpus_lookup_sweeps_root"] == str(
+        evaluate_module.repo_root() / "reference" / "system_delta_sweeps"
+    )
+
+
 def test_evaluate_loader_weights_metrics_by_actual_task_batch_size(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

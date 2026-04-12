@@ -1073,7 +1073,7 @@ def test_cli_groups_register_expected_commands() -> None:
     assert _command_names(adequacy_group) == ["finalize", "pilot"]
     scaling_group = research_group.GROUP.get_command(research_ctx, "scaling")
     assert isinstance(scaling_group, click.Group)
-    assert _command_names(scaling_group) == ["fit", "inspect"]
+    assert _command_names(scaling_group) == ["backfill-validation", "fit", "inspect"]
     sweep_group = research_group.GROUP.get_command(research_ctx, "sweep")
     assert isinstance(sweep_group, click.Group)
     assert _command_names(sweep_group) == [

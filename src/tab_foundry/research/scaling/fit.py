@@ -17,6 +17,10 @@ from tab_foundry.benchmark_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.research.scaling.study import ScalingStudyConfig, load_scaling_study_config
+from tab_foundry.research.scaling.validation_backfill_schema import (
+    VALIDATION_BACKFILL_FILENAME,
+    VALIDATION_BACKFILL_SCHEMA,
+)
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
 from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
@@ -50,7 +54,9 @@ class ScalingStudyRunPoint:
     expanded_non_embedding_params: int
     canonical_non_embedding_params: int
     benchmark_log_loss: float
-    validation_loss: float
+    validation_loss: float | None
+    validation_loss_source: str | None
+    validation_loss_missing_reason: str | None
     steps: int
     tokens_seen: float
     tokens_per_step: float
@@ -146,15 +152,52 @@ def _completed_benchmark_backed_row(row: Mapping[str, Any]) -> bool:
     return benchmark_metrics.get("final_log_loss") is not None
 
 
-def _final_validation_loss(history_path: Path) -> float:
-    records = load_history(history_path)
+def _read_validation_backfill_loss(
+    sidecar_path: Path,
+) -> tuple[float | None, str | None, str | None]:
+    try:
+        payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    except OSError:
+        return None, None, "validation_backfill_missing"
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"validation backfill sidecar is not valid JSON: {sidecar_path}") from exc
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(f"validation backfill sidecar must be a mapping: {sidecar_path}")
+    schema = payload.get("schema")
+    if schema != VALIDATION_BACKFILL_SCHEMA:
+        raise RuntimeError(
+            "validation backfill sidecar schema mismatch: "
+            f"expected={VALIDATION_BACKFILL_SCHEMA!r}, actual={schema!r}, path={sidecar_path}"
+        )
+    metrics = payload.get("metrics")
+    if not isinstance(metrics, Mapping):
+        raise RuntimeError(f"validation backfill sidecar missing metrics mapping: {sidecar_path}")
+    if metrics.get("val_loss") is None:
+        return None, None, "validation_backfill_missing_val_loss"
+    value = float(metrics["val_loss"])
+    if not math.isfinite(value):
+        raise RuntimeError(f"validation backfill sidecar recorded non-finite val_loss: {sidecar_path}")
+    return value, "validation_backfill_v1", None
+
+
+def _read_final_validation_loss(history_path: Path) -> tuple[float | None, str | None, str | None]:
+    try:
+        records = load_history(history_path)
+    except OSError:
+        backfilled = _read_validation_backfill_loss(history_path.parent / VALIDATION_BACKFILL_FILENAME)
+        if backfilled[0] is not None:
+            return backfilled
+        return None, None, "history_file_missing"
     validation_records = [record for record in records if record.get("val_loss") is not None]
     if not validation_records:
-        raise RuntimeError(f"history file is missing validation-loss records: {history_path}")
+        backfilled = _read_validation_backfill_loss(history_path.parent / VALIDATION_BACKFILL_FILENAME)
+        if backfilled[0] is not None:
+            return backfilled
+        return None, None, "history_missing_validation_records"
     value = float(validation_records[-1]["val_loss"])
     if not math.isfinite(value):
         raise RuntimeError(f"history file recorded a non-finite validation loss: {history_path}")
-    return value
+    return value, "train_history", None
 
 
 def _registry_root(registry_path: Path) -> Path:
@@ -261,6 +304,9 @@ def _collect_run_point(
         layers = build_spec.get("sandwich_layers")
     if layers is None:
         raise RuntimeError(f"{entry_context} missing sandwich_layers")
+    validation_loss, validation_loss_source, validation_loss_missing_reason = (
+        _read_final_validation_loss(history_path)
+    )
     return ScalingStudyRunPoint(
         family=family,
         sweep_id=sweep_id,
@@ -272,8 +318,12 @@ def _collect_run_point(
         max_steps=max_steps if max_steps > 0 else steps,
         grad_accum_steps=grad_accum_steps,
         task_batch_size=task_batch_size,
-        strict_embedding_params=_required_int(strict_partition, "embedding_params", context=entry_context),
-        strict_non_embedding_params=_required_int(strict_partition, "non_embedding_params", context=entry_context),
+        strict_embedding_params=_required_int(
+            strict_partition, "embedding_params", context=entry_context
+        ),
+        strict_non_embedding_params=_required_int(
+            strict_partition, "non_embedding_params", context=entry_context
+        ),
         expanded_embedding_like_params=_required_int(
             expanded_partition,
             "embedding_like_params",
@@ -290,7 +340,9 @@ def _collect_run_point(
             context=entry_context,
         ),
         benchmark_log_loss=_required_float(metrics, "final_log_loss", context=entry_context),
-        validation_loss=_final_validation_loss(history_path),
+        validation_loss=validation_loss,
+        validation_loss_source=validation_loss_source,
+        validation_loss_missing_reason=validation_loss_missing_reason,
         steps=steps,
         tokens_seen=tokens_seen,
         tokens_per_step=tokens_per_step,
@@ -378,6 +430,90 @@ def _batch_points(points: Sequence[ScalingStudyRunPoint]) -> tuple[ScalingStudyR
     return tuple(point for point in points if point.family == "batch_critical")
 
 
+def _validation_backed_points(
+    points: Sequence[ScalingStudyRunPoint],
+) -> tuple[ScalingStudyRunPoint, ...]:
+    return tuple(point for point in points if point.validation_loss is not None)
+
+
+def _missing_validation_points(
+    points: Sequence[ScalingStudyRunPoint],
+) -> tuple[ScalingStudyRunPoint, ...]:
+    return tuple(point for point in points if point.validation_loss is None)
+
+
+def _validation_loss_value(point: ScalingStudyRunPoint, *, context: str) -> float:
+    if point.validation_loss is None:
+        raise RuntimeError(
+            f"{context} requires validation_loss for run_id={point.run_id!r} "
+            f"history_path={point.history_path!r}; missing_reason="
+            f"{point.validation_loss_missing_reason or 'validation_loss_missing'}"
+        )
+    return float(point.validation_loss)
+
+
+def _missing_validation_diagnostics(
+    points: Sequence[ScalingStudyRunPoint],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "family": point.family,
+            "sweep_id": point.sweep_id,
+            "row_order": point.row_order,
+            "row_label": point.row_label,
+            "run_id": point.run_id,
+            "history_path": point.history_path,
+            "missing_reason": point.validation_loss_missing_reason or "validation_loss_missing",
+        }
+        for point in _missing_validation_points(points)
+    ]
+
+
+def _validation_coverage_payload(points: Sequence[ScalingStudyRunPoint]) -> dict[str, Any]:
+    validation_points = _validation_backed_points(points)
+    return {
+        "total_points": len(points),
+        "validation_backed_points": len(validation_points),
+        "missing_validation_points": len(points) - len(validation_points),
+        "ns_core_validation_backed_points": len(_validation_backed_points(_ns_points(points))),
+        "batch_critical_validation_backed_points": len(
+            _validation_backed_points(_batch_points(points))
+        ),
+        "missing": _missing_validation_diagnostics(points),
+    }
+
+
+def _strict_validation_missing_message(
+    *,
+    fit_name: str,
+    points: Sequence[ScalingStudyRunPoint],
+) -> str:
+    missing = _missing_validation_diagnostics(points)
+    missing_rows = ", ".join(
+        f"{item['sweep_id']} order {item['row_order']} run_id={item['run_id']} "
+        f"history_path={item['history_path']} reason={item['missing_reason']}"
+        for item in missing
+    )
+    return (
+        f"{fit_name} requires validation_loss for every selected point, but "
+        f"{len(missing)} of {len(points)} points are missing validation records. "
+        "These rows were likely run with runtime.val_batches=0; run posthoc validation "
+        "backfill from completed checkpoints before fitting strict validation-backed "
+        "alpha variables. "
+        f"Missing points: {missing_rows}"
+    )
+
+
+def _require_validation_points(
+    points: Sequence[ScalingStudyRunPoint],
+    *,
+    fit_name: str,
+) -> tuple[ScalingStudyRunPoint, ...]:
+    if _missing_validation_points(points):
+        raise RuntimeError(_strict_validation_missing_message(fit_name=fit_name, points=points))
+    return tuple(points)
+
+
 def select_l_n_points(points: Sequence[ScalingStudyRunPoint]) -> tuple[ScalingStudyRunPoint, ...]:
     """Choose the highest completed S slice for ``L(N)``."""
 
@@ -407,7 +543,12 @@ def select_l_d_points(points: Sequence[ScalingStudyRunPoint]) -> tuple[ScalingSt
 
 
 def _batch_envelope(points: Sequence[ScalingStudyRunPoint]) -> tuple[ScalingStudyRunPoint, ...]:
-    ordered = sorted(points, key=lambda point: (point.validation_loss, point.b_eff), reverse=True)
+    validation_points = _validation_backed_points(points)
+    ordered = sorted(
+        validation_points,
+        key=lambda point: (_validation_loss_value(point, context="Bcrit envelope"), point.b_eff),
+        reverse=True,
+    )
     envelope: list[ScalingStudyRunPoint] = []
     max_batch = -math.inf
     for point in ordered:
@@ -415,7 +556,9 @@ def _batch_envelope(points: Sequence[ScalingStudyRunPoint]) -> tuple[ScalingStud
             continue
         envelope.append(point)
         max_batch = point.b_eff
-    return tuple(sorted(envelope, key=lambda point: point.validation_loss))
+    return tuple(
+        sorted(envelope, key=lambda point: _validation_loss_value(point, context="Bcrit envelope"))
+    )
 
 
 def _compute_lower_envelope(
@@ -459,6 +602,7 @@ def inspect_scaling_study(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
+    validation_points = _validation_backed_points(points)
     return {
         "study": config.as_dict(),
         "available_points": [point.as_dict() for point in points],
@@ -466,12 +610,19 @@ def inspect_scaling_study(
             "total_completed_points": len(points),
             "ns_core_completed_points": len(_ns_points(points)),
             "batch_critical_completed_points": len(_batch_points(points)),
+            "validation_backed_points": len(validation_points),
+            "missing_validation_points": len(points) - len(validation_points),
+            "ns_core_validation_backed_points": len(_validation_backed_points(_ns_points(points))),
+            "batch_critical_validation_backed_points": len(
+                _validation_backed_points(_batch_points(points))
+            ),
             "l_n_points": len(select_l_n_points(points)),
             "l_d_points": len(select_l_d_points(points)),
             "l_nd_points": len(_ns_points(points)),
-            "l_ns_points": len(_ns_points(points)),
+            "l_ns_points": len(_validation_backed_points(_ns_points(points))),
             "bcrit_points": len(_batch_envelope(_batch_points(points))),
         },
+        "validation_coverage": _validation_coverage_payload(points),
     }
 
 
@@ -486,6 +637,8 @@ def render_scaling_study_text(payload: Mapping[str, Any]) -> str:
         f"Completed points: {counts.get('total_completed_points', 0)}",
         f"NS core points: {counts.get('ns_core_completed_points', 0)}",
         f"Batch-critical points: {counts.get('batch_critical_completed_points', 0)}",
+        f"Validation-backed points: {counts.get('validation_backed_points', 0)}",
+        f"Missing validation points: {counts.get('missing_validation_points', 0)}",
     ]
     fit_summary = payload.get("fit_summary")
     if isinstance(fit_summary, Mapping):
@@ -532,7 +685,9 @@ def _fit_stats(
     mae = float(np.mean(np.abs(residuals)))
     log_r2 = _log_space_r2(y_true, y_pred)
     effective_rss = max(rss, _MIN_POSITIVE)
-    aic = float(y_true.size * math.log(effective_rss / float(max(1, y_true.size))) + 2.0 * param_count)
+    aic = float(
+        y_true.size * math.log(effective_rss / float(max(1, y_true.size))) + 2.0 * param_count
+    )
     bic = float(
         y_true.size * math.log(effective_rss / float(max(1, y_true.size)))
         + float(param_count) * math.log(float(max(1, y_true.size)))
@@ -624,9 +779,9 @@ def _fit_nonlinear_positive_model(
     covariance: np.ndarray | None = None
     if y_true.size > theta.size:
         try:
-            sigma2 = max(float(last_rss if last_rss is not None else final_stats["rss"]), _MIN_POSITIVE) / float(
-                y_true.size - theta.size
-            )
+            sigma2 = max(
+                float(last_rss if last_rss is not None else final_stats["rss"]), _MIN_POSITIVE
+            ) / float(y_true.size - theta.size)
             covariance = sigma2 * np.linalg.inv(final_jacobian.T @ final_jacobian)
         except np.linalg.LinAlgError:
             covariance = None
@@ -646,7 +801,9 @@ def _fit_nonlinear_positive_model(
             confidence_intervals[name] = None
     else:
         theta_standard_errors = np.sqrt(np.diag(covariance))
-        for name, theta_value, theta_se in zip(parameter_names, theta, theta_standard_errors, strict=False):
+        for name, theta_value, theta_se in zip(
+            parameter_names, theta, theta_standard_errors, strict=False
+        ):
             parameter_value = float(math.exp(float(theta_value)))
             standard_errors[name] = float(parameter_value * theta_se)
             lower = _safe_positive_exp(float(theta_value - 1.96 * theta_se))
@@ -689,7 +846,9 @@ def fit_loss_vs_scale(
     y = _positive_vector(y_values, context=name)
     floor_seed = max(_MIN_POSITIVE, 0.9 * float(np.min(y)))
     shifted = np.maximum(y - floor_seed, _MIN_POSITIVE)
-    scale_seed, exponent_seed = _power_law_seed(tuple(zip(x.tolist(), shifted.tolist(), strict=False)))
+    scale_seed, exponent_seed = _power_law_seed(
+        tuple(zip(x.tolist(), shifted.tolist(), strict=False))
+    )
     fit = _fit_nonlinear_positive_model(
         y_true=y,
         parameter_names=("irreducible_loss", scale_name, alpha_name),
@@ -698,14 +857,34 @@ def fit_loss_vs_scale(
             math.log(max(scale_seed, _MIN_POSITIVE)),
             math.log(max(exponent_seed, 0.02)),
         ),
-        predict_fn=lambda parameters: parameters["irreducible_loss"]
-        + (parameters[scale_name] / x) ** parameters[alpha_name],
+        predict_fn=lambda parameters: (
+            parameters["irreducible_loss"] + (parameters[scale_name] / x) ** parameters[alpha_name]
+        ),
     )
     return {
         "name": name,
         "x_axis": scale_name,
         **fit,
     }
+
+
+def _target_values(
+    points: Sequence[ScalingStudyRunPoint],
+    *,
+    target_key: str,
+    context: str,
+) -> list[float]:
+    values: list[float] = []
+    for point in points:
+        value = getattr(point, target_key)
+        if value is None:
+            raise RuntimeError(
+                f"{context} target {target_key!r} is missing for run_id={point.run_id!r} "
+                f"history_path={point.history_path!r}; missing_reason="
+                f"{point.validation_loss_missing_reason or 'target_missing'}"
+            )
+        values.append(float(value))
+    return values
 
 
 def fit_loss_vs_nd(
@@ -717,10 +896,21 @@ def fit_loss_vs_nd(
 
     n = _positive_vector([point.n for point in points], context="L(N,D) N")
     d = _positive_vector([point.d for point in points], context="L(N,D) D")
-    y = _positive_vector([getattr(point, target_key) for point in points], context="L(N,D) loss")
+    target_values = _target_values(points, target_key=target_key, context="L(N,D)")
+    y = _positive_vector(target_values, context="L(N,D) loss")
     floor_seed = max(_MIN_POSITIVE, 0.9 * float(np.min(y)))
-    alpha_n_seed = max(0.02, -fit_power_law(tuple((point.n, getattr(point, target_key)) for point in points)).exponent)
-    alpha_d_seed = max(0.02, -fit_power_law(tuple((point.d, getattr(point, target_key)) for point in points)).exponent)
+    alpha_n_seed = max(
+        0.02,
+        -fit_power_law(
+            tuple((point.n, value) for point, value in zip(points, target_values, strict=False))
+        ).exponent,
+    )
+    alpha_d_seed = max(
+        0.02,
+        -fit_power_law(
+            tuple((point.d, value) for point, value in zip(points, target_values, strict=False))
+        ).exponent,
+    )
     fit = _fit_nonlinear_positive_model(
         y_true=y,
         parameter_names=("irreducible_loss", "Nc", "Dc", "alpha_n", "alpha_d"),
@@ -731,12 +921,14 @@ def fit_loss_vs_nd(
             math.log(alpha_n_seed),
             math.log(alpha_d_seed),
         ),
-        predict_fn=lambda parameters: parameters["irreducible_loss"]
-        + (
-            (parameters["Nc"] / n) ** (parameters["alpha_n"] / parameters["alpha_d"])
-            + (parameters["Dc"] / d)
-        )
-        ** parameters["alpha_d"],
+        predict_fn=lambda parameters: (
+            parameters["irreducible_loss"]
+            + (
+                (parameters["Nc"] / n) ** (parameters["alpha_n"] / parameters["alpha_d"])
+                + (parameters["Dc"] / d)
+            )
+            ** parameters["alpha_d"]
+        ),
     )
     return {
         "name": "L(N,D)",
@@ -754,10 +946,21 @@ def fit_loss_vs_ns(
 
     n = _positive_vector([point.n for point in points], context="L(N,S) N")
     s = _positive_vector([point.s for point in points], context="L(N,S) S")
-    y = _positive_vector([getattr(point, target_key) for point in points], context="L(N,S) loss")
+    target_values = _target_values(points, target_key=target_key, context="L(N,S)")
+    y = _positive_vector(target_values, context="L(N,S) loss")
     floor_seed = max(_MIN_POSITIVE, 0.9 * float(np.min(y)))
-    alpha_n_seed = max(0.02, -fit_power_law(tuple((point.n, getattr(point, target_key)) for point in points)).exponent)
-    alpha_s_seed = max(0.02, -fit_power_law(tuple((point.s, getattr(point, target_key)) for point in points)).exponent)
+    alpha_n_seed = max(
+        0.02,
+        -fit_power_law(
+            tuple((point.n, value) for point, value in zip(points, target_values, strict=False))
+        ).exponent,
+    )
+    alpha_s_seed = max(
+        0.02,
+        -fit_power_law(
+            tuple((point.s, value) for point, value in zip(points, target_values, strict=False))
+        ).exponent,
+    )
     fit = _fit_nonlinear_positive_model(
         y_true=y,
         parameter_names=("irreducible_loss", "Nc", "Sc", "alpha_n", "alpha_s"),
@@ -768,12 +971,14 @@ def fit_loss_vs_ns(
             math.log(alpha_n_seed),
             math.log(alpha_s_seed),
         ),
-        predict_fn=lambda parameters: parameters["irreducible_loss"]
-        + (
-            (parameters["Nc"] / n) ** (parameters["alpha_n"] / parameters["alpha_s"])
-            + (parameters["Sc"] / s)
-        )
-        ** parameters["alpha_s"],
+        predict_fn=lambda parameters: (
+            parameters["irreducible_loss"]
+            + (
+                (parameters["Nc"] / n) ** (parameters["alpha_n"] / parameters["alpha_s"])
+                + (parameters["Sc"] / s)
+            )
+            ** parameters["alpha_s"]
+        ),
     )
     return {
         "name": "L(N,S)",
@@ -785,10 +990,18 @@ def fit_loss_vs_ns(
 def fit_bcrit(points: Sequence[ScalingStudyRunPoint]) -> dict[str, Any]:
     """Fit ``Bcrit(L) = B* / L^(1/alpha_B)`` on the batch-envelope points."""
 
-    envelope = _batch_envelope(points)
-    loss = _positive_vector([point.validation_loss for point in envelope], context="Bcrit loss")
+    validation_points = _require_validation_points(points, fit_name="Bcrit(L)")
+    envelope = _batch_envelope(validation_points)
+    loss = _positive_vector(
+        [_validation_loss_value(point, context="Bcrit(L)") for point in envelope],
+        context="Bcrit loss",
+    )
     batch = _positive_vector([point.b_eff for point in envelope], context="Bcrit batch")
-    power_fit = fit_power_law(tuple((point.validation_loss, point.b_eff) for point in envelope))
+    power_fit = fit_power_law(
+        tuple(
+            (_validation_loss_value(point, context="Bcrit(L)"), point.b_eff) for point in envelope
+        )
+    )
     exponent_seed = float(power_fit.exponent)
     alpha_b_seed = max(0.02, -1.0 / exponent_seed) if exponent_seed < 0.0 else 0.2
     b_star_seed = max(power_fit.coefficient, _MIN_POSITIVE)
@@ -796,7 +1009,9 @@ def fit_bcrit(points: Sequence[ScalingStudyRunPoint]) -> dict[str, Any]:
         y_true=batch,
         parameter_names=("B_star", "alpha_b"),
         theta_seed=(math.log(b_star_seed), math.log(alpha_b_seed)),
-        predict_fn=lambda parameters: parameters["B_star"] / (loss ** (1.0 / parameters["alpha_b"])),
+        predict_fn=lambda parameters: (
+            parameters["B_star"] / (loss ** (1.0 / parameters["alpha_b"]))
+        ),
     )
     return {
         "name": "Bcrit(L)",
@@ -810,12 +1025,13 @@ def _cmin_points(
     points: Sequence[ScalingStudyRunPoint],
     bcrit_fit: Mapping[str, Any],
 ) -> tuple[dict[str, Any], ...]:
+    validation_points = _require_validation_points(points, fit_name="L(Cmin)")
     parameters = _required_mapping(bcrit_fit, "parameters", context="Bcrit fit")
     b_star = _required_float(parameters, "B_star", context="Bcrit fit")
     alpha_b = _required_float(parameters, "alpha_b", context="Bcrit fit")
     adjusted: list[dict[str, Any]] = []
-    for point in points:
-        bcrit = b_star / (float(point.validation_loss) ** (1.0 / alpha_b))
+    for point in validation_points:
+        bcrit = b_star / (_validation_loss_value(point, context="L(Cmin)") ** (1.0 / alpha_b))
         cmin = float(point.c) / (1.0 + float(point.b_eff) / max(bcrit, _MIN_POSITIVE))
         adjusted.append(
             {
@@ -1049,9 +1265,7 @@ def _study_markdown(
         parameters = fit_payload.get("parameters")
         lines.append(f"- `{fit_name}`")
         if isinstance(parameters, Mapping):
-            lines.append(
-                f"  parameters: `{json.dumps(parameters, sort_keys=True)}`"
-            )
+            lines.append(f"  parameters: `{json.dumps(parameters, sort_keys=True)}`")
         if isinstance(stats, Mapping):
             lines.append(
                 f"  rss=`{stats.get('rss')}` rmse=`{stats.get('rmse')}` "
@@ -1103,8 +1317,9 @@ def fit_scaling_study(
     l_n_points = select_l_n_points(points)
     l_d_points = select_l_d_points(points)
     l_nd_points = _ns_points(points)
-    l_ns_points = _ns_points(points)
-    bcrit_fit = fit_bcrit(_batch_points(points))
+    l_ns_points = _require_validation_points(_ns_points(points), fit_name="L(N,S)")
+    batch_points = _batch_points(points)
+    bcrit_fit = fit_bcrit(batch_points)
     cmin_points = _cmin_points(points=points, bcrit_fit=bcrit_fit)
     fit_summary: dict[str, Any] = {}
     fit_summary["L(N)"] = {
@@ -1231,7 +1446,7 @@ def fit_scaling_study(
     )
     _plot_loglog_fit(
         out_path=plots_root / "bcrit.png",
-        x_values=[point["validation_loss"] for point in fit_summary["Bcrit(L)"]["points"]],
+        x_values=[float(point["validation_loss"]) for point in fit_summary["Bcrit(L)"]["points"]],
         y_values=[point["tokens_per_step"] for point in fit_summary["Bcrit(L)"]["points"]],
         predicted_y=fit_summary["Bcrit(L)"]["predictions"],
         title="Bcrit(L)",
@@ -1253,7 +1468,7 @@ def fit_scaling_study(
         out_path=plots_root / "l_ns_surface.png",
         x_values=[point.n for point in l_ns_points],
         y_values=[point.s for point in l_ns_points],
-        z_values=[point.validation_loss for point in l_ns_points],
+        z_values=[_validation_loss_value(point, context="L(N,S) plot") for point in l_ns_points],
         predicted_z=fit_summary["L(N,S)"]["predictions"],
         title="L(N,S)",
         x_label="canonical non-embedding params",
@@ -1289,7 +1504,8 @@ def fit_scaling_study(
             x_values = [float(point["cmin"]) for point in cmin_points]
             x_label = "Cmin"
         _plot_residuals(
-            out_path=plots_root / f"{fit_name.lower().replace('(', '').replace(')', '').replace(',', '_').replace(' ', '_')}_residuals.png",
+            out_path=plots_root
+            / f"{fit_name.lower().replace('(', '').replace(')', '').replace(',', '_').replace(' ', '_')}_residuals.png",
             x_values=x_values,
             residuals=[float(value) for value in residuals],
             title=f"{fit_name} residuals",
@@ -1325,8 +1541,13 @@ def fit_scaling_study(
         "counts": {
             "total_completed_points": len(points),
             "ns_core_completed_points": len(l_nd_points),
-            "batch_critical_completed_points": len(_batch_points(points)),
+            "batch_critical_completed_points": len(batch_points),
+            "validation_backed_points": len(_validation_backed_points(points)),
+            "missing_validation_points": len(_missing_validation_points(points)),
+            "ns_core_validation_backed_points": len(l_ns_points),
+            "batch_critical_validation_backed_points": len(_validation_backed_points(batch_points)),
         },
+        "validation_coverage": _validation_coverage_payload(points),
         "available_points": [point.as_dict() for point in points],
         "fit_summary": fit_summary,
         "alphas": alphas,
