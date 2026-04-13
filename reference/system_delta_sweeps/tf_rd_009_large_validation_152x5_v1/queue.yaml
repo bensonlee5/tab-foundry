@@ -1,0 +1,162 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_large_validation_152x5_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
+  status: completed
+  rationale: Benchmark-only validate the current TF-RD-009 medium fixed-budget winner
+    `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against the closed TF-RD-010
+    large clean-control anchor before freezing any first hardware architecture baseline.
+  hypothesis: The retained medium winner `152x5` should transfer cleanly enough on
+    the closed large benchmark rung to beat the carried clean-control anchor without
+    reopening training, seeds, or neighboring bracket rows.
+  anchor_delta: Reuse the completed medium `152x5` training artifact and benchmark
+    it against locked anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`
+    on the local large classification manifest; no retraining, no extra seeds, and
+    no bracketed reruns inside issue 257.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 152
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 5
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train
+    training_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
+  parameter_adequacy_plan:
+  - Confirm the reused `152x5` training surface fingerprint `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253`
+    matches the preserved train artifact before execution so benchmark-only reuse
+    cannot drift.
+  - Benchmark only on the frozen local large bundle with task ids `[363685, 363699,
+    363707]` and rank by `final_log_loss_at_matched_regime_budget` against the carried
+    large clean-control anchor `0.8974410961`.
+  - Treat Brier, ROC AUC, runtime, and stability as advisory guardrails unless the
+    run is invalid or clearly unstable.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this corrected large-rung gate, maintain frozen hardware baseline
+    `tf_rd_009_rtx8000_44gb_classification_medium_v1`, and treat any bracketed
+    large-rung diagnosis as separate follow-on work outside issue 257.
+  notes:
+  - Reuse completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    at `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train`;
+    do not retrain this row for `tf_rd_009_large_validation_152x5_v1`.
+  - Preflight must confirm training-surface fingerprint `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253`
+    before benchmark execution to block surface drift.
+  - The large-rung success gate is `final_log_loss_at_matched_regime_budget < 0.8974410961`
+    versus carried large clean-control anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
+  - Advisory guardrails are Brier, ROC AUC, benchmark/runtime timing, and stability;
+    only invalid or clearly unstable behavior blocks a keep.
+  - If this row passes, freeze medium hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
+    from evidence rows `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`;
+    do not add the large validation row to the medium constraint model.
+  - If this row fails, leave `hardware_architecture_baselines_v1.json` unfrozen and
+    keep any `96x2` / `176x6` bracketed large-rung diagnosis as separate follow-on
+    work.
+  - Execute on the same CUDA / RTX 8000 class environment as the retained TF-RD-009
+    evidence; the current local workstation does not expose the required GPU surface.
+  - 'Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...'
+  - >-
+    Partial-snapshot rerun
+    `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    is superseded: telemetry listed checkpoints through step 2500, but the reusable
+    artifact retained numbered `step_*.pt` files only through step 600 plus
+    `latest.pt`, so the old artifact-selection path stopped on the last preserved
+    numbered snapshot.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`.
+  - >-
+    Corrected artifact resolution kept telemetry as the source of step and
+    elapsed-time metadata, dropped telemetry-only missing late numbered checkpoints,
+    and appended the retained terminal `latest.pt` checkpoint at `global_step=2500`
+    while preserving `benchmark_checkpoint_selection: all`.
+  - >-
+    The corrected rerun completed `25/25` checkpoint comparisons with terminal
+    `latest.pt` at step `2500`, finished at `final_log_loss=0.7436636568`,
+    `final_brier_score=0.4288940`, and `final_roc_auc=0.7650940`, and beat the
+    carried large clean-control anchor by `delta_final_log_loss=-0.1537774`.
+  - >-
+    Hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` is now
+    frozen from medium evidence rows only with preferred `152x5`, formal anchor
+    `60x2`, and baseline `96x2`; the large validation row remains a gate and is
+    not added to the medium constraint model.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 550.0
+    max_grad_norm: 54.525353839842566
+    best_bpc: 2.261271075101999
+    best_bpf: 2.261271130121671
+    best_roc_auc: 0.5967365187249479
+    best_log_loss: 0.9507625551301947
+    best_brier_score: 0.5675577543042242
+    final_bpc: 4.507453720386212
+    final_bpf: 4.5074539404649
+    final_roc_auc: 0.765094033761902
+    final_log_loss: 0.7436636567836484
+    final_brier_score: 0.42889399685905455
+    final_minus_best_bpc: 2.246182645284213
+    final_minus_best_bpf: 2.2461828103432286
+    final_minus_best_roc_auc: 0.16835751503695406
+    final_minus_best_log_loss: -0.20709889834654627
+    final_minus_best_brier_score: -0.13866375744516962
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.20709889834654627
+    delta_final_bpc: 2.421422940034133
+    delta_final_bpf: 2.4214231527768644
+    delta_final_log_loss: -0.15377743935891375
+    delta_final_brier_score: -0.1176530938495744
+    delta_final_roc_auc: 0.1327435146887801
+  parent_delta_ref: null

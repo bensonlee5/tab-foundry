@@ -1,5 +1,534 @@
 {
-  "baselines": {},
+  "baselines": {
+    "tf_rd_009_rtx8000_44gb_classification_medium_v1": {
+      "baseline_id": "tf_rd_009_rtx8000_44gb_classification_medium_v1",
+      "baseline_run_id": "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "benchmark_manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1",
+      "constraint_model": {
+        "baseline_row": "96x2",
+        "effective_size_expression": "S(d, L) = L * d^2",
+        "evidence_run_ids": [
+          "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+          "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+          "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+          "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+          "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+          "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+          "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+        ],
+        "formulas": {
+          "benchmark_wall_seconds": {
+            "coefficients": {
+              "intercept": 1226.7976975049141,
+              "slope": 3.533970796892984e-05
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "benchmark_wall_seconds \u2248 1226.80 + 3.534e-05 * params",
+            "fit_kind": "linear"
+          },
+          "inference_mean_ms": {
+            "coefficients": {
+              "intercept": 15.2005108974451,
+              "slope": 1.1599956147180623e-06
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "inference_mean_ms \u2248 15.20 + 1.160e-06 * params",
+            "fit_kind": "linear"
+          },
+          "inference_p50_ms": {
+            "coefficients": {
+              "intercept": 15.207659851113638,
+              "slope": 1.1499748758041767e-06
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "inference_p50_ms \u2248 15.21 + 1.150e-06 * params",
+            "fit_kind": "linear"
+          },
+          "inference_p95_ms": {
+            "coefficients": {
+              "intercept": 15.215905188791128,
+              "slope": 1.1969575833418802e-06
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "inference_p95_ms \u2248 15.22 + 1.197e-06 * params",
+            "fit_kind": "linear"
+          },
+          "parameter_count": {
+            "coefficients": {
+              "d_squared_coefficient": 77.94284675392532,
+              "intercept": 18638.803760831244,
+              "layered_d_squared_coefficient": 47.93396570367903
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "P_local(d, L) \u2248 18638.80 + 77.94 * d^2 + 47.93 * L * d^2",
+            "fit_kind": "affine_depth_aware_least_squares"
+          },
+          "reserved_vram_gb": {
+            "coefficients": {
+              "intercept": 8.693003510381923,
+              "slope": 9.271353357607912e-07
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "reserved_vram_gb \u2248 8.69 + 9.271e-07 * params",
+            "fit_kind": "linear"
+          },
+          "train_wall_seconds": {
+            "coefficients": {
+              "intercept": 8298.449704577351,
+              "slope": 0.0002275449406958385
+            },
+            "evidence_run_ids": [
+              "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+            ],
+            "expression": "train_wall_seconds \u2248 8298.45 + 2.275e-04 * params",
+            "fit_kind": "linear"
+          }
+        },
+        "rows": [
+          {
+            "d_icl": 60,
+            "effective_size": 7200,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 35.9453125,
+              "train_wall_seconds_delta_vs_baseline": -62.34638564661145
+            },
+            "observed": {
+              "benchmark_wall_seconds": null,
+              "delta_ref": "delta_tf_rd_024_followup_cls_sandwich_heads1_v1",
+              "health": "warn",
+              "inference_mean_ms": null,
+              "inference_p50_ms": null,
+              "inference_p95_ms": null,
+              "reserved_vram_gb": 8.0546875,
+              "run_id": "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+              "total_params": 646970,
+              "train_wall_seconds": 8486.116041064262
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1249.569107098172,
+              "inference_mean_ms": 15.947962893719417,
+              "inference_p50_ms": 15.948654908059655,
+              "inference_p95_ms": 15.9871739106492,
+              "reserved_vram_gb": 9.290410214974761,
+              "total_params": 644358,
+              "train_wall_seconds": 8445.070017626176
+            },
+            "row": "60x2",
+            "sandwich_layers": 2
+          },
+          {
+            "d_icl": 72,
+            "effective_size": 5184,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 35.25390625,
+              "train_wall_seconds_delta_vs_baseline": -443.2188965268433
+            },
+            "observed": {
+              "benchmark_wall_seconds": 1230.0427722297609,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+              "health": null,
+              "inference_mean_ms": 10.643807053565979,
+              "inference_p50_ms": 10.62655821442604,
+              "inference_p95_ms": 10.730049759149551,
+              "reserved_vram_gb": 8.74609375,
+              "run_id": "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+              "total_params": 668342,
+              "train_wall_seconds": 8105.2435301840305
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1250.5171511100548,
+              "inference_mean_ms": 15.979081625580774,
+              "inference_p50_ms": 15.979504817622585,
+              "inference_p95_ms": 16.01928420625104,
+              "reserved_vram_gb": 9.315282098580754,
+              "total_params": 671184,
+              "train_wall_seconds": 8451.174273457904
+            },
+            "row": "72x1",
+            "sandwich_layers": 1
+          },
+          {
+            "d_icl": 96,
+            "effective_size": 18432,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 33.8203125,
+              "train_wall_seconds_delta_vs_baseline": 0.0
+            },
+            "observed": {
+              "benchmark_wall_seconds": null,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl96_v1",
+              "health": "ok",
+              "inference_mean_ms": null,
+              "inference_p50_ms": null,
+              "inference_p95_ms": null,
+              "reserved_vram_gb": 10.1796875,
+              "run_id": "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+              "total_params": 1618286,
+              "train_wall_seconds": 8548.462426710874
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1284.0649498480495,
+              "inference_mean_ms": 17.08025935613055,
+              "inference_p50_ms": 17.071169913473042,
+              "inference_p95_ms": 17.155549739038516,
+              "reserved_vram_gb": 10.195406792150145,
+              "total_params": 1620479,
+              "train_wall_seconds": 8667.181487807957
+            },
+            "row": "96x2",
+            "sandwich_layers": 2
+          },
+          {
+            "d_icl": 112,
+            "effective_size": 37632,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 32.34765625,
+              "train_wall_seconds_delta_vs_baseline": 587.307597130537
+            },
+            "observed": {
+              "benchmark_wall_seconds": 1335.4799956046045,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+              "health": "ok",
+              "inference_mean_ms": 20.392194762825966,
+              "inference_p50_ms": 20.363252609968185,
+              "inference_p95_ms": 20.558096654713154,
+              "reserved_vram_gb": 11.65234375,
+              "run_id": "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+              "total_params": 2800318,
+              "train_wall_seconds": 9135.77002384141
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1325.7561198922642,
+              "inference_mean_ms": 18.448736267888645,
+              "inference_p50_ms": 18.427825099641474,
+              "inference_p95_ms": 18.567631643809552,
+              "reserved_vram_gb": 11.28917239347279,
+              "total_params": 2800205,
+              "train_wall_seconds": 8935.6221558404
+            },
+            "row": "112x3",
+            "sandwich_layers": 3
+          },
+          {
+            "d_icl": 128,
+            "effective_size": 65536,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 29.4453125,
+              "train_wall_seconds_delta_vs_baseline": 1045.7216613180935
+            },
+            "observed": {
+              "benchmark_wall_seconds": 1390.6139281578362,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1",
+              "health": "warn",
+              "inference_mean_ms": 23.906192183494568,
+              "inference_p50_ms": 23.904958739876747,
+              "inference_p95_ms": 24.000087194144726,
+              "reserved_vram_gb": 14.5546875,
+              "run_id": "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+              "total_params": 4439694,
+              "train_wall_seconds": 9594.184088028967
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1383.601917719382,
+              "inference_mean_ms": 20.347474986055715,
+              "inference_p50_ms": 20.310161372213905,
+              "inference_p95_ms": 20.526871557011553,
+              "reserved_vram_gb": 12.806753784862536,
+              "total_params": 4437055,
+              "train_wall_seconds": 9308.079071660059
+            },
+            "row": "128x4",
+            "sandwich_layers": 4
+          },
+          {
+            "d_icl": 152,
+            "effective_size": 115520,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 27.412109375,
+              "train_wall_seconds_delta_vs_baseline": 1605.6432568617165
+            },
+            "observed": {
+              "benchmark_wall_seconds": 1508.5887077823281,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1",
+              "health": "ok",
+              "inference_mean_ms": 27.69562266767025,
+              "inference_p50_ms": 27.631128206849098,
+              "inference_p95_ms": 27.906852029263973,
+              "reserved_vram_gb": 16.587890625,
+              "run_id": "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+              "total_params": 7357894,
+              "train_wall_seconds": 10154.10568357259
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1486.783520063763,
+              "inference_mean_ms": 23.734322617742276,
+              "inference_p50_ms": 23.66775137962359,
+              "inference_p95_ms": 24.021637317273516,
+              "reserved_vram_gb": 15.513717566736448,
+              "total_params": 7356762,
+              "train_wall_seconds": 9972.443689698091
+            },
+            "row": "152x5",
+            "sandwich_layers": 5
+          },
+          {
+            "d_icl": 176,
+            "effective_size": 185856,
+            "headroom": {
+              "benchmark_wall_seconds_delta_vs_baseline": null,
+              "hardware_vram_ceiling_gb": 44.0,
+              "inference_mean_ms_delta_vs_baseline": null,
+              "inference_p50_ms_delta_vs_baseline": null,
+              "inference_p95_ms_delta_vs_baseline": null,
+              "reserved_vram_gb_to_ceiling": 26.15625,
+              "train_wall_seconds_delta_vs_baseline": 2086.4480181373656
+            },
+            "observed": {
+              "benchmark_wall_seconds": 1609.532487116754,
+              "delta_ref": "delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1",
+              "health": "ok",
+              "inference_mean_ms": 24.228274822235107,
+              "inference_p50_ms": 24.10932071506977,
+              "inference_p95_ms": 24.731409549713135,
+              "reserved_vram_gb": 17.84375,
+              "run_id": "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+              "total_params": 11340350,
+              "train_wall_seconds": 10634.91044484824
+            },
+            "predicted": {
+              "benchmark_wall_seconds": 1627.6140056842924,
+              "inference_mean_ms": 28.356962563778485,
+              "inference_p50_ms": 28.25045818504755,
+              "inference_p95_ms": 28.791572537944127,
+              "reserved_vram_gb": 19.208397774222576,
+              "total_params": 11341812,
+              "train_wall_seconds": 10879.221542159783
+            },
+            "row": "176x6",
+            "sandwich_layers": 6
+          }
+        ]
+      },
+      "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+      "decision": "keep",
+      "evidence_run_ids": [
+        "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+        "sd_tf_rd_009_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+        "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+        "sd_tf_rd_009_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+        "sd_tf_rd_009_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+        "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+        "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
+      ],
+      "formal_anchor_run_id": "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
+      "gpu_class": "rtx8000",
+      "hardware_profile_id": "rtx8000_44gb",
+      "objective_metric": "final_log_loss_at_matched_regime_budget",
+      "preferred_architecture": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "film",
+          "ff_expansion": 2,
+          "floating_likelihood": "single_gaussian",
+          "heads": 1,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "integer_likelihood": "hybrid_mixture",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 5,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "sandwich_activation": "gelu",
+          "sandwich_block_norm": "layernorm",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 152,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_activation": "gelu",
+          "sandwich_block_norm": "layernorm",
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 1,
+          "sandwich_latents": 24,
+          "sandwich_layers": 5,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "task": "classification"
+        },
+        "d_icl": 152,
+        "head_hidden_dim": 96,
+        "sandwich_heads": 1,
+        "sandwich_layers": 5,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "preferred_benchmark_timing": {
+        "attempted_checkpoint_count": 100,
+        "failed_checkpoint_count": 0,
+        "host_fingerprint": "ab1abe79e533|linux|x86_64",
+        "max_checkpoint_elapsed_seconds": 15.588431265205145,
+        "mean_checkpoint_elapsed_seconds": 15.081290940344333,
+        "requested_device": "cuda",
+        "resolved_device": "cuda",
+        "successful_checkpoint_count": 100,
+        "wall_elapsed_seconds": 1508.5887077823281
+      },
+      "preferred_delta_ref": "delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1",
+      "preferred_inference_timing": {
+        "device_type": "cuda",
+        "fixture_id": "classification_medium_reference_v1",
+        "gpu_class": "rtx8000",
+        "hardware_profile_id": "rtx8000_44gb",
+        "max_ms": 27.96143665909767,
+        "mean_ms": 27.69562266767025,
+        "measured_iterations": 10,
+        "n_features": 10,
+        "n_test": 40,
+        "n_train": 160,
+        "num_classes": 10,
+        "p50_ms": 27.631128206849098,
+        "p95_ms": 27.906852029263973,
+        "raw_device_name": "Quadro RTX 8000",
+        "requested_device": "cuda",
+        "resolved_device": "cuda",
+        "total_measured_seconds": 0.2769562266767025,
+        "vram_class_gb": 44,
+        "warmup_iterations": 3
+      },
+      "preferred_run_id": "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+      "preferred_runtime_summary": {
+        "non_train_overhead_seconds": 31.184280645102262,
+        "peak_vram_allocated": 12625763840,
+        "peak_vram_reserved": 17811111936,
+        "throughput_examples_per_second": 15.217746456341361,
+        "throughput_tokens_per_second": 90652.58583615387
+      },
+      "rationale": "RTX 8000 medium classification baseline freezes on 152x5 after the corrected TF-RD-009 large validation consumed latest.pt at step 2500 and beat the TF-RD-010 large anchor.",
+      "runtime_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1",
+      "selection_rule": "best_loss_healthy_only",
+      "surface_labels": {
+        "data": "tf_rd_010_dagzoo_medium_control",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "surface_role": "classification_scaling_law",
+      "sweep_id": "tf_rd_009_width_depth_medium_v1",
+      "track": "system_delta_classification_medium_v1",
+      "vram_class_gb": 44
+    }
+  },
   "schema": "tab-foundry-hardware-architecture-baselines-v1",
   "version": 1
 }

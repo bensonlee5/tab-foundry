@@ -940,7 +940,7 @@ Legacy wording note:
   [#255](https://github.com/bensonlee5/tab-foundry/issues/255), completed
   Kaplan-exact Phase-2 fit/report child
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
-  hardware-freeze child
+  large-rung validation / hardware-freeze child
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
   compute-frontier child
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259), and
@@ -992,17 +992,45 @@ Legacy wording note:
     queue-construction planning axis
   - `152x5` is the current fixed-budget winner at `final_log_loss=0.5740` and
     `final_roc_auc=0.7351`
+  - the first registry-backed [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+    rerun exposed an artifact-resolution bug: telemetry listed checkpoints
+    through step 2500, but the reusable artifact retained numbered
+    `step_*.pt` files only through step 600 plus `latest.pt`, so the old
+    `benchmark_checkpoint_selection=all` path stopped on the last preserved
+    numbered snapshot
+  - `tf_rd_009_large_validation_152x5_v1` is now complete under
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257): corrected
+    rerun `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`
+    filtered telemetry-only missing late numbered checkpoints, appended the
+    retained terminal `latest.pt` checkpoint at `global_step=2500`, completed
+    `25/25` checkpoint comparisons, and finished at
+    `final_log_loss=0.7436636568`, `final_brier_score=0.4288940`, and
+    `final_roc_auc=0.7650940` on `openml_classification_large_v1`
+  - the #257 gate is explicit: keep/defer on whether `152x5` beats the
+    TF-RD-010 large clean-control anchor `0.8974410961` at
+    `final_log_loss_at_matched_regime_budget`; only a pass should freeze the
+    first hardware baseline entry, and the large row itself does not join the
+    medium constraint-model evidence
+  - the corrected large-rung result is a keep: `delta_final_log_loss=-0.1538`
+    and `delta_final_roc_auc=+0.1327` versus the carried anchor, so
+    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now
+    freezes `tf_rd_009_rtx8000_44gb_classification_medium_v1` from medium
+    evidence rows only with preferred `152x5`, formal anchor `60x2`, and
+    baseline `96x2`; the large row remains a gate rather than a fitted
+    constraint-model point
   - `176x6` completed cleanly at `final_log_loss=0.5816` and
     `final_roc_auc=0.7238`; keep it as upper-family and near-ceiling evidence,
     but do not add extra near-ceiling rows on this branch because
     capacity-targeted probes would no longer preserve the original TF-RD-009
     width-depth relationship
   - observed training VRAM reserved for the top rows was `16.59 GiB` at
-    `152x5` and `17.84 GiB` at `176x6`, materially below the pre-run
-    width-evidence memory bridge; the hardware-freeze work in
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) now needs to
-    fit constraints from the completed mixed-depth evidence rather than treat
-    the old memory bridge as authoritative
+    `152x5` and `17.84 GiB` at `176x6`, materially below the old pre-run
+    width-evidence memory bridge; after the corrected [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+    pass, the frozen baseline now records the medium-evidence constraint model
+    `P_local(d, L) ≈ 18638.80 + 77.94 * d^2 + 47.93 * L * d^2`,
+    `reserved_vram_gb ≈ 8.69 + 9.271e-07 * params`, and
+    `train_wall_seconds ≈ 8298.45 + 2.275e-04 * params` instead of treating
+    the old bridge as freeze-time evidence
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
@@ -1047,13 +1075,14 @@ Legacy wording note:
     use Kaplan to justify a smooth effective-size axis, keep Chinchilla-style
     parameter-token coupling out of this fixed-budget branch, use μP to justify
     carrying the width winner `96x2`, use the spectral μP paper to require
-    joint width-depth movement once `sandwich_layers` changes, and derive the
-    integer rows through the repo-local planning axis `S(d, L) = L * d^2`, the
-    empirical mixed-depth bridge
-    `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`, and the
-    current RTX 8000 memory fit `reserved_gb ≈ 6.47 + 2.36e-6 * params`; use
-    that bridge only for integer row construction, then fit the first reported
-    law on measured benchmark-registry `model_size.total_params` from completed
+    joint width-depth movement once `sandwich_layers` changes, and record the
+    repo-local bridge through `S(d, L) = L * d^2`, the frozen mixed-depth
+    parameter fit `P_local(d, L) ≈ 18638.80 + 77.94 * d^2 + 47.93 * L * d^2`,
+    the frozen RTX 8000 reserved-memory fit
+    `reserved_vram_gb ≈ 8.69 + 9.271e-07 * params`, and the frozen train-wall
+    fit `train_wall_seconds ≈ 8298.45 + 2.275e-04 * params`; use those formulas
+    as repo-local hardware-planning aids, then fit the first reported law on
+    measured benchmark-registry `model_size.total_params` from completed
     in-family rows `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` only, starting
     with a Kaplan-style power-law family and treating the exponent/intercept as
     repo-specific empirical quantities rather than paper constants
@@ -1085,15 +1114,17 @@ Legacy wording note:
   - maintain the preferred architecture statefully in
     `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
     hardware profile plus sweep surface rather than by GitHub issue state; the
-    first TF-RD-009 entry should be the retained `rtx8000_44gb` medium
-    classification surface selected from the healthy benchmark-backed evidence
-    only after the completed dense diagonal and the follow-on freeze work are
-    enough to freeze a real constraint model and preferred row
+    first TF-RD-009 entry is now the frozen `rtx8000_44gb` medium
+    classification surface selected from the healthy benchmark-backed medium
+    evidence after the completed dense diagonal and the corrected #257
+    large-rung validation gate froze a real constraint model and preferred row
   - use [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as the
     completed Kaplan-exact fit-and-report issue for the current Phase-2
-    evidence payload, then
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) to freeze the
-    hardware baseline from the completed joint width-depth family
+    evidence payload; [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+    is now complete and records the corrected one-row `152x5` large-rung
+    transfer passing on the terminal `latest.pt` rerun, so the hardware
+    baseline is frozen and any further large-rung diagnosis remains separate
+    follow-on work
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
     the first fixed-budget law family

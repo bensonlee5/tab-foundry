@@ -2488,6 +2488,97 @@ def test_collect_checkpoint_snapshots_falls_back_to_latest_checkpoint_when_no_st
     ]
 
 
+def test_collect_checkpoint_snapshots_filters_missing_telemetry_steps_and_appends_latest(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    (checkpoint_dir / "step_000025.pt").write_bytes(b"step25")
+    (checkpoint_dir / "step_000600.pt").write_bytes(b"step600")
+    torch.save({"model": {}, "config": {}, "global_step": 2500}, checkpoint_dir / "latest.pt")
+    history_path = run_dir / "train_history.jsonl"
+    history_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "step": 25,
+                        "stage": "stage1",
+                        "train_loss": 0.8,
+                        "lr": 1.0e-3,
+                        "elapsed_seconds": 5.0,
+                        "train_elapsed_seconds": 1.0,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "step": 600,
+                        "stage": "stage1",
+                        "train_loss": 0.5,
+                        "lr": 1.0e-3,
+                        "elapsed_seconds": 12.0,
+                        "train_elapsed_seconds": 8.0,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "step": 2500,
+                        "stage": "stage1",
+                        "train_loss": 0.4,
+                        "lr": 1.0e-3,
+                        "elapsed_seconds": 30.0,
+                        "train_elapsed_seconds": 25.0,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    telemetry_path = run_dir / "telemetry.json"
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "checkpoint_snapshots": [
+                    {
+                        "step": 25,
+                        "path": "/remote-retained-artifact/run/checkpoints/step_000025.pt",
+                        "elapsed_seconds": 5.0,
+                        "train_elapsed_seconds": 1.0,
+                    },
+                    {
+                        "step": 600,
+                        "path": "/remote-retained-artifact/run/checkpoints/step_000600.pt",
+                        "elapsed_seconds": 12.0,
+                        "train_elapsed_seconds": 8.0,
+                    },
+                    {
+                        "step": 2500,
+                        "path": "/remote-retained-artifact/run/checkpoints/step_002500.pt",
+                        "elapsed_seconds": 30.0,
+                        "train_elapsed_seconds": 25.0,
+                    },
+                ]
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    snapshots = benchmark_module.collect_checkpoint_snapshots(run_dir)
+
+    assert [int(snapshot["step"]) for snapshot in snapshots] == [25, 600, 2500]
+    assert [Path(str(snapshot["path"])).name for snapshot in snapshots] == [
+        "step_000025.pt",
+        "step_000600.pt",
+        "latest.pt",
+    ]
+    assert snapshots[-1]["elapsed_seconds"] == pytest.approx(25.0)
+
+
 def test_selected_checkpoint_snapshots_best_and_final_falls_back_to_latest_when_best_missing(
     tmp_path: Path,
 ) -> None:
