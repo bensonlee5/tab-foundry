@@ -100,6 +100,11 @@ _SCALING_GROUP = LazyGroup(
     name="scaling",
     help="Scaling-study workflows",
     lazy_commands={
+        "backfill-validation": LazyCommandSpec(
+            module="tab_foundry.cli.research_scaling",
+            attr="BACKFILL_VALIDATION_COMMAND",
+            help="Backfill validation loss sidecars from completed scaling-study checkpoints",
+        ),
         "fit": LazyCommandSpec(
             module="tab_foundry.cli.research_scaling",
             attr="FIT_COMMAND",

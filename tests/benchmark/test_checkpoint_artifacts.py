@@ -180,6 +180,50 @@ def test_register_benchmark_run_attaches_remote_artifact_when_online_wandb_prese
     }
 
 
+def test_register_benchmark_run_suppresses_reused_artifact_wandb_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="wandb_reused",
+        telemetry_extra_payload={
+            "wandb": {
+                "entity": "bensonlee55-none",
+                "project": "tab-foundry",
+                "run_id": "bbmhj6c4",
+                "run_name": "wandb_reused",
+                "mode": "online",
+            }
+        },
+    )
+    monkeypatch.setattr(run_registration_module, "repo_root", lambda: repo_root)
+    monkeypatch.setattr(
+        run_registration_module,
+        "publish_benchmark_checkpoint_artifact",
+        lambda **_: (_ for _ in ()).throw(AssertionError("reused rows should skip checkpoint publication")),
+    )
+
+    result = run_registration_module.register_benchmark_run(
+        run_id="run_001",
+        track="binary_ladder",
+        experiment="cls_benchmark_staged",
+        config_profile="cls_benchmark_staged",
+        budget_class="short-run",
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        decision="keep",
+        conclusion="reused artifact row",
+        registry_path=registry_path,
+        suppress_reused_artifact_wandb=True,
+    )
+
+    assert result["run"]["wandb"] is None
+    assert result["run"].get("remote_artifacts") is None
+
+
 def test_backfill_benchmark_checkpoint_artifact_updates_registry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

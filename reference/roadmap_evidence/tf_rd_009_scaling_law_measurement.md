@@ -23,7 +23,9 @@ handoff into the sweep-program design issue
   fixed-budget family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
   completed width-transfer child
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254), then active
-  joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
+  joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+  and active Kaplan-exact Phase-2 fit/report child
+  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
 
 ## Core Reading Path
 
@@ -290,6 +292,25 @@ canonical study config in `reference/scaling_studies/tf_rd_009_phase2.yaml`
 and executable sweep surfaces `tf_rd_009_ns_medium_v1` and
 `tf_rd_009_batch_critical_medium_v1`.
 
+As of April 12, 2026, the current repo-tracked Phase-2 result is a complete
+fit over 44 validation-backed points: 24 `family=ns_core` rows from
+`tf_rd_009_ns_medium_v1` and 20 `family=batch_critical` rows from
+`tf_rd_009_batch_critical_medium_v1`. The artifact root is
+`outputs/research_scaling/tf_rd_009_phase2`, with inspected `N`, measured `S`,
+derived `D = B_eff * S`, training-only `C`, and posthoc CPU validation sidecars
+materialized through `reference/scaling_studies/tf_rd_009_phase2_validation_backfill_v1.json`.
+This is the current Phase-2 fit evidence payload for
+[#256](https://github.com/bensonlee5/tab-foundry/issues/256).
+
+The current C axis has also been audited. Five reused 2,500-step NS rows
+(`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row
+(`11`) originally carried `compute_accounting.training_shape_summary: null`,
+which triggered fallback accounting and made the reused rows appear more
+expensive than their same-model higher-step fresh continuations. The compact
+registry now carries shape-summary-backed compute accounting for those reused
+rows, and `research scaling fit` rejects C-axis fits if shape summaries are
+missing for non-reuse rows or same-model NS `C` is non-monotone across steps.
+
 - one-dimensional fits:
   - `L(N) = E + (N_c / N)^alpha_N`
   - `L(D) = E + (D_c / D)^alpha_D`
@@ -317,6 +338,52 @@ The study must emit inspectable artifacts for every reported fit:
   and the compute frontier
 - a Markdown summary rooted under `outputs/research_scaling/tf_rd_009_phase2/`
 - posthoc W&B summary payloads that surface the fitted alphas and artifact root
+
+Current complete Phase-2 fit values:
+
+| Fit | Target | Points | Key parameters | log-space R2 | RMSE |
+| --- | --- | ---: | --- | ---: | ---: |
+| `L(N)` | benchmark log loss | 6 | `alpha_n=0.0223655`, `Nc=0.00200950` | 0.196187 | 0.027509 |
+| `L(D)` | benchmark log loss | 4 | `alpha_d=0.0368629`, `Dc=12671.9517` | 0.205136 | 0.039687 |
+| `L(C)` | benchmark log loss | 44 | `alpha_c=0.521774`, `Cc=5.456582059841496e11` | 0.237521 | 0.036255 |
+| `L(N,D)` | benchmark log loss | 24 | `alpha_n=0.0111205`, `alpha_d=663.875`, `Nc=1.0e-12`, `Dc=49864.2548` | 0.484884 | 0.031717 |
+| `L(N,S)` | validation loss | 24 | `alpha_n=0.0302565`, `alpha_s=0.331430`, `Nc=258222760.6`, `Sc=608.501` | 0.820915 | 0.033284 |
+| `Bcrit(L)` | validation loss | 2 | `alpha_b=0.00459242`, `B_star=5.144890799137182e34` | -0.064950 | 664615.416 |
+| `L(Cmin)` | benchmark log loss | 12 | `alpha_cmin=0.123823`, `Ccmin=2.1079076205300552e10` | 0.915117 | 0.014289 |
+
+Interpretation: the validation-backed `L(N,S)` surface is the useful primary
+signal. The one-dimensional benchmark-loss slices plus `L(N,D)` remain noisier
+and partly degenerate on this small matrix, so carry them as diagnostics. The
+batch-critical data is complete, but `Bcrit(L)` is weak: its lower envelope has
+only two points and a negative log-space R2, so `L(Cmin)` is a derived
+diagnostic rather than a high-confidence operating law.
+
+Axis audit for the complete matrix:
+
+- `N` is structurally valid: six increasing strict non-embedding parameter
+  values from `666542` through `11335950`. It is not a clean monotone loss axis
+  in this grid because each row changes width and depth together, and the
+  highest-step benchmark slice has `log_space_r2=0.196187`.
+- `S` is structurally valid: four completed step values
+  `{625, 1250, 2500, 5000}` per model row. Loss mostly improves with `S`, but
+  several larger rows regress at `5000` versus `2500`, so single-row step slices
+  should be treated as diagnostics rather than strong standalone laws.
+- `D` is internally consistent with the measured runtime budget:
+  `D = B_eff * S` holds to floating tolerance. Because `B_eff` varies by only
+  about 5% and only with the step ladder in the NS matrix, `D` is nearly
+  collinear with `S`; the current `L(D)` uses only four points from the largest
+  `N` row and has `log_space_r2=0.205136`.
+- `B_eff` is independently sampled by the completed batch-critical sweep, but
+  the observed lower envelope is only two points after validation-loss
+  selection; this is why `Bcrit(L)` is recorded as weak.
+- `C` is now structurally valid after the 2,500-step accounting correction: all
+  44 points have observed or explicitly reused shape-summary-backed compute
+  accounting, and same-model NS `C` is monotone in `S`. Its benchmark-loss fit
+  remains weak at `log_space_r2=0.237521`.
+- Target axes differ materially: validation loss has the cleanest structure and
+  supports the reported `L(N,S)` surface; benchmark log loss is noisier across
+  `N`, `D`, and `C`, which is why the one-dimensional benchmark-loss fits are
+  carried as diagnostics.
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 

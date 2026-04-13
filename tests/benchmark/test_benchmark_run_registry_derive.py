@@ -3,6 +3,7 @@ from __future__ import annotations
 # ruff: noqa: F401
 
 from tests.support.benchmark_run_registry_cases import (
+    test_derive_benchmark_run_record_allows_zero_failed_checkpoint_count,
     test_derive_benchmark_run_record_captures_optional_training_surface_label,
     test_derive_benchmark_run_record_extracts_diagnostics_and_model_size,
     test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint,

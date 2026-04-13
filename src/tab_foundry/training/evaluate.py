@@ -8,12 +8,14 @@ from typing import Any, Mapping
 from omegaconf import DictConfig, OmegaConf
 import torch
 
+from tab_foundry.checkpoint_state import normalize_checkpoint_model_state_dict
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
 )
+from tab_foundry.repo_paths import repo_root
 from tab_foundry.task_batching import (
     resolve_task_batch_size,
 )
@@ -31,9 +33,36 @@ from .trainer_runtime_config import (
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
+_CHECKPOINT_REMOTE_REPO_PREFIXES = (
+    str(Path("/") / "workspace" / "tab-foundry"),
+)
+
+
+def _rebase_checkpoint_config_repo_paths(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _rebase_checkpoint_config_repo_paths(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_rebase_checkpoint_config_repo_paths(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    for remote_prefix in _CHECKPOINT_REMOTE_REPO_PREFIXES:
+        if value == remote_prefix:
+            return str(repo_root())
+        prefix = f"{remote_prefix}/"
+        if value.startswith(prefix):
+            return str(repo_root() / value.removeprefix(prefix))
+    return value
+
+
 def _checkpoint_config_mapping(payload: dict[str, Any]) -> dict[str, Any]:
     cfg_payload = payload.get("config")
-    return cfg_payload if isinstance(cfg_payload, dict) else {}
+    if not isinstance(cfg_payload, dict):
+        return {}
+    return _rebase_checkpoint_config_repo_paths(cfg_payload)
+
 
 
 def _checkpoint_config_section(
@@ -98,6 +127,8 @@ def _checkpoint_dataset_seed(
 def _checkpoint_model_settings(
     payload: dict[str, Any],
     cfg: DictConfig,
+    *,
+    state_dict: Mapping[str, Any] | None = None,
 ) -> ModelBuildSpec:
     checkpoint_cfg = _checkpoint_config_mapping(payload)
     task_raw = checkpoint_cfg.get("task", cfg.task)
@@ -116,13 +147,32 @@ def _checkpoint_model_settings(
     primary_model_cfg: dict[str, Any] = {}
     if isinstance(model_cfg, dict):
         primary_model_cfg = {str(key): value for key, value in model_cfg.items()}
-    model_state = payload.get("model")
-    state_dict = model_state if isinstance(model_state, dict) else None
+    if state_dict is None:
+        model_state = payload.get("model")
+        state_dict = (
+            normalize_checkpoint_model_state_dict(model_state)
+            if isinstance(model_state, Mapping)
+            else None
+        )
     return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=primary_model_cfg,
         fallback=fallback_model_cfg,
         state_dict=state_dict,
+    )
+
+
+def _checkpoint_model_state_dict(
+    payload: Mapping[str, Any],
+    *,
+    checkpoint_path: Path | None = None,
+) -> dict[str, Any]:
+    model_state = payload.get("model")
+    if not isinstance(model_state, Mapping):
+        raise RuntimeError("checkpoint payload is missing a model state dict")
+    return normalize_checkpoint_model_state_dict(
+        model_state,
+        checkpoint_path=checkpoint_path,
     )
 
 
@@ -174,7 +224,8 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     if not isinstance(payload, dict):
         raise RuntimeError("checkpoint payload must be a mapping")
 
-    model_spec = _checkpoint_model_settings(payload, cfg)
+    state_dict = _checkpoint_model_state_dict(payload, checkpoint_path=checkpoint)
+    model_spec = _checkpoint_model_settings(payload, cfg, state_dict=state_dict)
     data_cfg = _checkpoint_data_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
     training_cfg = _checkpoint_training_settings(payload, cfg)
@@ -187,7 +238,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
     model = build_model_from_spec(model_spec)
-    model.load_state_dict(payload["model"])
+    model.load_state_dict(state_dict)
 
     split = str(cfg.eval.split)
     max_batches = int(cfg.eval.max_batches)

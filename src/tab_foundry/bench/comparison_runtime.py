@@ -215,6 +215,7 @@ def _finalize_benchmark_summary(
     benchmark_run_record_path: Path,
     training_surface_record_path: Path,
     tab_foundry_run_dir: Path,
+    suppress_reused_artifact_wandb: bool,
 ) -> dict[str, Any]:
     summary["external_benchmarks"] = list(requested_external_benchmarks)
     if primary_external_benchmark is not None:
@@ -253,10 +254,11 @@ def _finalize_benchmark_summary(
         tab_foundry_summary["surface_labels"] = dict(benchmark_run_record["surface_labels"])
     write_json(comparison_summary_path, summary)
     write_json(benchmark_run_record_path, benchmark_run_record)
-    _ = posthoc_update_wandb_summary(
-        telemetry_path=telemetry_path(tab_foundry_run_dir),
-        payload=benchmark_wandb_summary_payload(summary),
-    )
+    if not suppress_reused_artifact_wandb:
+        _ = posthoc_update_wandb_summary(
+            telemetry_path=telemetry_path(tab_foundry_run_dir),
+            payload=benchmark_wandb_summary_payload(summary),
+        )
     return summary
 
 
@@ -575,4 +577,5 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         benchmark_run_record_path=benchmark_run_record_path,
         training_surface_record_path=training_surface_record_path,
         tab_foundry_run_dir=tab_foundry_run_dir,
+        suppress_reused_artifact_wandb=bool(config.suppress_reused_artifact_wandb),
     )

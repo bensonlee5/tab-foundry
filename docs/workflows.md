@@ -424,6 +424,47 @@ Benchmark-facing writeups should cite the locked manifest path,
 `cls_benchmark_linear_v2`, `training_surface_record.json`,
 `research_card.md`, `campaign.yaml`, and `result_card.md`.
 
+For scaling studies whose benchmark-only runs were executed with
+`runtime.val_batches=0`, do not create a fresh validation-training sweep first.
+Backfill strict validation losses from completed checkpoints:
+
+```bash
+tab-foundry research scaling backfill-validation \
+  --study tf_rd_009_phase2 \
+  --launch-gcs-root gs://tab-foundry-execution/tab-foundry/launches/<launch-id> \
+  --preseed-gcs-root gs://tab-foundry-execution/tab-foundry/launches/<preseed-launch-id>/preseed \
+  --val-batches 16 \
+  --device cpu
+```
+
+This downloads only `latest.pt` plus small train metadata into a bounded local
+overlay, writes `validation_backfill_v1.json` sidecars, and lets strict scaling
+fits use validation-backed losses without substituting benchmark loss. Use the
+emitted `registry_overlay_path` with `research scaling inspect` and `research
+scaling fit` so the fitter resolves the local overlay sidecars. Fresh validation
+sweeps are the fallback only when the completed checkpoint artifacts or their
+checkpoint configs cannot be validated posthoc.
+
+For the April 12, 2026 TF-RD-009 completed Phase-2 state, the repo-tracked
+`tf_rd_009_phase2` study carries 24 completed `tf_rd_009_ns_medium_v1`
+validation-backed NS-core rows, 20 completed
+`tf_rd_009_batch_critical_medium_v1` validation-backed batch-critical rows, and
+a compact validation overlay. Inspect and fit that full state with:
+
+```bash
+tab-foundry research scaling inspect --study tf_rd_009_phase2
+tab-foundry research scaling fit --study tf_rd_009_phase2
+```
+
+The default full fit reports `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`,
+`Bcrit(L)`, `L(Cmin)`, and derived `Cmin` relations. `--fit-scope ns-only`
+remains available for interim recovery work when batch-critical rows are
+pending, but is no longer the canonical TF-RD-009 Phase-2 path. The `L(C)` path
+requires observed training-shape summaries and same-model monotone NS compute
+accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
+Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
+lower envelope has only two points.
+
 ## Scope Boundaries
 
 - Use smoke for plumbing checks, not the canonical leaderboard.

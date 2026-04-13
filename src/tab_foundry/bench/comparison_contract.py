@@ -41,6 +41,7 @@ class BenchmarkComparisonConfig:
     reuse_nanotabpfn_curve_path: Path | None = None
     reuse_nanotabpfn_error: Mapping[str, Any] | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
+    suppress_reused_artifact_wandb: bool = False
     tabicl_root: Path | None = None
     tab_realdata_hub_root: Path | None = None
     tabicl_classifier_checkpoint_version: str = DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION

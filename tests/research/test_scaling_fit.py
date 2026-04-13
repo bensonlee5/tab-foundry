@@ -12,6 +12,7 @@ import pytest
 import tab_foundry.cli.app as cli_module
 import tab_foundry.cli.research_scaling as research_scaling_cli_module
 import tab_foundry.research.scaling.fit as scaling_fit_module
+import tab_foundry.research.scaling.validation_backfill as validation_backfill_module
 from tab_foundry.research.scaling.fit import (
     ScalingStudyRunPoint,
     collect_completed_scaling_points,
@@ -20,7 +21,15 @@ from tab_foundry.research.scaling.fit import (
     fit_loss_vs_ns,
     fit_loss_vs_scale,
     fit_scaling_study,
+    inspect_scaling_study,
 )
+from tab_foundry.research.scaling.validation_backfill import backfill_validation_study
+from tab_foundry.research.scaling.validation_backfill_schema import (
+    VALIDATION_BACKFILL_FILENAME,
+    VALIDATION_BACKFILL_SCHEMA,
+    VALIDATION_BACKFILL_VERSION,
+)
+from tab_foundry.types import EvalResult
 
 
 def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
@@ -33,34 +42,35 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _write_history(path: Path, *, final_step: int, validation_loss: float) -> None:
+def _write_history(path: Path, *, final_step: int, validation_loss: float | None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     records = [
         {
             "step": int(final_step // 2),
             "stage": "stage1",
-            "train_loss": float(validation_loss + 0.15),
+            "train_loss": float((validation_loss if validation_loss is not None else 1.0) + 0.15),
             "train_acc": 0.5,
             "lr": 1.0e-3,
             "grad_norm": 0.8,
             "elapsed_seconds": 1.0,
             "train_elapsed_seconds": 1.0,
-            "val_loss": float(validation_loss + 0.05),
-            "val_acc": 0.55,
         },
         {
             "step": int(final_step),
             "stage": "stage1",
-            "train_loss": float(validation_loss + 0.1),
+            "train_loss": float((validation_loss if validation_loss is not None else 1.0) + 0.1),
             "train_acc": 0.6,
             "lr": 1.0e-3,
             "grad_norm": 0.7,
             "elapsed_seconds": 2.0,
             "train_elapsed_seconds": 2.0,
-            "val_loss": float(validation_loss),
-            "val_acc": 0.65,
         },
     ]
+    if validation_loss is not None:
+        records[0]["val_loss"] = float(validation_loss + 0.05)
+        records[0]["val_acc"] = 0.55
+        records[1]["val_loss"] = float(validation_loss)
+        records[1]["val_acc"] = 0.65
     with path.open("w", encoding="utf-8") as handle:
         for record in records:
             json.dump(record, handle, sort_keys=True)
@@ -160,6 +170,11 @@ def _registry_entry(
             "total_train_flops": train_flops_per_token * float(tokens_seen),
             "tokens_seen": int(tokens_seen),
             "tokens_per_step": float(tokens_per_step),
+            "training_shape_summary": {
+                "signature_task_counts": {
+                    "96x32x6x2": int(final_step),
+                },
+            },
         },
     }
 
@@ -320,7 +335,10 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
         "comparison_policy": "anchor_only",
         "upstream_reference": {"name": "synthetic", "model_source": "local"},
         "anchor_surface": {"notes": [], "dimension_table": []},
-        "anchor_context": {"run_id": "anchor_run", "surface_labels": {"model": "tabfoundry_sandwich"}},
+        "anchor_context": {
+            "run_id": "anchor_run",
+            "surface_labels": {"model": "tabfoundry_sandwich"},
+        },
     }
     _write_yaml(
         sweeps_root / "synthetic_ns" / "sweep.yaml",
@@ -359,8 +377,13 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
     registry_runs: dict[str, Any] = {}
     for order, (run_id, d_icl, layers, steps, n_value, delta_ref) in enumerate(ns_specs, start=1):
         d_value = float(steps) * 128.0
-        benchmark_loss = benchmark_floor + (((nc / n_value) ** (alpha_n / alpha_d)) + (dc / d_value)) ** alpha_d
-        validation_loss = validation_floor + (((nc / n_value) ** (alpha_n / alpha_s)) + (sc / float(steps))) ** alpha_s
+        benchmark_loss = (
+            benchmark_floor + (((nc / n_value) ** (alpha_n / alpha_d)) + (dc / d_value)) ** alpha_d
+        )
+        validation_loss = (
+            validation_floor
+            + (((nc / n_value) ** (alpha_n / alpha_s)) + (sc / float(steps))) ** alpha_s
+        )
         registry_runs[run_id] = _registry_entry(
             run_id=run_id,
             d_icl=d_icl,
@@ -455,12 +478,19 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
             "phase1_reference_sweep_id": "tf_rd_009_width_depth_medium_v1",
             "sweeps": [
                 {"name": "ns_core", "sweep_id": "synthetic_ns", "family": "ns_core"},
-                {"name": "batch_critical", "sweep_id": "synthetic_batch", "family": "batch_critical"},
+                {
+                    "name": "batch_critical",
+                    "sweep_id": "synthetic_batch",
+                    "family": "batch_critical",
+                },
             ],
             "geometry_row_labels": ["72x1", "96x2"],
             "step_ladder": [625, 1250],
             "batch_grad_accum_ladder": [1, 4, 16],
-            "canonical_loss_axes": {"benchmark": "benchmark_log_loss", "validation": "validation_loss"},
+            "canonical_loss_axes": {
+                "benchmark": "benchmark_log_loss",
+                "validation": "validation_loss",
+            },
             "canonical_variables": {
                 "N": "parameter_accounting.canonical_non_embedding_params",
                 "D": "regime_budget.tokens_seen",
@@ -480,6 +510,75 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
         },
     )
     return study_path, registry_path, index_path, catalog_path, sweeps_root
+
+
+def _mark_batch_queue_pending(sweeps_root: Path) -> None:
+    queue_path = sweeps_root / "synthetic_batch" / "queue.yaml"
+    payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(payload, dict)
+    rows = payload["rows"]
+    assert isinstance(rows, list)
+    for row in rows:
+        assert isinstance(row, dict)
+        row["status"] = "pending"
+        row["interpretation_status"] = "pending"
+    _write_yaml(queue_path, payload)
+
+
+def _remove_validation_history(root: Path, registry_path: Path) -> None:
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    for entry in registry["runs"].values():
+        history_path = root / entry["artifacts"]["history_path"]
+        final_step = int(entry["tab_foundry_metrics"]["final_step"])
+        _write_history(history_path, final_step=final_step, validation_loss=None)
+
+
+def _write_validation_backfill_sidecars(
+    root: Path,
+    registry_path: Path,
+    *,
+    val_loss: float = 0.42,
+) -> None:
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    for run_id, entry in registry["runs"].items():
+        history_path = root / entry["artifacts"]["history_path"]
+        sidecar_path = history_path.parent / VALIDATION_BACKFILL_FILENAME
+        _write_json(
+            sidecar_path,
+            {
+                "schema": VALIDATION_BACKFILL_SCHEMA,
+                "version": VALIDATION_BACKFILL_VERSION,
+                "study_id": "synthetic_phase2",
+                "sweep_id": "synthetic",
+                "row_order": 1,
+                "row_label": "synthetic",
+                "run_id": run_id,
+                "checkpoint": {
+                    "path": str(history_path.parent / "checkpoints" / "latest.pt"),
+                    "source_uri": "local",
+                    "global_step": int(entry["tab_foundry_metrics"]["final_step"]),
+                },
+                "evaluation": {
+                    "split": "val",
+                    "max_batches": 16,
+                    "device": "cpu",
+                },
+                "metrics": {
+                    "val_loss": float(val_loss),
+                    "val_acc": 0.5,
+                },
+            },
+        )
+
+
+def _write_backfill_required_files(root: Path, registry_path: Path) -> None:
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    for entry in registry["runs"].values():
+        run_dir = root / entry["artifacts"]["run_dir"]
+        checkpoint_path = run_dir / "checkpoints" / "latest.pt"
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint_path.write_bytes(b"placeholder checkpoint")
+        _write_json(run_dir / "training_surface_record.json", {"fingerprint": "test"})
 
 
 def _point(
@@ -509,6 +608,8 @@ def _point(
         canonical_non_embedding_params=n_value,
         benchmark_log_loss=benchmark_loss,
         validation_loss=validation_loss,
+        validation_loss_source="train_history",
+        validation_loss_missing_reason=None,
         steps=s_value,
         tokens_seen=d_value,
         tokens_per_step=batch_value,
@@ -543,7 +644,8 @@ def test_fit_loss_vs_nd_and_ns_recover_known_exponents() -> None:
             n_value=n_value,
             d_value=s_value * 128,
             s_value=s_value,
-            benchmark_loss=0.3 + (((4.0e6 / n_value) ** (0.4 / 0.3)) + (8.0e5 / (s_value * 128))) ** 0.3,
+            benchmark_loss=0.3
+            + (((4.0e6 / n_value) ** (0.4 / 0.3)) + (8.0e5 / (s_value * 128))) ** 0.3,
             validation_loss=0.25 + (((4.0e6 / n_value) ** (0.4 / 0.5)) + (1500.0 / s_value)) ** 0.5,
         )
         for n_value in [1_000_000, 2_000_000, 4_000_000]
@@ -579,6 +681,30 @@ def test_fit_bcrit_recovers_a_known_alpha() -> None:
     assert fit["parameters"]["alpha_b"] == pytest.approx(0.5, rel=0.2)
 
 
+def test_fit_bcrit_handles_near_flat_envelope_seed() -> None:
+    points = [
+        _point(
+            n_value=2_000_000,
+            d_value=int(batch),
+            s_value=1250,
+            benchmark_loss=0.7,
+            validation_loss=validation_loss,
+            batch_value=batch,
+        )
+        for batch, validation_loss in [
+            (1_468_823.3472, 1.357179943472147),
+            (95_400.7552, 1.3579254001379013),
+        ]
+    ]
+    for index, point in enumerate(points):
+        points[index] = ScalingStudyRunPoint(**{**point.as_dict(), "family": "batch_critical"})
+
+    fit = fit_bcrit(points)
+
+    assert math.isfinite(fit["parameters"]["B_star"])
+    assert math.isfinite(fit["parameters"]["alpha_b"])
+
+
 def test_fit_scaling_study_emits_artifacts_and_wandb_updates(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -588,10 +714,10 @@ def test_fit_scaling_study_emits_artifacts_and_wandb_updates(
     monkeypatch.setattr(
         scaling_fit_module,
         "posthoc_update_wandb_summary",
-        lambda *, telemetry_path, payload: captured_updates.append(
-            {"telemetry_path": str(telemetry_path), "payload": payload}
-        )
-        or True,
+        lambda *, telemetry_path, payload: (
+            captured_updates.append({"telemetry_path": str(telemetry_path), "payload": payload})
+            or True
+        ),
     )
 
     payload = fit_scaling_study(
@@ -622,11 +748,321 @@ def test_fit_scaling_study_emits_artifacts_and_wandb_updates(
     assert captured_updates
 
 
+def test_fit_scaling_study_ns_only_omits_batch_fits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    monkeypatch.setattr(
+        scaling_fit_module,
+        "posthoc_update_wandb_summary",
+        lambda *, telemetry_path, payload: True,
+    )
+    artifact_root = tmp_path / "artifacts"
+    stale_plots = [
+        artifact_root / "plots" / "bcrit.png",
+        artifact_root / "plots" / "bcritl_residuals.png",
+        artifact_root / "plots" / "lcmin_residuals.png",
+        artifact_root / "plots" / "l_cmin_frontier.png",
+    ]
+    for stale_plot in stale_plots:
+        stale_plot.parent.mkdir(parents=True, exist_ok=True)
+        stale_plot.write_text("stale", encoding="utf-8")
+
+    payload = fit_scaling_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        out_root=artifact_root,
+        fit_scope="ns-only",
+    )
+
+    assert payload["fit_scope"] == "ns-only"
+    assert payload["counts"]["total_completed_points"] == 4
+    assert payload["counts"]["all_completed_points"] == 7
+    assert payload["counts"]["batch_critical_completed_points"] == 0
+    assert set(payload["fit_summary"]) == {"L(N)", "L(D)", "L(C)", "L(N,D)", "L(N,S)"}
+    assert set(payload["alphas"]) == {"alpha_n", "alpha_d", "alpha_s", "alpha_c"}
+    assert "direct_vs_implied_alpha_cmin" not in payload["derived_kaplan_relations"]
+    assert (artifact_root / "plots" / "l_ns_surface.png").exists()
+    for stale_plot in stale_plots:
+        assert not stale_plot.exists()
+
+
+def test_fit_scaling_study_all_scope_requires_batch_critical_points(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _mark_batch_queue_pending(sweeps_root)
+
+    with pytest.raises(RuntimeError, match="fit_scope='all' requires completed batch_critical"):
+        _ = fit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "artifacts",
+        )
+
+
+def test_fit_scaling_study_rejects_c_axis_without_shape_summary(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    registry["runs"]["ns_96_1250"]["compute_accounting"]["training_shape_summary"] = None
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="L\\(C\\) requires observed compute_accounting\\.training_shape_summary.*ns_96_1250",
+    ):
+        _ = fit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "artifacts",
+            fit_scope="ns-only",
+        )
+
+
+def test_fit_scaling_study_allows_reused_c_axis_without_shape_summary(
+    tmp_path: Path,
+) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    registry["runs"]["ns_96_1250"]["compute_accounting"]["training_shape_summary"] = None
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    queue_path = sweeps_root / "synthetic_ns" / "queue.yaml"
+    queue = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue, dict)
+    rows = queue["rows"]
+    assert isinstance(rows, list)
+    for row in rows:
+        assert isinstance(row, dict)
+        if row["run_id"] == "ns_96_1250":
+            row["reuse_train_artifact"] = {
+                "run_dir": "outputs/reused/ns_96_1250/train",
+                "training_surface_fingerprint": "test-fingerprint",
+            }
+            break
+    else:  # pragma: no cover - defensive fixture guard
+        raise AssertionError("missing ns_96_1250 fixture row")
+    _write_yaml(queue_path, queue)
+
+    payload = fit_scaling_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        out_root=tmp_path / "artifacts",
+        fit_scope="ns-only",
+    )
+
+    reused_points = [
+        point
+        for point in payload["fit_summary"]["L(C)"]["points"]
+        if point["run_id"] == "ns_96_1250"
+    ]
+    assert len(reused_points) == 1
+    assert reused_points[0]["compute_training_shape_summary_present"] is False
+    assert reused_points[0]["compute_training_shape_signature_count"] == 0
+    assert reused_points[0]["uses_reuse_train_artifact"] is True
+
+
+def test_fit_scaling_study_rejects_nonmonotone_ns_c_axis(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    lower_step_c = registry["runs"]["ns_96_625"]["compute_accounting"]["total_train_flops"]
+    higher_step_accounting = registry["runs"]["ns_96_1250"]["compute_accounting"]
+    higher_step_accounting["total_train_flops"] = float(lower_step_c) * 0.5
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="L\\(C\\) C-axis monotonicity check failed.*ns_96_1250.*ns_96_625",
+    ):
+        _ = fit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "artifacts",
+            fit_scope="ns-only",
+        )
+
+
+def test_inspect_scaling_study_reports_missing_validation_without_crashing(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _remove_validation_history(tmp_path, registry_path)
+
+    payload = inspect_scaling_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+
+    assert payload["counts"]["total_completed_points"] == 7
+    assert payload["counts"]["validation_backed_points"] == 0
+    assert payload["counts"]["missing_validation_points"] == 7
+    assert payload["counts"]["l_n_points"] == 2
+    assert payload["counts"]["l_ns_points"] == 0
+    assert (
+        payload["validation_coverage"]["missing"][0]["missing_reason"]
+        == "history_missing_validation_records"
+    )
+
+
+def test_inspect_scaling_study_uses_validation_backfill_sidecars(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _remove_validation_history(tmp_path, registry_path)
+    _write_validation_backfill_sidecars(tmp_path, registry_path)
+
+    payload = inspect_scaling_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+
+    assert payload["counts"]["total_completed_points"] == 7
+    assert payload["counts"]["validation_backed_points"] == 7
+    assert payload["counts"]["missing_validation_points"] == 0
+    assert payload["available_points"][0]["validation_loss_source"] == "validation_backfill_v1"
+
+
+def test_fit_scaling_study_requires_validation_for_strict_fits(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _remove_validation_history(tmp_path, registry_path)
+
+    with pytest.raises(
+        RuntimeError,
+        match="L\\(N,S\\) requires validation_loss.*runtime\\.val_batches=0.*posthoc validation backfill",
+    ):
+        _ = fit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "artifacts",
+        )
+
+
+def test_validation_backfill_dry_run_reports_ready_and_incomplete_rows(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _remove_validation_history(tmp_path, registry_path)
+    _write_backfill_required_files(tmp_path, registry_path)
+
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    first_entry = registry["runs"]["ns_72_625"]
+    (tmp_path / first_entry["artifacts"]["run_dir"] / "checkpoints" / "latest.pt").unlink()
+
+    payload = backfill_validation_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        preseed_gcs_root=str(tmp_path),
+        dry_run=True,
+    )
+
+    assert payload["counts"]["candidate_rows"] == 7
+    assert payload["counts"]["dry_run_ready"] == 6
+    assert payload["counts"]["incomplete_artifacts"] == 1
+    incomplete = [row for row in payload["rows"] if row["status"] == "incomplete_artifacts"]
+    assert incomplete[0]["run_id"] == "ns_72_625"
+    assert incomplete[0]["missing_artifacts"] == ["checkpoints/latest.pt"]
+
+
+def test_validation_backfill_writes_sidecars_and_skips_existing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    _remove_validation_history(tmp_path, registry_path)
+    _write_backfill_required_files(tmp_path, registry_path)
+    calls: list[Any] = []
+
+    def _fake_evaluate_checkpoint(cfg: Any) -> EvalResult:
+        calls.append(cfg)
+        return EvalResult(checkpoint=Path(str(cfg.eval.checkpoint)), metrics={"loss": 0.37, "acc": 0.61})
+
+    monkeypatch.setattr(validation_backfill_module, "evaluate_checkpoint", _fake_evaluate_checkpoint)
+    monkeypatch.setattr(validation_backfill_module, "_checkpoint_global_step", lambda _path: 625)
+
+    payload = backfill_validation_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        preseed_gcs_root=str(tmp_path),
+        cache_root=tmp_path / "cache",
+        out_root=tmp_path / "validation",
+        start_order=1,
+        stop_after_order=1,
+    )
+
+    assert payload["counts"]["candidate_rows"] == 2
+    assert payload["counts"]["validated_rows"] == 2
+    assert len(calls) == 2
+    first_cfg = calls[0]
+    assert str(first_cfg.eval.split) == "val"
+    assert int(first_cfg.eval.max_batches) == 16
+    assert str(first_cfg.runtime.device) == "cpu"
+    assert str(first_cfg.runtime.mixed_precision) == "no"
+    assert bool(first_cfg.logging.use_wandb) is False
+    first_sidecar = Path(payload["rows"][0]["sidecar_path"])
+    sidecar_payload = json.loads(first_sidecar.read_text(encoding="utf-8"))
+    assert sidecar_payload["schema"] == VALIDATION_BACKFILL_SCHEMA
+    assert sidecar_payload["metrics"]["val_loss"] == pytest.approx(0.37)
+    overlay_payload = inspect_scaling_study(
+        study_path=study_path,
+        registry_path=Path(payload["registry_overlay_path"]),
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    assert overlay_payload["counts"]["validation_backed_points"] == 2
+
+    second_payload = backfill_validation_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        preseed_gcs_root=str(tmp_path),
+        cache_root=tmp_path / "cache",
+        out_root=tmp_path / "validation",
+        start_order=1,
+        stop_after_order=1,
+    )
+
+    assert second_payload["counts"]["skipped_existing"] == 2
+    assert len(calls) == 2
+
+
 def test_collect_completed_scaling_points_rejects_inconsistent_tokens(tmp_path: Path) -> None:
     study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     registry["runs"]["ns_72_625"]["regime_budget"]["tokens_seen"] = 999
-    registry_path.write_text(json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     config = scaling_fit_module.load_scaling_study_config(study_path=study_path)
 
@@ -640,19 +1076,107 @@ def test_collect_completed_scaling_points_rejects_inconsistent_tokens(tmp_path: 
         )
 
 
-def test_research_scaling_cli_dispatches_to_fit_and_inspect(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_collect_completed_scaling_points_prefers_training_history_step(
+    tmp_path: Path,
+) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    registry["runs"]["ns_72_1250"]["tab_foundry_metrics"]["final_step"] = 600.0
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    config = scaling_fit_module.load_scaling_study_config(study_path=study_path)
+
+    points = collect_completed_scaling_points(
+        config=config,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+
+    point = next(point for point in points if point.run_id == "ns_72_1250")
+    assert point.steps == 1250
+
+
+def test_collect_completed_scaling_points_uses_validation_overlay_for_missing_history(
+    tmp_path: Path,
+) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    entry = registry["runs"]["ns_72_1250"]
+    entry["tab_foundry_metrics"]["final_step"] = 600.0
+    history_path = tmp_path / entry["artifacts"]["history_path"]
+    history_path.unlink()
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    overlay_path = tmp_path / "validation_overlay.json"
+    _write_json(
+        overlay_path,
+        {
+            "schema": scaling_fit_module.VALIDATION_OVERLAY_SCHEMA,
+            "study_id": "synthetic_phase2",
+            "rows": [
+                {
+                    "run_id": "ns_72_1250",
+                    "global_step": 1250,
+                    "validation_loss": 0.333,
+                    "validation_loss_source": "validation_backfill_v1",
+                }
+            ],
+        },
+    )
+    study_payload = OmegaConf.to_container(OmegaConf.load(study_path), resolve=True)
+    assert isinstance(study_payload, dict)
+    study_payload["validation_overlay_path"] = str(overlay_path)
+    _write_yaml(study_path, study_payload)
+
+    config = scaling_fit_module.load_scaling_study_config(study_path=study_path)
+
+    points = collect_completed_scaling_points(
+        config=config,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+
+    point = next(point for point in points if point.run_id == "ns_72_1250")
+    assert point.steps == 1250
+    assert point.validation_loss == pytest.approx(0.333)
+    assert point.validation_loss_source == "validation_backfill_v1"
+
+
+def test_research_scaling_cli_dispatches_to_fit_and_inspect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     inspect_called: dict[str, Any] = {}
     fit_called: dict[str, Any] = {}
+    backfill_called: dict[str, Any] = {}
     monkeypatch.setattr(
         research_scaling_cli_module,
         "inspect_scaling_study",
-        lambda **kwargs: inspect_called.update(kwargs) or {"study": {"study_id": "synthetic"}, "counts": {}},
+        lambda **kwargs: (
+            inspect_called.update(kwargs) or {"study": {"study_id": "synthetic"}, "counts": {}}
+        ),
     )
     monkeypatch.setattr(
         research_scaling_cli_module,
         "fit_scaling_study",
-        lambda **kwargs: fit_called.update(kwargs)
-        or {"study": {"study_id": "synthetic"}, "counts": {}, "fit_summary": {}},
+        lambda **kwargs: (
+            fit_called.update(kwargs)
+            or {"study": {"study_id": "synthetic"}, "counts": {}, "fit_summary": {}}
+        ),
+    )
+    monkeypatch.setattr(
+        research_scaling_cli_module,
+        "backfill_validation_study",
+        lambda **kwargs: (
+            backfill_called.update(kwargs)
+            or {"study": {"study_id": "synthetic"}, "counts": {}, "rows": []}
+        ),
     )
 
     inspect_result = CliRunner().invoke(
@@ -674,11 +1198,32 @@ def test_research_scaling_cli_dispatches_to_fit_and_inspect(monkeypatch: pytest.
             "fit",
             "--study",
             "synthetic_phase2",
+            "--fit-scope",
+            "ns-only",
+            "--json",
+        ],
+    )
+    backfill_result = CliRunner().invoke(
+        cli_module.cli,
+        [
+            "research",
+            "scaling",
+            "backfill-validation",
+            "--study",
+            "synthetic_phase2",
+            "--preseed-gcs-root",
+            str(Path("/tmp/source")),
+            "--dry-run",
             "--json",
         ],
     )
 
     assert inspect_result.exit_code == 0
     assert fit_result.exit_code == 0
+    assert backfill_result.exit_code == 0
     assert inspect_called["study_id"] == "synthetic_phase2"
     assert fit_called["study_id"] == "synthetic_phase2"
+    assert fit_called["fit_scope"] == "ns-only"
+    assert backfill_called["study_id"] == "synthetic_phase2"
+    assert backfill_called["preseed_gcs_root"] == str(Path("/tmp/source"))
+    assert backfill_called["dry_run"] is True

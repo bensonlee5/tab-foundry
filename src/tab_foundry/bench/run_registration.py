@@ -42,6 +42,7 @@ from tab_foundry.bench.registry.summary_metrics import (
     ensure_mapping,
     ensure_non_empty_string,
     ensure_optional_finite_number,
+    ensure_optional_non_negative_int,
     ensure_optional_positive_int,
     ensure_optional_string,
     tab_foundry_metrics_from_summary,
@@ -261,15 +262,15 @@ def _benchmark_timing_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, 
             raw_timing.get("max_checkpoint_elapsed_seconds"),
             context="comparison_summary.tab_foundry.benchmark_timing.max_checkpoint_elapsed_seconds",
         ),
-        "attempted_checkpoint_count": ensure_optional_positive_int(
+        "attempted_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("attempted_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.attempted_checkpoint_count",
         ),
-        "successful_checkpoint_count": ensure_optional_positive_int(
+        "successful_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("successful_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.successful_checkpoint_count",
         ),
-        "failed_checkpoint_count": ensure_optional_positive_int(
+        "failed_checkpoint_count": ensure_optional_non_negative_int(
             raw_timing.get("failed_checkpoint_count"),
             context="comparison_summary.tab_foundry.benchmark_timing.failed_checkpoint_count",
         ),
@@ -479,6 +480,7 @@ def derive_benchmark_run_record(
     parent_sweep_id: str | None = None,
     queue_order: int | None = None,
     run_kind: str | None = None,
+    suppress_reused_artifact_wandb: bool = False,
 ) -> dict[str, Any]:
     """Derive one machine-readable benchmark run record from current artifacts."""
 
@@ -606,7 +608,11 @@ def derive_benchmark_run_record(
             else _normalize_registry_path(training_surface_path),
             "accounting_artifact_path": _normalize_registry_path(accounting_artifact_path),
         },
-        "wandb": _wandb_identity_from_telemetry(telemetry_payload),
+        "wandb": (
+            None
+            if suppress_reused_artifact_wandb
+            else _wandb_identity_from_telemetry(telemetry_payload)
+        ),
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
@@ -659,6 +665,7 @@ def derive_benchmark_run_entry(
     queue_order: int | None = None,
     run_kind: str | None = None,
     registry_path: Path | None = None,
+    suppress_reused_artifact_wandb: bool = False,
 ) -> dict[str, Any]:
     """Derive one benchmark registry entry from benchmark artifacts and lineage."""
 
@@ -684,6 +691,7 @@ def derive_benchmark_run_entry(
         parent_sweep_id=parent_sweep_id,
         queue_order=queue_order,
         run_kind=run_kind,
+        suppress_reused_artifact_wandb=suppress_reused_artifact_wandb,
     )
     write_json(resolved_record_path, record)
 
@@ -793,6 +801,7 @@ def register_benchmark_run(
     queue_order: int | None = None,
     run_kind: str | None = None,
     registry_path: Path | None = None,
+    suppress_reused_artifact_wandb: bool = False,
 ) -> dict[str, Any]:
     """Register one completed benchmark-facing run in the canonical registry."""
 
@@ -816,10 +825,11 @@ def register_benchmark_run(
         queue_order=queue_order,
         run_kind=run_kind,
         registry_path=registry_path,
+        suppress_reused_artifact_wandb=suppress_reused_artifact_wandb,
     )
     telemetry_payload = _load_training_telemetry(run_dir.expanduser().resolve())
     raw_wandb = None if telemetry_payload is None else telemetry_payload.get("wandb")
-    if isinstance(raw_wandb, Mapping):
+    if isinstance(raw_wandb, Mapping) and not suppress_reused_artifact_wandb:
         raw_mode = raw_wandb.get("mode")
         normalized_mode = None if raw_mode is None else str(raw_mode).strip().lower()
         if normalized_mode != "offline":
