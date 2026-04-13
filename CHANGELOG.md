@@ -35,10 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-facing note: the packaged CLI now exposes
   `tab-foundry research scaling inspect` and
   `tab-foundry research scaling fit`, and the repo now carries the TF-RD-009
-  Phase-2 study config plus the pending `tf_rd_009_ns_medium_v1` and
+  Phase-2 study config plus the `tf_rd_009_ns_medium_v1` and
   `tf_rd_009_batch_critical_medium_v1` sweep families for paper-faithful
   `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and `L(Cmin)`
   reporting.
+- User-facing note: `tab-foundry research scaling fit` now supports
+  `--fit-scope ns-only` for interim recovery reporting, and the repo now
+  carries the completed April 12, 2026 TF-RD-009 Phase-2 state: 24 completed
+  `tf_rd_009_ns_medium_v1` rows, 20 completed
+  `tf_rd_009_batch_critical_medium_v1` rows, and a compact validation overlay
+  for the full validation-backed fit.
+- User-facing note: `L(C)` fitting now validates the C axis before fitting,
+  rejecting missing training-shape summaries or non-monotone same-model NS
+  compute accounting. The compact TF-RD-009 registry state now corrects the
+  reused 2,500-step NS rows plus the reused batch-critical 96x2 row that had
+  inherited fallback `3x2x4x2` FLOP accounting.
 
 ## [0.16.12] - 2026-04-09
 

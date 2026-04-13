@@ -1000,6 +1000,23 @@ Legacy wording note:
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
+  - as of April 12, 2026, the current Phase-2 result is a complete
+    validation-backed fit over 44 points: 24 `ns_core` rows from
+    `tf_rd_009_ns_medium_v1` and 20 `batch_critical` rows from
+    `tf_rd_009_batch_critical_medium_v1`, rooted under
+    `outputs/research_scaling/tf_rd_009_phase2`
+  - the validation-backed `L(N,S)` surface is the useful primary signal:
+    `alpha_n=0.0302565`, `alpha_s=0.331430`, `Nc=258222760.6`, `Sc=608.501`,
+    `log_space_r2=0.820915`, and `rmse=0.033284`
+  - the C axis has been audited and corrected for reused 2,500-step rows:
+    NS orders `07`, `11`, `15`, `19`, `23`, plus batch-critical order `11`;
+    the full `L(C)` diagnostic is `alpha_c=0.521774`,
+    `Cc=5.456582059841496e11`, `log_space_r2=0.237521`, and `rmse=0.036255`
+  - the completed batch-critical envelope is weak and should be carried as a
+    caution: `Bcrit(L)` uses only two envelope points with `alpha_b=0.00459242`
+    and `log_space_r2=-0.0649503`; the derived `L(Cmin)` fit reports
+    `alpha_cmin=0.123823`, `log_space_r2=0.915117`, and `rmse=0.014289`, but
+    depends on that weak `Bcrit(L)` relation
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
@@ -1033,9 +1050,9 @@ Legacy wording note:
     persist strict-versus-expanded parameter accounting, define canonical
     paper-style `N` as strict non-embedding params, derive `D = B_eff * S`
     from measured telemetry, derive training-only `C` from inspected analytic
-    FLOPs, and fit the paper-backed family
-    `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and the derived
-    `L(Cmin)` frontier with JSON/PNG/Markdown/W&B artifacts
+    FLOPs, and report the complete validation-backed Phase-2 fit family
+    `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and `L(Cmin)`,
+    with explicit caveats on the weak two-point `Bcrit(L)` envelope
   - maintain the preferred architecture statefully in
     `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
     hardware profile plus sweep surface rather than by GitHub issue state; the
@@ -1043,9 +1060,9 @@ Legacy wording note:
     classification surface selected from the healthy benchmark-backed evidence
     only after the completed dense diagonal and the follow-on freeze work are
     enough to freeze a real constraint model and preferred row
-  - execute [#256](https://github.com/bensonlee5/tab-foundry/issues/256) now as the
-    Kaplan-exact `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and
-    `L(Cmin)` fit-and-report issue, then
+  - use [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as the
+    completed Kaplan-exact fit-and-report issue for the current Phase-2
+    evidence payload, then
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) to freeze the
     hardware baseline from the completed joint width-depth family
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and

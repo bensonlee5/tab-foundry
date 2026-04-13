@@ -416,6 +416,14 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - `d_icl=96` is the chosen `#255` handoff baseline because it improved the
     matched-regime-budget objective cleanly, while `d_icl=128` remains a
     higher-risk upper-width result with elevated stability warnings
+  - the April 12, 2026 Phase-2 state records the complete validation-backed fit
+    over 24 `tf_rd_009_ns_medium_v1` rows and 20
+    `tf_rd_009_batch_critical_medium_v1` rows
+  - the C axis has been audited: five reused NS 2,500-step rows plus the reused
+    batch-critical 96x2 row now carry corrected shape-summary-backed compute
+    accounting, and C-axis fits reject missing or non-monotone compute metadata
+  - the primary usable fit signal is `L(N,S)`; `Bcrit(L)` is recorded but weak
+    because its completed lower envelope has only two points
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

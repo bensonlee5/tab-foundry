@@ -445,6 +445,26 @@ scaling fit` so the fitter resolves the local overlay sidecars. Fresh validation
 sweeps are the fallback only when the completed checkpoint artifacts or their
 checkpoint configs cannot be validated posthoc.
 
+For the April 12, 2026 TF-RD-009 completed Phase-2 state, the repo-tracked
+`tf_rd_009_phase2` study carries 24 completed `tf_rd_009_ns_medium_v1`
+validation-backed NS-core rows, 20 completed
+`tf_rd_009_batch_critical_medium_v1` validation-backed batch-critical rows, and
+a compact validation overlay. Inspect and fit that full state with:
+
+```bash
+tab-foundry research scaling inspect --study tf_rd_009_phase2
+tab-foundry research scaling fit --study tf_rd_009_phase2
+```
+
+The default full fit reports `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`,
+`Bcrit(L)`, `L(Cmin)`, and derived `Cmin` relations. `--fit-scope ns-only`
+remains available for interim recovery work when batch-critical rows are
+pending, but is no longer the canonical TF-RD-009 Phase-2 path. The `L(C)` path
+requires observed training-shape summaries and same-model monotone NS compute
+accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
+Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
+lower envelope has only two points.
+
 ## Scope Boundaries
 
 - Use smoke for plumbing checks, not the canonical leaderboard.

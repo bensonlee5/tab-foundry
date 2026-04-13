@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_ns_medium_v1
 - Parent sweep id: `tf_rd_009_width_depth_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_ns_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `7dbea7aab67134bd580c192877809dad5c133bd0504daf8eaf83ac97ab3a347c`
+- Resolved queue inputs fingerprint: `1d81b869dc1d7b38ad0e2607c4c73acb470a93ee8a147c71c4ea13b54ebeef56`
 
 ## Locked Surface
 
@@ -45,37 +45,37 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 1 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=625. |
-| 2 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 2 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=1250. |
-| 3 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 3 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=2500. |
-| 4 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 4 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=5000. |
-| 5 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 5 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=625. |
-| 6 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 6 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=1250. |
-| 7 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 7 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=2500. |
-| 8 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 8 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=5000. |
-| 9 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 9 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=625. |
-| 10 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 10 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=1250. |
-| 11 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 11 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=2500. |
-| 12 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 12 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=5000. |
-| 13 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 13 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=625. |
-| 14 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 14 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=1250. |
-| 15 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 15 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=2500. |
-| 16 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 16 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=5000. |
-| 17 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 17 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=625. |
-| 18 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 18 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=1250. |
-| 19 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 19 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=2500. |
-| 20 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 20 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=5000. |
-| 21 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | ready | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 21 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=625. |
-| 22 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | ready | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 22 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=1250. |
-| 23 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | ready | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 23 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=2500. |
-| 24 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | ready | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 24 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=5000. |
+| 1 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | completed | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 1 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=625. |
+| 2 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | completed | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 2 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=1250. |
+| 3 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | completed | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 3 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=2500. |
+| 4 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | completed | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Execute order 4 as the TF-RD-009 Phase 2 N x S row for geometry 72x1 at max_steps=5000. |
+| 5 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 5 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=625. |
+| 6 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 6 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=1250. |
+| 7 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 7 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=2500. |
+| 8 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 8 as the TF-RD-009 Phase 2 N x S row for geometry 96x2 at max_steps=5000. |
+| 9 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | completed | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 9 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=625. |
+| 10 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | completed | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 10 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=1250. |
+| 11 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | completed | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 11 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=2500. |
+| 12 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | completed | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Execute order 12 as the TF-RD-009 Phase 2 N x S row for geometry 112x3 at max_steps=5000. |
+| 13 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | completed | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 13 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=625. |
+| 14 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | completed | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 14 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=1250. |
+| 15 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | completed | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 15 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=2500. |
+| 16 | `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1` | classification_scaling_law | no | completed | none | Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface. | Execute order 16 as the TF-RD-009 Phase 2 N x S row for geometry 128x4 at max_steps=5000. |
+| 17 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 17 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=625. |
+| 18 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 18 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=1250. |
+| 19 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 19 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=2500. |
+| 20 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute order 20 as the TF-RD-009 Phase 2 N x S row for geometry 152x5 at max_steps=5000. |
+| 21 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | completed | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 21 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=625. |
+| 22 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | completed | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 22 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=1250. |
+| 23 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | completed | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 23 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=2500. |
+| 24 | `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1` | classification_scaling_law | no | completed | none | Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family. | Execute order 24 as the TF-RD-009 Phase 2 N x S row for geometry 176x6 at max_steps=5000. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
@@ -99,16 +99,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.7257`, delta final log loss `+0.0926`, final Brier score `0.4541`, delta final brier score `+0.0626`, final ROC AUC `0.5058`, delta final roc auc `-0.1658`, final BPC (legacy feature-cell diagnostic) `2.7261`, delta final bpc (legacy feature-cell diagnostic) `+0.3780`, final BPF (legacy feature-cell diagnostic) `2.7261`, delta final bpf (legacy feature-cell diagnostic) `+0.3780`, best ROC AUC `0.5058`, delta final training time `-8165.1s`
 
 ### 2. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
@@ -132,16 +135,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.7112`, delta final log loss `+0.0780`, final Brier score `0.4428`, delta final brier score `+0.0514`, final ROC AUC `0.5726`, delta final roc auc `-0.0990`, final BPC (legacy feature-cell diagnostic) `2.7741`, delta final bpc (legacy feature-cell diagnostic) `+0.4260`, final BPF (legacy feature-cell diagnostic) `2.7741`, delta final bpf (legacy feature-cell diagnostic) `+0.4260`, best ROC AUC `0.5053`, delta final training time `-7833.7s`
 
 ### 3. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
@@ -165,16 +171,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.6380`, delta final log loss `+0.0048`, final Brier score `0.3975`, delta final brier score `+0.0061`, final ROC AUC `0.6569`, delta final roc auc `-0.0147`, final BPC (legacy feature-cell diagnostic) `3.5751`, delta final bpc (legacy feature-cell diagnostic) `+1.2270`, final BPF (legacy feature-cell diagnostic) `3.5751`, delta final bpf (legacy feature-cell diagnostic) `+1.2270`, best ROC AUC `0.6064`, delta final training time `-7344.0s`
 
 ### 4. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
@@ -198,16 +207,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.6362`, delta final log loss `+0.0030`, final Brier score `0.3962`, delta final brier score `+0.0048`, final ROC AUC `0.6565`, delta final roc auc `-0.0151`, final BPC (legacy feature-cell diagnostic) `3.6933`, delta final bpc (legacy feature-cell diagnostic) `+1.3452`, final BPF (legacy feature-cell diagnostic) `3.6934`, delta final bpf (legacy feature-cell diagnostic) `+1.3453`, best ROC AUC `0.6101`, delta final training time `-6492.3s`
 
 ### 5. `delta_tf_rd_009_cls_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -231,16 +243,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` with final log loss `0.7208`, delta final log loss `+0.0876`, final Brier score `0.4501`, delta final brier score `+0.0587`, final ROC AUC `0.5489`, delta final roc auc `-0.1227`, final BPC (legacy feature-cell diagnostic) `2.2862`, delta final bpc (legacy feature-cell diagnostic) `-0.0619`, final BPF (legacy feature-cell diagnostic) `2.2862`, delta final bpf (legacy feature-cell diagnostic) `-0.0619`, best ROC AUC `0.5275`, delta final training time `-8193.4s`
 
 ### 6. `delta_tf_rd_009_cls_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -264,16 +279,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` with final log loss `0.6775`, delta final log loss `+0.0443`, final Brier score `0.4191`, delta final brier score `+0.0277`, final ROC AUC `0.6279`, delta final roc auc `-0.0437`, final BPC (legacy feature-cell diagnostic) `2.3097`, delta final bpc (legacy feature-cell diagnostic) `-0.0385`, final BPF (legacy feature-cell diagnostic) `2.3097`, delta final bpf (legacy feature-cell diagnostic) `-0.0384`, best ROC AUC `0.5249`, delta final training time `-7864.5s`
 
 ### 7. `delta_tf_rd_009_cls_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -299,16 +317,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` with final log loss `0.6331`, delta final log loss `-0.0000`, final Brier score `0.3914`, delta final brier score `-0.0000`, final ROC AUC `0.6716`, delta final roc auc `-0.0000`, final BPC (legacy feature-cell diagnostic) `2.3481`, delta final bpc (legacy feature-cell diagnostic) `+0.0000`, final BPF (legacy feature-cell diagnostic) `2.3481`, delta final bpf (legacy feature-cell diagnostic) `-0.0000`, best ROC AUC `0.6109`, delta final training time `+0.0s`
 
 ### 8. `delta_tf_rd_009_cls_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -332,16 +353,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` with final log loss `0.6527`, delta final log loss `+0.0195`, final Brier score `0.4071`, delta final brier score `+0.0157`, final ROC AUC `0.6422`, delta final roc auc `-0.0294`, final BPC (legacy feature-cell diagnostic) `2.8418`, delta final bpc (legacy feature-cell diagnostic) `+0.4937`, final BPF (legacy feature-cell diagnostic) `2.8418`, delta final bpf (legacy feature-cell diagnostic) `+0.4937`, best ROC AUC `0.6094`, delta final training time `-6368.0s`
 
 ### 9. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
@@ -365,16 +389,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.7240`, delta final log loss `+0.0909`, final Brier score `0.4531`, delta final brier score `+0.0616`, final ROC AUC `0.5292`, delta final roc auc `-0.1423`, final BPC (legacy feature-cell diagnostic) `2.2001`, delta final bpc (legacy feature-cell diagnostic) `-0.1481`, final BPF (legacy feature-cell diagnostic) `2.2000`, delta final bpf (legacy feature-cell diagnostic) `-0.1481`, best ROC AUC `0.5292`, delta final training time `-8171.1s`
 
 ### 10. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
@@ -398,16 +425,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.6835`, delta final log loss `+0.0504`, final Brier score `0.4222`, delta final brier score `+0.0308`, final ROC AUC `0.6120`, delta final roc auc `-0.0596`, final BPC (legacy feature-cell diagnostic) `2.1970`, delta final bpc (legacy feature-cell diagnostic) `-0.1512`, final BPF (legacy feature-cell diagnostic) `2.1969`, delta final bpf (legacy feature-cell diagnostic) `-0.1512`, best ROC AUC `0.5523`, delta final training time `-7817.3s`
 
 ### 11. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
@@ -433,16 +463,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.6046`, delta final log loss `-0.0286`, final Brier score `0.3705`, delta final brier score `-0.0210`, final ROC AUC `0.6966`, delta final roc auc `+0.0250`, final BPC (legacy feature-cell diagnostic) `2.9666`, delta final bpc (legacy feature-cell diagnostic) `+0.6184`, final BPF (legacy feature-cell diagnostic) `2.9660`, delta final bpf (legacy feature-cell diagnostic) `+0.6179`, best ROC AUC `0.5176`, delta final training time `+582.8s`
 
 ### 12. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
@@ -466,16 +499,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.6049`, delta final log loss `-0.0282`, final Brier score `0.3694`, delta final brier score `-0.0221`, final ROC AUC `0.7123`, delta final roc auc `+0.0407`, final BPC (legacy feature-cell diagnostic) `3.2329`, delta final bpc (legacy feature-cell diagnostic) `+0.8848`, final BPF (legacy feature-cell diagnostic) `3.2324`, delta final bpf (legacy feature-cell diagnostic) `+0.8843`, best ROC AUC `0.5143`, delta final training time `-6182.7s`
 
 ### 13. `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface.
@@ -499,16 +535,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1` with final log loss `0.7073`, delta final log loss `+0.0741`, final Brier score `0.4403`, delta final brier score `+0.0489`, final ROC AUC `0.5820`, delta final roc auc `-0.0896`, final BPC (legacy feature-cell diagnostic) `2.3103`, delta final bpc (legacy feature-cell diagnostic) `-0.0378`, final BPF (legacy feature-cell diagnostic) `2.3102`, delta final bpf (legacy feature-cell diagnostic) `-0.0379`, best ROC AUC `0.5820`, delta final training time `-8155.8s`
 
 ### 14. `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface.
@@ -532,16 +571,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1` with final log loss `0.6490`, delta final log loss `+0.0158`, final Brier score `0.4003`, delta final brier score `+0.0089`, final ROC AUC `0.6465`, delta final roc auc `-0.0251`, final BPC (legacy feature-cell diagnostic) `2.2889`, delta final bpc (legacy feature-cell diagnostic) `-0.0592`, final BPF (legacy feature-cell diagnostic) `2.2888`, delta final bpf (legacy feature-cell diagnostic) `-0.0593`, best ROC AUC `0.6176`, delta final training time `-7781.8s`
 
 ### 15. `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface.
@@ -567,16 +609,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1` with final log loss `0.6348`, delta final log loss `+0.0017`, final Brier score `0.3933`, delta final brier score `+0.0019`, final ROC AUC `0.6457`, delta final roc auc `-0.0259`, final BPC (legacy feature-cell diagnostic) `2.7294`, delta final bpc (legacy feature-cell diagnostic) `+0.3812`, final BPF (legacy feature-cell diagnostic) `2.7291`, delta final bpf (legacy feature-cell diagnostic) `+0.3811`, best ROC AUC `0.6185`, delta final training time `+1038.1s`
 
 ### 16. `delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the first post-seed upper TF-RD-009 joint width-depth row at `d_icl=128`, `sandwich_layers=4`, extending the diagonal family by log-spacing predicted parameter scale between the `112x3` seed and the intended `176x6` ceiling probe on the frozen sandwich surface.
@@ -600,16 +645,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1` with final log loss `0.6683`, delta final log loss `+0.0351`, final Brier score `0.4156`, delta final brier score `+0.0242`, final ROC AUC `0.6295`, delta final roc auc `-0.0420`, final BPC (legacy feature-cell diagnostic) `7.9135`, delta final bpc (legacy feature-cell diagnostic) `+5.5654`, final BPF (legacy feature-cell diagnostic) `7.9119`, delta final bpf (legacy feature-cell diagnostic) `+5.5639`, best ROC AUC `0.6143`, delta final training time `-6064.4s`
 
 ### 17. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
@@ -633,16 +681,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.7117`, delta final log loss `+0.0786`, final Brier score `0.4444`, delta final brier score `+0.0529`, final ROC AUC `0.5731`, delta final roc auc `-0.0985`, final BPC (legacy feature-cell diagnostic) `2.2902`, delta final bpc (legacy feature-cell diagnostic) `-0.0579`, final BPF (legacy feature-cell diagnostic) `2.2902`, delta final bpf (legacy feature-cell diagnostic) `-0.0579`, best ROC AUC `0.4905`, delta final training time `-8083.6s`
 
 ### 18. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
@@ -666,16 +717,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.6172`, delta final log loss `-0.0159`, final Brier score `0.3789`, delta final brier score `-0.0126`, final ROC AUC `0.6966`, delta final roc auc `+0.0250`, final BPC (legacy feature-cell diagnostic) `2.7112`, delta final bpc (legacy feature-cell diagnostic) `+0.3631`, final BPF (legacy feature-cell diagnostic) `2.7111`, delta final bpf (legacy feature-cell diagnostic) `+0.3630`, best ROC AUC `0.5069`, delta final training time `-7636.7s`
 
 ### 19. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
@@ -701,16 +755,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.7042`, delta final log loss `+0.0710`, final Brier score `0.4381`, delta final brier score `+0.0466`, final ROC AUC `0.5845`, delta final roc auc `-0.0871`, final BPC (legacy feature-cell diagnostic) `2.3356`, delta final bpc (legacy feature-cell diagnostic) `-0.0125`, final BPF (legacy feature-cell diagnostic) `2.3356`, delta final bpf (legacy feature-cell diagnostic) `-0.0125`, best ROC AUC `0.5137`, delta final training time `-5921.8s`
 
 ### 20. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
@@ -734,16 +791,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.5774`, delta final log loss `-0.0557`, final Brier score `0.3520`, delta final brier score `-0.0394`, final ROC AUC `0.7419`, delta final roc auc `+0.0703`, final BPC (legacy feature-cell diagnostic) `4.6058`, delta final bpc (legacy feature-cell diagnostic) `+2.2577`, final BPF (legacy feature-cell diagnostic) `4.6061`, delta final bpf (legacy feature-cell diagnostic) `+2.2580`, best ROC AUC `0.6323`, delta final training time `-5509.4s`
 
 ### 21. `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family.
@@ -767,16 +827,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_21_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_21_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1` with final log loss `0.6937`, delta final log loss `+0.0606`, final Brier score `0.4335`, delta final brier score `+0.0421`, final ROC AUC `0.6096`, delta final roc auc `-0.0620`, final BPC (legacy feature-cell diagnostic) `2.6977`, delta final bpc (legacy feature-cell diagnostic) `+0.3496`, final BPF (legacy feature-cell diagnostic) `2.6976`, delta final bpf (legacy feature-cell diagnostic) `+0.3496`, best ROC AUC `0.4955`, delta final training time `-8055.4s`
 
 ### 22. `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family.
@@ -800,16 +863,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_22_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_22_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1` with final log loss `0.6503`, delta final log loss `+0.0171`, final Brier score `0.4050`, delta final brier score `+0.0136`, final ROC AUC `0.6419`, delta final roc auc `-0.0297`, final BPC (legacy feature-cell diagnostic) `2.8881`, delta final bpc (legacy feature-cell diagnostic) `+0.5400`, final BPF (legacy feature-cell diagnostic) `2.8881`, delta final bpf (legacy feature-cell diagnostic) `+0.5400`, best ROC AUC `0.4977`, delta final training time `-7580.2s`
 
 ### 23. `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family.
@@ -835,16 +901,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_23_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_23_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1` with final log loss `0.7285`, delta final log loss `+0.0954`, final Brier score `0.4550`, delta final brier score `+0.0636`, final ROC AUC `0.5113`, delta final roc auc `-0.1603`, final BPC (legacy feature-cell diagnostic) `2.4525`, delta final bpc (legacy feature-cell diagnostic) `+0.1044`, final BPF (legacy feature-cell diagnostic) `2.4525`, delta final bpf (legacy feature-cell diagnostic) `+0.1044`, best ROC AUC `0.4991`, delta final training time `-7487.1s`
 
 ### 24. `delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the intended TF-RD-009 ceiling probe at `d_icl=176`, `sandwich_layers=6`, chosen to land near the retained `rtx8000_44gb` surface's `32-33 GB` reserved-memory target while staying on the same dense diagonal family.
@@ -868,8 +937,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_009_ns_medium_v1_24_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_ns_medium_v1_24_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1` with final log loss `0.6122`, delta final log loss `-0.0210`, final Brier score `0.3751`, delta final brier score `-0.0164`, final ROC AUC `0.7023`, delta final roc auc `+0.0307`, final BPC (legacy feature-cell diagnostic) `3.9204`, delta final bpc (legacy feature-cell diagnostic) `+1.5723`, final BPF (legacy feature-cell diagnostic) `3.9203`, delta final bpf (legacy feature-cell diagnostic) `+1.5722`, best ROC AUC `0.6315`, delta final training time `-5289.1s`

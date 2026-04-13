@@ -16,6 +16,7 @@ from tab_foundry.cli.click_utils import (
     sweep_path_options,
 )
 from tab_foundry.research.scaling.fit import (
+    FIT_SCOPE_CHOICES,
     fit_scaling_study,
     inspect_scaling_study,
     render_scaling_study_text,
@@ -77,6 +78,13 @@ def INSPECT_COMMAND(
 
 @click.command(name="fit", help="Fit one scaling study and write report artifacts")
 @_study_options
+@click.option(
+    "--fit-scope",
+    default="all",
+    show_default=True,
+    type=click.Choice(FIT_SCOPE_CHOICES),
+    help="Fit all scaling laws or only NS-core laws while batch-critical rows are pending.",
+)
 @path_option(
     "out-root",
     required=False,
@@ -88,6 +96,7 @@ def FIT_COMMAND(
     study: str | None,
     study_path: Path | None,
     studies_root: Path | None,
+    fit_scope: str,
     out_root: Path | None,
     json_mode: bool,
     catalog_path: Path,
@@ -105,6 +114,7 @@ def FIT_COMMAND(
         catalog_path=catalog_path.expanduser().resolve(),
         sweeps_root=sweeps_root.expanduser().resolve(),
         out_root=None if out_root is None else out_root.expanduser().resolve(),
+        fit_scope=fit_scope,
     )
     emit_payload(payload, json_mode=json_mode, render_text=render_scaling_study_text)
     return 0

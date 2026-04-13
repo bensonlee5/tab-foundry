@@ -1,0 +1,451 @@
+{
+  "rows": [
+    {
+      "family": "batch_critical",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 1,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3579254001379013,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 2,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3485585078597069,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 3,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2787772696465254,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 4,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2145646864082664,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 5,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3555765822529793,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 6,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3027791399508715,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 7,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2531423321925104,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 8,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.1524161729830666,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 9,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3555516973137856,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 10,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2891177656129003,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 11,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.1961521406192333,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 12,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.1813775654882193,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 13,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.355161853134632,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 14,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.30135066062212,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 15,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2787634022533894,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 16,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.2726896489039063,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 17,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3532273583114147,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 18,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3521132990717888,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 19,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.3523496240377426,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "batch_critical",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 20,
+      "run_id": "sd_tf_rd_009_batch_critical_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_batch_critical_medium_v1",
+      "validation_loss": 1.357179943472147,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "72x1",
+      "row_order": 1,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.355437558144331,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "72x1",
+      "row_order": 2,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3531065545976162,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "72x1",
+      "row_order": 3,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2319895722903311,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "72x1",
+      "row_order": 4,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1988862662110478,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "96x2",
+      "row_order": 5,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3545959629118443,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "96x2",
+      "row_order": 6,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3013801146298647,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "96x2",
+      "row_order": 7,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1961521406192333,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "96x2",
+      "row_order": 8,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2184605859220028,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "112x3",
+      "row_order": 9,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.35496037453413,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "112x3",
+      "row_order": 10,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.318117106333375,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "112x3",
+      "row_order": 11,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.162869118154049,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "112x3",
+      "row_order": 12,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1534325354732573,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "128x4",
+      "row_order": 13,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3493062518537045,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "128x4",
+      "row_order": 14,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2631320534273982,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "128x4",
+      "row_order": 15,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2172094909474254,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "128x4",
+      "row_order": 16,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2285924144089222,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "152x5",
+      "row_order": 17,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3283568043261766,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "152x5",
+      "row_order": 18,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1818223969312385,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "152x5",
+      "row_order": 19,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1249207102227956,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "152x5",
+      "row_order": 20,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.1354304926935583,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 625,
+      "row_label": "176x6",
+      "row_order": 21,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_21_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.3290394935756922,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 1250,
+      "row_label": "176x6",
+      "row_order": 22,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_22_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.2191131877480075,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 2500,
+      "row_label": "176x6",
+      "row_order": 23,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_23_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.124668784905225,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "family": "ns_core",
+      "global_step": 5000,
+      "row_label": "176x6",
+      "row_order": 24,
+      "run_id": "sd_tf_rd_009_ns_medium_v1_24_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1",
+      "sweep_id": "tf_rd_009_ns_medium_v1",
+      "validation_loss": 1.169322240166366,
+      "validation_loss_source": "validation_backfill_v1"
+    }
+  ],
+  "schema": "tab-foundry-scaling-validation-overlay-v1",
+  "source": {
+    "manifest_path": "outputs/validation_backfill/tf_rd_009_phase2_20260412a/validation_backfill_manifest.json",
+    "manifest_uri": "gs://tab-foundry-execution/tab-foundry/launches/tf-rd-009-phase2-ns-20260411k/validation_backfill/tf_rd_009_phase2/validation_backfill_manifest.json",
+    "registry_overlay_uri": "gs://tab-foundry-execution/tab-foundry/launches/tf-rd-009-phase2-ns-20260411k/validation_backfill/tf_rd_009_phase2/benchmark_run_registry_v1.json"
+  },
+  "study_id": "tf_rd_009_phase2"
+}

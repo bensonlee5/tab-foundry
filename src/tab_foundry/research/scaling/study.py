@@ -31,6 +31,7 @@ class ScalingStudyConfig:
     study_id: str
     phase: int
     output_root: str
+    validation_overlay_path: str | None
     phase1_reference_sweep_id: str | None
     sweeps: tuple[ScalingStudySweepRef, ...]
     geometry_row_labels: tuple[str, ...]
@@ -42,6 +43,11 @@ class ScalingStudyConfig:
 
     def output_root_path(self, *, root: Path | None = None) -> Path:
         return resolve_repo_relative_path(self.output_root, root=root or repo_root())
+
+    def validation_overlay_resolved_path(self, *, root: Path | None = None) -> Path | None:
+        if self.validation_overlay_path is None:
+            return None
+        return resolve_repo_relative_path(self.validation_overlay_path, root=root or repo_root())
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -151,11 +157,19 @@ def load_scaling_study_config(
         resolved_phase1_reference_sweep_id: str | None = str(phase1_reference_sweep_id)
     else:
         resolved_phase1_reference_sweep_id = None
+    validation_overlay_path = payload.get("validation_overlay_path")
+    if validation_overlay_path is not None:
+        if not isinstance(validation_overlay_path, str) or not validation_overlay_path.strip():
+            raise RuntimeError("validation_overlay_path must be a non-empty string when present")
+        resolved_validation_overlay_path: str | None = str(validation_overlay_path)
+    else:
+        resolved_validation_overlay_path = None
     return ScalingStudyConfig(
         schema=schema,
         study_id=_required_str(payload, "study_id"),
         phase=_required_int(payload, "phase"),
         output_root=_required_str(payload, "output_root"),
+        validation_overlay_path=resolved_validation_overlay_path,
         phase1_reference_sweep_id=resolved_phase1_reference_sweep_id,
         sweeps=tuple(sweeps),
         geometry_row_labels=geometry_row_labels,

@@ -20,6 +20,7 @@ ACCOUNTING_ARTIFACT_SCHEMA = "tab-foundry-model-accounting-v1"
 PARAMETER_ACCOUNTING_METHOD = "inspected_parameter_partition_v1"
 COMPUTE_ACCOUNTING_METHOD = "inspected_analytic_v1"
 TRAINING_FLOP_MULTIPLIER = 3.0
+_DEFAULT_TRAINING_SHAPE_SIGNATURE = ("3x2x4x2", 1)
 _LAYER_NORM_FLOPS_PER_ELEMENT = 7.0
 _GELU_FLOPS_PER_ELEMENT = 8.0
 _RATIONAL_5_4_FLOPS_PER_ELEMENT = 19.0
@@ -358,11 +359,14 @@ def _forward_compute_contributions(
 
 
 def _training_shape_signatures(training_shape_summary: Mapping[str, Any] | None) -> list[tuple[str, int]]:
+    # This fallback keeps generic accounting artifacts available when legacy
+    # telemetry lacks shape data. Research scaling C-axis fits reject fallback
+    # rows by requiring an observed training_shape_summary in the registry.
     if not isinstance(training_shape_summary, Mapping):
-        return [("3x2x4x2", 1)]
+        return [_DEFAULT_TRAINING_SHAPE_SIGNATURE]
     raw_signature_task_counts = training_shape_summary.get("signature_task_counts")
     if not isinstance(raw_signature_task_counts, Mapping) or not raw_signature_task_counts:
-        return [("3x2x4x2", 1)]
+        return [_DEFAULT_TRAINING_SHAPE_SIGNATURE]
     resolved: list[tuple[str, int]] = []
     for signature_text, task_count in raw_signature_task_counts.items():
         if not isinstance(signature_text, str):
@@ -371,7 +375,7 @@ def _training_shape_signatures(training_shape_summary: Mapping[str, Any] | None)
         if resolved_task_count <= 0:
             continue
         resolved.append((signature_text, resolved_task_count))
-    return sorted(resolved, key=lambda item: item[0]) or [("3x2x4x2", 1)]
+    return sorted(resolved, key=lambda item: item[0]) or [_DEFAULT_TRAINING_SHAPE_SIGNATURE]
 
 
 def compute_accounting_from_model(
