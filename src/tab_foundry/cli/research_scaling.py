@@ -15,6 +15,11 @@ from tab_foundry.cli.click_utils import (
     run_click_command,
     sweep_path_options,
 )
+from tab_foundry.research.scaling.audit import (
+    AUDIT_SCOPE_CHOICES,
+    audit_scaling_study,
+    render_scaling_audit_text,
+)
 from tab_foundry.research.scaling.fit import (
     FIT_SCOPE_CHOICES,
     fit_scaling_study,
@@ -120,6 +125,68 @@ def FIT_COMMAND(
     return 0
 
 
+@click.command(name="audit", help="Audit one scaling study fit and write diagnostic artifacts")
+@_study_options
+@click.option(
+    "--fit-scope",
+    default="all",
+    show_default=True,
+    type=click.Choice(AUDIT_SCOPE_CHOICES),
+    help="Audit all scaling rows or only NS-core laws while batch-critical rows are pending.",
+)
+@click.option(
+    "--bootstrap-samples",
+    default=64,
+    show_default=True,
+    type=POSITIVE_INT,
+    help="Bootstrap resamples for parameter interval diagnostics.",
+)
+@click.option(
+    "--bootstrap-seed",
+    default=0,
+    show_default=True,
+    type=int,
+    help="Random seed for deterministic bootstrap resampling.",
+)
+@path_option(
+    "out-root",
+    required=False,
+    help="Optional override for the scaling-audit artifact root",
+)
+@json_output_option
+@sweep_path_options(include_registry=True, include_sweeps_root=True)
+def AUDIT_COMMAND(
+    study: str | None,
+    study_path: Path | None,
+    studies_root: Path | None,
+    fit_scope: str,
+    bootstrap_samples: int,
+    bootstrap_seed: int,
+    out_root: Path | None,
+    json_mode: bool,
+    catalog_path: Path,
+    index_path: Path,
+    sweeps_root: Path,
+    registry_path: Path,
+) -> int:
+    _require_study_selection(study=study, study_path=study_path)
+    payload = audit_scaling_study(
+        study_id=study,
+        study_path=study_path,
+        studies_root=studies_root,
+        registry_path=registry_path.expanduser().resolve(),
+        index_path=index_path.expanduser().resolve(),
+        catalog_path=catalog_path.expanduser().resolve(),
+        sweeps_root=sweeps_root.expanduser().resolve(),
+        out_root=None if out_root is None else out_root.expanduser().resolve(),
+        fit_scope=fit_scope,
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_seed=bootstrap_seed,
+    )
+    emit_payload(payload, json_mode=json_mode, render_text=render_scaling_audit_text)
+    return 0
+
+
 @click.command(
     name="backfill-validation",
     help="Backfill validation loss sidecars from completed scaling-study checkpoints",
@@ -202,6 +269,7 @@ def main(argv: list[str] | None = None) -> int:
     group = click.Group(
         name="research-scaling",
         commands={
+            "audit": AUDIT_COMMAND,
             "backfill-validation": BACKFILL_VALIDATION_COMMAND,
             "fit": FIT_COMMAND,
             "inspect": INSPECT_COMMAND,
