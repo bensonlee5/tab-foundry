@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_large_valida
 - Parent sweep id: `tf_rd_009_width_depth_medium_v1`
 - Complexity level: `classification_lg`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_large_validation_152x5_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `74ee7b4163d96cae69bb963f2500ca816df630f43212c9cc4005bddf5884f432`
+- Resolved queue inputs fingerprint: `7ad8db9e7f47b42e52c6abea8b7c2b0102dc9f0371e46841698c200069f3c360`
 
 ## Locked Surface
 
@@ -37,7 +37,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 | row readout | Target-column readout from the final cell tensor. | Row pool `unknown` from the staged surface. | Row-pool changes alter the readout contract and require their own interpretation. |
 | context encoder | None on the upstream direct path. | Context encoder `unknown` from the staged surface. | Context-encoder changes alter how training rows condition test rows. |
 | prediction head | Direct binary logits head. | Prediction head `unknown` from the staged surface. | Head changes alter the task contract and output semantics. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet` sourced from `nanotabpfn_openml_classification_large` (3 tasks (missing values permitted)) with data surface label `tf_rd_010_dagzoo_medium_control_curated_v5`. | Manifest and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark manifest `data/manifests/bench/openml_classification_large_v1/manifest.parquet` sourced from `nanotabpfn_openml_classification_large` (3 tasks (missing values permitted)) with data surface label `tf_rd_010_dagzoo_medium_control_curated_v5`. | Manifest and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_cosine_warmup`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
 
@@ -45,14 +45,14 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | ready | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute this single benchmark-only row on the retained RTX 8000 / CUDA runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` only if the completed large result beats the anchor gate, otherwise document the failed transfer and stop. |
+| 1 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute this single benchmark-only row on the retained RTX 8000 / CUDA runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` only if the completed large result beats the anchor gate, otherwise document the failed transfer and stop. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe.
@@ -78,8 +78,8 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Reuse completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` at `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train`; do not retrain this row for `tf_rd_009_large_validation_152x5_v1`.
   - Preflight must confirm training-surface fingerprint `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253` before benchmark execution to block surface drift.
@@ -88,6 +88,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - If this row passes, freeze medium hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` from evidence rows `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`; do not add the large validation row to the medium constraint model.
   - If this row fails, leave `hardware_architecture_baselines_v1.json` unfrozen and keep any `96x2` / `176x6` bracketed large-rung diagnosis as separate follow-on work.
   - Execute on the same CUDA / RTX 8000 class environment as the retained TF-RD-009 evidence; the current local workstation does not expose the required GPU surface.
+  - Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_large_validation_152x5_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.9337`, delta final log loss `+0.0363`, final Brier score `0.5534`, delta final brier score `+0.0068`, final ROC AUC `0.6084`, delta final roc auc `-0.0240`, final BPC (legacy feature-cell diagnostic) `2.2686`, delta final bpc (legacy feature-cell diagnostic) `+0.1826`, final BPF (legacy feature-cell diagnostic) `2.2686`, delta final bpf (legacy feature-cell diagnostic) `+0.1826`, best ROC AUC `0.5967`, delta final training time `-4841.8s`

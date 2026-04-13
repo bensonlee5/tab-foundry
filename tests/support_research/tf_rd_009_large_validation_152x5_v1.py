@@ -91,12 +91,22 @@ def test_tf_rd_009_large_validation_152x5_v1_tracks_the_reused_large_gate() -> N
     assert len(rows) == 1
     row = rows[0]
     assert row["delta_ref"] == EXPECTED_ROW
-    assert row["status"] == "ready"
-    assert row["run_id"] is None
-    assert row["decision"] is None
-    assert row["interpretation_status"] == "pending"
+    assert row["status"] == "completed"
+    assert (
+        row["run_id"]
+        == "sd_tf_rd_009_large_validation_152x5_v1_01_"
+        "delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1"
+    )
+    assert row["decision"] == "defer"
+    assert row["interpretation_status"] == "completed"
     assert row["reuse_train_artifact"] == REUSE_TRAIN_ARTIFACT
     assert row["benchmark_checkpoint_selection"] == "all"
+    benchmark_metrics = row["benchmark_metrics"]
+    assert benchmark_metrics["objective_metric"] == "final_log_loss_at_matched_regime_budget"
+    assert benchmark_metrics["final_log_loss"] == 0.9337034780913935
+    assert benchmark_metrics["delta_final_log_loss"] == 0.03626238194883136
+    assert benchmark_metrics["final_roc_auc"] == 0.6083568021504234
+    assert benchmark_metrics["delta_final_roc_auc"] == -0.02399371692269847
     assert row["model"]["d_icl"] == 152
     assert row["model"]["sandwich_layers"] == 5
     assert row["data"]["corpus_ref"] == "tf_rd_010_dagzoo_medium_control_curated_v5"
@@ -111,6 +121,8 @@ def test_tf_rd_009_large_validation_152x5_v1_tracks_the_reused_large_gate() -> N
     assert any("training-surface fingerprint" in note for note in row["notes"])
     assert any("do not add the large validation row to the medium constraint model" in note for note in row["notes"])
     assert any("current local workstation does not expose the required GPU surface" in note for note in row["notes"])
+    assert any("Execution attempt" in note for note in row["notes"])
+    assert any("Canonical rerun registered" in note for note in row["notes"])
 
 
 def test_tf_rd_009_large_validation_152x5_v1_resolved_queue_captures_reuse_surface() -> None:
@@ -144,11 +156,17 @@ def test_tf_rd_009_large_validation_152x5_v1_resolved_queue_captures_reuse_surfa
     assert resolved["sweep_status"] == "draft"
 
     resolved_row = resolved["rows"][0]
-    assert resolved_row["status"] == "ready"
-    assert resolved_row["run_id"] is None
-    assert resolved_row["decision"] is None
+    assert resolved_row["status"] == "completed"
+    assert (
+        resolved_row["run_id"]
+        == "sd_tf_rd_009_large_validation_152x5_v1_01_"
+        "delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1"
+    )
+    assert resolved_row["decision"] == "defer"
     assert resolved_row["reuse_train_artifact"] == REUSE_TRAIN_ARTIFACT
     assert resolved_row["resolved_surface_fingerprint"] == TRAINING_SURFACE_FINGERPRINT
+    assert resolved_row["benchmark_metrics"]["final_log_loss"] == 0.9337034780913935
+    assert resolved_row["benchmark_metrics"]["delta_final_log_loss"] == 0.03626238194883136
     assert resolved_row["data"]["corpus_ref"] == "tf_rd_010_dagzoo_medium_control_curated_v5"
 
     resolved_surface = resolved_row["resolved_surface"]

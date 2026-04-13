@@ -992,15 +992,22 @@ Legacy wording note:
     queue-construction planning axis
   - `152x5` is the current fixed-budget winner at `final_log_loss=0.5740` and
     `final_roc_auc=0.7351`
-  - `tf_rd_009_large_validation_152x5_v1` is now the staged #257 one-row
-    large-rung validation sweep that reuses the completed `152x5` train
-    artifact on `openml_classification_large_v1`; benchmark outcome is pending
-    execution on the retained RTX 8000 / CUDA runner
+  - `tf_rd_009_large_validation_152x5_v1` is now complete under
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257): the
+    benchmark-only `152x5` large-rung transfer reused the completed medium
+    train artifact on `openml_classification_large_v1` and finished at
+    `final_log_loss=0.9337034781`, which is worse than the carried TF-RD-010
+    large clean-control anchor `0.8974410961`
   - the #257 gate is explicit: keep/defer on whether `152x5` beats the
     TF-RD-010 large clean-control anchor `0.8974410961` at
     `final_log_loss_at_matched_regime_budget`; only a pass should freeze the
     first hardware baseline entry, and the large row itself does not join the
     medium constraint-model evidence
+  - the completed large-rung result is a defer: `delta_final_log_loss=+0.0363`
+    and `delta_final_roc_auc=-0.0240` versus the carried anchor, so
+    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` stays
+    unfrozen on this branch and any bracketed large-rung diagnosis remains
+    follow-on work rather than part of [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
   - `176x6` completed cleanly at `final_log_loss=0.5816` and
     `final_roc_auc=0.7238`; keep it as upper-family and near-ceiling evidence,
     but do not add extra near-ceiling rows on this branch because
@@ -1008,11 +1015,11 @@ Legacy wording note:
     width-depth relationship
   - observed training VRAM reserved for the top rows was `16.59 GiB` at
     `152x5` and `17.84 GiB` at `176x6`, materially below the pre-run
-    width-evidence memory bridge; the hardware-freeze work in
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) now needs to
-    fit constraints from the completed mixed-depth evidence only after the
-    staged `tf_rd_009_large_validation_152x5_v1` large-rung gate is executed,
-    rather than treat the old memory bridge as authoritative
+    width-evidence memory bridge; the large-rung gate in
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) is now
+    complete and failed, so the hardware-freeze work stops here without adding
+    a baseline entry and the old memory bridge remains planning-only rather
+    than freeze-time evidence
   - TF-RD-021 remains sidecar corpus context under
     [#165](https://github.com/bensonlee5/tab-foundry/issues/165) rather than a
     blocker for this lane
@@ -1101,10 +1108,10 @@ Legacy wording note:
     gate are enough to freeze a real constraint model and preferred row
   - use [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as the
     completed Kaplan-exact fit-and-report issue for the current Phase-2
-    evidence payload, then
-    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) to run the
-    one-row `152x5` large-rung validation and freeze the hardware baseline only
-    on a passing transfer
+    evidence payload; [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+    is now complete and records a failed one-row `152x5` large-rung transfer,
+    so the hardware baseline remains unfrozen pending any separate follow-on
+    diagnosis
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
     the first fixed-budget law family

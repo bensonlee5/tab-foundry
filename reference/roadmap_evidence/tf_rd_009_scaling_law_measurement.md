@@ -629,11 +629,12 @@ pending rows as direct inputs to the reported law fit.
 These tables are the planning view for the future
 `hardware_architecture_baselines_v1.json` entry for the retained
 `rtx8000_44gb` classification surface. The width-depth family is now complete,
-but the formulas remain repo-local planning aids until
-[#257](https://github.com/bensonlee5/tab-foundry/issues/257) executes
-`tf_rd_009_large_validation_152x5_v1` on the large rung and, only on pass,
-freezes the hardware baseline from the measured mixed-depth evidence rather
-than from the historical width-only bridge.
+but the formulas remain repo-local planning aids after the completed
+[#257](https://github.com/bensonlee5/tab-foundry/issues/257) large-rung gate:
+`tf_rd_009_large_validation_152x5_v1` finished at
+`final_log_loss_at_matched_regime_budget=0.9337034781`, which did not beat the
+carried TF-RD-010 large clean-control anchor `0.8974410961`, so the hardware
+baseline was not frozen from the mixed-depth evidence.
 
 Current planning formulas:
 
@@ -685,6 +686,18 @@ timings directly.
   (`0.5740`) and final ROC AUC (`0.7351`)
 - `176x6` completed cleanly and remains useful upper-family evidence, but it
   did not beat `152x5` on the carried matched-budget objective
+- `tf_rd_009_large_validation_152x5_v1` is now complete under
+  [#257](https://github.com/bensonlee5/tab-foundry/issues/257): the
+  benchmark-only large-rung reuse of the completed `152x5` train artifact
+  finished at `final_log_loss=0.9337034781`, `final_brier_score=0.5533658082`,
+  and `final_roc_auc=0.6083568022`
+- the carried large clean-control anchor remained better at `0.8974410961`, so
+  the large-rung transfer decision is `defer`; `delta_final_log_loss=+0.0363`
+  and `delta_final_roc_auc=-0.0240` versus the anchor are the operative gate
+  values
+- because the large gate failed, `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`
+  stays unfrozen on this branch and any bracketed large-rung diagnosis should
+  be treated as separate follow-on work rather than part of [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
 - the observed upper-row training VRAM (`16.59 GiB` at `152x5`, `17.84 GiB` at
   `176x6`) undershot the pre-run width-evidence reserved-memory fit
   (`23.85 GB` and `33.29 GB` respectively), so that fit should remain a
@@ -981,18 +994,19 @@ Selection contract:
 
 First TF-RD-009 use:
 
-- create the first entry for the retained `rtx8000_44gb` medium classification
-  surface only after the dense width-depth family is complete enough to support
-  a real hardware-aware decision and the staged
-  `tf_rd_009_large_validation_152x5_v1` large-rung transfer passes
+- [#257](https://github.com/bensonlee5/tab-foundry/issues/257) is now complete:
+  `tf_rd_009_large_validation_152x5_v1` failed the large-rung gate at
+  `final_log_loss_at_matched_regime_budget=0.9337034781` versus the carried
+  control `0.8974410961`, so do not create the first
+  `rtx8000_44gb` medium-classification hardware baseline entry on this branch
 - keep the formal external anchor `60x2` for lane interpretation
 - keep the carried baseline `96x2` as the fallback preferred architecture if
   the widened family does not produce a cleaner healthy winner
-- stage #257 as benchmark-only reuse of
-  `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
-  on `openml_classification_large_v1`, requiring
-  `final_log_loss_at_matched_regime_budget < 0.8974410961` versus the carried
-  TF-RD-010 large clean-control anchor before any freeze
+- the completed large-rung reuse row is
+  `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`,
+  benchmarked on `openml_classification_large_v1`; it recorded
+  `final_log_loss_at_matched_regime_budget=0.9337034781`, so the freeze gate
+  was not met
 - keep the medium constraint model derived only from the medium evidence rows
   `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`; the large
   validation row is a gate, not an additional fitted point

@@ -18,7 +18,7 @@ anchor_surface:
   notes:
   - TF-RD-009 issue 257 stages a one-row large-rung validation sweep for the current
     medium fixed-budget winner `152x5` against the closed TF-RD-010 large clean-control
-    anchor on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+    anchor on manifest `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
     sourced from `nanotabpfn_openml_classification_large` (task ids `[363685,
     363699, 363707]`).
   - Row 1 is benchmark-only reuse of completed run
@@ -78,7 +78,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
       sourced from `nanotabpfn_openml_classification_large` (3 tasks (missing values
       permitted)) with data surface label `tf_rd_010_dagzoo_medium_control_curated_v5`.
     interpretation: Manifest and training-data changes are first-class sweep rows

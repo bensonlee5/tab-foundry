@@ -3,18 +3,17 @@ sweep_id: tf_rd_009_large_validation_152x5_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
-  status: ready
+  status: completed
   rationale: Benchmark-only validate the current TF-RD-009 medium fixed-budget winner
     `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against the closed TF-RD-010
-    large clean-control anchor before freezing any first hardware architecture
-    baseline.
-  hypothesis: The retained medium winner `152x5` should transfer cleanly enough
-    on the closed large benchmark rung to beat the carried clean-control anchor
-    without reopening training, seeds, or neighboring bracket rows.
+    large clean-control anchor before freezing any first hardware architecture baseline.
+  hypothesis: The retained medium winner `152x5` should transfer cleanly enough on
+    the closed large benchmark rung to beat the carried clean-control anchor without
+    reopening training, seeds, or neighboring bracket rows.
   anchor_delta: Reuse the completed medium `152x5` training artifact and benchmark
     it against locked anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`
-    on the local large classification manifest; no retraining, no extra seeds,
-    and no bracketed reruns inside issue 257.
+    on the local large classification manifest; no retraining, no extra seeds, and
+    no bracketed reruns inside issue 257.
   model:
     arch: tabfoundry_sandwich
     d_icl: 152
@@ -74,40 +73,69 @@ rows:
     matches the preserved train artifact before execution so benchmark-only reuse
     cannot drift.
   - Benchmark only on the frozen local large bundle with task ids `[363685, 363699,
-    363707]` and rank by `final_log_loss_at_matched_regime_budget` against the
-    carried large clean-control anchor `0.8974410961`.
-  - Treat Brier, ROC AUC, runtime, and stability as advisory guardrails unless
-    the run is invalid or clearly unstable.
+    363707]` and rank by `final_log_loss_at_matched_regime_budget` against the carried
+    large clean-control anchor `0.8974410961`.
+  - Treat Brier, ROC AUC, runtime, and stability as advisory guardrails unless the
+    run is invalid or clearly unstable.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute this single benchmark-only row on the retained RTX 8000
-    / CUDA runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
-    only if the completed large result beats the anchor gate, otherwise document
-    the failed transfer and stop.
+  next_action: Execute this single benchmark-only row on the retained RTX 8000 / CUDA
+    runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
+    only if the completed large result beats the anchor gate, otherwise document the
+    failed transfer and stop.
   notes:
   - Reuse completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
     at `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train`;
     do not retrain this row for `tf_rd_009_large_validation_152x5_v1`.
   - Preflight must confirm training-surface fingerprint `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253`
     before benchmark execution to block surface drift.
-  - The large-rung success gate is `final_log_loss_at_matched_regime_budget <
-    0.8974410961` versus carried large clean-control anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
+  - The large-rung success gate is `final_log_loss_at_matched_regime_budget < 0.8974410961`
+    versus carried large clean-control anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
   - Advisory guardrails are Brier, ROC AUC, benchmark/runtime timing, and stability;
     only invalid or clearly unstable behavior blocks a keep.
   - If this row passes, freeze medium hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
-    from evidence rows `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and
-    `176x6`; do not add the large validation row to the medium constraint model.
-  - If this row fails, leave `hardware_architecture_baselines_v1.json` unfrozen
-    and keep any `96x2` / `176x6` bracketed large-rung diagnosis as separate
-    follow-on work.
+    from evidence rows `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`;
+    do not add the large validation row to the medium constraint model.
+  - If this row fails, leave `hardware_architecture_baselines_v1.json` unfrozen and
+    keep any `96x2` / `176x6` bracketed large-rung diagnosis as separate follow-on
+    work.
   - Execute on the same CUDA / RTX 8000 class environment as the retained TF-RD-009
     evidence; the current local workstation does not expose the required GPU surface.
+  - 'Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...'
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 550.0
+    max_grad_norm: 54.525353839842566
+    best_bpc: 2.261271075101999
+    best_bpf: 2.261271130121671
+    best_roc_auc: 0.5967365187249479
+    best_log_loss: 0.9507625551301947
+    best_brier_score: 0.5675577543042242
+    final_bpc: 2.2686359478877143
+    final_bpf: 2.2686359680615937
+    final_roc_auc: 0.6083568021504234
+    final_log_loss: 0.9337034780913935
+    final_brier_score: 0.5533658082117038
+    final_minus_best_bpc: 0.007364872785715182
+    final_minus_best_bpf: 0.007364837939922708
+    final_minus_best_roc_auc: 0.011620283425475497
+    final_minus_best_log_loss: -0.017059077038801163
+    final_minus_best_brier_score: -0.014191946092520391
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.017059077038801163
+    delta_final_bpc: 0.18260516753563527
+    delta_final_bpf: 0.18260518037355844
+    delta_final_log_loss: 0.03626238194883136
+    delta_final_brier_score: 0.006818717503074834
+    delta_final_roc_auc: -0.02399371692269847
   parent_delta_ref: null

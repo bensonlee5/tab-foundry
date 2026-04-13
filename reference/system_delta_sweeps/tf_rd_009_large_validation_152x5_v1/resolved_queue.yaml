@@ -23,7 +23,7 @@ anchor_surface:
   notes:
   - TF-RD-009 issue 257 stages a one-row large-rung validation sweep for the current
     medium fixed-budget winner `152x5` against the closed TF-RD-010 large clean-control
-    anchor on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+    anchor on manifest `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
     sourced from `nanotabpfn_openml_classification_large` (task ids `[363685, 363699,
     363707]`).
   - Row 1 is benchmark-only reuse of completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`;
@@ -82,7 +82,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_large_v1/manifest.parquet`
       sourced from `nanotabpfn_openml_classification_large` (3 tasks (missing values
       permitted)) with data surface label `tf_rd_010_dagzoo_medium_control_curated_v5`.
     interpretation: Manifest and training-data changes are first-class sweep rows
@@ -115,7 +115,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
-  status: ready
+  status: completed
   rationale: Benchmark-only validate the current TF-RD-009 medium fixed-budget winner
     `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` against the closed TF-RD-010
     large clean-control anchor before freezing any first hardware architecture baseline.
@@ -188,10 +188,10 @@ rows:
     run is invalid or clearly unstable.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute this single benchmark-only row on the retained RTX 8000 / CUDA
     runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
@@ -215,12 +215,41 @@ rows:
     work.
   - Execute on the same CUDA / RTX 8000 class environment as the retained TF-RD-009
     evidence; the current local workstation does not expose the required GPU surface.
+  - 'Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...'
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train
     training_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 550.0
+    max_grad_norm: 54.525353839842566
+    best_bpc: 2.261271075101999
+    best_bpf: 2.261271130121671
+    best_roc_auc: 0.5967365187249479
+    best_log_loss: 0.9507625551301947
+    best_brier_score: 0.5675577543042242
+    final_bpc: 2.2686359478877143
+    final_bpf: 2.2686359680615937
+    final_roc_auc: 0.6083568021504234
+    final_log_loss: 0.9337034780913935
+    final_brier_score: 0.5533658082117038
+    final_minus_best_bpc: 0.007364872785715182
+    final_minus_best_bpf: 0.007364837939922708
+    final_minus_best_roc_auc: 0.011620283425475497
+    final_minus_best_log_loss: -0.017059077038801163
+    final_minus_best_brier_score: -0.014191946092520391
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.017059077038801163
+    delta_final_bpc: 0.18260516753563527
+    delta_final_bpf: 0.18260518037355844
+    delta_final_log_loss: 0.03626238194883136
+    delta_final_brier_score: 0.006818717503074834
+    delta_final_roc_auc: -0.02399371692269847
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -458,4 +487,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_large_validation_152x5_v1/resolved_queue.yaml
-inputs_fingerprint: 74ee7b4163d96cae69bb963f2500ca816df630f43212c9cc4005bddf5884f432
+inputs_fingerprint: 7ad8db9e7f47b42e52c6abea8b7c2b0102dc9f0371e46841698c200069f3c360
