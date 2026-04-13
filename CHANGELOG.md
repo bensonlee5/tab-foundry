@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: the packaged CLI now exposes
+  `tab-foundry research scaling audit`, which writes fit-audit artifacts with
+  validation-vs-benchmark target comparisons, grouped holdout residuals,
+  bootstrap parameter intervals, diagnostic broken-power-law checks, and an
+  iso-loss `Bcrit(L)` readiness gate before using `Cmin` as compute-optimal
+  evidence.
 - User-facing note: benchmark run registration now persists optional W&B run
   identity plus a versioned remote checkpoint artifact ref in the benchmark run
   registry, and new `tab-foundry dev checkpoint-publish` /

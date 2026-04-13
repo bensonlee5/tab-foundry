@@ -454,6 +454,7 @@ a compact validation overlay. Inspect and fit that full state with:
 ```bash
 tab-foundry research scaling inspect --study tf_rd_009_phase2
 tab-foundry research scaling fit --study tf_rd_009_phase2
+tab-foundry research scaling audit --study tf_rd_009_phase2
 ```
 
 The default full fit reports `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`,
@@ -464,6 +465,15 @@ requires observed training-shape summaries and same-model monotone NS compute
 accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
 Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
 lower envelope has only two points.
+
+Use `research scaling audit` before interpreting the Phase-2 fit as a
+compute-optimal law. It writes `audit/audit_summary.json` and `audit/audit.md`
+under the study artifact root by default, compares validation-loss and
+benchmark-loss targets, runs leave-one-geometry and leave-one-step residual
+checks for joint `N,D` / `N,S` fits, bootstraps parameter intervals, adds
+diagnostic broken-power-law univariate checks, and gates `Cmin` interpretation
+on a redesigned iso-loss `Bcrit(L)` analysis with at least four contour
+estimates across the multi-geometry batch sweep.
 
 ## Scope Boundaries
 

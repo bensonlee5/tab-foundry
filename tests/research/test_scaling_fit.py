@@ -11,8 +11,10 @@ import pytest
 
 import tab_foundry.cli.app as cli_module
 import tab_foundry.cli.research_scaling as research_scaling_cli_module
+import tab_foundry.research.scaling.audit as scaling_audit_module
 import tab_foundry.research.scaling.fit as scaling_fit_module
 import tab_foundry.research.scaling.validation_backfill as validation_backfill_module
+from tab_foundry.research.scaling.audit import audit_scaling_study
 from tab_foundry.research.scaling.fit import (
     ScalingStudyRunPoint,
     collect_completed_scaling_points,
@@ -791,6 +793,35 @@ def test_fit_scaling_study_ns_only_omits_batch_fits(
         assert not stale_plot.exists()
 
 
+def test_audit_scaling_study_emits_fit_diagnostics(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+
+    payload = audit_scaling_study(
+        study_path=study_path,
+        registry_path=registry_path,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        out_root=tmp_path / "audit",
+        bootstrap_samples=2,
+        bootstrap_seed=7,
+    )
+
+    artifact_root = Path(payload["artifact_paths"]["artifact_root"])
+    assert payload["schema"] == scaling_audit_module.SCALING_AUDIT_SCHEMA
+    assert (artifact_root / "audit_summary.json").exists()
+    assert (artifact_root / "audit.md").exists()
+    assert payload["target_comparisons"]["primary_target"] == "validation_loss"
+    assert payload["target_comparisons"]["fits"]["L(N,S)"]["validation_loss"]["status"] == "fit"
+    assert "leave_one_geometry" in payload["holdout_residuals"]["L(N,S)"]["validation_loss"]
+    assert "bootstrap_confidence_intervals" in payload
+    assert payload["fit_policy"]["bcrit_iso_loss_readiness"]["ready_for_cmin"] is False
+    assert (
+        payload["fit_policy"]["bcrit_iso_loss_readiness"]["required_iso_loss_estimates"]
+        == 4
+    )
+
+
 def test_fit_scaling_study_all_scope_requires_batch_critical_points(tmp_path: Path) -> None:
     study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
     _mark_batch_queue_pending(sweeps_root)
@@ -1154,6 +1185,7 @@ def test_research_scaling_cli_dispatches_to_fit_and_inspect(
 ) -> None:
     inspect_called: dict[str, Any] = {}
     fit_called: dict[str, Any] = {}
+    audit_called: dict[str, Any] = {}
     backfill_called: dict[str, Any] = {}
     monkeypatch.setattr(
         research_scaling_cli_module,
@@ -1168,6 +1200,25 @@ def test_research_scaling_cli_dispatches_to_fit_and_inspect(
         lambda **kwargs: (
             fit_called.update(kwargs)
             or {"study": {"study_id": "synthetic"}, "counts": {}, "fit_summary": {}}
+        ),
+    )
+    monkeypatch.setattr(
+        research_scaling_cli_module,
+        "audit_scaling_study",
+        lambda **kwargs: (
+            audit_called.update(kwargs)
+            or {
+                "study": {"study_id": "synthetic"},
+                "counts": {},
+                "fit_policy": {
+                    "bcrit_iso_loss_readiness": {
+                        "ready_for_cmin": False,
+                        "iso_loss_estimate_count": 0,
+                        "distinct_geometry_count": 0,
+                    }
+                },
+                "artifact_paths": {"json_path": "audit_summary.json"},
+            }
         ),
     )
     monkeypatch.setattr(
@@ -1203,6 +1254,23 @@ def test_research_scaling_cli_dispatches_to_fit_and_inspect(
             "--json",
         ],
     )
+    audit_result = CliRunner().invoke(
+        cli_module.cli,
+        [
+            "research",
+            "scaling",
+            "audit",
+            "--study",
+            "synthetic_phase2",
+            "--fit-scope",
+            "ns-only",
+            "--bootstrap-samples",
+            "3",
+            "--bootstrap-seed",
+            "11",
+            "--json",
+        ],
+    )
     backfill_result = CliRunner().invoke(
         cli_module.cli,
         [
@@ -1220,10 +1288,15 @@ def test_research_scaling_cli_dispatches_to_fit_and_inspect(
 
     assert inspect_result.exit_code == 0
     assert fit_result.exit_code == 0
+    assert audit_result.exit_code == 0
     assert backfill_result.exit_code == 0
     assert inspect_called["study_id"] == "synthetic_phase2"
     assert fit_called["study_id"] == "synthetic_phase2"
     assert fit_called["fit_scope"] == "ns-only"
+    assert audit_called["study_id"] == "synthetic_phase2"
+    assert audit_called["fit_scope"] == "ns-only"
+    assert audit_called["bootstrap_samples"] == 3
+    assert audit_called["bootstrap_seed"] == 11
     assert backfill_called["study_id"] == "synthetic_phase2"
     assert backfill_called["preseed_gcs_root"] == str(Path("/tmp/source"))
     assert backfill_called["dry_run"] is True

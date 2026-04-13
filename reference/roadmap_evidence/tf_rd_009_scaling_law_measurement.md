@@ -22,10 +22,14 @@ handoff into the sweep-program design issue
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active
   fixed-budget family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
   completed width-transfer child
-  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), then active
+  [#254](https://github.com/bensonlee5/tab-foundry/issues/254), completed
   joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
-  and active Kaplan-exact Phase-2 fit/report child
-  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
+  completed Kaplan-exact Phase-2 fit/report child
+  [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
+  hardware-freeze child [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  compute-frontier child [#259](https://github.com/bensonlee5/tab-foundry/issues/259),
+  and curriculum/repetition slice child
+  [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
 
 ## Core Reading Path
 
@@ -384,6 +388,57 @@ Axis audit for the complete matrix:
   supports the reported `L(N,S)` surface; benchmark log loss is noisier across
   `N`, `D`, and `C`, which is why the one-dimensional benchmark-loss fits are
   carried as diagnostics.
+
+### Stronger Fit Audit And Follow-On Law Design
+
+Treat [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as a
+completed Phase-2 diagnostic, not as a settled compute-optimal law. The useful
+signal is validation-backed `L(N,S)`. The weak signals are `L(N)`, `L(D)`,
+`L(C)`, `L(N,D)`, and especially `Bcrit(L)` because the current axes are
+partly entangled and the completed batch envelope has only two points.
+
+The repo now exposes the stronger fit-audit surface:
+
+```bash
+tab-foundry research scaling audit --study tf_rd_009_phase2
+```
+
+The audit writes `audit/audit_summary.json` and `audit/audit.md` under the
+study artifact root by default. It compares validation-loss versus
+benchmark-loss targets, runs leave-one-geometry and leave-one-step residual
+checks on joint laws, bootstraps parameter intervals, adds diagnostic
+broken-power-law univariate checks for knees and non-monotone slices, and gates
+any `Cmin` interpretation on iso-loss `Bcrit(L)` readiness. The audit policy is
+to fit repo telemetry directly: validation loss is the primary law-fitting
+target, benchmark log loss is external transfer validation and repo-facing
+ranking evidence, and Kaplan/Chinchilla exponents are not imported from the
+papers.
+
+Next sweep ordering:
+
+- first: run the audit and seed/noise checks before interpreting benchmark-loss
+  fits; add two extra seeds for `{96x2,128x4,152x5}` at `{2500,5000}` steps so
+  residuals can be separated into target noise versus real scaling deviation
+- second: redesign `Bcrit(L)` as an iso-loss crossing analysis; run `96x2`,
+  `152x5`, and `176x6` over `grad_accum_steps={1,2,4,8}` to `5000` steps with
+  validation checkpoints at `{625,1250,2500,5000}`, then fit
+  McCandlish-style `Bcrit = Emin / Smin` from equal-validation-loss contours
+  rather than a final-only lower envelope
+- third: use [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for
+  the medium compute-frontier sweep; choose steps from measured
+  `train_flops_per_step(N)` across `{72x1,96x2,112x3,128x4,152x5,176x6}`,
+  bound steps to `625..10000`, and compare Chinchilla-style
+  `L(N,D)=E+A/N^alpha+B/D^beta` against the existing Kaplan-style `L(N,S)`
+- last: keep [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
+  separate for repetition/curriculum slices with fixed architecture plus
+  explicit `unique_task_budget` and `curriculum_id`; fit data-constrained
+  effective-data laws instead of merging those rows into the base `N,S,C`
+  curve
+
+TF-RD-009 adoption decision: do not use `Bcrit(L)` to derive `Cmin` until the
+iso-loss analysis has at least four contour estimates across the redesigned
+multi-geometry batch sweep. Broken neural scaling laws are diagnostic tools for
+knees or non-monotone slices, not the default compute-optimal frontier.
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 

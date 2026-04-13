@@ -424,6 +424,10 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     accounting, and C-axis fits reject missing or non-monotone compute metadata
   - the primary usable fit signal is `L(N,S)`; `Bcrit(L)` is recorded but weak
     because its completed lower envelope has only two points
+  - the stronger `research scaling audit` surface now separates validation-loss
+    fits from benchmark-loss transfer checks, adds grouped holdouts and
+    bootstrap intervals, and keeps `Cmin` quarantined until the redesigned
+    iso-loss `Bcrit(L)` branch has enough contour evidence
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

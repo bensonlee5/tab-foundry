@@ -937,9 +937,15 @@ Legacy wording note:
   completed width-transfer child
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254), completed
   joint width-depth child
-  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), and active
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), completed
   Kaplan-exact Phase-2 fit/report child
-  [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
+  [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
+  hardware-freeze child
+  [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  compute-frontier child
+  [#259](https://github.com/bensonlee5/tab-foundry/issues/259), and
+  curriculum/repetition slice child
+  [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
 - Goal: fit the first classification scaling laws on the simplified sandwich
   family only after the repo has the closed TF-RD-010 benchmark contract, one
   TF-RD-022 runtime policy, one TF-RD-024 bounded architecture read, and a
@@ -1017,6 +1023,11 @@ Legacy wording note:
     and `log_space_r2=-0.0649503`; the derived `L(Cmin)` fit reports
     `alpha_cmin=0.123823`, `log_space_r2=0.915117`, and `rmse=0.014289`, but
     depends on that weak `Bcrit(L)` relation
+  - `tab-foundry research scaling audit` now adds the Phase-2 fit-audit layer:
+    validation-vs-benchmark target comparisons, leave-one-geometry and
+    leave-one-step residual checks, bootstrap intervals, diagnostic
+    broken-power-law univariate checks, and an iso-loss `Bcrit(L)` readiness
+    gate before treating any derived `Cmin` relation as compute-optimal
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
@@ -1053,6 +1064,24 @@ Legacy wording note:
     FLOPs, and report the complete validation-backed Phase-2 fit family
     `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and `L(Cmin)`,
     with explicit caveats on the weak two-point `Bcrit(L)` envelope
+  - before using the Phase-2 fit as a compute-optimal law, run the fit-audit
+    command and keep validation loss as the primary law-fitting target while
+    treating benchmark log loss as external transfer validation and
+    repo-facing ranking evidence
+  - redesign the batch-critical branch before deriving `Cmin`: run the
+    TF-RD-009 medium `96x2`, `152x5`, and `176x6` batch sweep over
+    `grad_accum_steps={1,2,4,8}` to `5000` steps with validation checkpoints at
+    `{625,1250,2500,5000}`, then estimate `Bcrit(L)` from equal-validation-loss
+    contours rather than the final-only lower envelope
+  - use [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the
+    medium compute-frontier sweep: choose `S` from measured
+    `train_flops_per_step(N)` across `{72x1,96x2,112x3,128x4,152x5,176x6}`,
+    bound `S` to `625..10000`, and compare a fitted Chinchilla-style
+    `L(N,D)=E+A/N^alpha+B/D^beta` against the Kaplan-style `L(N,S)` surface
+  - keep [#260](https://github.com/bensonlee5/tab-foundry/issues/260) as a
+    separate repetition/curriculum slice with fixed architecture and explicit
+    `unique_task_budget` / `curriculum_id`; do not merge those rows into the
+    base `N,S,C` law
   - maintain the preferred architecture statefully in
     `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
     hardware profile plus sweep surface rather than by GitHub issue state; the
