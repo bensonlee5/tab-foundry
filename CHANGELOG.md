@@ -56,12 +56,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compute accounting. The compact TF-RD-009 registry state now corrects the
   reused 2,500-step NS rows plus the reused batch-critical 96x2 row that had
   inherited fallback `3x2x4x2` FLOP accounting.
-- User-facing note: the benchmark run registry and canonical
-  `tf_rd_009_large_validation_152x5_v1` sweep artifacts now record the
-  completed TF-RD-009 #257 large-rung validation. The reused `152x5` transfer
-  finished at `final_log_loss_at_matched_regime_budget=0.9337034781`, so the
-  result is a defer and the first TF-RD-009 hardware baseline remains
-  unfrozen.
+- User-facing note: telemetry-backed benchmark checkpoint selection now drops
+  `step_*.pt` entries whose files are missing from the retained reusable
+  artifact tree and appends terminal `latest.pt` when it is newer than the
+  highest retained numbered snapshot, so `benchmark_checkpoint_selection=all`
+  faithfully evaluates truncated reusable artifacts.
+- User-facing note: the benchmark run registry, canonical
+  `tf_rd_009_large_validation_152x5_v1` sweep artifacts, and hardware
+  architecture baseline registry now record the corrected TF-RD-009 #257
+  large-rung validation rerun. The reused `152x5` transfer consumed
+  `latest.pt` at step 2500, finished at
+  `final_log_loss_at_matched_regime_budget=0.7436636568` versus anchor
+  `0.8974410961`, and froze
+  `tf_rd_009_rtx8000_44gb_classification_medium_v1`.
 
 ## [0.16.12] - 2026-04-09
 

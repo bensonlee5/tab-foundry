@@ -5,6 +5,7 @@ from __future__ import annotations
 from tests.support.openml_benchmark_compare_cases import (
     test_build_comparison_summary_averages_external_scalar_metrics_across_seeds,
     test_collect_checkpoint_snapshots_falls_back_to_latest_checkpoint_when_no_step_snapshots,
+    test_collect_checkpoint_snapshots_filters_missing_telemetry_steps_and_appends_latest,
     test_build_comparison_summary_preserves_model_identity_metadata,
     test_build_comparison_summary_uses_log_loss_as_classification_best_step,
     test_collect_checkpoint_snapshots_prefers_train_elapsed_seconds,

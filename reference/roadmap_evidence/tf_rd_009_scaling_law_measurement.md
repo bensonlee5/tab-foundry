@@ -626,28 +626,29 @@ pending rows as direct inputs to the reported law fit.
 
 ## Constraint Budget Table
 
-These tables are the planning view for the future
+These tables now summarize the frozen
 `hardware_architecture_baselines_v1.json` entry for the retained
-`rtx8000_44gb` classification surface. The width-depth family is now complete,
-but the formulas remain repo-local planning aids after the completed
-[#257](https://github.com/bensonlee5/tab-foundry/issues/257) large-rung gate:
-`tf_rd_009_large_validation_152x5_v1` finished at
-`final_log_loss_at_matched_regime_budget=0.9337034781`, which did not beat the
-carried TF-RD-010 large clean-control anchor `0.8974410961`, so the hardware
-baseline was not frozen from the mixed-depth evidence.
+`rtx8000_44gb` classification surface. The width-depth family is complete, and
+the hardware baseline froze only after corrected [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+rerun `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`
+filtered telemetry-only missing late numbered checkpoints, consumed terminal
+`latest.pt` at `global_step=2500`, and beat the carried TF-RD-010 large
+clean-control anchor `0.8974410961` at
+`final_log_loss_at_matched_regime_budget=0.7436636568`. The large-rung result
+remains a gate rather than an additional fitted constraint-model point.
 
-Current planning formulas:
+Current frozen formulas:
 
 - planning-axis expression:
   - `S(d, L) = L * d^2`
 - current fitted mixed-depth parameter bridge:
-  - `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2`
+  - `P_local(d, L) ≈ 18638.80 + 77.94 * d^2 + 47.93 * L * d^2`
 - deprecated width-only diagnostic bridge:
   - `P_local(d, L) ≈ 88.20 * L * d^2` on the historical `L=2` family only
-- current RTX 8000 reserved-memory fit from the benchmarked width evidence:
-  - `reserved_gb ≈ 6.47 + 2.36e-6 * params`
-- current RTX 8000 train-wall fit from the benchmarked width evidence:
-  - `train_wall_seconds ≈ 8407.97 + 1.01e-4 * params`
+- current RTX 8000 reserved-memory fit from the frozen medium evidence:
+  - `reserved_vram_gb ≈ 8.69 + 9.271e-07 * params`
+- current RTX 8000 train-wall fit from the frozen medium evidence:
+  - `train_wall_seconds ≈ 8298.45 + 2.275e-04 * params`
 
 The historical width-family rows predate first-class `benchmark_timing` and
 `inference_timing`, so those timing columns remain intentionally pending for
@@ -658,25 +659,25 @@ timings directly.
 
 | Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Observed headroom to 44 GB |
 |-----|---------|-------------------|---------------|---------------------|-----------------------|----------------------|----------------------------|
-| `60x2` | 60 | 2 | 7200 | 0.650M | 8.00 | 8.05 | 35.95 |
-| `72x1` | 72 | 1 | 5184 | 0.672M | 8.06 | 8.75 | 35.25 |
-| `96x2` | 96 | 2 | 18432 | 1.617M | 10.29 | 10.18 | 33.82 |
-| `112x3` | 112 | 3 | 37632 | 2.798M | 13.07 | 11.65 | 32.35 |
-| `128x4` | 128 | 4 | 65536 | 4.439M | 16.95 | 14.55 | 29.45 |
-| `152x5` | 152 | 5 | 115520 | 7.366M | 23.85 | 16.59 | 27.41 |
-| `176x6` | 176 | 6 | 185856 | 11.366M | 33.29 | 17.84 | 26.16 |
+| `60x2` | 60 | 2 | 7200 | 0.644M | 9.29 | 8.05 | 35.95 |
+| `72x1` | 72 | 1 | 5184 | 0.671M | 9.32 | 8.75 | 35.25 |
+| `96x2` | 96 | 2 | 18432 | 1.620M | 10.20 | 10.18 | 33.82 |
+| `112x3` | 112 | 3 | 37632 | 2.800M | 11.29 | 11.65 | 32.35 |
+| `128x4` | 128 | 4 | 65536 | 4.437M | 12.81 | 14.55 | 29.45 |
+| `152x5` | 152 | 5 | 115520 | 7.357M | 15.51 | 16.59 | 27.41 |
+| `176x6` | 176 | 6 | 185856 | 11.342M | 19.21 | 17.84 | 26.16 |
 
 ### Timing Table
 
 | Row | Predicted train wall seconds | Observed train wall seconds | Observed delta vs `96x2` | Observed benchmark wall seconds | Observed inference mean ms |
 |-----|------------------------------|-----------------------------|--------------------------|---------------------------------|----------------------------|
-| `60x2` | 8474 | 8486 | -62 | pending | pending |
-| `72x1` | 8476 | 8105 | -443 | 1230 | 10.64 |
-| `96x2` | 8571 | 8548 | +0 | pending | pending |
-| `112x3` | 8691 | 9136 | +587 | 1336 | 20.39 |
-| `128x4` | 8856 | 9594 | +1046 | 1391 | 23.91 |
-| `152x5` | 9152 | 10154 | +1606 | 1509 | 27.70 |
-| `176x6` | 9556 | 10635 | +2087 | 1610 | 24.23 |
+| `60x2` | 8445 | 8486 | -62 | pending | pending |
+| `72x1` | 8451 | 8105 | -443 | 1230 | 10.64 |
+| `96x2` | 8667 | 8548 | +0 | pending | pending |
+| `112x3` | 8936 | 9136 | +587 | 1335 | 20.39 |
+| `128x4` | 9308 | 9594 | +1046 | 1391 | 23.91 |
+| `152x5` | 9972 | 10154 | +1606 | 1509 | 27.70 |
+| `176x6` | 10879 | 10635 | +2087 | 1610 | 24.23 |
 
 ### Completed Phase-1 Outcome
 
@@ -686,23 +687,27 @@ timings directly.
   (`0.5740`) and final ROC AUC (`0.7351`)
 - `176x6` completed cleanly and remains useful upper-family evidence, but it
   did not beat `152x5` on the carried matched-budget objective
-- `tf_rd_009_large_validation_152x5_v1` is now complete under
-  [#257](https://github.com/bensonlee5/tab-foundry/issues/257): the
-  benchmark-only large-rung reuse of the completed `152x5` train artifact
-  finished at `final_log_loss=0.9337034781`, `final_brier_score=0.5533658082`,
-  and `final_roc_auc=0.6083568022`
-- the carried large clean-control anchor remained better at `0.8974410961`, so
-  the large-rung transfer decision is `defer`; `delta_final_log_loss=+0.0363`
-  and `delta_final_roc_auc=-0.0240` versus the anchor are the operative gate
-  values
-- because the large gate failed, `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`
-  stays unfrozen on this branch and any bracketed large-rung diagnosis should
-  be treated as separate follow-on work rather than part of [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+- the first registry-backed [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
+  rerun stopped at the last retained numbered snapshot because telemetry still
+  referenced late numbered checkpoints that were no longer present in the
+  reusable artifact tree
+- corrected rerun `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`
+  filtered telemetry-only missing late numbered checkpoints, appended terminal
+  `latest.pt` at `global_step=2500`, completed `25/25` checkpoint comparisons,
+  and finished at `final_log_loss=0.7436636568`,
+  `final_brier_score=0.4288940`, and `final_roc_auc=0.7650940`
+- the corrected large clean-control comparison is now a keep:
+  `delta_final_log_loss=-0.1538` and `delta_final_roc_auc=+0.1327` versus the
+  carried anchor `0.8974410961`
+- because the large gate passed on the terminal 2500-step artifact,
+  `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now freezes
+  `tf_rd_009_rtx8000_44gb_classification_medium_v1` from medium evidence rows
+  only; the large validation row remains a gate rather than a constraint-model
+  point
 - the observed upper-row training VRAM (`16.59 GiB` at `152x5`, `17.84 GiB` at
-  `176x6`) undershot the pre-run width-evidence reserved-memory fit
-  (`23.85 GB` and `33.29 GB` respectively), so that fit should remain a
-  conservative queue-construction heuristic rather than the freeze-time
-  hardware constraint model
+  `176x6`) still undershot the old width-evidence reserved-memory fit, so the
+  frozen baseline now uses the medium-evidence formulas above rather than the
+  old conservative queue-construction heuristic
 - no extra near-ceiling rows were added on this branch because solving
   directly against the old memory fit would require off-diagonal rows that no
   longer preserve the original TF-RD-009 width-depth relationship
@@ -995,18 +1000,19 @@ Selection contract:
 First TF-RD-009 use:
 
 - [#257](https://github.com/bensonlee5/tab-foundry/issues/257) is now complete:
-  `tf_rd_009_large_validation_152x5_v1` failed the large-rung gate at
-  `final_log_loss_at_matched_regime_budget=0.9337034781` versus the carried
-  control `0.8974410961`, so do not create the first
+  corrected rerun `tf_rd_009_large_validation_152x5_v1` consumed the retained
+  terminal `latest.pt` checkpoint at step 2500, passed the large-rung gate at
+  `final_log_loss_at_matched_regime_budget=0.7436636568` versus the carried
+  control `0.8974410961`, and froze the first
   `rtx8000_44gb` medium-classification hardware baseline entry on this branch
 - keep the formal external anchor `60x2` for lane interpretation
 - keep the carried baseline `96x2` as the fallback preferred architecture if
   the widened family does not produce a cleaner healthy winner
-- the completed large-rung reuse row is
-  `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`,
+- the canonical large-rung reuse row is
+  `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`,
   benchmarked on `openml_classification_large_v1`; it recorded
-  `final_log_loss_at_matched_regime_budget=0.9337034781`, so the freeze gate
-  was not met
+  `final_log_loss_at_matched_regime_budget=0.7436636568`, so the freeze gate
+  was met on the retained terminal 2500-step artifact
 - keep the medium constraint model derived only from the medium evidence rows
   `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`; the large
   validation row is a gate, not an additional fitted point

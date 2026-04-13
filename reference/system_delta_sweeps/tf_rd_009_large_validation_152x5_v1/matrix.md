@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_large_valida
 - Parent sweep id: `tf_rd_009_width_depth_medium_v1`
 - Complexity level: `classification_lg`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_large_validation_152x5_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `7ad8db9e7f47b42e52c6abea8b7c2b0102dc9f0371e46841698c200069f3c360`
+- Resolved queue inputs fingerprint: `0f98b7b63ecd7b00bb14f0aedb780be423e314e764b5fba62951a5ea8f356dd0`
 
 ## Locked Surface
 
@@ -45,7 +45,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Execute this single benchmark-only row on the retained RTX 8000 / CUDA runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` only if the completed large result beats the anchor gate, otherwise document the failed transfer and stop. |
+| 1 | `delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1` | classification_scaling_law | no | completed | none | Execute the penultimate TF-RD-009 joint width-depth upper row at `d_icl=152`, `sandwich_layers=5`, continuing the dense diagonal toward the intended `rtx8000_44gb` ceiling probe. | Keep this corrected large-rung gate, maintain frozen hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`, and treat any bracketed large-rung diagnosis as separate follow-on work outside issue 257. |
 
 ## Detailed Rows
 
@@ -79,7 +79,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
 - Interpretation status: `completed`
-- Decision: `defer`
+- Decision: `keep`
 - Notes:
   - Reuse completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` at `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train`; do not retrain this row for `tf_rd_009_large_validation_152x5_v1`.
   - Preflight must confirm training-surface fingerprint `8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253` before benchmark execution to block surface drift.
@@ -89,8 +89,12 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - If this row fails, leave `hardware_architecture_baselines_v1.json` unfrozen and keep any `96x2` / `176x6` bracketed large-rung diagnosis as separate follow-on work.
   - Execute on the same CUDA / RTX 8000 class environment as the retained TF-RD-009 evidence; the current local workstation does not expose the required GPU surface.
   - Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...
-  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - Partial-snapshot rerun `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` is superseded: telemetry listed checkpoints through step 2500, but the reusable artifact retained numbered `step_*.pt` files only through step 600 plus `latest.pt`, so the old artifact-selection path stopped on the last preserved numbered snapshot.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`.
+  - Corrected artifact resolution kept telemetry as the source of step and elapsed-time metadata, dropped telemetry-only missing late numbered checkpoints, and appended the retained terminal `latest.pt` checkpoint at `global_step=2500` while preserving `benchmark_checkpoint_selection: all`.
+  - The corrected rerun completed `25/25` checkpoint comparisons with terminal `latest.pt` at step `2500`, finished at `final_log_loss=0.7436636568`, `final_brier_score=0.4288940`, and `final_roc_auc=0.7650940`, and beat the carried large clean-control anchor by `delta_final_log_loss=-0.1537774`.
+  - Hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` is now frozen from medium evidence rows only with preferred `152x5`, formal anchor `60x2`, and baseline `96x2`; the large validation row remains a gate and is not added to the medium constraint model.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_large_validation_152x5_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1` with final log loss `0.9337`, delta final log loss `+0.0363`, final Brier score `0.5534`, delta final brier score `+0.0068`, final ROC AUC `0.6084`, delta final roc auc `-0.0240`, final BPC (legacy feature-cell diagnostic) `2.2686`, delta final bpc (legacy feature-cell diagnostic) `+0.1826`, final BPF (legacy feature-cell diagnostic) `2.2686`, delta final bpf (legacy feature-cell diagnostic) `+0.1826`, best ROC AUC `0.5967`, delta final training time `-4841.8s`
+- Registered run: `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2` with final log loss `0.7437`, delta final log loss `-0.1538`, final Brier score `0.4289`, delta final brier score `-0.1177`, final ROC AUC `0.7651`, delta final roc auc `+0.1327`, final BPC (legacy feature-cell diagnostic) `4.5075`, delta final bpc (legacy feature-cell diagnostic) `+2.4214`, final BPF (legacy feature-cell diagnostic) `4.5075`, delta final bpf (legacy feature-cell diagnostic) `+2.4214`, best ROC AUC `0.5967`, delta final training time `+2673.7s`

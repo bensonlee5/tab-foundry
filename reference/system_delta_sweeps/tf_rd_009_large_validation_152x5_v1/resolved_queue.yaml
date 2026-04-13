@@ -188,15 +188,14 @@ rows:
     run is invalid or clearly unstable.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1
+  run_id: sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2
   followup_run_ids: []
-  decision: defer
+  decision: keep
   interpretation_status: completed
   confounders: []
-  next_action: Execute this single benchmark-only row on the retained RTX 8000 / CUDA
-    runner; freeze hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1`
-    only if the completed large result beats the anchor gate, otherwise document the
-    failed transfer and stop.
+  next_action: Keep this corrected large-rung gate, maintain frozen hardware baseline
+    `tf_rd_009_rtx8000_44gb_classification_medium_v1`, and treat any bracketed large-rung
+    diagnosis as separate follow-on work outside issue 257.
   notes:
   - Reuse completed run `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
     at `outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train`;
@@ -217,9 +216,25 @@ rows:
     evidence; the current local workstation does not expose the required GPU surface.
   - 'Execution attempt `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
     failed: [row 01] pinned reusable train artifact is missing or incomplete: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sa...'
-  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`.
+  - 'Partial-snapshot rerun `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+    is superseded: telemetry listed checkpoints through step 2500, but the reusable
+    artifact retained numbered `step_*.pt` files only through step 600 plus `latest.pt`,
+    so the old artifact-selection path stopped on the last preserved numbered snapshot.'
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Canonical rerun registered as `sd_tf_rd_009_large_validation_152x5_v1_01_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v2`.
+  - 'Corrected artifact resolution kept telemetry as the source of step and elapsed-time
+    metadata, dropped telemetry-only missing late numbered checkpoints, and appended
+    the retained terminal `latest.pt` checkpoint at `global_step=2500` while preserving
+    `benchmark_checkpoint_selection: all`.'
+  - The corrected rerun completed `25/25` checkpoint comparisons with terminal `latest.pt`
+    at step `2500`, finished at `final_log_loss=0.7436636568`, `final_brier_score=0.4288940`,
+    and `final_roc_auc=0.7650940`, and beat the carried large clean-control anchor
+    by `delta_final_log_loss=-0.1537774`.
+  - Hardware baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` is now frozen
+    from medium evidence rows only with preferred `152x5`, formal anchor `60x2`, and
+    baseline `96x2`; the large validation row remains a gate and is not added to the
+    medium constraint model.
   dynamic_model_overrides: null
   reuse_train_artifact:
     run_dir: outputs/staged_ladder/research/tf_rd_009_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1/sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1/train
@@ -233,23 +248,23 @@ rows:
     best_roc_auc: 0.5967365187249479
     best_log_loss: 0.9507625551301947
     best_brier_score: 0.5675577543042242
-    final_bpc: 2.2686359478877143
-    final_bpf: 2.2686359680615937
-    final_roc_auc: 0.6083568021504234
-    final_log_loss: 0.9337034780913935
-    final_brier_score: 0.5533658082117038
-    final_minus_best_bpc: 0.007364872785715182
-    final_minus_best_bpf: 0.007364837939922708
-    final_minus_best_roc_auc: 0.011620283425475497
-    final_minus_best_log_loss: -0.017059077038801163
-    final_minus_best_brier_score: -0.014191946092520391
+    final_bpc: 4.507453720386212
+    final_bpf: 4.5074539404649
+    final_roc_auc: 0.765094033761902
+    final_log_loss: 0.7436636567836484
+    final_brier_score: 0.42889399685905455
+    final_minus_best_bpc: 2.246182645284213
+    final_minus_best_bpf: 2.2461828103432286
+    final_minus_best_roc_auc: 0.16835751503695406
+    final_minus_best_log_loss: -0.20709889834654627
+    final_minus_best_brier_score: -0.13866375744516962
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.017059077038801163
-    delta_final_bpc: 0.18260516753563527
-    delta_final_bpf: 0.18260518037355844
-    delta_final_log_loss: 0.03626238194883136
-    delta_final_brier_score: 0.006818717503074834
-    delta_final_roc_auc: -0.02399371692269847
+    drift: -0.20709889834654627
+    delta_final_bpc: 2.421422940034133
+    delta_final_bpf: 2.4214231527768644
+    delta_final_log_loss: -0.15377743935891375
+    delta_final_brier_score: -0.1176530938495744
+    delta_final_roc_auc: 0.1327435146887801
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -487,4 +502,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 8fbebcbeb4951b28d1a1f26e007b427e0686d9fc58fb5b281107dca7c0f69253
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_large_validation_152x5_v1/resolved_queue.yaml
-inputs_fingerprint: 7ad8db9e7f47b42e52c6abea8b7c2b0102dc9f0371e46841698c200069f3c360
+inputs_fingerprint: 0f98b7b63ecd7b00bb14f0aedb780be423e314e764b5fba62951a5ea8f356dd0

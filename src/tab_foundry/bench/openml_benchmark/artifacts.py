@@ -12,6 +12,7 @@ import torch
 
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
+    load_history,
     resolve_train_elapsed_seconds,
 )
 from tab_foundry.device import resolve_device
@@ -80,31 +81,97 @@ def resolve_tab_foundry_best_checkpoint(run_dir: Path) -> Path:
     raise RuntimeError(f"missing best checkpoint under {resolved_run_dir}; checked {expected}")
 
 
+def _resolve_telemetry_checkpoint_path(*, checkpoint_path: str, checkpoint_dir: Path) -> Path | None:
+    recorded_path = Path(str(checkpoint_path)).expanduser()
+    if recorded_path.exists():
+        return recorded_path.resolve()
+    candidate = checkpoint_dir / recorded_path.name
+    if candidate.exists():
+        return candidate.resolve()
+    return None
+
+
+def _history_step_elapsed_seconds(history_path: Path) -> dict[int, float]:
+    return {
+        int(record["step"]): resolve_train_elapsed_seconds(
+            record,
+            context=f"history step={record['step']}",
+        )
+        for record in load_history(history_path)
+    }
+
+
 def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
     """Resolve step checkpoints and their elapsed training times."""
 
     resolved_run_dir = run_dir.expanduser().resolve()
+    history_path, checkpoint_dir = resolve_tab_foundry_run_artifact_paths(resolved_run_dir)
     telemetry_path = resolved_run_dir / "telemetry.json"
     if telemetry_path.exists():
         payload = json.loads(telemetry_path.read_text(encoding="utf-8"))
         snapshots = payload.get("checkpoint_snapshots")
         if isinstance(snapshots, list) and snapshots:
-            return sorted(
-                [
+            resolved_snapshots: list[dict[str, Any]] = []
+            elapsed_seconds_by_step: dict[int, float] = {}
+            for snapshot in snapshots:
+                step = int(snapshot["step"])
+                elapsed_seconds = resolve_train_elapsed_seconds(
+                    snapshot,
+                    context=f"telemetry checkpoint step={snapshot['step']}",
+                )
+                elapsed_seconds_by_step[step] = elapsed_seconds
+                resolved_checkpoint_path = _resolve_telemetry_checkpoint_path(
+                    checkpoint_path=str(snapshot["path"]),
+                    checkpoint_dir=checkpoint_dir,
+                )
+                if resolved_checkpoint_path is None:
+                    continue
+                resolved_snapshots.append(
                     {
-                        "step": int(snapshot["step"]),
-                        "path": str(Path(str(snapshot["path"])).expanduser().resolve()),
-                        "elapsed_seconds": resolve_train_elapsed_seconds(
-                            snapshot,
-                            context=f"telemetry checkpoint step={snapshot['step']}",
-                        ),
+                        "step": step,
+                        "path": str(resolved_checkpoint_path),
+                        "elapsed_seconds": elapsed_seconds,
                     }
-                    for snapshot in snapshots
-                ],
-                key=lambda snapshot: int(snapshot["step"]),
-            )
+                )
 
-    history_path, checkpoint_dir = resolve_tab_foundry_run_artifact_paths(resolved_run_dir)
+            latest_checkpoint_path = resolve_latest_checkpoint_path(resolved_run_dir)
+            if latest_checkpoint_path is not None:
+                resolved_latest_checkpoint_path = latest_checkpoint_path.expanduser().resolve()
+                latest_checkpoint_step = _checkpoint_global_step(resolved_latest_checkpoint_path)
+                highest_retained_step = max(
+                    (int(snapshot["step"]) for snapshot in resolved_snapshots),
+                    default=0,
+                )
+                if (
+                    latest_checkpoint_step is not None
+                    and str(resolved_latest_checkpoint_path)
+                    not in {str(snapshot["path"]) for snapshot in resolved_snapshots}
+                    and int(latest_checkpoint_step) > int(highest_retained_step)
+                ):
+                    latest_elapsed_seconds = elapsed_seconds_by_step.get(int(latest_checkpoint_step))
+                    if latest_elapsed_seconds is None:
+                        latest_elapsed_seconds = _history_step_elapsed_seconds(history_path).get(
+                            int(latest_checkpoint_step)
+                        )
+                    if latest_elapsed_seconds is None:
+                        raise RuntimeError(
+                            "missing elapsed time for terminal latest checkpoint "
+                            f"step={latest_checkpoint_step}"
+                        )
+                    resolved_snapshots.append(
+                        {
+                            "step": int(latest_checkpoint_step),
+                            "path": str(resolved_latest_checkpoint_path),
+                            "elapsed_seconds": float(latest_elapsed_seconds),
+                        }
+                    )
+
+            if resolved_snapshots:
+                return sorted(
+                    resolved_snapshots,
+                    key=lambda snapshot: int(snapshot["step"]),
+                )
+
     snapshots = checkpoint_snapshots_from_history(history_path, checkpoint_dir)
     return [
         {
