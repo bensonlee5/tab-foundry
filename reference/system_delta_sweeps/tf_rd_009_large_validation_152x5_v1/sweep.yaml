@@ -1,0 +1,110 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_009_large_validation_152x5_v1
+parent_sweep_id: tf_rd_009_width_depth_medium_v1
+status: draft
+complexity_level: classification_lg
+anchor_run_id: sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_large_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_large_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_scaling_law
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - TF-RD-009 issue 257 stages a one-row large-rung validation sweep for the current
+    medium fixed-budget winner `152x5` against the closed TF-RD-010 large clean-control
+    anchor on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+    sourced from `nanotabpfn_openml_classification_large` (task ids `[363685,
+    363699, 363707]`).
+  - Row 1 is benchmark-only reuse of completed run
+    `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`;
+    do not retrain or add extra seeds inside `tf_rd_009_large_validation_152x5_v1`.
+  - The keep/defer gate is whether `152x5` beats the carried TF-RD-010 large clean-control
+    anchor `sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`
+    at `final_log_loss_at_matched_regime_budget < 0.8974410961`; Brier, ROC AUC,
+    runtime, and stability stay advisory unless the run is invalid or clearly unstable.
+  - If the row passes on the retained RTX 8000 / CUDA surface, freeze hardware
+    baseline `tf_rd_009_rtx8000_44gb_classification_medium_v1` from the medium
+    dense-diagonal evidence with preferred run `152x5`, formal anchor `60x2`,
+    and baseline `96x2`; the large result is a gate, not a medium evidence row.
+  - If the row fails, document the failed transfer and stop; any bracketed large-rung
+    diagnosis plus issues 259 and 260 follow-on work remains separate.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_large_v1/manifest.parquet`
+      sourced from `nanotabpfn_openml_classification_large` (3 tasks (missing values
+      permitted)) with data surface label `tf_rd_010_dagzoo_medium_control_curated_v5`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_010_classification_evolution_large_v2_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v5
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

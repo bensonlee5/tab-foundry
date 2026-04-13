@@ -26,7 +26,7 @@ handoff into the sweep-program design issue
   joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
   completed Kaplan-exact Phase-2 fit/report child
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
-  hardware-freeze child [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  large-rung validation / hardware-freeze child [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
   compute-frontier child [#259](https://github.com/bensonlee5/tab-foundry/issues/259),
   and curriculum/repetition slice child
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
@@ -630,9 +630,10 @@ These tables are the planning view for the future
 `hardware_architecture_baselines_v1.json` entry for the retained
 `rtx8000_44gb` classification surface. The width-depth family is now complete,
 but the formulas remain repo-local planning aids until
-[#257](https://github.com/bensonlee5/tab-foundry/issues/257) freezes the
-hardware baseline from the measured mixed-depth evidence rather than from the
-historical width-only bridge.
+[#257](https://github.com/bensonlee5/tab-foundry/issues/257) executes
+`tf_rd_009_large_validation_152x5_v1` on the large rung and, only on pass,
+freezes the hardware baseline from the measured mixed-depth evidence rather
+than from the historical width-only bridge.
 
 Current planning formulas:
 
@@ -982,10 +983,19 @@ First TF-RD-009 use:
 
 - create the first entry for the retained `rtx8000_44gb` medium classification
   surface only after the dense width-depth family is complete enough to support
-  a real hardware-aware decision
+  a real hardware-aware decision and the staged
+  `tf_rd_009_large_validation_152x5_v1` large-rung transfer passes
 - keep the formal external anchor `60x2` for lane interpretation
 - keep the carried baseline `96x2` as the fallback preferred architecture if
   the widened family does not produce a cleaner healthy winner
+- stage #257 as benchmark-only reuse of
+  `sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1`
+  on `openml_classification_large_v1`, requiring
+  `final_log_loss_at_matched_regime_budget < 0.8974410961` versus the carried
+  TF-RD-010 large clean-control anchor before any freeze
+- keep the medium constraint model derived only from the medium evidence rows
+  `60x2`, `72x1`, `96x2`, `112x3`, `128x4`, `152x5`, and `176x6`; the large
+  validation row is a gate, not an additional fitted point
 - include the machine-readable `constraint_model` block so the registry records
   the exact effective-size, parameter, VRAM, train-wall, benchmark-wall, and
   inference-latency formulas together with the evidence rows used to fit them
