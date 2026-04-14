@@ -9,6 +9,7 @@ from .corpus_materialization_batch import (
 from .corpus_materialization_invocation import materialize_recipe_invocation
 from .corpus_materialization_recipe import (
     build_staged_corpus_manifest,
+    compact_staged_corpus_recipe,
     finalize_staged_corpus_recipe,
     load_staged_corpus_recipe_preview,
     materialize_corpus_recipe,
@@ -21,6 +22,7 @@ from .corpus_materialization_shared import (
 
 __all__ = [
     "build_staged_corpus_manifest",
+    "compact_staged_corpus_recipe",
     "default_materialize_processes",
     "default_materialize_worker_threads",
     "finalize_staged_corpus_recipe",

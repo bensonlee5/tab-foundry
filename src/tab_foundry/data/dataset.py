@@ -60,6 +60,13 @@ def _read_ndjson_record_by_offset(
 
 
 def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, int, str]:
+    if "catalog_dataset_index" in record:
+        return (
+            str(record["catalog_path"]),
+            int(record["catalog_dataset_index"]),
+            -1,
+            str(record["catalog_record_sha256"]),
+        )
     return (
         str(record["catalog_path"]),
         int(record["catalog_offset_bytes"]),
@@ -75,6 +82,45 @@ def _fallback_load_manifest_record_catalog(
 ) -> dict[str, Any]:
     raw_path, offset_bytes, size_bytes, expected_sha256 = _manifest_row_catalog_locator(record)
     catalog_path = _resolve_record_path(manifest_path, raw_path)
+    if "catalog_dataset_index" in record:
+        table = pq.read_table(
+            catalog_path,
+            filters=[("dataset_index", "=", int(offset_bytes))],
+            columns=["dataset_index", "record_json", "record_sha256"],
+        )
+        rows = table.to_pylist()
+        if len(rows) != 1:
+            raise RuntimeError(
+                "parquet catalog lookup must resolve exactly one row: "
+                f"path={catalog_path}, dataset_index={offset_bytes}, matches={len(rows)}"
+            )
+        payload = rows[0]
+        record_json = payload.get("record_json")
+        observed_sha256 = payload.get("record_sha256")
+        if not isinstance(record_json, str) or not isinstance(observed_sha256, str):
+            raise RuntimeError(
+                "parquet catalog row must expose string record_json and record_sha256: "
+                f"path={catalog_path}, dataset_index={offset_bytes}"
+            )
+        actual_sha256 = sha256(record_json.encode("utf-8")).hexdigest()
+        if observed_sha256 != actual_sha256 or observed_sha256 != expected_sha256:
+            raise RuntimeError(
+                "parquet catalog digest mismatch: "
+                f"path={catalog_path}, dataset_index={offset_bytes}, "
+                f"expected={expected_sha256}, stored={observed_sha256}, actual={actual_sha256}"
+            )
+        try:
+            decoded = json.loads(record_json)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                "failed to parse parquet catalog record_json: "
+                f"path={catalog_path}, dataset_index={offset_bytes}"
+            ) from exc
+        if not isinstance(decoded, Mapping):
+            raise RuntimeError(
+                f"parquet catalog payload must be an object: path={catalog_path}, dataset_index={offset_bytes}"
+            )
+        return {str(key): value for key, value in cast(Mapping[str, Any], decoded).items()}
     return _read_ndjson_record_by_offset(
         catalog_path,
         offset_bytes=offset_bytes,
@@ -298,14 +344,12 @@ def load_manifest_record_metadata(
     """Load one packed-manifest metadata payload plus validated feature types."""
 
     required_keys = {"dataset_index"}
-    locator_keys = {
-        "catalog_path",
-        "catalog_offset_bytes",
-        "catalog_size_bytes",
-        "catalog_sha256",
-    }
+    locator_key_sets = (
+        {"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},
+        {"catalog_path", "catalog_offset_bytes", "catalog_size_bytes", "catalog_sha256"},
+    )
     missing = sorted(required_keys - set(record))
-    if missing or not locator_keys.issubset(record):
+    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
         raise RuntimeError(
             "manifest record is missing required packed-contract fields: "
             f"missing={missing}"
@@ -364,14 +408,12 @@ def load_manifest_record_catalog(
     """Load the public packed-catalog record for one manifest row."""
 
     required_keys = {"dataset_index"}
-    locator_keys = {
-        "catalog_path",
-        "catalog_offset_bytes",
-        "catalog_size_bytes",
-        "catalog_sha256",
-    }
+    locator_key_sets = (
+        {"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},
+        {"catalog_path", "catalog_offset_bytes", "catalog_size_bytes", "catalog_sha256"},
+    )
     missing = sorted(required_keys - set(record))
-    if missing or not locator_keys.issubset(record):
+    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
         raise RuntimeError(
             "manifest record is missing required packed-contract fields: "
             f"missing={missing}"

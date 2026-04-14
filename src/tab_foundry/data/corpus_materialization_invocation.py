@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
 import pyarrow as pa
-import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import subprocess
 import sys
@@ -22,6 +22,7 @@ from tab_realdata_hub.dagzoo_handoff import (
     load_dagzoo_handoff_info,
     verify_dagzoo_handoff_matches_generated_corpus,
 )
+import tab_realdata_hub.manifest as hub_manifest_module
 from tab_foundry.hashing import sha256_path
 
 from .corpus_loading import (
@@ -44,7 +45,6 @@ from .corpus_materialization_shared import (
     _read_json_mapping,
     _resolve_materialize_processes,
     _resolve_materialize_worker_threads,
-    _snapshot_tree,
 )
 from .dagzoo_workflow import (
     DagzooFilterConfig,
@@ -62,6 +62,94 @@ class _ActiveInvocationProcess:
     spec: DagzooInvocationRecipe
 
 
+CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD = 512
+HUB_DATASET_CATALOG_FILENAME = str(
+    getattr(hub_manifest_module, "DATASET_CATALOG_FILENAME", "dataset_catalog.parquet")
+)
+_WRITE_DATASET_CATALOG = getattr(hub_manifest_module, "write_dataset_catalog", None)
+_LOAD_DATASET_CATALOG_RECORDS = getattr(hub_manifest_module, "load_dataset_catalog_records", None)
+
+
+def _write_dataset_catalog(path: Path, records: Sequence[Mapping[str, Any]]) -> None:
+    if callable(_WRITE_DATASET_CATALOG):
+        _WRITE_DATASET_CATALOG(path, records)
+        return
+    rows = []
+    for record in records:
+        payload = _copy_jsonable(record)
+        if not isinstance(payload, dict):
+            raise RuntimeError("catalog payload must decode to a mapping")
+        record_json = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        metadata = payload.get("metadata")
+        metadata_mapping = metadata if isinstance(metadata, Mapping) else None
+        filter_payload = (
+            metadata_mapping.get("filter") if isinstance(metadata_mapping, Mapping) else None
+        )
+        group_ids = payload.get("group_ids")
+        request_run = group_ids.get("request_run") if isinstance(group_ids, Mapping) else None
+        teacher_conditionals = payload.get("teacher_conditionals")
+        rows.append(
+            {
+                "dataset_index": int(payload["dataset_index"]),
+                "record_json": record_json,
+                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
+                "resolved_dataset_id": payload.get("dataset_id"),
+                "resolved_request_run": request_run,
+                "resolved_task": str(
+                    payload.get(
+                        "task",
+                        (
+                            metadata_mapping.get("config", {}).get("dataset", {}).get("task")
+                            if isinstance(metadata_mapping, Mapping)
+                            else "classification"
+                        ),
+                    )
+                ),
+                "resolved_n_train": int(payload.get("n_train", -1)),
+                "resolved_n_test": int(payload.get("n_test", -1)),
+                "resolved_n_features": int(payload.get("n_features", -1)),
+                "resolved_n_classes": (
+                    None if payload.get("n_classes") is None else int(payload["n_classes"])
+                ),
+                "resolved_filter_mode": (
+                    filter_payload.get("mode") if isinstance(filter_payload, Mapping) else None
+                ),
+                "resolved_filter_status": (
+                    filter_payload.get("status") if isinstance(filter_payload, Mapping) else None
+                ),
+                "resolved_filter_accepted": (
+                    filter_payload.get("accepted")
+                    if isinstance(filter_payload, Mapping)
+                    and isinstance(filter_payload.get("accepted"), bool)
+                    else None
+                ),
+                "teacher_conditionals_available": bool(
+                    isinstance(teacher_conditionals, Mapping)
+                    and teacher_conditionals.get("available") is True
+                ),
+            }
+        )
+    schema = pa.schema(
+        [
+            pa.field("dataset_index", pa.int64()),
+            pa.field("record_json", pa.large_string()),
+            pa.field("record_sha256", pa.string()),
+            pa.field("resolved_dataset_id", pa.string()),
+            pa.field("resolved_request_run", pa.string()),
+            pa.field("resolved_task", pa.string()),
+            pa.field("resolved_n_train", pa.int64()),
+            pa.field("resolved_n_test", pa.int64()),
+            pa.field("resolved_n_features", pa.int64()),
+            pa.field("resolved_n_classes", pa.int64()),
+            pa.field("resolved_filter_mode", pa.string()),
+            pa.field("resolved_filter_status", pa.string()),
+            pa.field("resolved_filter_accepted", pa.bool_()),
+            pa.field("teacher_conditionals_available", pa.bool_()),
+        ]
+    )
+    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
+
+
 def _invocation_filter_payloads(
     invocation_payloads: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -74,6 +162,9 @@ def _invocation_filter_payloads(
 
 def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
     resolved_generated_dir = generated_dir.expanduser().resolve()
+    parquet_catalog_paths = sorted(resolved_generated_dir.rglob(HUB_DATASET_CATALOG_FILENAME))
+    if parquet_catalog_paths:
+        return parquet_catalog_paths
     catalog_paths = sorted(resolved_generated_dir.rglob("dataset_catalog.ndjson"))
     if catalog_paths:
         return catalog_paths
@@ -89,29 +180,12 @@ def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
 def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdentityAccumulator:
     scanned_identity = DagzooGeneratedIdentityAccumulator()
     for catalog_path in _dagzoo_public_catalog_paths(generated_dir):
-        for line_number, raw_line in enumerate(
-            catalog_path.read_text(encoding="utf-8").splitlines(),
-            start=1,
-        ):
-            if not raw_line.strip():
-                continue
-            try:
-                payload = json.loads(raw_line)
-            except json.JSONDecodeError as exc:
-                raise RuntimeError(
-                    "failed to parse dagzoo catalog record while verifying handoff: "
-                    f"path={catalog_path}, line={line_number}"
-                ) from exc
-            if not isinstance(payload, Mapping):
-                raise RuntimeError(
-                    "dagzoo catalog NDJSON record must decode to an object: "
-                    f"path={catalog_path}, line={line_number}"
-                )
+        for payload in _load_public_catalog_records(catalog_path):
             dataset_index = payload.get("dataset_index")
             if dataset_index is None:
                 raise RuntimeError(
                     "dagzoo catalog record missing dataset_index while verifying handoff: "
-                    f"path={catalog_path}, line={line_number}"
+                    f"path={catalog_path}"
                 )
             scanned_identity.add_record(
                 payload,
@@ -119,6 +193,57 @@ def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdent
                 dataset_index=int(dataset_index),
             )
     return scanned_identity
+
+
+def _load_public_catalog_records(catalog_path: Path) -> list[dict[str, Any]]:
+    resolved_catalog_path = catalog_path.expanduser().resolve()
+    if callable(_LOAD_DATASET_CATALOG_RECORDS):
+        records = _LOAD_DATASET_CATALOG_RECORDS(resolved_catalog_path)
+        return [
+            {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
+            for payload in records
+        ]
+    if resolved_catalog_path.suffix == ".parquet":
+        rows = pq.read_table(
+            resolved_catalog_path,
+            columns=["dataset_index", "record_json"],
+        ).to_pylist()
+        payloads: list[dict[str, Any]] = []
+        for row in rows:
+            record_json = row.get("record_json")
+            if not isinstance(record_json, str):
+                raise RuntimeError(
+                    f"parquet catalog row is missing record_json: {resolved_catalog_path}"
+                )
+            payload = json.loads(record_json)
+            if not isinstance(payload, Mapping):
+                raise RuntimeError(
+                    f"parquet catalog record_json must decode to an object: {resolved_catalog_path}"
+                )
+            payloads.append({str(key): value for key, value in payload.items()})
+        return payloads
+
+    payloads = []
+    for line_number, raw_line in enumerate(
+        resolved_catalog_path.read_text(encoding="utf-8").splitlines(),
+        start=1,
+    ):
+        if not raw_line.strip():
+            continue
+        try:
+            payload = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "failed to parse dagzoo catalog record while verifying handoff: "
+                f"path={resolved_catalog_path}, line={line_number}"
+            ) from exc
+        if not isinstance(payload, Mapping):
+            raise RuntimeError(
+                "dagzoo catalog NDJSON record must decode to an object: "
+                f"path={resolved_catalog_path}, line={line_number}"
+            )
+        payloads.append({str(key): value for key, value in payload.items()})
+    return payloads
 
 
 def _invocation_paths(*, corpus_root: Path, invocation_id: str) -> tuple[Path, Path]:
@@ -135,10 +260,13 @@ def _invocation_rounds_root(*, corpus_root: Path, invocation_id: str) -> Path:
 
 
 def _invocation_round_root(*, corpus_root: Path, invocation_id: str, round_index: int) -> Path:
-    return _invocation_rounds_root(
-        corpus_root=corpus_root,
-        invocation_id=invocation_id,
-    ) / f"round_{int(round_index):02d}"
+    return (
+        _invocation_rounds_root(
+            corpus_root=corpus_root,
+            invocation_id=invocation_id,
+        )
+        / f"round_{int(round_index):02d}"
+    )
 
 
 def _invocation_filter_root(*, corpus_root: Path, invocation_id: str) -> Path:
@@ -348,31 +476,17 @@ def _aggregate_handoff_provenance(
         )
         if isinstance(bound, Mapping)
     ]
-    minimum_counts = [
-        int(bound["min"])
-        for bound in count_bounds
-        if bound.get("min") is not None
-    ]
-    maximum_counts = [
-        int(bound["max"])
-        for bound in count_bounds
-        if bound.get("max") is not None
-    ]
+    minimum_counts = [int(bound["min"]) for bound in count_bounds if bound.get("min") is not None]
+    maximum_counts = [int(bound["max"]) for bound in count_bounds if bound.get("max") is not None]
     minimum_fractions = [
-        float(bound["min"])
-        for bound in fraction_bounds
-        if bound.get("min") is not None
+        float(bound["min"]) for bound in fraction_bounds if bound.get("min") is not None
     ]
     maximum_fractions = [
-        float(bound["max"])
-        for bound in fraction_bounds
-        if bound.get("max") is not None
+        float(bound["max"]) for bound in fraction_bounds if bound.get("max") is not None
     ]
     payload = _drop_none_values(
         {
-            "target_derivation": (
-                target_derivations[0] if len(target_derivations) == 1 else None
-            ),
+            "target_derivation": (target_derivations[0] if len(target_derivations) == 1 else None),
             "target_relevant_feature_count_range": (
                 {
                     "min": min(minimum_counts),
@@ -400,9 +514,7 @@ def _elapsed_seconds_since(start_time: float) -> float:
 
 def _sum_elapsed_seconds(*values: float | None) -> float | None:
     resolved = [
-        float(value)
-        for value in values
-        if value is not None and math.isfinite(float(value))
+        float(value) for value in values if value is not None and math.isfinite(float(value))
     ]
     if not resolved:
         return None
@@ -432,104 +544,188 @@ def _generated_datasets_from_handoff(
     return int(fallback)
 
 
+def _resolved_public_shard_dir(shard_dir: Path) -> Path:
+    resolved_shard_dir = shard_dir
+    if not any(
+        candidate.exists()
+        for candidate in (
+            resolved_shard_dir / HUB_DATASET_CATALOG_FILENAME,
+            resolved_shard_dir / "dataset_catalog.ndjson",
+            resolved_shard_dir / "metadata.ndjson",
+        )
+    ):
+        nested_shards = sorted(path for path in resolved_shard_dir.glob("shard_*") if path.is_dir())
+        if len(nested_shards) == 1:
+            resolved_shard_dir = nested_shards[0]
+    return resolved_shard_dir
+
+
+def _public_catalog_path_for_shard(shard_dir: Path) -> Path:
+    for candidate in (
+        shard_dir / HUB_DATASET_CATALOG_FILENAME,
+        shard_dir / "dataset_catalog.ndjson",
+        shard_dir / "metadata.ndjson",
+    ):
+        if candidate.exists():
+            return candidate
+    raise RuntimeError(f"curated shard is missing dataset catalog metadata: {shard_dir}")
+
+
+def _renumber_catalog_record(record: Mapping[str, Any], *, dataset_index: int) -> dict[str, Any]:
+    payload = _copy_jsonable(record)
+    if not isinstance(payload, dict):
+        raise RuntimeError("catalog payload must decode to a mapping")
+    payload["dataset_index"] = int(dataset_index)
+    return payload
+
+
+def _reindexed_split_table(
+    *,
+    split_path: Path,
+    source_dataset_index: int,
+    target_dataset_index: int,
+) -> pa.Table:
+    table = pq.read_table(
+        split_path,
+        filters=[("dataset_index", "=", int(source_dataset_index))],
+    )
+    if table.num_rows <= 0:
+        raise RuntimeError(
+            "curated shard split is missing dataset rows while compacting output: "
+            f"path={split_path}, dataset_index={source_dataset_index}"
+        )
+    column_index = table.schema.get_field_index("dataset_index")
+    if column_index < 0:
+        raise RuntimeError(f"split parquet is missing dataset_index column: {split_path}")
+    replacement = pa.array(
+        [int(target_dataset_index)] * int(table.num_rows),
+        type=table["dataset_index"].type,
+    )
+    return table.set_column(column_index, "dataset_index", replacement)
+
+
+def _write_compacted_curated_shard(
+    *,
+    destination: Path,
+    entries: list[tuple[Path, Mapping[str, Any]]],
+) -> None:
+    destination.mkdir(parents=True, exist_ok=True)
+    train_tables: list[pa.Table] = []
+    test_tables: list[pa.Table] = []
+    catalog_records: list[dict[str, Any]] = []
+    for target_dataset_index, (source_shard_dir, record) in enumerate(entries):
+        source_dataset_index = int(record["dataset_index"])
+        catalog_records.append(_renumber_catalog_record(record, dataset_index=target_dataset_index))
+        for split_filename, tables in (
+            ("train.parquet", train_tables),
+            ("test.parquet", test_tables),
+        ):
+            split_path = source_shard_dir / split_filename
+            if not split_path.exists():
+                raise RuntimeError(
+                    f"curated shard is missing split parquet while compacting output: {split_path}"
+                )
+            tables.append(
+                _reindexed_split_table(
+                    split_path=split_path,
+                    source_dataset_index=source_dataset_index,
+                    target_dataset_index=target_dataset_index,
+                )
+            )
+    pq.write_table(
+        pa.concat_tables(train_tables), destination / "train.parquet", compression="zstd"
+    )
+    pq.write_table(pa.concat_tables(test_tables), destination / "test.parquet", compression="zstd")
+    _write_dataset_catalog(destination / HUB_DATASET_CATALOG_FILENAME, catalog_records)
+
+
+def compact_curated_root(
+    *,
+    source_curated_dir: Path,
+    output_curated_dir: Path,
+    start_shard_index: int = 0,
+    target_datasets_per_shard: int = CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD,
+    max_datasets: int | None = None,
+) -> dict[str, int]:
+    if not source_curated_dir.exists():
+        return {
+            "next_shard_index": int(start_shard_index),
+            "copied_datasets": 0,
+            "source_shard_count": 0,
+            "output_shard_count": 0,
+            "dataset_count": 0,
+            "target_datasets_per_shard": int(target_datasets_per_shard),
+        }
+    output_curated_dir.mkdir(parents=True, exist_ok=True)
+    remaining_datasets = None if max_datasets is None else max(0, int(max_datasets))
+    next_shard_index = int(start_shard_index)
+    source_shard_count = 0
+    output_shard_count = 0
+    dataset_count = 0
+    bucket: list[tuple[Path, Mapping[str, Any]]] = []
+
+    for shard_dir in sorted(path for path in source_curated_dir.glob("shard_*") if path.is_dir()):
+        if remaining_datasets == 0:
+            break
+        resolved_shard_dir = _resolved_public_shard_dir(shard_dir)
+        catalog_path = _public_catalog_path_for_shard(resolved_shard_dir)
+        records = _load_public_catalog_records(catalog_path)
+        if not records:
+            continue
+        source_shard_count += 1
+        for record in records:
+            if remaining_datasets == 0:
+                break
+            bucket.append((resolved_shard_dir, record))
+            dataset_count += 1
+            if remaining_datasets is not None:
+                remaining_datasets -= 1
+            if len(bucket) >= int(target_datasets_per_shard):
+                _write_compacted_curated_shard(
+                    destination=output_curated_dir / f"shard_{next_shard_index:05d}",
+                    entries=bucket,
+                )
+                output_shard_count += 1
+                next_shard_index += 1
+                bucket = []
+
+    if bucket:
+        _write_compacted_curated_shard(
+            destination=output_curated_dir / f"shard_{next_shard_index:05d}",
+            entries=bucket,
+        )
+        output_shard_count += 1
+        next_shard_index += 1
+
+    return {
+        "next_shard_index": next_shard_index,
+        "copied_datasets": dataset_count,
+        "source_shard_count": source_shard_count,
+        "output_shard_count": output_shard_count,
+        "dataset_count": dataset_count,
+        "target_datasets_per_shard": int(target_datasets_per_shard),
+    }
+
+
 def _copy_curated_round_shards(
     *,
     round_curated_dir: Path,
     final_curated_dir: Path,
     next_shard_index: int,
     max_datasets: int | None = None,
-) -> tuple[int, int]:
-    if not round_curated_dir.exists():
-        return next_shard_index, 0
-    final_curated_dir.mkdir(parents=True, exist_ok=True)
-    remaining_datasets = None if max_datasets is None else max(0, int(max_datasets))
-    copied_datasets = 0
-    for shard_dir in sorted(path for path in round_curated_dir.glob("shard_*") if path.is_dir()):
-        if remaining_datasets == 0:
-            break
-        destination = final_curated_dir / f"shard_{next_shard_index:05d}"
-        resolved_shard_dir = shard_dir
-        if not any(
-            candidate.exists()
-            for candidate in (
-                resolved_shard_dir / "dataset_catalog.ndjson",
-                resolved_shard_dir / "metadata.ndjson",
-            )
-        ):
-            nested_shards = sorted(
-                path for path in resolved_shard_dir.glob("shard_*") if path.is_dir()
-            )
-            if len(nested_shards) == 1:
-                resolved_shard_dir = nested_shards[0]
-        shard_catalog_path = next(
-            (
-                candidate
-                for candidate in (
-                    resolved_shard_dir / "dataset_catalog.ndjson",
-                    resolved_shard_dir / "metadata.ndjson",
-                )
-                if candidate.exists()
-            ),
-            None,
-        )
-        if shard_catalog_path is None:
-            raise RuntimeError(
-                f"curated shard is missing dataset catalog metadata: {resolved_shard_dir}"
-            )
-        catalog_lines = [
-            line
-            for line in shard_catalog_path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-        if not catalog_lines:
-            continue
-        if remaining_datasets is None or len(catalog_lines) <= remaining_datasets:
-            _snapshot_tree(resolved_shard_dir, destination)
-            copied_in_shard = len(catalog_lines)
-        else:
-            selected_lines = catalog_lines[:remaining_datasets]
-            selected_dataset_indices = [
-                int(
-                    cast(Mapping[str, Any], json.loads(raw_line)).get(
-                        "dataset_index",
-                        -1,
-                    )
-                )
-                for raw_line in selected_lines
-            ]
-            if any(dataset_index < 0 for dataset_index in selected_dataset_indices):
-                raise RuntimeError(
-                    "curated shard catalog record is missing dataset_index while trimming "
-                    f"accepted_only output: {shard_catalog_path}"
-                )
-            destination.mkdir(parents=True, exist_ok=True)
-            (destination / shard_catalog_path.name).write_text(
-                "\n".join(selected_lines) + "\n",
-                encoding="utf-8",
-            )
-            for split_filename in ("train.parquet", "test.parquet"):
-                split_path = resolved_shard_dir / split_filename
-                if not split_path.exists():
-                    raise RuntimeError(
-                        f"curated shard is missing split parquet while trimming output: {split_path}"
-                    )
-                table = pq.read_table(split_path)
-                dataset_index_values = pa.array(
-                    selected_dataset_indices,
-                    type=table["dataset_index"].type,
-                )
-                mask = pc.is_in(table["dataset_index"], value_set=dataset_index_values)
-                pq.write_table(
-                    table.filter(mask),
-                    destination / split_filename,
-                    compression="zstd",
-                )
-            copied_in_shard = len(selected_lines)
-        next_shard_index += 1
-        copied_datasets += copied_in_shard
-        if remaining_datasets is not None:
-            remaining_datasets -= copied_in_shard
-    return next_shard_index, copied_datasets
+) -> tuple[int, int, dict[str, int]]:
+    summary = compact_curated_root(
+        source_curated_dir=round_curated_dir,
+        output_curated_dir=final_curated_dir,
+        start_shard_index=next_shard_index,
+        target_datasets_per_shard=CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD,
+        max_datasets=max_datasets,
+    )
+    return (
+        int(summary["next_shard_index"]),
+        int(summary["copied_datasets"]),
+        summary,
+    )
 
 
 def _write_accepted_only_filter_artifacts(
@@ -576,9 +772,7 @@ def _write_accepted_only_filter_artifacts(
                     int(target_accepted_datasets) * _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER
                 ),
                 "materialize_worker_threads": (
-                    None
-                    if materialize_worker_threads is None
-                    else int(materialize_worker_threads)
+                    None if materialize_worker_threads is None else int(materialize_worker_threads)
                 ),
                 "rounds": [
                     {
@@ -636,6 +830,12 @@ def _materialize_accepted_only_invocation(
     next_shard_index = 0
     round_payloads: list[dict[str, Any]] = []
     handoff_provenances: list[Mapping[str, Any]] = []
+    curated_compaction_summary = {
+        "target_datasets_per_shard": int(CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD),
+        "source_shard_count": 0,
+        "output_shard_count": 0,
+        "dataset_count": 0,
+    }
 
     round_index = 1
     while (
@@ -653,22 +853,16 @@ def _materialize_accepted_only_invocation(
             if expected_acceptance_rate is None:
                 expected_acceptance_rate = _INITIAL_ACCEPTED_ONLY_EXPECTED_ACCEPTANCE_RATE
             requested_generated_datasets = int(
-                math.ceil(
-                    float(remaining_accepted_datasets) / float(expected_acceptance_rate)
-                )
+                math.ceil(float(remaining_accepted_datasets) / float(expected_acceptance_rate))
             )
         elif curated_accepted_datasets > 0:
-            empirical_acceptance_rate = (
-                float(curated_accepted_datasets) / float(total_generated_datasets)
+            empirical_acceptance_rate = float(curated_accepted_datasets) / float(
+                total_generated_datasets
             )
             if 0.0 < empirical_acceptance_rate < 1.0:
                 requested_generated_datasets = max(
                     requested_generated_datasets,
-                    int(
-                        math.ceil(
-                            float(remaining_accepted_datasets) / empirical_acceptance_rate
-                        )
-                    ),
+                    int(math.ceil(float(remaining_accepted_datasets) / empirical_acceptance_rate)),
                 )
         requested_generated_datasets = min(
             requested_generated_datasets,
@@ -718,14 +912,25 @@ def _materialize_accepted_only_invocation(
         accepted_datasets += int(filter_result.accepted_datasets)
         rejected_datasets += int(filter_result.rejected_datasets)
         copy_start_time = time.perf_counter()
-        next_shard_index, committed_curated_datasets = _copy_curated_round_shards(
-            round_curated_dir=filter_result.curated_out_dir,
-            final_curated_dir=final_curated_root,
-            next_shard_index=next_shard_index,
-            max_datasets=accepted_target - curated_accepted_datasets,
+        next_shard_index, committed_curated_datasets, round_compaction_summary = (
+            _copy_curated_round_shards(
+                round_curated_dir=filter_result.curated_out_dir,
+                final_curated_dir=final_curated_root,
+                next_shard_index=next_shard_index,
+                max_datasets=accepted_target - curated_accepted_datasets,
+            )
         )
         copy_elapsed_seconds = _elapsed_seconds_since(copy_start_time)
         curated_accepted_datasets += int(committed_curated_datasets)
+        curated_compaction_summary["source_shard_count"] += int(
+            round_compaction_summary["source_shard_count"]
+        )
+        curated_compaction_summary["output_shard_count"] += int(
+            round_compaction_summary["output_shard_count"]
+        )
+        curated_compaction_summary["dataset_count"] += int(
+            round_compaction_summary["dataset_count"]
+        )
         handoff_provenance = getattr(handoff, "provenance", None)
         if isinstance(handoff_provenance, Mapping):
             handoff_provenances.append(
@@ -842,9 +1047,7 @@ def _materialize_accepted_only_invocation(
                 ),
                 "round_count": len(round_payloads),
                 "materialize_worker_threads": (
-                    None
-                    if materialize_worker_threads is None
-                    else int(materialize_worker_threads)
+                    None if materialize_worker_threads is None else int(materialize_worker_threads)
                 ),
                 "generate_elapsed_seconds": total_generate_elapsed_seconds,
                 "filter_elapsed_seconds": total_filter_elapsed_seconds,
@@ -857,6 +1060,7 @@ def _materialize_accepted_only_invocation(
                     if initial_expected_acceptance_rate is None
                     else float(initial_expected_acceptance_rate)
                 ),
+                "curated_compaction": curated_compaction_summary,
                 "rounds": [
                     {
                         "round_index": int(round_payload["round_index"]),
@@ -872,25 +1076,17 @@ def _materialize_accepted_only_invocation(
                         "curated_accepted_datasets": int(
                             round_payload["curated_accepted_datasets"]
                         ),
-                        "generate_elapsed_seconds": round_payload.get(
-                            "generate_elapsed_seconds"
-                        ),
-                        "filter_elapsed_seconds": round_payload.get(
-                            "filter_elapsed_seconds"
-                        ),
+                        "generate_elapsed_seconds": round_payload.get("generate_elapsed_seconds"),
+                        "filter_elapsed_seconds": round_payload.get("filter_elapsed_seconds"),
                         "filter_datasets_per_minute": round_payload.get(
                             "filter_datasets_per_minute"
                         ),
                         "copy_elapsed_seconds": round_payload.get("copy_elapsed_seconds"),
-                        "upstream_elapsed_seconds": round_payload.get(
-                            "upstream_elapsed_seconds"
-                        ),
+                        "upstream_elapsed_seconds": round_payload.get("upstream_elapsed_seconds"),
                         "local_overhead_elapsed_seconds": round_payload.get(
                             "local_overhead_elapsed_seconds"
                         ),
-                        "round_elapsed_seconds": round_payload.get(
-                            "round_elapsed_seconds"
-                        ),
+                        "round_elapsed_seconds": round_payload.get("round_elapsed_seconds"),
                     }
                     for round_payload in round_payloads
                 ],
@@ -954,9 +1150,7 @@ def _materialize_invocation(
                     fallback=int(spec.num_datasets),
                 ),
                 "materialize_worker_threads": (
-                    None
-                    if materialize_worker_threads is None
-                    else int(materialize_worker_threads)
+                    None if materialize_worker_threads is None else int(materialize_worker_threads)
                 ),
                 "generate_elapsed_seconds": float(generate_elapsed_seconds),
                 "upstream_elapsed_seconds": float(generate_elapsed_seconds),
@@ -1009,9 +1203,7 @@ def materialize_recipe_invocation(
         None,
     )
     if spec is None:
-        raise RuntimeError(
-            f"recipe {recipe_id!r} does not define invocation {invocation_id!r}"
-        )
+        raise RuntimeError(f"recipe {recipe_id!r} does not define invocation {invocation_id!r}")
     _materialize_invocation(
         dagzoo_root=dagzoo_root.expanduser().resolve(),
         corpus_root=corpus_root.expanduser().resolve(),
@@ -1050,9 +1242,7 @@ def _invocation_worker_argv(
         str(repo_root.expanduser().resolve()),
     ]
     if materialize_worker_threads is not None:
-        argv.extend(
-            ["--materialize-worker-threads", str(int(materialize_worker_threads))]
-        )
+        argv.extend(["--materialize-worker-threads", str(int(materialize_worker_threads))])
     if initial_expected_acceptance_rate is not None:
         argv.extend(
             [
@@ -1154,9 +1344,7 @@ def _materialize_invocations_with_subprocess_fanout(
                     shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
                     row_total = shape_key[0]
                     if row_total is not None:
-                        row_acceptance_rates.setdefault(int(row_total), []).append(
-                            acceptance_rate
-                        )
+                        row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
         return
 
     pending = deque(invocations)
@@ -1244,9 +1432,7 @@ def _materialize_invocations_with_subprocess_fanout(
                     shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
                     row_total = shape_key[0]
                     if row_total is not None:
-                        row_acceptance_rates.setdefault(int(row_total), []).append(
-                            acceptance_rate
-                        )
+                        row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
         return
     finally:
         if active_processes:
@@ -1300,9 +1486,7 @@ def _invocation_record_payload(
                 "filter_elapsed_seconds": _float_or_none(
                     summary_payload.get("filter_elapsed_seconds")
                 ),
-                "copy_elapsed_seconds": _float_or_none(
-                    summary_payload.get("copy_elapsed_seconds")
-                ),
+                "copy_elapsed_seconds": _float_or_none(summary_payload.get("copy_elapsed_seconds")),
                 "upstream_elapsed_seconds": _float_or_none(
                     summary_payload.get("upstream_elapsed_seconds")
                 ),
@@ -1324,9 +1508,7 @@ def _invocation_record_payload(
         summary_payload is not None
         and str(summary_payload.get("filter_policy")).strip() == "accepted_only"
     ):
-        materialize_worker_threads = _int_or_none(
-            summary_payload.get("materialize_worker_threads")
-        )
+        materialize_worker_threads = _int_or_none(summary_payload.get("materialize_worker_threads"))
         rounds_payload = []
         command_list: list[str] = []
         for round_payload in cast(list[Any], summary_payload.get("rounds", [])):
@@ -1334,9 +1516,7 @@ def _invocation_record_payload(
                 raise RuntimeError(
                     "accepted_only materialization summary rounds must contain mappings"
                 )
-            normalized_round_payload = {
-                str(key): value for key, value in round_payload.items()
-            }
+            normalized_round_payload = {str(key): value for key, value in round_payload.items()}
             round_index = int(normalized_round_payload["round_index"])
             requested_generated_datasets = int(
                 normalized_round_payload["requested_generated_datasets"]
@@ -1362,12 +1542,8 @@ def _invocation_record_payload(
                 curated_out_dir=round_root / "curated",
                 worker_threads=materialize_worker_threads,
             )
-            generate_command = _stringify_command(
-                build_dagzoo_generate_argv(round_generate_config)
-            )
-            filter_command = _stringify_command(
-                build_dagzoo_filter_argv(round_filter_config)
-            )
+            generate_command = _stringify_command(build_dagzoo_generate_argv(round_generate_config))
+            filter_command = _stringify_command(build_dagzoo_filter_argv(round_filter_config))
             command_list.extend([generate_command, filter_command])
             round_entry: dict[str, Any] = {
                 "round_index": round_index,

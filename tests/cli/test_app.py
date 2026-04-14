@@ -1098,6 +1098,7 @@ def test_cli_groups_register_expected_commands() -> None:
     corpus_group = data_group.GROUP.get_command(data_ctx, "corpus")
     assert isinstance(corpus_group, click.Group)
     assert _command_names(corpus_group) == [
+        "compact-staged",
         "compare",
         "finalize-staged",
         "inspect",

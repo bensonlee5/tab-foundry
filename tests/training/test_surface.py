@@ -602,6 +602,34 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
 
 
+def test_build_training_surface_record_marks_not_checked_missingness_as_unknown(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_not_checked.parquet")
+    rows = pq.read_table(manifest_path).to_pylist()
+    for row in rows:
+        row["missing_value_policy"] = "allow_any"
+        row["missing_value_status"] = "not_checked"
+    pq.write_table(pa.Table.from_pylist(rows), manifest_path)
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_not_checked",
+    )
+
+    assert record["data"]["manifest"]["characteristics"]["missing_value_status_counts"] == {
+        "not_checked": 2
+    }
+    assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
+
+
 def test_build_training_surface_record_rejects_removed_row_cap_subsampling(
     tmp_path: Path,
 ) -> None:
