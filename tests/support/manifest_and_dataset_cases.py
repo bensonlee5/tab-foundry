@@ -15,12 +15,88 @@ import torch
 
 import tab_foundry.cli as cli_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
-from tab_realdata_hub.manifest import _stable_split, build_manifest, write_dataset_catalog
+from tab_realdata_hub.manifest import _stable_split, build_manifest
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
+
+try:
+    from tab_realdata_hub.manifest import write_dataset_catalog as _hub_write_dataset_catalog
+except ImportError:  # pragma: no cover - local test fallback for older released hub builds
+    _hub_write_dataset_catalog = None
+
+
+def _write_dataset_catalog_file(path: Path, records: list[dict[str, Any]]) -> None:
+    if callable(_hub_write_dataset_catalog):
+        _hub_write_dataset_catalog(path, records)
+        return
+    rows = []
+    for record in records:
+        record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        metadata = record.get("metadata")
+        metadata_mapping = metadata if isinstance(metadata, dict) else None
+        filter_payload = (
+            metadata_mapping.get("filter") if isinstance(metadata_mapping, dict) else None
+        )
+        rows.append(
+            {
+                "dataset_index": int(record["dataset_index"]),
+                "record_json": record_json,
+                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
+                "resolved_dataset_id": record.get("dataset_id"),
+                "resolved_request_run": None,
+                "resolved_task": str(
+                    record.get(
+                        "task",
+                        (
+                            metadata_mapping.get("config", {}).get("dataset", {}).get("task")
+                            if isinstance(metadata_mapping, dict)
+                            else "classification"
+                        ),
+                    )
+                ),
+                "resolved_n_train": int(record["n_train"]),
+                "resolved_n_test": int(record["n_test"]),
+                "resolved_n_features": int(record["n_features"]),
+                "resolved_n_classes": (
+                    None if record.get("n_classes") is None else int(record["n_classes"])
+                ),
+                "resolved_filter_mode": (
+                    filter_payload.get("mode") if isinstance(filter_payload, dict) else None
+                ),
+                "resolved_filter_status": (
+                    filter_payload.get("status") if isinstance(filter_payload, dict) else None
+                ),
+                "resolved_filter_accepted": (
+                    filter_payload.get("accepted")
+                    if isinstance(filter_payload, dict)
+                    and isinstance(filter_payload.get("accepted"), bool)
+                    else None
+                ),
+                "teacher_conditionals_available": False,
+            }
+        )
+    schema = pa.schema(
+        [
+            pa.field("dataset_index", pa.int64()),
+            pa.field("record_json", pa.large_string()),
+            pa.field("record_sha256", pa.string()),
+            pa.field("resolved_dataset_id", pa.string()),
+            pa.field("resolved_request_run", pa.string()),
+            pa.field("resolved_task", pa.string()),
+            pa.field("resolved_n_train", pa.int64()),
+            pa.field("resolved_n_test", pa.int64()),
+            pa.field("resolved_n_features", pa.int64()),
+            pa.field("resolved_n_classes", pa.int64()),
+            pa.field("resolved_filter_mode", pa.string()),
+            pa.field("resolved_filter_status", pa.string()),
+            pa.field("resolved_filter_accepted", pa.bool_()),
+            pa.field("teacher_conditionals_available", pa.bool_()),
+        ]
+    )
+    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
 
 
 def _manifest_summary_metadata(path: Path) -> dict[str, Any]:
@@ -138,7 +214,7 @@ def _write_packed_shard(
             handle.write(raw)
             offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
             catalog_records.append(payload)
-    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
+    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", catalog_records)
 
     return offsets
 
@@ -189,7 +265,7 @@ def _write_split_drift_shard(
             handle.write(raw)
             offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
             catalog_records.append(payload)
-    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
+    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", catalog_records)
 
     return offsets
 
@@ -969,9 +1045,13 @@ def test_manifest_paths_are_relative_to_manifest_dir(tmp_path: Path) -> None:
     assert not Path(str(row["test_path"])).is_absolute()
     locator_prefix = "catalog" if "catalog_path" in row else "metadata"
     assert not Path(str(row[f"{locator_prefix}_path"])).is_absolute()
-    assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
-    assert int(row[f"{locator_prefix}_size_bytes"]) > 0
-    assert len(str(row[f"{locator_prefix}_sha256"])) == 64
+    if "catalog_dataset_index" in row:
+        assert int(row["catalog_dataset_index"]) == 0
+        assert len(str(row["catalog_record_sha256"])) == 64
+    else:
+        assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
+        assert int(row[f"{locator_prefix}_size_bytes"]) > 0
+        assert len(str(row[f"{locator_prefix}_sha256"])) == 64
 
 
 def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
@@ -1046,8 +1126,7 @@ def test_manifest_handles_null_n_features_in_metadata(tmp_path: Path) -> None:
             "config": {"dataset": {"task": "classification"}},
         },
     }
-    with (shard_dir / "metadata.ndjson").open("w", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload) + "\n")
+    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", [payload])
 
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
@@ -1062,15 +1141,20 @@ def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
-    catalog_path = (manifest_path.parent / str(row[f"{locator_prefix}_path"])).resolve()
-
-    offset = int(row[f"{locator_prefix}_offset_bytes"])
-    with catalog_path.open("r+b") as handle:
-        handle.seek(offset + 1)
-        original = handle.read(1)
-        handle.seek(offset + 1)
-        handle.write(b"{" if original != b"{" else b"}")
+    if "catalog_dataset_index" in row:
+        table = pq.read_table(manifest_path)
+        corrupted_rows = table.to_pylist()
+        corrupted_rows[0]["catalog_record_sha256"] = "0" * 64
+        pq.write_table(pa.Table.from_pylist(corrupted_rows, schema=table.schema), manifest_path)
+    else:
+        locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+        catalog_path = (manifest_path.parent / str(row[f"{locator_prefix}_path"])).resolve()
+        offset = int(row[f"{locator_prefix}_offset_bytes"])
+        with catalog_path.open("r+b") as handle:
+            handle.seek(offset + 1)
+            original = handle.read(1)
+            handle.seek(offset + 1)
+            handle.write(b"{" if original != b"{" else b"}")
 
     ds = PackedParquetTaskDataset(manifest_path, split=str(row["split"]), task="classification")
     with pytest.raises(RuntimeError, match="checksum mismatch"):

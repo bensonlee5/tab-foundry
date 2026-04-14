@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+import inspect
 import json
+import os
 from pathlib import Path
 import shutil
 import time
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 from tab_realdata_hub.dagzoo_handoff import load_dagzoo_handoff_info
 from tab_realdata_hub.manifest import build_manifest
@@ -40,6 +43,10 @@ from .corpus_materialization_shared import (
 from .manifest_characteristics import inspect_manifest_summary
 from . import corpus_materialization_invocation as invocation_module
 
+_BUILD_MANIFEST_SUPPORTS_WORKERS = "manifest_workers" in inspect.signature(
+    build_manifest
+).parameters
+
 
 @dataclass(slots=True)
 class _PendingCorpusMaterialization:
@@ -55,6 +62,31 @@ class _PendingCorpusMaterialization:
 
 def _elapsed_seconds_since(start_time: float) -> float:
     return max(0.0, float(time.perf_counter() - start_time))
+
+
+def _build_manifest_compat(
+    *,
+    data_roots: list[Path],
+    out_path: Path,
+    train_ratio: float,
+    val_ratio: float,
+    filter_policy: str,
+    missing_value_policy: str,
+    dagzoo_handoff_manifest_path: Path | None,
+    manifest_workers: int | None = None,
+):
+    kwargs: dict[str, Any] = {
+        "data_roots": data_roots,
+        "out_path": out_path,
+        "train_ratio": train_ratio,
+        "val_ratio": val_ratio,
+        "filter_policy": filter_policy,
+        "missing_value_policy": missing_value_policy,
+        "dagzoo_handoff_manifest_path": dagzoo_handoff_manifest_path,
+    }
+    if _BUILD_MANIFEST_SUPPORTS_WORKERS:
+        kwargs["manifest_workers"] = manifest_workers
+    return build_manifest(**kwargs)
 
 
 def _load_reusable_recipe_record(
@@ -258,7 +290,7 @@ def _build_staged_manifest(
     generated_roots, dagzoo_handoff_manifest_path = _manifest_inputs_for_pending(pending)
 
     manifest_path = stage_root / "manifest.parquet"
-    _ = build_manifest(
+    _ = _build_manifest_compat(
         data_roots=generated_roots,
         out_path=manifest_path,
         train_ratio=float(recipe.manifest_policy.train_ratio),
@@ -295,7 +327,7 @@ def build_staged_corpus_manifest(
     generated_roots, dagzoo_handoff_manifest_path = _manifest_inputs_for_pending(pending)
     resolved_out_manifest_path = out_manifest_path.expanduser().resolve()
     resolved_out_manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    _ = build_manifest(
+    _ = _build_manifest_compat(
         data_roots=generated_roots,
         out_path=resolved_out_manifest_path,
         train_ratio=float(pending.recipe.manifest_policy.train_ratio),
@@ -312,12 +344,86 @@ def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:
     return corpus_root / "manifest_characteristics.json"
 
 
+def _resolved_compact_workers(
+    *,
+    compact_workers: int | None,
+    invocation_count: int,
+) -> int:
+    if invocation_count <= 0:
+        return 1
+    if compact_workers is not None:
+        return max(1, min(int(compact_workers), int(invocation_count)))
+    cpu_count = max(1, int(os.cpu_count() or 1))
+    return max(1, min(int(invocation_count), cpu_count, 32))
+
+
+def _compact_staged_invocation(
+    *,
+    stage_root: Path,
+    invocation_id: str,
+    force: bool,
+) -> dict[str, Any]:
+    curated_root = invocation_module._invocation_curated_root(
+        corpus_root=stage_root,
+        invocation_id=invocation_id,
+    )
+    existing_parquet_catalogs = sorted(curated_root.rglob("dataset_catalog.parquet"))
+    if existing_parquet_catalogs and not force:
+        raise RuntimeError(
+            "staged curated root already contains parquet catalogs; rerun with force=True to recompact: "
+            f"{curated_root}"
+        )
+    compacting_root = curated_root.parent / f"{curated_root.name}.compacting"
+    backup_root = curated_root.parent / f"{curated_root.name}.precompact"
+    if compacting_root.exists():
+        shutil.rmtree(compacting_root)
+    if backup_root.exists():
+        shutil.rmtree(backup_root)
+    summary = invocation_module.compact_curated_root(
+        source_curated_dir=curated_root,
+        output_curated_dir=compacting_root,
+    )
+    curated_root.rename(backup_root)
+    compacting_root.rename(curated_root)
+    shutil.rmtree(backup_root)
+
+    summary_path = invocation_module._invocation_materialization_summary_path(
+        corpus_root=stage_root,
+        invocation_id=invocation_id,
+    )
+    summary_payload = (
+        _read_json_mapping(
+            summary_path,
+            context=f"staged materialization summary for invocation {invocation_id!r}",
+        )
+        if summary_path.exists()
+        else {}
+    )
+    summary_payload["curated_compaction"] = {
+        "target_datasets_per_shard": int(summary["target_datasets_per_shard"]),
+        "source_shard_count": int(summary["source_shard_count"]),
+        "output_shard_count": int(summary["output_shard_count"]),
+        "dataset_count": int(summary["dataset_count"]),
+    }
+    summary_path.write_text(
+        json.dumps(summary_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "invocation_id": invocation_id,
+        "curated_root": str(curated_root.resolve()),
+        "curated_compaction": summary_payload["curated_compaction"],
+    }
+
+
 def compact_staged_corpus_recipe(
     *,
     recipe_id: str,
     dagzoo_root: Path,
     stage_root: Path | None = None,
     force: bool = False,
+    compact_workers: int | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
@@ -338,61 +444,55 @@ def compact_staged_corpus_recipe(
             f"recipe_id={pending.recipe.recipe_id!r}"
         )
 
-    invocation_summaries: list[dict[str, Any]] = []
-    for spec in pending.recipe.invocations:
-        curated_root = invocation_module._invocation_curated_root(
-            corpus_root=pending.stage_root,
-            invocation_id=spec.invocation_id,
-        )
-        existing_parquet_catalogs = sorted(curated_root.rglob("dataset_catalog.parquet"))
-        if existing_parquet_catalogs and not force:
-            raise RuntimeError(
-                "staged curated root already contains parquet catalogs; rerun with force=True to recompact: "
-                f"{curated_root}"
+    invocation_count = len(pending.recipe.invocations)
+    resolved_compact_workers = _resolved_compact_workers(
+        compact_workers=compact_workers,
+        invocation_count=invocation_count,
+    )
+    completed_by_invocation_id: dict[str, dict[str, Any]] = {}
+    if resolved_compact_workers <= 1 or invocation_count <= 1:
+        for index, spec in enumerate(pending.recipe.invocations, start=1):
+            summary = _compact_staged_invocation(
+                stage_root=pending.stage_root,
+                invocation_id=str(spec.invocation_id),
+                force=force,
             )
-        compacting_root = curated_root.parent / f"{curated_root.name}.compacting"
-        backup_root = curated_root.parent / f"{curated_root.name}.precompact"
-        if compacting_root.exists():
-            shutil.rmtree(compacting_root)
-        if backup_root.exists():
-            shutil.rmtree(backup_root)
-        summary = invocation_module.compact_curated_root(
-            source_curated_dir=curated_root,
-            output_curated_dir=compacting_root,
-        )
-        curated_root.rename(backup_root)
-        compacting_root.rename(curated_root)
-        shutil.rmtree(backup_root)
-
-        summary_path = invocation_module._invocation_materialization_summary_path(
-            corpus_root=pending.stage_root,
-            invocation_id=spec.invocation_id,
-        )
-        summary_payload = (
-            _read_json_mapping(
-                summary_path,
-                context=f"staged materialization summary for invocation {spec.invocation_id!r}",
-            )
-            if summary_path.exists()
-            else {}
-        )
-        summary_payload["curated_compaction"] = {
-            "target_datasets_per_shard": int(summary["target_datasets_per_shard"]),
-            "source_shard_count": int(summary["source_shard_count"]),
-            "output_shard_count": int(summary["output_shard_count"]),
-            "dataset_count": int(summary["dataset_count"]),
-        }
-        summary_path.write_text(
-            json.dumps(summary_payload, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        invocation_summaries.append(
-            {
-                "invocation_id": spec.invocation_id,
-                "curated_root": str(curated_root.resolve()),
-                "curated_compaction": summary_payload["curated_compaction"],
+            completed_by_invocation_id[str(spec.invocation_id)] = summary
+            if progress_callback is not None:
+                progress_callback(
+                    {
+                        "index": index,
+                        "total": invocation_count,
+                        **summary,
+                    }
+                )
+    else:
+        with ThreadPoolExecutor(max_workers=resolved_compact_workers) as executor:
+            futures = {
+                executor.submit(
+                    _compact_staged_invocation,
+                    stage_root=pending.stage_root,
+                    invocation_id=str(spec.invocation_id),
+                    force=force,
+                ): (index, str(spec.invocation_id))
+                for index, spec in enumerate(pending.recipe.invocations, start=1)
             }
-        )
+            for future in as_completed(futures):
+                index, invocation_id = futures[future]
+                summary = future.result()
+                completed_by_invocation_id[invocation_id] = summary
+                if progress_callback is not None:
+                    progress_callback(
+                        {
+                            "index": index,
+                            "total": invocation_count,
+                            **summary,
+                        }
+                    )
+    invocation_summaries = [
+        completed_by_invocation_id[str(spec.invocation_id)]
+        for spec in pending.recipe.invocations
+    ]
     return {
         "recipe_id": pending.recipe.recipe_id,
         "stage_root": str(pending.stage_root.resolve()),

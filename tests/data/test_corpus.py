@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import time
 from typing import Any
 
 import pytest
@@ -365,6 +366,60 @@ def _write_accepted_only_recipe_fixture(
                 "  seed: 1",
                 "  device: cpu",
                 "  hardware_policy: none",
+            ]
+        )
+        + "\n",
+    )
+
+
+def _write_multi_invocation_accepted_only_recipe_fixture(
+    repo_root: Path,
+    *,
+    recipe_id: str = "accepted_only_multi_recipe",
+    filename: str = "accepted_only_multi_recipe.yaml",
+    invocation_ids: tuple[str, str] = ("slow", "fast"),
+    num_datasets_per_invocation: int = 2,
+) -> None:
+    manifest_record_count = int(num_datasets_per_invocation) * len(invocation_ids)
+    _register_recipe_fixture(
+        repo_root,
+        recipe_id=recipe_id,
+        filename=filename,
+        contents="\n".join(
+            [
+                "schema: tab-foundry-corpus-recipe-v1",
+                f"recipe_id: {recipe_id}",
+                "kind: dagzoo_multi_invocation_manifest",
+                "description: Accepted-only multi-invocation corpus fixture.",
+                "surface_label: accepted_only_multi_surface",
+                "manifest:",
+                "  train_ratio: 0.9",
+                "  val_ratio: 0.05",
+                "  filter_policy: accepted_only",
+                "  missing_value_policy: allow_any",
+                "provenance_labels:",
+                "  corpus_variant: accepted_only_multi_surface",
+                "  comparator_role: control",
+                "  target_derivation: tabiclv2_latent_node",
+                "review_summary:",
+                "  config_refs:",
+                "  - configs/default.yaml",
+                f"  invocation_count: {len(invocation_ids)}",
+                f"  manifest_record_count: {manifest_record_count}",
+                "  target_derivation: tabiclv2_latent_node",
+                "invocations:",
+                *[
+                    line
+                    for invocation_id in invocation_ids
+                    for line in (
+                        f"  - invocation_id: {invocation_id}",
+                        "    config_ref: configs/default.yaml",
+                        f"    num_datasets: {num_datasets_per_invocation}",
+                        "    seed: 1",
+                        "    device: cpu",
+                        "    hardware_policy: none",
+                    )
+                ],
             ]
         )
         + "\n",
@@ -2137,6 +2192,75 @@ def test_compact_staged_corpus_recipe_refuses_already_compacted_stage_without_fo
     )
 
     assert forced["invocations"][0]["curated_compaction"]["dataset_count"] == 1
+
+
+def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_result_order(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_multi_invocation_accepted_only_recipe_fixture(repo_tmp_path)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_many)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter_all)
+    real_compact_curated_root = corpus_materialization_invocation_module.compact_curated_root
+
+    def _sleepy_compact(
+        *,
+        source_curated_dir: Path,
+        output_curated_dir: Path,
+        start_shard_index: int = 0,
+        target_datasets_per_shard: int = 512,
+        max_datasets: int | None = None,
+    ) -> dict[str, Any]:
+        if "slow" in str(source_curated_dir):
+            time.sleep(0.1)
+        return real_compact_curated_root(
+            source_curated_dir=source_curated_dir,
+            output_curated_dir=output_curated_dir,
+            start_shard_index=start_shard_index,
+            target_datasets_per_shard=target_datasets_per_shard,
+            max_datasets=max_datasets,
+        )
+
+    monkeypatch.setattr(
+        corpus_materialization_invocation_module,
+        "compact_curated_root",
+        _sleepy_compact,
+    )
+
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_multi_recipe" / ".staging"
+    )
+    stage_root.mkdir(parents=True, exist_ok=True)
+    for invocation_id in ("slow", "fast"):
+        corpus_materialization_module.materialize_recipe_invocation(
+            recipe_id="accepted_only_multi_recipe",
+            invocation_id=invocation_id,
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            corpus_root=stage_root,
+            repo_root=repo_tmp_path,
+        )
+        curated_root = corpus_materialization_invocation_module._invocation_curated_root(
+            corpus_root=stage_root,
+            invocation_id=invocation_id,
+        )
+        _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=2)
+
+    progress_invocation_ids: list[str] = []
+
+    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
+        recipe_id="accepted_only_multi_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        repo_root=repo_tmp_path,
+        compact_workers=2,
+        progress_callback=lambda payload: progress_invocation_ids.append(
+            str(payload["invocation_id"])
+        ),
+    )
+
+    assert progress_invocation_ids == ["fast", "slow"]
+    assert [item["invocation_id"] for item in compacted["invocations"]] == ["slow", "fast"]
+    assert compacted["invocations"][0]["curated_compaction"]["dataset_count"] == 2
+    assert compacted["invocations"][1]["curated_compaction"]["dataset_count"] == 2
 
 
 def test_load_staged_corpus_recipe_preview_returns_stage_metadata(
