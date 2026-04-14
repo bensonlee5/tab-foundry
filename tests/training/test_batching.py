@@ -486,6 +486,69 @@ def test_build_task_loader_forwards_overlap_kwargs_for_manifest_batching(
     assert loader.batch_sampler is not None
 
 
+def test_build_task_loader_can_cache_exact_shape_task_batches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest_path = _write_manifest_dataset(
+        tmp_path,
+        datasets=[
+            _manifest_task_payload(dataset_index=1, order_tag="task_0"),
+            _manifest_task_payload(dataset_index=2, order_tag="task_1"),
+        ],
+    )
+    dataset = PackedParquetTaskDataset(
+        manifest_path,
+        split="train",
+        task="classification",
+    )
+    original_materialize = dataset._materialize_task_batch
+    materialized_indices: list[int] = []
+
+    def _capture_materialize(index: int) -> TaskBatch:
+        materialized_indices.append(int(index))
+        return original_materialize(index)
+
+    monkeypatch.setattr(dataset, "_materialize_task_batch", _capture_materialize)
+
+    loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=False,
+        seed=0,
+        task_batch_size=2,
+        cache_task_batches=True,
+    )
+
+    assert materialized_indices == [0, 1]
+    first_pass = list(loader)
+    second_pass = list(loader)
+    assert materialized_indices == [0, 1]
+    assert [int(batch.metadata["task_batch_size_actual"]) for batch in first_pass] == [2]
+    assert [int(batch.metadata["task_batch_size_actual"]) for batch in second_pass] == [2]
+    assert first_pass[0].feature_type_ids is not None
+
+
+def test_build_task_loader_cached_batches_require_single_process_loading(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(tmp_path),
+        split="train",
+        task="classification",
+    )
+
+    with pytest.raises(ValueError, match="loader_task_batch_cache"):
+        _ = build_task_loader(
+            dataset,
+            num_workers=1,
+            shuffle=False,
+            seed=0,
+            task_batch_size=2,
+            cache_task_batches=True,
+        )
+
+
 def test_packed_parquet_task_dataset_can_seed_shuffle_manifest_records(tmp_path: Path) -> None:
     manifest_path = _write_manifest_dataset(
         tmp_path,

@@ -289,13 +289,13 @@ def feature_cells(
         current_feature_cells = current_feature_cells + feature_type_embed
     else:  # pragma: no cover - defensive invariant
         raise RuntimeError("tabfoundry_sandwich requires one feature-type conditioning path")
-    row_pos = fourier_positions(
+    row_pos = model._fourier_positions(
         num_positions=int(current_feature_cells.shape[1]),
         embedding_size=int(current_feature_cells.shape[3]),
         device=current_feature_cells.device,
         dtype=current_feature_cells.dtype,
     ).unsqueeze(2)
-    col_pos = fourier_positions(
+    col_pos = model._fourier_positions(
         num_positions=int(current_feature_cells.shape[2]),
         embedding_size=int(current_feature_cells.shape[3]),
         device=current_feature_cells.device,

@@ -6,6 +6,7 @@ num_workers: 0
 loader_pin_memory: false
 loader_persistent_workers: false
 loader_prefetch_factor: null
+loader_task_batch_cache: false
 non_blocking_device_transfer: false
 grad_clip: 10.0
 grad_accum_steps: 64
@@ -14,6 +15,8 @@ compile_dynamic: false
 compile_backend: inductor
 compile_mode: max-autotune-no-cudagraphs
 trace_activations: false
+module_grad_norm_every: 1
+profile_step_timing: false
 activation_checkpointing: false
 eval_every: 200
 checkpoint_every: null

@@ -138,6 +138,14 @@ tab-foundry train run \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
+Short profiler runs write TensorBoard traces and a `key_averages.txt` summary:
+
+```bash
+tab-foundry train profile \
+  experiment=cls_benchmark_sandwich_speedrun_cached_packed_v1 \
+  runtime.output_dir=outputs/profile_speedrun_cached_packed
+```
+
 `cls_workstation_sandwich` is the default sandwich training surface for new
 development work. Regression remains intentionally removed in the current repo
 state.

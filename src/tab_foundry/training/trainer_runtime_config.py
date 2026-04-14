@@ -158,6 +158,28 @@ def _resolve_loader_prefetch_factor(runtime_cfg: DictConfig) -> int | None:
     return value
 
 
+def _resolve_loader_task_batch_cache(runtime_cfg: DictConfig) -> bool:
+    return _coerce_runtime_bool(
+        raw_value=getattr(runtime_cfg, "loader_task_batch_cache", False),
+        name="runtime.loader_task_batch_cache",
+    )
+
+
+def _resolve_module_grad_norm_every(runtime_cfg: DictConfig) -> int:
+    raw_value = getattr(runtime_cfg, "module_grad_norm_every", 1)
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(f"runtime.module_grad_norm_every must be >= 1, got {value}")
+    return value
+
+
+def _resolve_profile_step_timing(runtime_cfg: DictConfig) -> bool:
+    return _coerce_runtime_bool(
+        raw_value=getattr(runtime_cfg, "profile_step_timing", False),
+        name="runtime.profile_step_timing",
+    )
+
+
 def _resolve_non_blocking_device_transfer(runtime_cfg: DictConfig) -> bool:
     return _coerce_runtime_bool(
         raw_value=getattr(runtime_cfg, "non_blocking_device_transfer", False),

@@ -5,7 +5,10 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from tab_foundry.model.components.attention import multihead_attention_sdpa
+from tab_foundry.model.components.attention import (
+    multihead_attention_sdpa,
+    packed_projection_multihead_attention_sdpa,
+)
 from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.rational import RationalActivation
 
@@ -38,12 +41,14 @@ class _CrossAttentionBlock(nn.Module):
         ff_expansion: int,
         activation: str,
         block_norm: str,
+        packed_attention: bool = False,
     ) -> None:
         super().__init__()
         self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.kv_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.attn = nn.MultiheadAttention(embedding_size, n_heads, batch_first=True)
+        self.packed_attention = bool(packed_attention)
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
             nn.Linear(embedding_size, ff_hidden),
@@ -54,7 +59,12 @@ class _CrossAttentionBlock(nn.Module):
     def forward(self, query: torch.Tensor, *, key_value: torch.Tensor) -> torch.Tensor:
         q_norm = self.query_norm(query)
         kv_norm = self.kv_norm(key_value)
-        query = query + multihead_attention_sdpa(
+        attention = (
+            packed_projection_multihead_attention_sdpa
+            if self.packed_attention
+            else multihead_attention_sdpa
+        )
+        query = query + attention(
             self.attn,
             q_norm,
             kv_norm,
@@ -74,11 +84,13 @@ class _SelfAttentionBlock(nn.Module):
         ff_expansion: int,
         activation: str,
         block_norm: str,
+        packed_attention: bool = False,
     ) -> None:
         super().__init__()
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.attn = nn.MultiheadAttention(embedding_size, n_heads, batch_first=True)
+        self.packed_attention = bool(packed_attention)
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
             nn.Linear(embedding_size, ff_hidden),
@@ -93,7 +105,12 @@ class _SelfAttentionBlock(nn.Module):
         attn_bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         hidden_norm = self.attn_norm(hidden)
-        hidden = hidden + multihead_attention_sdpa(
+        attention = (
+            packed_projection_multihead_attention_sdpa
+            if self.packed_attention
+            else multihead_attention_sdpa
+        )
+        hidden = hidden + attention(
             self.attn,
             hidden_norm,
             hidden_norm,
@@ -115,6 +132,7 @@ class _PerceiverStage(nn.Module):
         activation: str,
         block_norm: str,
         self_attention_per_cross: int,
+        packed_attention: bool = False,
     ) -> None:
         super().__init__()
         self.input_read = _CrossAttentionBlock(
@@ -123,6 +141,7 @@ class _PerceiverStage(nn.Module):
             ff_expansion=ff_expansion,
             activation=activation,
             block_norm=block_norm,
+            packed_attention=packed_attention,
         )
         self.self_blocks = nn.ModuleList(
             [
@@ -132,6 +151,7 @@ class _PerceiverStage(nn.Module):
                     ff_expansion=ff_expansion,
                     activation=activation,
                     block_norm=block_norm,
+                    packed_attention=packed_attention,
                 )
                 for _ in range(self_attention_per_cross)
             ]
@@ -150,6 +170,7 @@ class _InducedSetAttentionBlock(nn.Module):
         activation: str,
         block_norm: str,
         num_inducing: int,
+        packed_attention: bool = False,
     ) -> None:
         super().__init__()
         self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
@@ -160,6 +181,7 @@ class _InducedSetAttentionBlock(nn.Module):
             ff_expansion=ff_expansion,
             activation=activation,
             block_norm=block_norm,
+            packed_attention=packed_attention,
         )
         self.inducing_self = _SelfAttentionBlock(
             embedding_size=embedding_size,
@@ -167,6 +189,7 @@ class _InducedSetAttentionBlock(nn.Module):
             ff_expansion=ff_expansion,
             activation=activation,
             block_norm=block_norm,
+            packed_attention=packed_attention,
         )
         self.rows_from_inducing = _CrossAttentionBlock(
             embedding_size=embedding_size,
@@ -174,6 +197,7 @@ class _InducedSetAttentionBlock(nn.Module):
             ff_expansion=ff_expansion,
             activation=activation,
             block_norm=block_norm,
+            packed_attention=packed_attention,
         )
 
 

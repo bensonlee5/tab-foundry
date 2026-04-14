@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Sized
 from functools import partial
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 import torch
 from omegaconf import DictConfig
@@ -143,6 +144,76 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         return int(self._length_cache)
 
 
+class _CachedTaskBatchDataset(Dataset[TaskBatch]):
+    """Eager in-memory cache of preprocessed exact-shape task batches."""
+
+    def __init__(self, batches: list[TaskBatch]) -> None:
+        if not batches:
+            raise RuntimeError("task-batch cache requires at least one batch")
+        self._batches = list(batches)
+
+    def __len__(self) -> int:
+        return len(self._batches)
+
+    def __getitem__(self, index: int) -> TaskBatch:
+        return self._batches[int(index)]
+
+
+def _identity_task_batch(batch: Any) -> TaskBatch:
+    return cast(TaskBatch, batch)
+
+
+def _materialize_task_batch_cache(
+    dataset: Dataset[TaskBatch],
+    *,
+    task_batch_size: int,
+    shuffle: bool,
+    seed: int,
+) -> _CachedTaskBatchDataset:
+    requested_task_batch_size = int(task_batch_size)
+    if requested_task_batch_size <= 0:
+        raise ValueError(f"task_batch_size must be >= 1, got {requested_task_batch_size}")
+    if requested_task_batch_size > 1:
+        if not isinstance(dataset, PackedParquetTaskDataset):
+            raise RuntimeError(
+                "runtime.loader_task_batch_cache=true with training.task_batch_size > 1 "
+                "requires a manifest-backed PackedParquetTaskDataset"
+            )
+        index_batches = _ManifestTaskBatchSampler(
+            dataset,
+            task_batch_size=requested_task_batch_size,
+            shuffle=shuffle,
+            seed=seed,
+        )
+        return _CachedTaskBatchDataset(
+            [
+                collate_task_batch(
+                    [dataset[int(index)] for index in index_batch],
+                    requested_task_batch_size=requested_task_batch_size,
+                )
+                for index_batch in index_batches
+            ]
+        )
+
+    if not isinstance(dataset, Sized):
+        raise RuntimeError("runtime.loader_task_batch_cache=true requires a sized dataset")
+    ordered_indices = [int(index) for index in range(len(dataset))]
+    if shuffle and len(ordered_indices) > 1:
+        generator = torch.Generator()
+        generator.manual_seed(int(seed))
+        order = torch.randperm(len(ordered_indices), generator=generator).tolist()
+        ordered_indices = [ordered_indices[int(index)] for index in order]
+    return _CachedTaskBatchDataset(
+        [
+            collate_task_batch(
+                [dataset[int(index)]],
+                requested_task_batch_size=1,
+            )
+            for index in ordered_indices
+        ]
+    )
+
+
 def build_task_dataset(
     data_cfg: DictConfig,
     *,
@@ -172,6 +243,7 @@ def build_task_loader(
     pin_memory: bool = False,
     persistent_workers: bool = False,
     prefetch_factor: int | None = None,
+    cache_task_batches: bool = False,
 ) -> DataLoader[TaskBatch]:
     """Build a task loader with deterministic seeded shuffling."""
 
@@ -179,6 +251,28 @@ def build_task_loader(
     if resolved_task_batch_size <= 0:
         raise ValueError(f"task_batch_size must be >= 1, got {resolved_task_batch_size}")
     resolved_num_workers = int(num_workers)
+    if bool(cache_task_batches):
+        if resolved_num_workers != 0:
+            raise ValueError("runtime.loader_task_batch_cache=true requires runtime.num_workers=0")
+        cached_dataset = _materialize_task_batch_cache(
+            dataset,
+            task_batch_size=resolved_task_batch_size,
+            shuffle=shuffle,
+            seed=seed,
+        )
+        cache_generator: torch.Generator | None = None
+        if shuffle:
+            cache_generator = torch.Generator()
+            cache_generator.manual_seed(int(seed))
+        return DataLoader(
+            cached_dataset,
+            batch_size=None,
+            shuffle=shuffle,
+            collate_fn=cast(Any, _identity_task_batch),
+            generator=cache_generator,
+            num_workers=0,
+            pin_memory=bool(pin_memory),
+        )
     collate = partial(
         collate_task_batch,
         requested_task_batch_size=resolved_task_batch_size,

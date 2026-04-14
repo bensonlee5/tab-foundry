@@ -39,8 +39,11 @@ from .trainer_runtime_config import (
     _resolve_loader_persistent_workers,
     _resolve_loader_pin_memory,
     _resolve_loader_prefetch_factor,
+    _resolve_loader_task_batch_cache,
     _resolve_max_steps,
+    _resolve_module_grad_norm_every,
     _resolve_non_blocking_device_transfer,
+    _resolve_profile_step_timing,
     _resolve_target_train_seconds,
     _resolve_trace_activations,
     _resolve_val_batches,
@@ -93,6 +96,9 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
     loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
     loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
+    loader_task_batch_cache = _resolve_loader_task_batch_cache(cfg.runtime)
+    module_grad_norm_every = _resolve_module_grad_norm_every(cfg.runtime)
+    profile_step_timing = _resolve_profile_step_timing(cfg.runtime)
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
 
     accelerator = build_accelerator_from_runtime(
@@ -135,6 +141,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         pin_memory=loader_pin_memory,
         persistent_workers=loader_persistent_workers,
         prefetch_factor=loader_prefetch_factor,
+        cache_task_batches=loader_task_batch_cache,
     )
     val_loader = None
     if val_batches > 0:
@@ -161,6 +168,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             pin_memory=loader_pin_memory,
             persistent_workers=loader_persistent_workers,
             prefetch_factor=loader_prefetch_factor,
+            cache_task_batches=loader_task_batch_cache,
         )
     model = build_model_from_spec(model_spec)
     configure_model_loss_surface(model, loss_surface=loss_surface)
@@ -342,6 +350,8 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             train_start=train_start,
             trace_activations=trace_activations,
             non_blocking_device_transfer=non_blocking_device_transfer,
+            module_grad_norm_every=module_grad_norm_every,
+            profile_step_timing=profile_step_timing,
             flush_activation_trace_stats=_flush_activation_trace_stats,
             profiler=profiler,
             run=run,

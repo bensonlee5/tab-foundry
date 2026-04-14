@@ -171,6 +171,7 @@ def gradient_history_record(
     task_batch_singleton_fallback_count: int | None = None,
     task_batch_singleton_fallback_fraction: float | None = None,
     task_batch_signature_counts: Mapping[str, int] | None = None,
+    timing_seconds: Mapping[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build one detailed module-gradient record for JSONL output."""
 
@@ -259,6 +260,12 @@ def gradient_history_record(
         record["activation_norms"] = {
             str(name): float(value)
             for name, value in sorted(activation_norms.items())
+            if math.isfinite(float(value))
+        }
+    if timing_seconds:
+        record["timing_seconds"] = {
+            str(name): float(value)
+            for name, value in sorted(timing_seconds.items())
             if math.isfinite(float(value))
         }
     return record

@@ -345,6 +345,11 @@ def _append_step_records(
     if history_path is not None:
         append_history_record(history_path, history_payload)
 
+    timing_seconds = {
+        key.removeprefix("train/time_").removesuffix("_seconds"): float(value)
+        for key, value in train_log.items()
+        if key.startswith("train/time_") and key.endswith("_seconds") and isinstance(value, (int, float))
+    }
     gradient_payload = gradient_history_record(
         global_step=state.global_step,
         stage_name=stage_name,
@@ -370,6 +375,7 @@ def _append_step_records(
             Mapping[str, int],
             step_batch_payload["task_batch_signature_counts"],
         ),
+        timing_seconds=timing_seconds or None,
     )
     state.gradient_records.append(gradient_payload)
     append_jsonl_record(gradient_path, gradient_payload)
@@ -408,6 +414,16 @@ def _save_stage_latest_checkpoints(
         )
 
 
+def _accumulate_step_timing(
+    timing_sums: dict[str, float] | None,
+    name: str,
+    start: float,
+) -> None:
+    if timing_sums is None:
+        return
+    timing_sums[name] = timing_sums.get(name, 0.0) + max(0.0, time.perf_counter() - start)
+
+
 def run_training_loop(
     *,
     cfg: DictConfig,
@@ -433,6 +449,8 @@ def run_training_loop(
     train_start: float,
     trace_activations: bool,
     non_blocking_device_transfer: bool,
+    module_grad_norm_every: int,
+    profile_step_timing: bool,
     flush_activation_trace_stats,
     profiler: Any | None,
     run: Any,
@@ -474,8 +492,12 @@ def run_training_loop(
             step_total_task_count = 0
             step_examples_seen = 0
             step_tokens_seen = 0
+            step_timing_sums: dict[str, float] | None = {} if profile_step_timing else None
             for _micro_step in range(grad_accum_steps):
+                timing_start = time.perf_counter()
                 batch: TaskBatch = next(train_iter)
+                _accumulate_step_timing(step_timing_sums, "data_wait", timing_start)
+                timing_start = time.perf_counter()
                 microstep_batch_payload = _task_batch_microstep_payload(batch)
                 _accumulate_task_batch_step_payload(
                     step_payload=step_batch_payload,
@@ -490,11 +512,15 @@ def run_training_loop(
                 step_total_task_count += actual_task_count
                 step_examples_seen += task_batch_examples_seen(batch)
                 step_tokens_seen += task_batch_token_count(batch)
+                _accumulate_step_timing(step_timing_sums, "batch_diagnostics", timing_start)
+                timing_start = time.perf_counter()
                 batch = move_batch(
                     batch,
                     accelerator.device,
                     non_blocking=non_blocking_device_transfer,
                 )
+                _accumulate_step_timing(step_timing_sums, "h2d_transfer", timing_start)
+                timing_start = time.perf_counter()
                 with accelerator.accumulate(model):
                     with accelerator.autocast():
                         output = model(batch)
@@ -506,6 +532,7 @@ def run_training_loop(
                             accelerator=accelerator,
                         )
                     )
+                _accumulate_step_timing(step_timing_sums, "forward_backward", timing_start)
                 train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
                 train_loss_count += actual_task_count
                 for key, value in metrics.items():
@@ -513,6 +540,7 @@ def run_training_loop(
                         float(value) * float(actual_task_count)
                     )
                     train_metric_counts[key] = train_metric_counts.get(key, 0) + actual_task_count
+                timing_start = time.perf_counter()
                 batch_activation_trace_stats = flush_activation_trace_stats()
                 if batch_activation_trace_stats is not None:
                     for activation_name, (activation_sum_sq, activation_count) in batch_activation_trace_stats.items():
@@ -524,6 +552,7 @@ def run_training_loop(
                             activation_name,
                             0.0,
                         ) + float(activation_count)
+                _accumulate_step_timing(step_timing_sums, "activation_trace", timing_start)
             _normalize_accumulated_task_gradients(
                 model,
                 step_total_task_count=step_total_task_count,
@@ -570,6 +599,7 @@ def run_training_loop(
 
             activation_norms: dict[str, float] | None = None
             if trace_activations:
+                timing_start = time.perf_counter()
                 activation_sum_sqs, activation_element_counts = _reduce_keyed_weighted_scalars(
                     accelerator,
                     weighted_sums=activation_sum_sqs,
@@ -580,7 +610,13 @@ def run_training_loop(
                     activation_sum_sqs,
                     activation_element_counts,
                 )
-            pre_clip_module_grad_norms = module_grad_norms(base_model) if accelerator.is_main_process else {}
+                _accumulate_step_timing(step_timing_sums, "activation_trace", timing_start)
+            timing_start = time.perf_counter()
+            should_log_module_grad_norms = (
+                accelerator.is_main_process
+                and (state.global_step + 1) % int(module_grad_norm_every) == 0
+            )
+            pre_clip_module_grad_norms = module_grad_norms(base_model) if should_log_module_grad_norms else {}
             local_grad_norm = total_grad_norm(model.parameters())
             if grad_clip_threshold > 0:
                 clipped = accelerator.clip_grad_norm_(model.parameters(), grad_clip_threshold)
@@ -590,6 +626,7 @@ def run_training_loop(
                 local_kind=_global_grad_norm_kind(float(local_grad_norm)),
                 device=accelerator.device,
             )
+            _accumulate_step_timing(step_timing_sums, "grad_diagnostics", timing_start)
             if global_grad_norm_kind != "finite":
                 guard_update = handle_non_finite_grad(
                     accelerator=accelerator,
@@ -626,8 +663,10 @@ def run_training_loop(
             train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
             train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
 
+            timing_start = time.perf_counter()
             for _opt_name, opt in prepared_opts:
                 opt.step()
+            _accumulate_step_timing(step_timing_sums, "optimizer", timing_start)
 
             state.train_elapsed_seconds += time.perf_counter() - step_train_start
             state.global_step += 1
@@ -724,6 +763,9 @@ def run_training_loop(
                 if activation_norms is not None:
                     for activation_name, activation_value in activation_norms.items():
                         train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
+            if step_timing_sums is not None:
+                for timing_name, timing_value in sorted(step_timing_sums.items()):
+                    train_log[f"train/time_{timing_name}_seconds"] = float(timing_value)
             state.final_train_loss = current_train_loss
             state.final_train_loss_ema = state.loss_ema
             state.last_train_metrics = current_train_metrics
@@ -760,6 +802,7 @@ def run_training_loop(
                 )
                 _set_optimizer_training_mode(prepared_opts, training=True)
 
+            timing_start = time.perf_counter()
             _maybe_save_snapshot_checkpoint(
                 checkpoint_every=checkpoint_every,
                 accelerator=accelerator,
@@ -769,6 +812,9 @@ def run_training_loop(
                 cfg=cfg,
                 state=state,
             )
+            if step_timing_sums is not None:
+                step_timing_sums["checkpoint"] = max(0.0, time.perf_counter() - timing_start)
+                train_log["train/time_checkpoint_seconds"] = float(step_timing_sums["checkpoint"])
             _append_step_records(
                 accelerator=accelerator,
                 history_path=history_path,

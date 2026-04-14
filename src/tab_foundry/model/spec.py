@@ -225,6 +225,7 @@ class _SandwichModelParams(_SpecModel):
     sandwich_pre_row_attention_layers: int = Field(default=1, ge=0)
     sandwich_pre_column_attention_layers: int = Field(default=1, ge=0)
     sandwich_pre_column_inducing_tokens: int = Field(default=16, gt=0)
+    sandwich_packed_attention: bool = False
     feature_type_conditioning: str = "film"
     floating_likelihood: str = "single_gaussian"
     integer_likelihood: str = "hybrid_mixture"
@@ -238,6 +239,21 @@ class _SandwichModelParams(_SpecModel):
         if clip <= 0.0:
             raise ValueError("pre_encoder_clip must be > 0")
         return clip
+
+    @field_validator("sandwich_packed_attention", mode="before")
+    @classmethod
+    def _coerce_sandwich_packed_attention(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"sandwich_packed_attention must be boolean-compatible, got {value!r}")
 
     @field_validator("feature_type_conditioning", mode="before")
     @classmethod

@@ -1764,12 +1764,14 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_task_batches: bool,
     ) -> object:
         del shuffle, seed, task_batch_size
         captured["num_workers"] = num_workers
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_task_batches"] = cache_task_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
@@ -1791,6 +1793,7 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
     assert captured["pin_memory"] is expected_runtime["loader_pin_memory"]
     assert captured["persistent_workers"] is expected_runtime["loader_persistent_workers"]
     assert captured["prefetch_factor"] == expected_runtime["loader_prefetch_factor"]
+    assert captured["cache_task_batches"] is False
 
 
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
@@ -1937,6 +1940,7 @@ def test_train_passes_loader_overlap_runtime_knobs(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_task_batches: bool,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -1945,6 +1949,7 @@ def test_train_passes_loader_overlap_runtime_knobs(
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_task_batches"] = cache_task_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
@@ -1967,7 +1972,38 @@ def test_train_passes_loader_overlap_runtime_knobs(
         "pin_memory": True,
         "persistent_workers": True,
         "prefetch_factor": 2,
+        "cache_task_batches": False,
     }
+
+
+def test_train_can_sample_module_grad_norms_and_record_step_timing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    monkeypatch.setattr(
+        trainer_loop_module,
+        "module_grad_norms",
+        lambda _model: {"direct_head": 1.0},
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.module_grad_norm_every = 2
+    cfg.runtime.profile_step_timing = True
+    cfg.runtime.val_batches = 0
+    cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
+
+    result = trainer_module.train(cfg)
+
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert gradient_history[0]["module_grad_norms"] == {}
+    assert gradient_history[1]["module_grad_norms"] == {"direct_head": 1.0}
+    assert "data_wait" in gradient_history[0]["timing_seconds"]
+    assert "forward_backward" in gradient_history[0]["timing_seconds"]
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
