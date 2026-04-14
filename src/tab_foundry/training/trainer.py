@@ -36,10 +36,9 @@ from .trainer_runtime_config import (
     _checkpoint_every,
     _resolve_activation_checkpointing,
     _resolve_grad_accum_steps,
-    _resolve_loader_persistent_workers,
     _resolve_loader_pin_memory,
-    _resolve_loader_prefetch_factor,
-    _resolve_loader_task_batch_cache,
+    _resolve_loader_persistent_workers,
+    _resolve_loader_task_batch_cache_mode,
     _resolve_max_steps,
     _resolve_module_grad_norm_every,
     _resolve_non_blocking_device_transfer,
@@ -47,6 +46,7 @@ from .trainer_runtime_config import (
     _resolve_target_train_seconds,
     _resolve_trace_activations,
     _resolve_val_batches,
+    resolve_loader_overlap_runtime_settings,
 )
 from .trainer_summary import _trainer_summary_payload
 from .task_batching_validation import validate_task_batching_support
@@ -70,6 +70,7 @@ __all__ = [
 def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     """Train from config."""
 
+    end_to_end_start = time.perf_counter()
     task = str(cfg.task)
     seed = int(cfg.runtime.seed)
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
@@ -95,11 +96,21 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     task_batch_size = resolve_task_batch_size(cfg.get("training"))
     loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
     loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
-    loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
-    loader_task_batch_cache = _resolve_loader_task_batch_cache(cfg.runtime)
+    loader_overlap_settings = resolve_loader_overlap_runtime_settings(cfg.runtime)
+    loader_task_batch_cache_mode = _resolve_loader_task_batch_cache_mode(cfg.runtime)
     module_grad_norm_every = _resolve_module_grad_norm_every(cfg.runtime)
     profile_step_timing = _resolve_profile_step_timing(cfg.runtime)
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
+    if loader_task_batch_cache_mode == "bounded_streaming" and max_steps is None:
+        raise ValueError(
+            "runtime.loader_task_batch_cache_mode='bounded_streaming' requires runtime.max_steps"
+        )
+
+    train_loader_max_batches = (
+        None
+        if max_steps is None or loader_task_batch_cache_mode != "bounded_streaming"
+        else int(max_steps) * int(grad_accum_steps)
+    )
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
@@ -118,6 +129,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         backend=TRAINING_BACKEND_MANIFEST,
     )
 
+    loader_setup_start = time.perf_counter()
     train_ds = build_task_dataset(
         cfg.data,
         split="train",
@@ -135,13 +147,14 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     train_loader = build_task_loader(
         train_ds,
         shuffle=True,
-        num_workers=int(cfg.runtime.num_workers),
+        num_workers=loader_overlap_settings.num_workers,
         seed=seed,
         task_batch_size=task_batch_size,
         pin_memory=loader_pin_memory,
         persistent_workers=loader_persistent_workers,
-        prefetch_factor=loader_prefetch_factor,
-        cache_task_batches=loader_task_batch_cache,
+        prefetch_factor=loader_overlap_settings.prefetch_factor,
+        cache_mode=loader_task_batch_cache_mode,
+        max_batches=train_loader_max_batches,
     )
     val_loader = None
     if val_batches > 0:
@@ -162,14 +175,20 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         val_loader = build_task_loader(
             val_ds,
             shuffle=False,
-            num_workers=int(cfg.runtime.num_workers),
+            num_workers=loader_overlap_settings.num_workers,
             seed=seed + 1,
             task_batch_size=task_batch_size,
             pin_memory=loader_pin_memory,
             persistent_workers=loader_persistent_workers,
-            prefetch_factor=loader_prefetch_factor,
-            cache_task_batches=loader_task_batch_cache,
+            prefetch_factor=loader_overlap_settings.prefetch_factor,
+            cache_mode=(
+                "bounded_streaming" if loader_task_batch_cache_mode == "bounded_streaming" else "off"
+            ),
+            max_batches=(
+                int(val_batches) if loader_task_batch_cache_mode == "bounded_streaming" else None
+            ),
         )
+    loader_setup_seconds = max(0.0, time.perf_counter() - loader_setup_start)
     model = build_model_from_spec(model_spec)
     configure_model_loss_surface(model, loss_surface=loss_surface)
     activation_checkpointing = _resolve_activation_checkpointing(cfg.runtime)
@@ -386,6 +405,11 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             loss_surface=loss_surface,
             state=state,
             train_start=train_start,
+            end_to_end_start=end_to_end_start,
+            loader_setup_seconds=loader_setup_seconds,
+            loader_effective_num_workers=loader_overlap_settings.num_workers,
+            loader_effective_prefetch_factor=loader_overlap_settings.prefetch_factor,
+            loader_task_batch_cache_mode=loader_task_batch_cache_mode,
             success=True,
         )
         if result is None:
@@ -407,6 +431,11 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             loss_surface=loss_surface,
             state=state,
             train_start=train_start,
+            end_to_end_start=end_to_end_start,
+            loader_setup_seconds=loader_setup_seconds,
+            loader_effective_num_workers=loader_overlap_settings.num_workers,
+            loader_effective_prefetch_factor=loader_overlap_settings.prefetch_factor,
+            loader_task_batch_cache_mode=loader_task_batch_cache_mode,
             success=False,
             error=exc,
         )

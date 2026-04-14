@@ -1158,9 +1158,14 @@ def build_runtime_summary(
     *,
     train_elapsed_seconds: float,
     wall_elapsed_seconds: float,
+    end_to_end_wall_seconds: float | None = None,
+    loader_setup_seconds: float | None = None,
     examples_seen: int,
     tokens_seen: int,
     peak_memory_summary: Mapping[str, int | None] | None,
+    loader_effective_num_workers: int | None = None,
+    loader_effective_prefetch_factor: int | None = None,
+    loader_task_batch_cache_mode: str | None = None,
 ) -> dict[str, Any]:
     """Build runtime telemetry derived from loop counters."""
 
@@ -1178,13 +1183,27 @@ def build_runtime_summary(
         raw_reserved = peak_memory_summary.get("peak_vram_reserved")
         peak_allocated = None if raw_allocated is None else int(raw_allocated)
         peak_reserved = None if raw_reserved is None else int(raw_reserved)
-    return {
+    summary: dict[str, Any] = {
         "peak_vram_allocated": peak_allocated,
         "peak_vram_reserved": peak_reserved,
         "throughput_examples_per_second": throughput_examples,
         "throughput_tokens_per_second": throughput_tokens,
         "non_train_overhead_seconds": max(0.0, wall_elapsed - train_elapsed),
     }
+    if end_to_end_wall_seconds is not None:
+        summary["end_to_end_wall_seconds"] = float(end_to_end_wall_seconds)
+    if loader_setup_seconds is not None:
+        summary["loader_setup_seconds"] = max(0.0, float(loader_setup_seconds))
+    if loader_effective_num_workers is not None:
+        summary["loader_effective_num_workers"] = int(loader_effective_num_workers)
+        summary["loader_effective_prefetch_factor"] = (
+            None
+            if loader_effective_prefetch_factor is None
+            else int(loader_effective_prefetch_factor)
+        )
+    if loader_task_batch_cache_mode is not None:
+        summary["loader_task_batch_cache_mode"] = str(loader_task_batch_cache_mode)
+    return summary
 
 
 def build_regime_budget_summary(

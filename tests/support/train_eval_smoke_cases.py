@@ -1764,7 +1764,9 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
-        cache_task_batches: bool,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
     ) -> object:
         del shuffle, seed, task_batch_size
         captured["num_workers"] = num_workers
@@ -1772,6 +1774,8 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
         captured["cache_task_batches"] = cache_task_batches
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
@@ -1794,6 +1798,8 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
     assert captured["persistent_workers"] is expected_runtime["loader_persistent_workers"]
     assert captured["prefetch_factor"] == expected_runtime["loader_prefetch_factor"]
     assert captured["cache_task_batches"] is False
+    assert captured["cache_mode"] == "off"
+    assert captured["max_batches"] is None
 
 
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
@@ -1940,7 +1946,9 @@ def test_train_passes_loader_overlap_runtime_knobs(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
-        cache_task_batches: bool,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -1950,6 +1958,8 @@ def test_train_passes_loader_overlap_runtime_knobs(
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
         captured["cache_task_batches"] = cache_task_batches
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
@@ -1973,7 +1983,92 @@ def test_train_passes_loader_overlap_runtime_knobs(
         "persistent_workers": True,
         "prefetch_factor": 2,
         "cache_task_batches": False,
+        "cache_mode": "off",
+        "max_batches": None,
     }
+
+
+def test_train_rejects_bounded_streaming_without_max_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: pytest.fail("train should reject before accelerator construction"),
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.loader_task_batch_cache_mode = "bounded_streaming"
+    cfg.runtime.max_steps = None
+
+    with pytest.raises(ValueError, match="requires runtime.max_steps"):
+        _ = trainer_module.train(cfg)
+
+
+def test_train_resolves_auto_loader_overlap_runtime_knobs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "model_build_spec_from_mappings",
+        lambda **_kwargs: SimpleNamespace(task="classification", arch="tabfoundry_simple"),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "resolve_training_loss_surface",
+        lambda *_args, **_kwargs: "classification",
+    )
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_module,
+        "resolve_loader_overlap_runtime_settings",
+        lambda _runtime: SimpleNamespace(
+            num_workers=8,
+            prefetch_factor=4,
+            num_workers_is_auto=True,
+            prefetch_factor_is_auto=True,
+        ),
+    )
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
+    ) -> None:
+        del shuffle, seed, task_batch_size, pin_memory, persistent_workers, cache_task_batches
+        del cache_mode, max_batches
+        captured["num_workers"] = num_workers
+        captured["prefetch_factor"] = prefetch_factor
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.num_workers = "auto"
+    cfg.runtime.loader_prefetch_factor = "auto"
+    cfg.runtime.val_batches = 0
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = trainer_module.train(cfg)
+
+    assert captured == {"num_workers": 8, "prefetch_factor": 4}
 
 
 def test_train_can_sample_module_grad_norms_and_record_step_timing(
@@ -2149,6 +2244,11 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["artifacts/gradient_history_jsonl"].endswith("gradient_history.jsonl")
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
     assert fake_run.summary["runtime_summary/non_train_overhead_seconds"] >= 0.0
+    assert (
+        fake_run.summary["runtime_summary/end_to_end_wall_seconds"]
+        >= fake_run.summary["metrics/wall_elapsed_seconds"]
+    )
+    assert fake_run.summary["runtime_summary/loader_setup_seconds"] >= 0.0
     assert fake_run.summary["runtime_summary/throughput_examples_per_second"] > 0.0
     assert fake_run.summary["runtime_summary/throughput_tokens_per_second"] > 0.0
     assert fake_run.summary["hardware_summary/device_type"] == "cpu"
@@ -2170,6 +2270,11 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
         "throughput_examples_per_second": fake_run.summary["runtime_summary/throughput_examples_per_second"],
         "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
         "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
+        "end_to_end_wall_seconds": fake_run.summary["runtime_summary/end_to_end_wall_seconds"],
+        "loader_setup_seconds": fake_run.summary["runtime_summary/loader_setup_seconds"],
+        "loader_effective_num_workers": 0,
+        "loader_effective_prefetch_factor": None,
+        "loader_task_batch_cache_mode": "off",
     }
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"

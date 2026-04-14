@@ -151,6 +151,11 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     throughput_examples_per_second: FiniteFloat | None = None
     throughput_tokens_per_second: FiniteFloat | None = None
     non_train_overhead_seconds: FiniteFloat | None = None
+    end_to_end_wall_seconds: FiniteFloat | None = None
+    loader_setup_seconds: FiniteFloat | None = None
+    loader_effective_num_workers: StrictInt | None = None
+    loader_effective_prefetch_factor: StrictInt | None = None
+    loader_task_batch_cache_mode: StrictStr | None = None
 
 
 class _BenchmarkTimingPayload(_RegistryPayloadModel):

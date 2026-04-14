@@ -18,6 +18,7 @@ from tab_foundry.types import TaskBatch
 from .sources import build_source_dataset
 
 _T = TypeVar("_T")
+_VALID_TASK_BATCH_CACHE_MODES = frozenset({"off", "eager_full", "bounded_streaming"})
 
 
 class _ManifestTaskBatchSampler(Sampler[list[int]]):
@@ -30,6 +31,7 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         task_batch_size: int,
         shuffle: bool,
         seed: int,
+        max_batches: int | None = None,
     ) -> None:
         self.dataset = dataset
         self.task_batch_size = int(task_batch_size)
@@ -40,6 +42,9 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         self.batch_size = int(task_batch_size)
         self.drop_last = False
         self._epoch = 0
+        self.max_batches = None if max_batches is None else int(max_batches)
+        if self.max_batches is not None and self.max_batches <= 0:
+            raise ValueError(f"max_batches must be >= 1 when provided, got {self.max_batches}")
         self._length_cache: int | None = None
 
     @staticmethod
@@ -133,7 +138,13 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
     def __iter__(self):
         batches = self._iter_batches(epoch_seed=self.seed + self._epoch)
         self._epoch += 1
-        yield from batches
+        if self.max_batches is None:
+            yield from batches
+            return
+        for batch_index, batch in enumerate(batches):
+            if batch_index >= self.max_batches:
+                break
+            yield batch
 
     def __len__(self) -> int:
         if self._length_cache is None:
@@ -141,7 +152,9 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
                 self._length_cache = self._count_signature_batches()
             else:
                 self._length_cache = self._count_contiguous_batches()
-        return int(self._length_cache)
+        if self.max_batches is None:
+            return int(self._length_cache)
+        return min(int(self._length_cache), int(self.max_batches))
 
 
 class _CachedTaskBatchDataset(Dataset[TaskBatch]):
@@ -161,6 +174,22 @@ class _CachedTaskBatchDataset(Dataset[TaskBatch]):
 
 def _identity_task_batch(batch: Any) -> TaskBatch:
     return cast(TaskBatch, batch)
+
+
+def _resolve_task_batch_cache_mode(
+    *,
+    cache_task_batches: bool,
+    cache_mode: str | None,
+) -> str:
+    if cache_mode is None:
+        return "eager_full" if bool(cache_task_batches) else "off"
+    normalized = str(cache_mode).strip().lower()
+    if normalized not in _VALID_TASK_BATCH_CACHE_MODES:
+        raise ValueError(
+            "cache_mode must be one of "
+            f"{sorted(_VALID_TASK_BATCH_CACHE_MODES)}, got {cache_mode!r}"
+        )
+    return normalized
 
 
 def _materialize_task_batch_cache(
@@ -244,6 +273,8 @@ def build_task_loader(
     persistent_workers: bool = False,
     prefetch_factor: int | None = None,
     cache_task_batches: bool = False,
+    cache_mode: str | None = None,
+    max_batches: int | None = None,
 ) -> DataLoader[TaskBatch]:
     """Build a task loader with deterministic seeded shuffling."""
 
@@ -251,7 +282,11 @@ def build_task_loader(
     if resolved_task_batch_size <= 0:
         raise ValueError(f"task_batch_size must be >= 1, got {resolved_task_batch_size}")
     resolved_num_workers = int(num_workers)
-    if bool(cache_task_batches):
+    resolved_cache_mode = _resolve_task_batch_cache_mode(
+        cache_task_batches=cache_task_batches,
+        cache_mode=cache_mode,
+    )
+    if resolved_cache_mode == "eager_full":
         if resolved_num_workers != 0:
             raise ValueError("runtime.loader_task_batch_cache=true requires runtime.num_workers=0")
         cached_dataset = _materialize_task_batch_cache(
@@ -270,6 +305,57 @@ def build_task_loader(
             shuffle=shuffle,
             collate_fn=cast(Any, _identity_task_batch),
             generator=cache_generator,
+            num_workers=0,
+            pin_memory=bool(pin_memory),
+        )
+    if resolved_cache_mode == "bounded_streaming":
+        if max_batches is None:
+            raise ValueError(
+                "cache_mode='bounded_streaming' requires max_batches to bound the loader horizon"
+            )
+        if not isinstance(dataset, PackedParquetTaskDataset):
+            raise RuntimeError(
+                "cache_mode='bounded_streaming' requires a manifest-backed PackedParquetTaskDataset"
+            )
+        batch_sampler = _ManifestTaskBatchSampler(
+            dataset,
+            task_batch_size=resolved_task_batch_size,
+            shuffle=shuffle,
+            seed=seed,
+            max_batches=max_batches,
+        )
+        if resolved_num_workers > 0:
+            if prefetch_factor is None:
+                return DataLoader(
+                    dataset,
+                    batch_sampler=batch_sampler,
+                    collate_fn=partial(
+                        collate_task_batch,
+                        requested_task_batch_size=resolved_task_batch_size,
+                    ),
+                    num_workers=resolved_num_workers,
+                    pin_memory=bool(pin_memory),
+                    persistent_workers=bool(persistent_workers),
+                )
+            return DataLoader(
+                dataset,
+                batch_sampler=batch_sampler,
+                collate_fn=partial(
+                    collate_task_batch,
+                    requested_task_batch_size=resolved_task_batch_size,
+                ),
+                num_workers=resolved_num_workers,
+                pin_memory=bool(pin_memory),
+                persistent_workers=bool(persistent_workers),
+                prefetch_factor=int(prefetch_factor),
+            )
+        return DataLoader(
+            dataset,
+            batch_sampler=batch_sampler,
+            collate_fn=partial(
+                collate_task_batch,
+                requested_task_batch_size=resolved_task_batch_size,
+            ),
             num_workers=0,
             pin_memory=bool(pin_memory),
         )

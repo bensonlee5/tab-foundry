@@ -490,6 +490,8 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -498,6 +500,8 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
@@ -540,6 +544,91 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
     assert captured["pin_memory"] is True
     assert captured["persistent_workers"] is True
     assert captured["prefetch_factor"] == 2
+    assert captured["cache_mode"] is None
+    assert captured["max_batches"] is None
+
+
+def test_evaluate_checkpoint_resolves_auto_loader_overlap(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "arch": "tabfoundry_simple",
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
+    ) -> None:
+        del shuffle, seed, task_batch_size, pin_memory, persistent_workers, cache_mode, max_batches
+        captured["num_workers"] = num_workers
+        captured["prefetch_factor"] = prefetch_factor
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", _capture_loader)
+    monkeypatch.setattr(
+        evaluate_module,
+        "resolve_loader_overlap_runtime_settings",
+        lambda _runtime: OmegaConf.create({"num_workers": 8, "prefetch_factor": 4}),
+    )
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet"},
+            "runtime": {
+                "seed": 1,
+                "num_workers": "auto",
+                "device": "cpu",
+                "mixed_precision": "no",
+                "loader_prefetch_factor": "auto",
+            },
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert captured == {"num_workers": 8, "prefetch_factor": 4}
 
 
 def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
@@ -580,6 +669,8 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -588,6 +679,8 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
@@ -627,6 +720,8 @@ def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
     assert captured["pin_memory"] is False
     assert captured["persistent_workers"] is False
     assert captured["prefetch_factor"] is None
+    assert captured["cache_mode"] is None
+    assert captured["max_batches"] is None
 
 
 def test_evaluate_checkpoint_disables_even_batch_padding_for_task_batching(

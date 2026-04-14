@@ -41,18 +41,30 @@ def finalize_training_run(
     loss_surface: str,
     state: TrainingLoopState,
     train_start: float,
+    end_to_end_start: float,
+    loader_setup_seconds: float,
+    loader_effective_num_workers: int,
+    loader_effective_prefetch_factor: int | None,
+    loader_task_batch_cache_mode: str,
     success: bool,
     error: Exception | None = None,
 ) -> tuple[TrainResult | None, float, Mapping[str, Any] | None]:
-    wall_elapsed_seconds = time.perf_counter() - train_start
+    now = time.perf_counter()
+    wall_elapsed_seconds = now - train_start
+    end_to_end_wall_seconds = now - end_to_end_start
     task_batching_summary: Mapping[str, Any] | None = None
     if accelerator.is_main_process:
         runtime_summary = build_runtime_summary(
             train_elapsed_seconds=state.train_elapsed_seconds,
             wall_elapsed_seconds=wall_elapsed_seconds,
+            end_to_end_wall_seconds=end_to_end_wall_seconds,
+            loader_setup_seconds=loader_setup_seconds,
             examples_seen=state.examples_seen,
             tokens_seen=state.tokens_seen,
             peak_memory_summary=peak_device_memory_summary(accelerator.device),
+            loader_effective_num_workers=loader_effective_num_workers,
+            loader_effective_prefetch_factor=loader_effective_prefetch_factor,
+            loader_task_batch_cache_mode=loader_task_batch_cache_mode,
         )
         hardware_summary = build_hardware_summary(accelerator.device)
         regime_budget = build_regime_budget_summary(
@@ -134,6 +146,7 @@ def finalize_training_run(
                 else float(state.best_val),
                 "train_elapsed_seconds": float(state.train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
+                "end_to_end_wall_seconds": float(end_to_end_wall_seconds),
                 "nan_skip_count": float(state.nan_skip_count),
                 **grad_norm_summary_from_running_totals(
                     grad_norm_sum=state.grad_norm_sum,

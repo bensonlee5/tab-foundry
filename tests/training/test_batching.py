@@ -89,6 +89,8 @@ def _write_manifest_dataset(
     tmp_path: Path,
     *,
     datasets: list[dict[str, object]] | None = None,
+    filter_status: str = "not_run",
+    filter_accepted: bool | None = None,
 ) -> Path:
     shard_dir = tmp_path / "manifest_data" / "shard_00000"
     resolved_datasets = list(datasets) if datasets is not None else [
@@ -142,8 +144,8 @@ def _write_manifest_dataset(
                     "n_classes": int(dict(dataset["metadata"]).get("n_classes", 3)),
                     "seed": int(dict(dataset["metadata"]).get("seed", 0)),
                     "filter_mode": "deferred",
-                    "filter_status": "not_run",
-                    "filter_accepted": None,
+                    "filter_status": str(filter_status),
+                    "filter_accepted": filter_accepted,
                     "missing_value_policy": "allow_any",
                     "missing_value_status": "clean",
                 }
@@ -486,6 +488,19 @@ def test_build_task_loader_forwards_overlap_kwargs_for_manifest_batching(
     assert loader.batch_sampler is not None
 
 
+def test_manifest_task_batch_sampler_honors_max_batches() -> None:
+    sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(size=10),
+        task_batch_size=3,
+        shuffle=False,
+        seed=0,
+        max_batches=2,
+    )
+
+    assert list(sampler) == [[0, 1, 2], [3, 4, 5]]
+    assert len(sampler) == 2
+
+
 def test_build_task_loader_can_cache_exact_shape_task_batches(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -547,6 +562,77 @@ def test_build_task_loader_cached_batches_require_single_process_loading(
             task_batch_size=2,
             cache_task_batches=True,
         )
+
+
+def test_build_task_loader_bounded_streaming_requires_max_batches(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(tmp_path),
+        split="train",
+        task="classification",
+    )
+
+    with pytest.raises(ValueError, match="requires max_batches"):
+        _ = build_task_loader(
+            dataset,
+            num_workers=0,
+            shuffle=False,
+            seed=0,
+            task_batch_size=2,
+            cache_mode="bounded_streaming",
+        )
+
+
+def test_build_task_loader_bounded_streaming_requires_manifest_dataset() -> None:
+    with pytest.raises(RuntimeError, match="manifest-backed PackedParquetTaskDataset"):
+        _ = build_task_loader(
+            [_sample_batch()],
+            num_workers=0,
+            shuffle=False,
+            seed=0,
+            task_batch_size=2,
+            cache_mode="bounded_streaming",
+            max_batches=1,
+        )
+
+
+def test_build_task_loader_bounded_streaming_caps_manifest_microbatches(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(
+            tmp_path,
+            datasets=[
+                _manifest_task_payload(dataset_index=1, order_tag="task_0"),
+                _manifest_task_payload(dataset_index=2, order_tag="task_1"),
+                _manifest_task_payload(dataset_index=3, order_tag="task_2"),
+            ],
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+        split="train",
+        task="classification",
+    )
+
+    loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=False,
+        seed=0,
+        task_batch_size=2,
+        cache_mode="bounded_streaming",
+        max_batches=1,
+    )
+
+    batches = list(loader)
+
+    assert len(batches) == 1
+    assert int(batches[0].metadata["task_batch_size_actual"]) == 2
+    assert [member["order_tag"] for member in batches[0].metadata["task_members"]] == [
+        "task_0",
+        "task_1",
+    ]
 
 
 def test_packed_parquet_task_dataset_can_seed_shuffle_manifest_records(tmp_path: Path) -> None:
@@ -753,6 +839,41 @@ def test_task_signature_fast_path_reads_filtered_split_targets(
             "columns": ["row_index", "y"],
         },
     ]
+
+
+def test_task_signature_fast_path_uses_manifest_signature_when_guarded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(
+            tmp_path,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+        split="train",
+        task="classification",
+    )
+    original_read_table = dataset_module.pq.read_table
+    captured_calls: list[dict[str, object]] = []
+
+    def _capture_read_table(path: Path, *args: object, **kwargs: object):
+        if Path(path).name in {"train.parquet", "test.parquet"}:
+            captured_calls.append(
+                {
+                    "name": Path(path).name,
+                    "filters": kwargs.get("filters"),
+                    "columns": kwargs.get("columns"),
+                }
+            )
+        return original_read_table(path, *args, **kwargs)
+
+    monkeypatch.setattr(dataset_module.pq, "read_table", _capture_read_table)
+
+    signature = dataset.task_signature(0)
+
+    assert signature == (4, 4, 3, 3)
+    assert captured_calls == []
 
 
 def test_move_batch_moves_tensors_and_preserves_metadata() -> None:

@@ -77,6 +77,7 @@ def test_runtime_smoke_override_resolution() -> None:
     assert bool(cfg.runtime.loader_pin_memory) is False
     assert bool(cfg.runtime.loader_persistent_workers) is False
     assert cfg.runtime.loader_prefetch_factor is None
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "off"
     assert bool(cfg.runtime.non_blocking_device_transfer) is False
     assert cfg.runtime.checkpoint_every is None
     assert bool(cfg.runtime.compile_model) is False
@@ -93,6 +94,7 @@ def test_runtime_workstation_resolution() -> None:
     assert bool(cfg.runtime.loader_pin_memory) is False
     assert bool(cfg.runtime.loader_persistent_workers) is False
     assert cfg.runtime.loader_prefetch_factor is None
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "off"
     assert bool(cfg.runtime.non_blocking_device_transfer) is False
     assert bool(cfg.runtime.compile_model) is False
     assert bool(cfg.runtime.compile_dynamic) is False
@@ -106,6 +108,7 @@ def test_runtime_tf_rd_022_policy_resolution() -> None:
     assert bool(cfg.runtime.loader_pin_memory) is False
     assert bool(cfg.runtime.loader_persistent_workers) is False
     assert cfg.runtime.loader_prefetch_factor is None
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "off"
     assert bool(cfg.runtime.non_blocking_device_transfer) is False
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
@@ -195,6 +198,23 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_transfer_resolution
     assert str(cfg.logging.run_name) == (
         "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-train-speed-transfer-v1"
     )
+
+
+def test_cls_benchmark_sandwich_speedrun_cached_packed_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_speedrun_cached_packed_v1")
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert bool(cfg.runtime.loader_task_batch_cache) is False
+    assert str(cfg.runtime.num_workers) == "auto"
+    assert bool(cfg.runtime.loader_pin_memory) is True
+    assert bool(cfg.runtime.loader_persistent_workers) is False
+    assert str(cfg.runtime.loader_prefetch_factor) == "auto"
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_speedrun_cached_packed_v1"
+    assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-speedrun-cached-packed-v1"
 
 
 def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:

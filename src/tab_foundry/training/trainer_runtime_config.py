@@ -2,12 +2,38 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+import os
+
 from omegaconf import DictConfig
 
 _VALID_COMPILE_BACKENDS = frozenset({"inductor", "aot_eager", "eager"})
 _VALID_COMPILE_MODES = frozenset(
     {"max-autotune-no-cudagraphs", "default", "reduce-overhead"}
 )
+_AUTO_SENTINEL = "auto"
+_VALID_TASK_BATCH_CACHE_MODES = frozenset({"off", "eager_full", "bounded_streaming"})
+_RESERVED_CPU_LARGE_HOST_THRESHOLD = 8
+_RESERVED_CPU_SMALL_HOST_COUNT = 1
+_RESERVED_CPU_LARGE_HOST_COUNT = 2
+_LOW_WORKER_USABLE_CPU_MAX = 4
+_MEDIUM_WORKER_USABLE_CPU_MAX = 12
+_MEDIUM_WORKER_COUNT = 2
+_MAX_AUTO_WORKERS = 8
+_WORKERS_PER_CPU_DIVISOR = 4
+_LOW_PREFETCH_MAX_WORKERS = 2
+_LOW_PREFETCH_FACTOR = 2
+_HIGH_PREFETCH_FACTOR = 4
+
+
+@dataclass(slots=True)
+class LoaderOverlapRuntimeSettings:
+    """Resolved loader overlap settings after runtime defaults and auto heuristics."""
+
+    num_workers: int
+    prefetch_factor: int | None
+    num_workers_is_auto: bool
+    prefetch_factor_is_auto: bool
 
 
 def _coerce_runtime_bool(*, raw_value: object, name: str) -> bool:
@@ -148,13 +174,35 @@ def _resolve_loader_persistent_workers(runtime_cfg: DictConfig) -> bool:
     )
 
 
-def _resolve_loader_prefetch_factor(runtime_cfg: DictConfig) -> int | None:
+def _resolve_loader_num_workers(runtime_cfg: DictConfig) -> int | str:
+    raw_value = getattr(runtime_cfg, "num_workers", 0)
+    if isinstance(raw_value, str):
+        normalized = raw_value.strip().lower()
+        if normalized == _AUTO_SENTINEL:
+            return _AUTO_SENTINEL
+        if not normalized:
+            raise ValueError("runtime.num_workers must be >= 0 or 'auto', got empty string")
+    value = int(raw_value)
+    if value < 0:
+        raise ValueError(f"runtime.num_workers must be >= 0 or 'auto', got {value}")
+    return value
+
+
+def _resolve_loader_prefetch_factor(runtime_cfg: DictConfig) -> int | None | str:
     raw_value = getattr(runtime_cfg, "loader_prefetch_factor", None)
     if raw_value is None:
         return None
+    if isinstance(raw_value, str):
+        normalized = raw_value.strip().lower()
+        if normalized == _AUTO_SENTINEL:
+            return _AUTO_SENTINEL
+        if not normalized:
+            return None
     value = int(raw_value)
     if value <= 0:
-        raise ValueError(f"runtime.loader_prefetch_factor must be >= 1, got {value}")
+        raise ValueError(
+            f"runtime.loader_prefetch_factor must be >= 1, null, or 'auto', got {value}"
+        )
     return value
 
 
@@ -162,6 +210,90 @@ def _resolve_loader_task_batch_cache(runtime_cfg: DictConfig) -> bool:
     return _coerce_runtime_bool(
         raw_value=getattr(runtime_cfg, "loader_task_batch_cache", False),
         name="runtime.loader_task_batch_cache",
+    )
+
+
+def _resolve_loader_task_batch_cache_mode(runtime_cfg: DictConfig) -> str:
+    raw_mode = getattr(runtime_cfg, "loader_task_batch_cache_mode", None)
+    if raw_mode is not None:
+        normalized_mode = str(raw_mode).strip().lower()
+        if normalized_mode:
+            if normalized_mode not in _VALID_TASK_BATCH_CACHE_MODES:
+                raise ValueError(
+                    "runtime.loader_task_batch_cache_mode must be one of "
+                    f"{sorted(_VALID_TASK_BATCH_CACHE_MODES)}, got {raw_mode!r}"
+                )
+            return normalized_mode
+    return "eager_full" if _resolve_loader_task_batch_cache(runtime_cfg) else "off"
+
+
+def _resolved_cpu_count(*, cpu_count: int | None = None) -> int:
+    resolved = os.cpu_count() if cpu_count is None else int(cpu_count)
+    if resolved is None or resolved <= 0:
+        return 1
+    return int(resolved)
+
+
+def default_loader_num_workers(*, cpu_count: int | None = None) -> int:
+    """Return the CPU-count heuristic default for loader worker overlap."""
+
+    resolved_cpu_count = _resolved_cpu_count(cpu_count=cpu_count)
+    reserved = (
+        _RESERVED_CPU_LARGE_HOST_COUNT
+        if resolved_cpu_count >= _RESERVED_CPU_LARGE_HOST_THRESHOLD
+        else _RESERVED_CPU_SMALL_HOST_COUNT
+    )
+    usable = max(1, resolved_cpu_count - reserved)
+    if usable <= _LOW_WORKER_USABLE_CPU_MAX:
+        return 1
+    if usable <= _MEDIUM_WORKER_USABLE_CPU_MAX:
+        return _MEDIUM_WORKER_COUNT
+    return min(_MAX_AUTO_WORKERS, max(1, usable // _WORKERS_PER_CPU_DIVISOR))
+
+
+def default_loader_prefetch_factor(*, num_workers: int) -> int | None:
+    """Return the default prefetch factor for one resolved worker count."""
+
+    resolved_workers = int(num_workers)
+    if resolved_workers <= 0:
+        return None
+    return (
+        _LOW_PREFETCH_FACTOR
+        if resolved_workers <= _LOW_PREFETCH_MAX_WORKERS
+        else _HIGH_PREFETCH_FACTOR
+    )
+
+
+def resolve_loader_overlap_runtime_settings(
+    runtime_cfg: DictConfig,
+) -> LoaderOverlapRuntimeSettings:
+    """Resolve loader overlap settings, applying hardware-aware auto heuristics."""
+
+    raw_num_workers = _resolve_loader_num_workers(runtime_cfg)
+    raw_prefetch_factor = _resolve_loader_prefetch_factor(runtime_cfg)
+
+    num_workers_is_auto = raw_num_workers == _AUTO_SENTINEL
+    resolved_num_workers = (
+        default_loader_num_workers() if num_workers_is_auto else int(raw_num_workers)
+    )
+
+    prefetch_factor_is_auto = raw_prefetch_factor == _AUTO_SENTINEL
+    if resolved_num_workers <= 0:
+        resolved_prefetch_factor = None
+    elif prefetch_factor_is_auto:
+        resolved_prefetch_factor = default_loader_prefetch_factor(
+            num_workers=resolved_num_workers
+        )
+    else:
+        resolved_prefetch_factor = (
+            None if raw_prefetch_factor is None else int(raw_prefetch_factor)
+        )
+
+    return LoaderOverlapRuntimeSettings(
+        num_workers=resolved_num_workers,
+        prefetch_factor=resolved_prefetch_factor,
+        num_workers_is_auto=num_workers_is_auto,
+        prefetch_factor_is_auto=prefetch_factor_is_auto,
     )
 
 

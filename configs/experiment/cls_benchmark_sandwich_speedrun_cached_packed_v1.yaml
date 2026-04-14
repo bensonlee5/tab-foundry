@@ -9,11 +9,12 @@ model:
 
 runtime:
   output_dir: outputs/cls_benchmark_sandwich_speedrun_cached_packed_v1
-  loader_task_batch_cache: true
-  num_workers: 0
+  loader_task_batch_cache: false
+  loader_task_batch_cache_mode: bounded_streaming
+  num_workers: auto
   loader_pin_memory: true
   loader_persistent_workers: false
-  loader_prefetch_factor: null
+  loader_prefetch_factor: auto
   non_blocking_device_transfer: true
 
 logging:

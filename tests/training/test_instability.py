@@ -479,3 +479,31 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
     assert telemetry["regime_budget"]["unique_task_budget"] == 96
     assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert telemetry["regime_budget"]["curriculum_id"] == "1" * 32
+
+
+def test_build_runtime_summary_records_loader_wall_metadata() -> None:
+    summary = build_runtime_summary(
+        train_elapsed_seconds=3.0,
+        wall_elapsed_seconds=3.8,
+        end_to_end_wall_seconds=4.2,
+        loader_setup_seconds=0.4,
+        examples_seen=96,
+        tokens_seen=38400,
+        peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
+        loader_effective_num_workers=8,
+        loader_effective_prefetch_factor=4,
+        loader_task_batch_cache_mode="bounded_streaming",
+    )
+
+    assert summary == {
+        "peak_vram_allocated": 1024,
+        "peak_vram_reserved": 2048,
+        "throughput_examples_per_second": 32.0,
+        "throughput_tokens_per_second": 12800.0,
+        "non_train_overhead_seconds": pytest.approx(0.8),
+        "end_to_end_wall_seconds": 4.2,
+        "loader_setup_seconds": 0.4,
+        "loader_effective_num_workers": 8,
+        "loader_effective_prefetch_factor": 4,
+        "loader_task_batch_cache_mode": "bounded_streaming",
+    }

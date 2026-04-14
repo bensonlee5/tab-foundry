@@ -731,6 +731,39 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             return None
         return n_features
 
+    @staticmethod
+    def _record_positive_int(record: Mapping[str, Any], key: str) -> int | None:
+        raw_value = record.get(key)
+        if raw_value is None:
+            return None
+        try:
+            value = int(raw_value)
+        except (TypeError, ValueError):
+            return None
+        if value <= 0:
+            return None
+        return value
+
+    def _manifest_signature_fast_path(self, index: int) -> TaskSignature | None:
+        record = self.records[index]
+        n_train = self._record_positive_int(record, "n_train")
+        n_test = self._record_positive_int(record, "n_test")
+        n_features = self._record_positive_int(record, "n_features")
+        if n_train is None or n_test is None or n_features is None:
+            return None
+        if self.task != "classification":
+            return (int(n_train), int(n_test), int(n_features), None)
+        if self.label_mapping != "train_only_remap" or self.unseen_test_label_policy != "filter":
+            return None
+        filter_status = str(record.get("filter_status", "")).strip().lower()
+        filter_accepted = record.get("filter_accepted") is True
+        if filter_status != "accepted" and not filter_accepted:
+            return None
+        num_classes = self._record_positive_int(record, "n_classes")
+        if num_classes is None:
+            return None
+        return (int(n_train), int(n_test), int(n_features), int(num_classes))
+
     def _fast_task_signature(self, index: int) -> TaskSignature | None:
         record = self.records[index]
         if (
@@ -741,6 +774,9 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 "manifest record contains NaN or Inf while allow_missing_values=False: "
                 f"{_record_identity_text(record)}, manifest_path={self.manifest_path}"
             )
+        manifest_signature = self._manifest_signature_fast_path(index)
+        if manifest_signature is not None:
+            return manifest_signature
         n_features = self._record_n_features(record)
         if n_features is None:
             return None
