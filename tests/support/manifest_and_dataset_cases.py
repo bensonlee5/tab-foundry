@@ -99,6 +99,30 @@ def _write_dataset_catalog_file(path: Path, records: list[dict[str, Any]]) -> No
     pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
 
 
+def _write_json_record_parquet_file(path: Path, records: list[dict[str, Any]]) -> None:
+    rows = []
+    for record in records:
+        record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        rows.append(
+            {
+                "dataset_index": int(record["dataset_index"]),
+                "record_json": record_json,
+                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
+            }
+        )
+    table = pa.Table.from_pylist(
+        rows,
+        schema=pa.schema(
+            [
+                pa.field("dataset_index", pa.int64()),
+                pa.field("record_json", pa.large_string()),
+                pa.field("record_sha256", pa.string()),
+            ]
+        ),
+    )
+    pq.write_table(table, path, compression="zstd")
+
+
 def _manifest_summary_metadata(path: Path) -> dict[str, Any]:
     metadata = pq.ParquetFile(path).schema_arrow.metadata or {}
     raw = metadata[b"tab_foundry_manifest_summary"]
@@ -561,7 +585,12 @@ def test_manifest_rejects_selected_dataset_index_missing_from_packed_split(
 
     manifest_path = tmp_path / "manifest.parquet"
     with pytest.raises(RuntimeError) as excinfo:
-        _ = build_manifest([root], manifest_path, filter_policy="accepted_only")
+        _ = build_manifest(
+            [root],
+            manifest_path,
+            filter_policy="accepted_only",
+            missing_value_policy="forbid_any",
+        )
 
     message = str(excinfo.value)
     assert "dataset_index=0" in message

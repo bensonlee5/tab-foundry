@@ -171,7 +171,7 @@ def _load_manifest_record_catalog(
     *,
     record: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if callable(_LOAD_MANIFEST_RECORD_CATALOG):
+    if callable(_LOAD_MANIFEST_RECORD_CATALOG) and "catalog_dataset_index" in record:
         payload = _LOAD_MANIFEST_RECORD_CATALOG(manifest_path, record=record)
         return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
     return _fallback_load_manifest_record_catalog(manifest_path, record=record)
