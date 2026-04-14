@@ -54,11 +54,11 @@ def write_task_batch_manifest_from_specs(
             }
         )
 
-    offsets = _write_packed_shard(shard_dir, datasets=datasets)
+    catalog_digests = _write_packed_shard(shard_dir, datasets=datasets)
     manifest_rows: list[dict[str, object]] = []
     for dataset in datasets:
         dataset_index = int(dataset["dataset_index"])
-        offset, size, digest = offsets[dataset_index]
+        digest = catalog_digests[dataset_index]
         manifest_rows.append(
             {
                 "dataset_id": f"root_a/shard_00000/dataset_{dataset_index:06d}",
@@ -69,10 +69,9 @@ def write_task_batch_manifest_from_specs(
                 "dataset_index": dataset_index,
                 "train_path": "manifest_data/shard_00000/train.parquet",
                 "test_path": "manifest_data/shard_00000/test.parquet",
-                "catalog_path": "manifest_data/shard_00000/metadata.ndjson",
-                "catalog_offset_bytes": offset,
-                "catalog_size_bytes": size,
-                "catalog_sha256": digest,
+                "catalog_path": "manifest_data/shard_00000/dataset_catalog.parquet",
+                "catalog_dataset_index": dataset_index,
+                "catalog_record_sha256": digest,
                 "n_train": int(dataset["x_train"].shape[0]),
                 "n_test": int(dataset["x_test"].shape[0]),
                 "n_features": int(dataset["x_train"].shape[1]),

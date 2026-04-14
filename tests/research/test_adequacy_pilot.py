@@ -13,6 +13,7 @@ import tab_foundry.research.adequacy.pilot as pilot_module
 import tab_foundry.research.adequacy.production_control as production_control_module
 from tab_foundry.research.synthetic_adequacy import load_synthetic_adequacy_spec
 from tab_foundry.types import TaskBatch
+from tests.support import manifest_and_dataset_cases as cases
 
 
 def _latent_target_metadata(*, n_features: int = 1) -> dict[str, object]:
@@ -252,8 +253,11 @@ def test_inspect_corpus_latent_target_contract_accepts_public_catalog_surface(
     )
     manifest_path = tmp_path / "manifest.parquet"
     manifest_path.write_bytes(b"manifest")
-    filter_manifest_path = tmp_path / "filter_manifest.ndjson"
-    filter_manifest_path.write_text("{}\n", encoding="utf-8")
+    filter_manifest_path = tmp_path / "filter_manifest.parquet"
+    cases._write_json_record_parquet_file(
+        filter_manifest_path,
+        [{"dataset_index": 0, "status": "accepted"}],
+    )
     filter_summary_path = tmp_path / "filter_summary.json"
     filter_summary_path.write_text("{}\n", encoding="utf-8")
     curated_dir = tmp_path / "curated"
@@ -269,9 +273,8 @@ def test_inspect_corpus_latent_target_contract_accepts_public_catalog_surface(
             "n_classes": 2,
             "task": "classification",
             "catalog_path": str(manifest_path),
-            "catalog_offset_bytes": 0,
-            "catalog_size_bytes": 1,
-            "catalog_sha256": "0" * 64,
+            "catalog_dataset_index": 0,
+            "catalog_record_sha256": "0" * 64,
         }
         for row_total in block.n_ladder
     ]
@@ -348,8 +351,11 @@ def test_inspect_corpus_latent_target_contract_fast_skips_catalog_reads_for_prod
     )
     manifest_path = tmp_path / "manifest.parquet"
     manifest_path.write_bytes(b"manifest")
-    filter_manifest_path = tmp_path / "filter_manifest.ndjson"
-    filter_manifest_path.write_text("{}\n", encoding="utf-8")
+    filter_manifest_path = tmp_path / "filter_manifest.parquet"
+    cases._write_json_record_parquet_file(
+        filter_manifest_path,
+        [{"dataset_index": 0, "status": "accepted"}],
+    )
     filter_summary_path = tmp_path / "filter_summary.json"
     filter_summary_path.write_text("{}\n", encoding="utf-8")
     curated_dir = tmp_path / "curated"
@@ -365,9 +371,8 @@ def test_inspect_corpus_latent_target_contract_fast_skips_catalog_reads_for_prod
             "n_classes": 2,
             "task": "classification",
             "catalog_path": str(manifest_path),
-            "catalog_offset_bytes": 0,
-            "catalog_size_bytes": 1,
-            "catalog_sha256": "0" * 64,
+            "catalog_dataset_index": 0,
+            "catalog_record_sha256": "0" * 64,
         }
         for row_total in block.n_ladder
     ]

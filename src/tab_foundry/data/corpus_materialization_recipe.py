@@ -875,7 +875,7 @@ def _verify_staged_materialization(
                     corpus_root=stage_root,
                     invocation_id=invocation_id,
                 )
-                / "filter_manifest.ndjson"
+                / "filter_manifest.parquet"
             )
             filter_summary_path = (
                 invocation_module._invocation_filter_root(
@@ -889,7 +889,7 @@ def _verify_staged_materialization(
                 invocation_id=invocation_id,
             )
             for label, required_path in (
-                ("filter_manifest.ndjson", filter_manifest_path),
+                ("filter_manifest.parquet", filter_manifest_path),
                 ("filter_summary.json", filter_summary_path),
                 ("curated root", curated_root),
             ):

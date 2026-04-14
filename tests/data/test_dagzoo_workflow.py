@@ -126,7 +126,10 @@ def _write_filter_outputs(
     filter_root.mkdir(parents=True, exist_ok=True)
     curated_dir.mkdir(parents=True, exist_ok=True)
     _ = _write_generated_dataset(curated_dir / "shard_00000", dataset_id="4" * 32, seed=11)
-    (filter_root / "filter_manifest.ndjson").write_text("{}\n", encoding="utf-8")
+    cases._write_json_record_parquet_file(
+        filter_root / "filter_manifest.parquet",
+        [{"dataset_index": 0, "status": "accepted"}],
+    )
     (filter_root / "filter_summary.json").write_text(
         json.dumps(
             {
@@ -545,9 +548,12 @@ def test_run_dagzoo_filter_sets_thread_budget_env_vars(
     input_dir.mkdir(parents=True, exist_ok=True)
     filter_root = dagzoo_root / "filter"
     filter_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = filter_root / "filter_manifest.ndjson"
+    manifest_path = filter_root / "filter_manifest.parquet"
     summary_path = filter_root / "filter_summary.json"
-    manifest_path.write_text("{}\n", encoding="utf-8")
+    cases._write_json_record_parquet_file(
+        manifest_path,
+        [{"dataset_index": 0, "status": "accepted"}],
+    )
     summary_path.write_text(
         json.dumps(
             {

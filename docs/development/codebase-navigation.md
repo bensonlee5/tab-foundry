@@ -59,7 +59,8 @@ into the canonical library modules.
   dataset abstractions, surface selection, source provenance wiring, and data
   construction helpers. Manifest contract ownership lives upstream in
   `tab_realdata_hub.manifest`; the parquet manifest is the stable index layer,
-  while richer evolving dataset metadata lives in `metadata.ndjson`.
+  while richer evolving dataset semantics live in `dataset_catalog.parquet`
+  `record_json` payloads.
 - `src/tab_foundry/preprocessing/`: explicit preprocessing-surface resolution
   and fitted-state helpers. This is now a live first-class package area rather
   than an implicit training detail.

@@ -88,7 +88,7 @@ repo-local path for bootstrap, verification, and Iris smoke; keep
 Manifest build, inspect, and read ownership lives upstream in
 `tab-realdata-hub`. In this repo, the parquet manifest is treated as the
 stable index layer and the richer per-dataset semantics live in
-`metadata.ndjson`; `tab-foundry` consumes that contract and does not define a
+`dataset_catalog.parquet` `record_json` payloads; `tab-foundry` consumes that contract and does not define a
 parallel manifest parser.
 
 | Surface | Use it for |

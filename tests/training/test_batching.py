@@ -118,7 +118,7 @@ def _write_manifest_dataset(
             "metadata": _classification_metadata(n_features=3, n_classes=3, seed=11),
         }
     ]
-    offsets = _write_packed_shard(shard_dir, datasets=resolved_datasets)
+    catalog_digests = _write_packed_shard(shard_dir, datasets=resolved_datasets)
     manifest_path = tmp_path / "manifest.parquet"
     pq.write_table(
         pa.Table.from_pylist(
@@ -132,10 +132,9 @@ def _write_manifest_dataset(
                     "dataset_index": int(dataset["dataset_index"]),
                     "train_path": "manifest_data/shard_00000/train.parquet",
                     "test_path": "manifest_data/shard_00000/test.parquet",
-                    "catalog_path": "manifest_data/shard_00000/metadata.ndjson",
-                    "catalog_offset_bytes": offset,
-                    "catalog_size_bytes": size,
-                    "catalog_sha256": digest,
+                    "catalog_path": "manifest_data/shard_00000/dataset_catalog.parquet",
+                    "catalog_dataset_index": int(dataset["dataset_index"]),
+                    "catalog_record_sha256": digest,
                     "n_train": int(np.asarray(dataset["x_train"]).shape[0]),
                     "n_test": int(np.asarray(dataset["x_test"]).shape[0]),
                     "n_features": int(np.asarray(dataset["x_train"]).shape[1]),
@@ -148,7 +147,7 @@ def _write_manifest_dataset(
                     "missing_value_status": "clean",
                 }
                 for dataset in resolved_datasets
-                for (offset, size, digest) in [offsets[int(dataset["dataset_index"])]]
+                for digest in [catalog_digests[int(dataset["dataset_index"])]]
             ]
         ),
         manifest_path,

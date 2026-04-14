@@ -165,14 +165,8 @@ def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
     parquet_catalog_paths = sorted(resolved_generated_dir.rglob(HUB_DATASET_CATALOG_FILENAME))
     if parquet_catalog_paths:
         return parquet_catalog_paths
-    catalog_paths = sorted(resolved_generated_dir.rglob("dataset_catalog.ndjson"))
-    if catalog_paths:
-        return catalog_paths
-    metadata_paths = sorted(resolved_generated_dir.rglob("metadata.ndjson"))
-    if metadata_paths:
-        return metadata_paths
     raise RuntimeError(
-        "dagzoo generated directory does not contain dataset_catalog.ndjson or metadata.ndjson: "
+        "dagzoo generated directory does not contain dataset_catalog.parquet: "
         f"{resolved_generated_dir}"
     )
 
@@ -203,44 +197,26 @@ def _load_public_catalog_records(catalog_path: Path) -> list[dict[str, Any]]:
             {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
             for payload in records
         ]
-    if resolved_catalog_path.suffix == ".parquet":
-        rows = pq.read_table(
-            resolved_catalog_path,
-            columns=["dataset_index", "record_json"],
-        ).to_pylist()
-        payloads: list[dict[str, Any]] = []
-        for row in rows:
-            record_json = row.get("record_json")
-            if not isinstance(record_json, str):
-                raise RuntimeError(
-                    f"parquet catalog row is missing record_json: {resolved_catalog_path}"
-                )
-            payload = json.loads(record_json)
-            if not isinstance(payload, Mapping):
-                raise RuntimeError(
-                    f"parquet catalog record_json must decode to an object: {resolved_catalog_path}"
-                )
-            payloads.append({str(key): value for key, value in payload.items()})
-        return payloads
-
-    payloads = []
-    for line_number, raw_line in enumerate(
-        resolved_catalog_path.read_text(encoding="utf-8").splitlines(),
-        start=1,
-    ):
-        if not raw_line.strip():
-            continue
-        try:
-            payload = json.loads(raw_line)
-        except json.JSONDecodeError as exc:
+    if resolved_catalog_path.suffix != ".parquet":
+        raise RuntimeError(
+            "legacy dagzoo catalog formats are unsupported; expected "
+            f"{HUB_DATASET_CATALOG_FILENAME}: {resolved_catalog_path}"
+        )
+    rows = pq.read_table(
+        resolved_catalog_path,
+        columns=["dataset_index", "record_json"],
+    ).to_pylist()
+    payloads: list[dict[str, Any]] = []
+    for row in rows:
+        record_json = row.get("record_json")
+        if not isinstance(record_json, str):
             raise RuntimeError(
-                "failed to parse dagzoo catalog record while verifying handoff: "
-                f"path={resolved_catalog_path}, line={line_number}"
-            ) from exc
+                f"parquet catalog row is missing record_json: {resolved_catalog_path}"
+            )
+        payload = json.loads(record_json)
         if not isinstance(payload, Mapping):
             raise RuntimeError(
-                "dagzoo catalog NDJSON record must decode to an object: "
-                f"path={resolved_catalog_path}, line={line_number}"
+                f"parquet catalog record_json must decode to an object: {resolved_catalog_path}"
             )
         payloads.append({str(key): value for key, value in payload.items()})
     return payloads
@@ -546,14 +522,7 @@ def _generated_datasets_from_handoff(
 
 def _resolved_public_shard_dir(shard_dir: Path) -> Path:
     resolved_shard_dir = shard_dir
-    if not any(
-        candidate.exists()
-        for candidate in (
-            resolved_shard_dir / HUB_DATASET_CATALOG_FILENAME,
-            resolved_shard_dir / "dataset_catalog.ndjson",
-            resolved_shard_dir / "metadata.ndjson",
-        )
-    ):
+    if not (resolved_shard_dir / HUB_DATASET_CATALOG_FILENAME).exists():
         nested_shards = sorted(path for path in resolved_shard_dir.glob("shard_*") if path.is_dir())
         if len(nested_shards) == 1:
             resolved_shard_dir = nested_shards[0]
@@ -561,14 +530,10 @@ def _resolved_public_shard_dir(shard_dir: Path) -> Path:
 
 
 def _public_catalog_path_for_shard(shard_dir: Path) -> Path:
-    for candidate in (
-        shard_dir / HUB_DATASET_CATALOG_FILENAME,
-        shard_dir / "dataset_catalog.ndjson",
-        shard_dir / "metadata.ndjson",
-    ):
-        if candidate.exists():
-            return candidate
-    raise RuntimeError(f"curated shard is missing dataset catalog metadata: {shard_dir}")
+    catalog_path = shard_dir / HUB_DATASET_CATALOG_FILENAME
+    if catalog_path.exists():
+        return catalog_path
+    raise RuntimeError(f"curated shard is missing {HUB_DATASET_CATALOG_FILENAME}: {shard_dir}")
 
 
 def _renumber_catalog_record(record: Mapping[str, Any], *, dataset_index: int) -> dict[str, Any]:
@@ -740,17 +705,17 @@ def _write_accepted_only_filter_artifacts(
     materialize_worker_threads: int | None = None,
 ) -> None:
     filter_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = filter_root / "filter_manifest.ndjson"
-    with manifest_path.open("w", encoding="utf-8") as handle:
-        for round_payload in rounds:
-            round_manifest_path = Path(str(round_payload["filter_manifest_path"]))
-            if not round_manifest_path.exists():
-                raise RuntimeError(f"round filter manifest is missing: {round_manifest_path}")
-            text = round_manifest_path.read_text(encoding="utf-8")
-            if text:
-                handle.write(text)
-                if not text.endswith("\n"):
-                    handle.write("\n")
+    manifest_path = filter_root / "filter_manifest.parquet"
+    manifest_tables: list[pa.Table] = []
+    for round_payload in rounds:
+        round_manifest_path = Path(str(round_payload["filter_manifest_path"]))
+        if not round_manifest_path.exists():
+            raise RuntimeError(f"round filter manifest is missing: {round_manifest_path}")
+        manifest_tables.append(pq.read_table(round_manifest_path))
+    if manifest_tables:
+        pq.write_table(pa.concat_tables(manifest_tables), manifest_path, compression="zstd")
+    else:
+        pq.write_table(pa.table({}), manifest_path, compression="zstd")
     summary_path = filter_root / "filter_summary.json"
     acceptance_rate = (
         None
@@ -1623,7 +1588,7 @@ def _invocation_record_payload(
                                     corpus_root=corpus_root,
                                     invocation_id=spec.invocation_id,
                                 )
-                                / "filter_manifest.ndjson"
+                                / "filter_manifest.parquet"
                             ).resolve()
                         ),
                         "filter_summary_path": str(

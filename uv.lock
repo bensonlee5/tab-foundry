@@ -1735,7 +1735,7 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.16.16"
+version = "0.17.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
@@ -1809,7 +1809,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
-    { name = "tab-realdata-hub", specifier = ">=0.1.8" },
+    { name = "tab-realdata-hub", git = "https://github.com/bensonlee5/tab-realdata-hub.git?rev=7ba736e274612ef0fd5a677ccfc1ef3186c66ba0" },
     { name = "torch", marker = "sys_platform != 'linux'", specifier = ">=2.8" },
     { name = "torch", marker = "sys_platform == 'linux'", specifier = ">=2.8", index = "https://download.pytorch.org/whl/cu128" },
     { name = "torchview", specifier = ">=0.2.7" },
@@ -1841,18 +1841,14 @@ dev = [
 
 [[package]]
 name = "tab-realdata-hub"
-version = "0.1.8"
-source = { registry = "https://pypi.org/simple" }
+version = "0.2.0"
+source = { git = "https://github.com/bensonlee5/tab-realdata-hub.git?rev=7ba736e274612ef0fd5a677ccfc1ef3186c66ba0#7ba736e274612ef0fd5a677ccfc1ef3186c66ba0" }
 dependencies = [
     { name = "numpy" },
     { name = "openml" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/d8/3340d63008b6077be1a99a0c283261e9bf5a825818d8a95ffb040093538b/tab_realdata_hub-0.1.8.tar.gz", hash = "sha256:86fe3fb18f535a470b145739fce4a87a78a38c36fc0746e80970021e4c850424", size = 94042, upload-time = "2026-04-14T15:41:00.311Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/cd/0ec26afcc95b52a3249b1c23e61e849e415602528e5fc2379f7ab80ac120/tab_realdata_hub-0.1.8-py3-none-any.whl", hash = "sha256:c52b2cf1dad6f4d4ec71a2b9aca0403880f1a820cd34fb36ea20ac0851feea5b", size = 54390, upload-time = "2026-04-14T15:40:59.022Z" },
 ]
 
 [[package]]
