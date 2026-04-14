@@ -17,7 +17,7 @@ from tab_foundry.types import TaskBatch
 
 
 LOSS_EMA_ALPHA = 0.1
-TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v4"
+TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v5"
 CLASSIFICATION_OBJECTIVE_METRIC = "final_log_loss_at_matched_regime_budget"
 CELL_BPC_OBJECTIVE_METRIC = "final_bpc_at_matched_regime_budget"
 _TASK_BATCH_NDIM = 3
@@ -372,12 +372,41 @@ def train_loss_delta(train_loss: float, *, previous_train_loss: float | None) ->
     return float(train_loss) - float(previous_train_loss)
 
 
+def _mean_finite_record_value(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    key: str,
+) -> float | None:
+    values: list[float] = []
+    for record in records:
+        raw_value = record.get(key)
+        if raw_value is None:
+            continue
+        value = float(raw_value)
+        if math.isfinite(value):
+            values.append(value)
+    if not values:
+        return None
+    return float(sum(values) / float(len(values)))
+
+
+def _final_tail_records(records: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    ordered = _sorted_records(records)
+    final_count = (
+        0
+        if not ordered
+        else max(1, int(math.ceil(float(len(ordered)) * _FINAL_WINDOW_FRACTION)))
+    )
+    return [] if final_count <= 0 else ordered[-final_count:]
+
+
 def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, float | int | None]:
     """Summarize train-loss volatility from history-style records."""
 
+    ordered = _sorted_records(records)
     weighted_losses: list[tuple[float, float]] = []
     losses: list[float] = []
-    for record in records:
+    for record in ordered:
         raw_loss = record.get("train_loss")
         if raw_loss is None:
             continue
@@ -397,20 +426,37 @@ def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, floa
         weighted_losses.append((loss_value, weight))
     deltas = [
         float(record["train_loss_delta"])
-        for record in records
+        for record in ordered
         if record.get("train_loss_delta") is not None
         and math.isfinite(float(record["train_loss_delta"]))
     ]
+    tail_records = _final_tail_records(ordered)
+    final_train_loss_ema = None
+    for record in reversed(ordered):
+        raw_loss_ema = record.get("train_loss_ema")
+        if raw_loss_ema is None:
+            continue
+        loss_ema_value = float(raw_loss_ema)
+        if math.isfinite(loss_ema_value):
+            final_train_loss_ema = float(loss_ema_value)
+            break
     if not losses:
         return {
-            "record_count": int(len(records)),
+            "record_count": int(len(ordered)),
             "initial_train_loss": None,
             "final_train_loss": None,
+            "final_train_loss_ema": final_train_loss_ema,
             "min_train_loss": None,
             "max_train_loss": None,
             "mean_train_loss": None,
             "train_loss_variance": None,
             "max_abs_train_loss_delta": None,
+            "final_tail_record_count": int(len(tail_records)),
+            "final_tail_mean_train_loss": None,
+            "final_tail_mean_train_loss_ema": _mean_finite_record_value(
+                tail_records,
+                key="train_loss_ema",
+            ),
         }
     total_weight = sum(weight for _loss, weight in weighted_losses)
     mean_loss = (
@@ -425,14 +471,24 @@ def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, floa
         else 0.0
     )
     return {
-        "record_count": int(len(records)),
+        "record_count": int(len(ordered)),
         "initial_train_loss": float(losses[0]),
         "final_train_loss": float(losses[-1]),
+        "final_train_loss_ema": final_train_loss_ema,
         "min_train_loss": float(min(losses)),
         "max_train_loss": float(max(losses)),
         "mean_train_loss": float(mean_loss),
         "train_loss_variance": float(variance),
         "max_abs_train_loss_delta": None if not deltas else float(max(abs(delta) for delta in deltas)),
+        "final_tail_record_count": int(len(tail_records)),
+        "final_tail_mean_train_loss": _mean_finite_record_value(
+            tail_records,
+            key="train_loss",
+        ),
+        "final_tail_mean_train_loss_ema": _mean_finite_record_value(
+            tail_records,
+            key="train_loss_ema",
+        ),
     }
 
 
@@ -912,6 +968,63 @@ def diagnostics_summary(
     }
 
 
+def _signature_family_text(signature_text: str) -> str:
+    n_train, n_test, n_features, _num_classes = parse_task_batch_signature_text(signature_text)
+    return f"{int(n_train)}x{int(n_test)}x{int(n_features)}"
+
+
+def _record_signature_families(record: Mapping[str, Any]) -> list[str]:
+    raw_signature_counts = record.get("task_batch_signature_counts")
+    if not isinstance(raw_signature_counts, Mapping):
+        return []
+    families: set[str] = set()
+    for signature, count in raw_signature_counts.items():
+        if not isinstance(signature, str):
+            continue
+        resolved_count = int(count)
+        if resolved_count <= 0:
+            continue
+        families.add(_signature_family_text(signature))
+    return sorted(families)
+
+
+def _signature_family_step_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    ordered = _sorted_records(records)
+    one_family_step_count = 0
+    mixed_family_step_count = 0
+    consecutive_repeated_family_step_count = 0
+    consecutive_switched_family_step_count = 0
+    family_block_count = 0
+    previous_single_family: str | None = None
+    for record in ordered:
+        families = _record_signature_families(record)
+        if not families:
+            previous_single_family = None
+            continue
+        if len(families) != 1:
+            mixed_family_step_count += 1
+            previous_single_family = None
+            continue
+        family = families[0]
+        one_family_step_count += 1
+        if previous_single_family is None:
+            family_block_count += 1
+        elif previous_single_family == family:
+            consecutive_repeated_family_step_count += 1
+        else:
+            consecutive_switched_family_step_count += 1
+            family_block_count += 1
+        previous_single_family = family
+    return {
+        "one_family_step_count": int(one_family_step_count),
+        "mixed_family_step_count": int(mixed_family_step_count),
+        "consecutive_repeated_family_step_count": int(consecutive_repeated_family_step_count),
+        "consecutive_switched_family_step_count": int(consecutive_switched_family_step_count),
+        "family_block_count": int(family_block_count),
+        "estimated_family_switch_count": int(max(0, family_block_count - 1)),
+    }
+
+
 def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     requested_sizes: set[int] = set()
     actual_batch_sizes: dict[str, int] = {}
@@ -956,6 +1069,7 @@ def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
         if fraction_denominator <= 0
         else float(singleton_fallback_count / float(fraction_denominator)),
         "signature_counts": signature_counts,
+        "signature_family_steps": _signature_family_step_summary(records),
     }
 
 

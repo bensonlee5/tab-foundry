@@ -449,6 +449,81 @@ def test_manifest_task_batch_sampler_signature_family_runs_preserve_capped_prefi
     )
 
 
+def test_build_task_loader_scales_signature_family_runs_by_optimizer_step_block_length(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(
+            tmp_path,
+            datasets=[
+                _manifest_task_payload(dataset_index=1, order_tag="task_0"),
+                _manifest_task_payload(dataset_index=2, order_tag="task_1"),
+            ],
+        ),
+        split="train",
+        task="classification",
+    )
+
+    loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=True,
+        seed=0,
+        task_batch_size=1,
+        signature_family_optimizer_step_block_length=2,
+        grad_accum_steps=4,
+    )
+
+    assert isinstance(loader.batch_sampler, _ManifestTaskBatchSampler)
+    assert loader.batch_sampler.signature_family_run_length == 8
+
+
+def test_build_task_loader_one_step_family_block_matches_explicit_run_length(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(
+            tmp_path,
+            datasets=[
+                _manifest_task_payload(dataset_index=1, order_tag="task_0", n_train=2, n_test=2, n_classes=2),
+                _manifest_task_payload(dataset_index=2, order_tag="task_1", n_train=2, n_test=2, n_classes=5),
+                _manifest_task_payload(dataset_index=3, order_tag="task_2", n_train=2, n_test=2, n_classes=2),
+                _manifest_task_payload(dataset_index=4, order_tag="task_3", n_train=2, n_test=2, n_classes=5),
+                _manifest_task_payload(dataset_index=5, order_tag="task_4", n_train=4, n_test=2, n_classes=2),
+                _manifest_task_payload(dataset_index=6, order_tag="task_5", n_train=4, n_test=2, n_classes=5),
+                _manifest_task_payload(dataset_index=7, order_tag="task_6", n_train=4, n_test=2, n_classes=2),
+                _manifest_task_payload(dataset_index=8, order_tag="task_7", n_train=4, n_test=2, n_classes=5),
+            ],
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+        split="train",
+        task="classification",
+    )
+
+    explicit_loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=True,
+        seed=0,
+        task_batch_size=1,
+        signature_family_run_length=2,
+    )
+    step_block_loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=True,
+        seed=0,
+        task_batch_size=1,
+        signature_family_optimizer_step_block_length=1,
+        grad_accum_steps=2,
+    )
+
+    assert isinstance(explicit_loader.batch_sampler, _ManifestTaskBatchSampler)
+    assert isinstance(step_block_loader.batch_sampler, _ManifestTaskBatchSampler)
+    assert list(explicit_loader.batch_sampler) == list(step_block_loader.batch_sampler)
+
+
 def test_manifest_task_batch_sampler_supports_accelerate_sharding_without_padding() -> None:
     sampler = _ManifestTaskBatchSampler(
         _StubManifestTaskDataset(size=5),

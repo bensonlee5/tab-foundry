@@ -16,6 +16,7 @@ from .instability import (
     build_runtime_summary,
     build_training_telemetry,
     grad_norm_summary_from_running_totals,
+    history_loss_summary,
     peak_device_memory_summary,
     training_shape_summary_from_signature_task_counts,
     write_training_telemetry,
@@ -55,6 +56,12 @@ def finalize_training_run(
     now = time.perf_counter()
     wall_elapsed_seconds = now - train_start
     end_to_end_wall_seconds = now - end_to_end_start
+    loss_summary = history_loss_summary(state.history_records)
+
+    def _optional_loss_metric(key: str) -> float | None:
+        value = loss_summary.get(key)
+        return None if value is None else float(value)
+
     task_batching_summary: Mapping[str, Any] | None = None
     if accelerator.is_main_process:
         runtime_summary = build_runtime_summary(
@@ -150,6 +157,14 @@ def finalize_training_run(
                 "final_val_loss": float(state.last_val_metrics["val_loss"])
                 if state.last_val_metrics is not None
                 else float(state.best_val),
+                "final_train_loss": _optional_loss_metric("final_train_loss"),
+                "final_train_loss_ema": _optional_loss_metric("final_train_loss_ema"),
+                "final_tail_mean_train_loss": _optional_loss_metric(
+                    "final_tail_mean_train_loss"
+                ),
+                "final_tail_mean_train_loss_ema": _optional_loss_metric(
+                    "final_tail_mean_train_loss_ema"
+                ),
                 "train_elapsed_seconds": float(state.train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
                 "end_to_end_wall_seconds": float(end_to_end_wall_seconds),

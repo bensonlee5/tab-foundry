@@ -48,6 +48,7 @@ from .trainer_runtime_config import (
     _resolve_module_grad_norm_every,
     _resolve_non_blocking_device_transfer,
     _resolve_profile_step_timing,
+    _resolve_signature_family_optimizer_step_block_length,
     _resolve_signature_family_run_length,
     _resolve_target_train_seconds,
     _resolve_trace_activations,
@@ -105,6 +106,9 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     loader_overlap_settings = resolve_loader_overlap_runtime_settings(cfg.runtime)
     loader_task_batch_cache_mode = _resolve_loader_task_batch_cache_mode(cfg.runtime)
     signature_family_run_length = _resolve_signature_family_run_length(cfg.runtime)
+    signature_family_optimizer_step_block_length = (
+        _resolve_signature_family_optimizer_step_block_length(cfg.runtime)
+    )
     module_grad_norm_every = _resolve_module_grad_norm_every(cfg.runtime)
     profile_step_timing = _resolve_profile_step_timing(cfg.runtime)
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
@@ -166,6 +170,8 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         cache_mode=loader_task_batch_cache_mode,
         max_batches=train_loader_max_batches,
         signature_family_run_length=signature_family_run_length,
+        signature_family_optimizer_step_block_length=signature_family_optimizer_step_block_length,
+        grad_accum_steps=grad_accum_steps,
     )
     val_loader = None
     if val_batches > 0:
@@ -199,6 +205,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
                 int(val_batches) if loader_task_batch_cache_mode == "bounded_streaming" else None
             ),
             signature_family_run_length=1,
+            grad_accum_steps=1,
         )
     loader_setup_seconds = max(0.0, time.perf_counter() - loader_setup_start)
     model = build_model_from_spec(model_spec)

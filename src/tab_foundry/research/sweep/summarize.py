@@ -68,6 +68,8 @@ def _stability_verdict(row: Mapping[str, Any], metrics: Mapping[str, Any]) -> st
 
 def _runtime_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | None:
     payload = {
+        "end_to_end_wall_seconds": _optional_float(metrics.get("end_to_end_wall_seconds")),
+        "loader_setup_seconds": _optional_float(metrics.get("loader_setup_seconds")),
         "peak_vram_allocated": _optional_int(metrics.get("peak_vram_allocated")),
         "peak_vram_reserved": _optional_int(metrics.get("peak_vram_reserved")),
         "throughput_examples_per_second": _optional_float(
@@ -75,6 +77,21 @@ def _runtime_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | Non
         ),
         "throughput_tokens_per_second": _optional_float(metrics.get("throughput_tokens_per_second")),
         "non_train_overhead_seconds": _optional_float(metrics.get("non_train_overhead_seconds")),
+        "loader_effective_num_workers": _optional_int(metrics.get("loader_effective_num_workers")),
+        "loader_effective_prefetch_factor": _optional_int(
+            metrics.get("loader_effective_prefetch_factor")
+        ),
+        "loader_task_batch_cache_mode": _optional_text(metrics.get("loader_task_batch_cache_mode")),
+        "compile_shape_dispatch_mode": _optional_text(metrics.get("compile_shape_dispatch_mode")),
+        "compile_shape_dispatch_max_families": _optional_int(
+            metrics.get("compile_shape_dispatch_max_families")
+        ),
+        "compile_dispatch_compiled_family_count": _optional_int(
+            metrics.get("compile_dispatch_compiled_family_count")
+        ),
+        "compile_dispatch_family_switch_count": _optional_int(
+            metrics.get("compile_dispatch_family_switch_count")
+        ),
     }
     return payload if any(value is not None for value in payload.values()) else None
 
@@ -134,7 +151,39 @@ def summarize_sweep(
                 "upper_block_final_window_mean": _optional_float(
                     metrics.get("upper_block_final_window_mean")
                 ),
+                "final_train_loss": _optional_float(metrics.get("final_train_loss")),
                 "final_train_loss_ema": _optional_float(metrics.get("final_train_loss_ema")),
+                "final_tail_mean_train_loss": _optional_float(
+                    metrics.get("final_tail_mean_train_loss")
+                ),
+                "final_tail_mean_train_loss_ema": _optional_float(
+                    metrics.get("final_tail_mean_train_loss_ema")
+                ),
+                "final_tail_record_count": _optional_int(metrics.get("final_tail_record_count")),
+                "train_elapsed_seconds": _optional_float(metrics.get("train_elapsed_seconds")),
+                "wall_elapsed_seconds": _optional_float(metrics.get("wall_elapsed_seconds")),
+                "end_to_end_wall_seconds": _optional_float(
+                    metrics.get("end_to_end_wall_seconds")
+                ),
+                "loader_setup_seconds": _optional_float(metrics.get("loader_setup_seconds")),
+                "compile_dispatch_compiled_family_count": _optional_int(
+                    metrics.get("compile_dispatch_compiled_family_count")
+                ),
+                "compile_dispatch_family_switch_count": _optional_int(
+                    metrics.get("compile_dispatch_family_switch_count")
+                ),
+                "one_family_step_count": _optional_int(metrics.get("one_family_step_count")),
+                "mixed_family_step_count": _optional_int(metrics.get("mixed_family_step_count")),
+                "consecutive_repeated_family_step_count": _optional_int(
+                    metrics.get("consecutive_repeated_family_step_count")
+                ),
+                "consecutive_switched_family_step_count": _optional_int(
+                    metrics.get("consecutive_switched_family_step_count")
+                ),
+                "family_block_count": _optional_int(metrics.get("family_block_count")),
+                "estimated_family_switch_count": _optional_int(
+                    metrics.get("estimated_family_switch_count")
+                ),
                 "peak_vram_reserved": _optional_int(metrics.get("peak_vram_reserved")),
                 "throughput_tokens_per_second": _optional_float(
                     metrics.get("throughput_tokens_per_second")

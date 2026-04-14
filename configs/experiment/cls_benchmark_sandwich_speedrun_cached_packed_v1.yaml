@@ -18,7 +18,7 @@ runtime:
   non_blocking_device_transfer: true
   compile_shape_dispatch_mode: signature_family
   compile_shape_dispatch_max_families: 16
-  signature_family_run_length: 4
+  signature_family_optimizer_step_block_length: 1
 
 logging:
   run_name: cls-benchmark-sandwich-speedrun-cached-packed-v1

@@ -259,6 +259,21 @@ def _resolve_signature_family_run_length(runtime_cfg: DictConfig) -> int:
     return value
 
 
+def _resolve_signature_family_optimizer_step_block_length(
+    runtime_cfg: DictConfig,
+) -> int | None:
+    raw_value = getattr(runtime_cfg, "signature_family_optimizer_step_block_length", None)
+    if raw_value is None:
+        return None
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(
+            "runtime.signature_family_optimizer_step_block_length must be >= 1, "
+            f"got {value}"
+        )
+    return value
+
+
 def _resolved_cpu_count(*, cpu_count: int | None = None) -> int:
     resolved = os.cpu_count() if cpu_count is None else int(cpu_count)
     if resolved is None or resolved <= 0:

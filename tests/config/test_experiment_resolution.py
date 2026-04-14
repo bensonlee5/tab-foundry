@@ -273,7 +273,8 @@ def test_cls_benchmark_sandwich_speedrun_cached_packed_resolution() -> None:
     assert bool(cfg.runtime.non_blocking_device_transfer) is True
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
     assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
-    assert int(cfg.runtime.signature_family_run_length) == 4
+    assert int(cfg.runtime.signature_family_run_length) == 1
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 1
     assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_speedrun_cached_packed_v1"
     assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-speedrun-cached-packed-v1"
 
@@ -285,9 +286,38 @@ def test_cls_benchmark_sandwich_speedrun_default_resolution() -> None:
     assert str(cfg.optimizer.name) == "muon"
     assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
-    assert int(cfg.runtime.signature_family_run_length) == 4
+    assert int(cfg.runtime.signature_family_run_length) == 1
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 1
     assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_speedrun_default_v1"
     assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-speedrun-default-v1"
+
+
+def test_cls_benchmark_sandwich_speedrun_cached_packed_family_block_2step_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_speedrun_cached_packed_family_block_2step_v1")
+
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 2
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_speedrun_cached_packed_family_block_2step_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-speedrun-cached-packed-family-block-2step-v1"
+    )
+
+
+def test_cls_benchmark_sandwich_speedrun_cached_packed_family_block_4step_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_speedrun_cached_packed_family_block_4step_v1")
+
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 4
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_speedrun_cached_packed_family_block_4step_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-speedrun-cached-packed-family-block-4step-v1"
+    )
 
 
 def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:

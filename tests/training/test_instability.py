@@ -134,6 +134,14 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
         "singleton_fallback_count": 20,
         "singleton_fallback_fraction": 0.2,
         "signature_counts": {"18x6x6x2": 33, "24x8x6x2": 67},
+        "signature_family_steps": {
+            "one_family_step_count": 100,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 33,
+            "consecutive_switched_family_step_count": 66,
+            "family_block_count": 67,
+            "estimated_family_switch_count": 66,
+        },
     }
 
 
@@ -202,12 +210,14 @@ def test_history_loss_summary_weights_losses_by_actual_task_count() -> None:
             {
                 "step": 1,
                 "train_loss": 1.0,
+                "train_loss_ema": 1.0,
                 "train_loss_delta": None,
                 "task_batch_size_actual": 2,
             },
             {
                 "step": 2,
                 "train_loss": 3.0,
+                "train_loss_ema": 2.5,
                 "train_loss_delta": 2.0,
                 "task_batch_size_actual": 1,
             },
@@ -217,9 +227,13 @@ def test_history_loss_summary_weights_losses_by_actual_task_count() -> None:
     assert summary["record_count"] == 2
     assert summary["initial_train_loss"] == 1.0
     assert summary["final_train_loss"] == 3.0
+    assert summary["final_train_loss_ema"] == 2.5
     assert summary["mean_train_loss"] == pytest.approx(5.0 / 3.0)
     assert summary["train_loss_variance"] == pytest.approx(8.0 / 9.0)
     assert summary["max_abs_train_loss_delta"] == 2.0
+    assert summary["final_tail_record_count"] == 1
+    assert summary["final_tail_mean_train_loss"] == 3.0
+    assert summary["final_tail_mean_train_loss_ema"] == 2.5
 
 
 def test_build_training_telemetry_handles_missing_context_stage_metrics(tmp_path: Path) -> None:

@@ -239,6 +239,29 @@ def _resolve_task_batch_cache_mode(
     return normalized
 
 
+def _resolve_effective_signature_family_run_length(
+    *,
+    signature_family_run_length: int,
+    signature_family_optimizer_step_block_length: int | None,
+    grad_accum_steps: int,
+) -> int:
+    if signature_family_optimizer_step_block_length is None:
+        value = int(signature_family_run_length)
+        if value <= 0:
+            raise ValueError(f"signature_family_run_length must be >= 1, got {value}")
+        return value
+    resolved_grad_accum_steps = int(grad_accum_steps)
+    if resolved_grad_accum_steps <= 0:
+        raise ValueError(f"grad_accum_steps must be >= 1, got {resolved_grad_accum_steps}")
+    resolved_block_length = int(signature_family_optimizer_step_block_length)
+    if resolved_block_length <= 0:
+        raise ValueError(
+            "signature_family_optimizer_step_block_length must be >= 1, "
+            f"got {resolved_block_length}"
+        )
+    return int(resolved_grad_accum_steps * resolved_block_length)
+
+
 def _materialize_task_batch_cache(
     dataset: Dataset[TaskBatch],
     *,
@@ -324,6 +347,8 @@ def build_task_loader(
     cache_mode: str | None = None,
     max_batches: int | None = None,
     signature_family_run_length: int = 1,
+    signature_family_optimizer_step_block_length: int | None = None,
+    grad_accum_steps: int = 1,
 ) -> DataLoader[TaskBatch]:
     """Build a task loader with deterministic seeded shuffling."""
 
@@ -334,6 +359,11 @@ def build_task_loader(
     resolved_cache_mode = _resolve_task_batch_cache_mode(
         cache_task_batches=cache_task_batches,
         cache_mode=cache_mode,
+    )
+    resolved_signature_family_run_length = _resolve_effective_signature_family_run_length(
+        signature_family_run_length=signature_family_run_length,
+        signature_family_optimizer_step_block_length=signature_family_optimizer_step_block_length,
+        grad_accum_steps=grad_accum_steps,
     )
     if resolved_cache_mode == "eager_full":
         if resolved_num_workers != 0:
@@ -372,7 +402,7 @@ def build_task_loader(
             shuffle=shuffle,
             seed=seed,
             max_batches=max_batches,
-            signature_family_run_length=signature_family_run_length,
+            signature_family_run_length=resolved_signature_family_run_length,
         )
         if resolved_num_workers > 0:
             if prefetch_factor is None:
@@ -417,17 +447,28 @@ def build_task_loader(
     if shuffle:
         generator = torch.Generator()
         generator.manual_seed(int(seed))
+    use_manifest_batch_sampler = False
     if resolved_task_batch_size > 1:
         if not isinstance(dataset, PackedParquetTaskDataset):
             raise RuntimeError(
                 "training.task_batch_size > 1 requires a manifest-backed PackedParquetTaskDataset"
             )
+        use_manifest_batch_sampler = True
+    elif (
+        isinstance(dataset, PackedParquetTaskDataset)
+        and shuffle
+        and resolved_signature_family_run_length > 1
+    ):
+        use_manifest_batch_sampler = True
+    if use_manifest_batch_sampler:
+        if not isinstance(dataset, PackedParquetTaskDataset):
+            raise AssertionError("manifest batch sampler requires PackedParquetTaskDataset")
         batch_sampler = _ManifestTaskBatchSampler(
             dataset,
             task_batch_size=resolved_task_batch_size,
             shuffle=shuffle,
             seed=seed,
-            signature_family_run_length=signature_family_run_length,
+            signature_family_run_length=resolved_signature_family_run_length,
         )
         if resolved_num_workers > 0:
             if prefetch_factor is None:

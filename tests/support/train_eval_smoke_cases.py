@@ -1583,6 +1583,14 @@ def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
         "singleton_fallback_count": 0,
         "singleton_fallback_fraction": 0.0,
         "signature_counts": {"6x3x4x3": 1},
+        "signature_family_steps": {
+            "one_family_step_count": 1,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 0,
+            "consecutive_switched_family_step_count": 0,
+            "family_block_count": 1,
+            "estimated_family_switch_count": 0,
+        },
     }
 
 
@@ -1654,6 +1662,14 @@ def test_train_aggregates_task_batching_telemetry_across_grad_accum_steps(
         "singleton_fallback_count": 1,
         "singleton_fallback_fraction": 0.5,
         "signature_counts": {"6x3x4x3": 2},
+        "signature_family_steps": {
+            "one_family_step_count": 1,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 0,
+            "consecutive_switched_family_step_count": 0,
+            "family_block_count": 1,
+            "estimated_family_switch_count": 0,
+        },
     }
 
 
@@ -1773,8 +1789,10 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         cache_mode: str | None = None,
         max_batches: int | None = None,
         signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
     ) -> object:
-        del shuffle, seed, task_batch_size
+        del shuffle, seed, task_batch_size, grad_accum_steps
         captured["num_workers"] = num_workers
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
@@ -1783,6 +1801,9 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         captured["cache_mode"] = cache_mode
         captured["max_batches"] = max_batches
         captured["signature_family_run_length"] = signature_family_run_length
+        captured["signature_family_optimizer_step_block_length"] = (
+            signature_family_optimizer_step_block_length
+        )
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
@@ -1809,6 +1830,7 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
     assert captured["cache_mode"] == expected_runtime["cache_mode"]
     assert captured["max_batches"] == expected_runtime["max_batches"]
     assert captured["signature_family_run_length"] == 4
+    assert captured["signature_family_optimizer_step_block_length"] is None
 
 
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
@@ -1959,6 +1981,8 @@ def test_train_passes_loader_overlap_runtime_knobs(
         cache_mode: str | None = None,
         max_batches: int | None = None,
         signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -1971,6 +1995,10 @@ def test_train_passes_loader_overlap_runtime_knobs(
         captured["cache_mode"] = cache_mode
         captured["max_batches"] = max_batches
         captured["signature_family_run_length"] = signature_family_run_length
+        captured["signature_family_optimizer_step_block_length"] = (
+            signature_family_optimizer_step_block_length
+        )
+        captured["grad_accum_steps"] = grad_accum_steps
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
@@ -1997,6 +2025,8 @@ def test_train_passes_loader_overlap_runtime_knobs(
         "cache_mode": "off",
         "max_batches": None,
         "signature_family_run_length": 1,
+        "signature_family_optimizer_step_block_length": None,
+        "grad_accum_steps": 1,
     }
 
 
@@ -2064,9 +2094,12 @@ def test_train_resolves_auto_loader_overlap_runtime_knobs(
         cache_mode: str | None = None,
         max_batches: int | None = None,
         signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
     ) -> None:
         del shuffle, seed, task_batch_size, pin_memory, persistent_workers, cache_task_batches
         del cache_mode, max_batches, signature_family_run_length
+        del signature_family_optimizer_step_block_length, grad_accum_steps
         captured["num_workers"] = num_workers
         captured["prefetch_factor"] = prefetch_factor
         raise RuntimeError("stop_after_loader")
