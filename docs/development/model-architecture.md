@@ -247,6 +247,7 @@ Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
 | `sandwich_ff_expansion` | `2` | FFN expansion factor across sandwich blocks |
 | `sandwich_activation` | `gelu` | sandwich core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
 | `sandwich_block_norm` | `layernorm` | sandwich core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
+| `sandwich_packed_attention` | `false` | opt-in packed-projection SDPA path for speedrun experiments; default preserves the prior attention path |
 | `sandwich_summary_tokens_per_axis` | `4` | learned row summaries per row and column summaries per column |
 | `sandwich_self_attention_per_cross` | `4` | latent self-attention blocks after each cross-read |
 | `sandwich_pre_row_attention_layers` | `1` | pre-Perceiver row-wise feature self-attention blocks |

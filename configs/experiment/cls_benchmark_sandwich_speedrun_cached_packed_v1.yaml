@@ -1,0 +1,24 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_speedrun_baseline_v1
+  - _self_
+
+model:
+  sandwich_packed_attention: true
+
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_speedrun_cached_packed_v1
+  loader_task_batch_cache: false
+  loader_task_batch_cache_mode: bounded_streaming
+  num_workers: auto
+  loader_pin_memory: true
+  loader_persistent_workers: false
+  loader_prefetch_factor: auto
+  non_blocking_device_transfer: true
+  compile_shape_dispatch_mode: signature_family
+  compile_shape_dispatch_max_families: 16
+  signature_family_optimizer_step_block_length: 1
+
+logging:
+  run_name: cls-benchmark-sandwich-speedrun-cached-packed-v1

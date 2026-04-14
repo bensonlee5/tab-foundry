@@ -21,6 +21,7 @@ import tab_foundry.training.runtime as training_runtime_module
 import tab_foundry.training.trainer as trainer_module
 import tab_foundry.training.trainer_loop as trainer_loop_module
 import tab_foundry.training.trainer_metrics as trainer_metrics_module
+import tab_foundry.training.trainer_runtime_config as training_runtime_config_module
 from tab_foundry.config import compose_config
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.optimizer import OptimizerSelection
@@ -1581,6 +1582,14 @@ def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
         "singleton_fallback_count": 0,
         "singleton_fallback_fraction": 0.0,
         "signature_counts": {"6x3x4x3": 1},
+        "signature_family_steps": {
+            "one_family_step_count": 1,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 0,
+            "consecutive_switched_family_step_count": 0,
+            "family_block_count": 1,
+            "estimated_family_switch_count": 0,
+        },
     }
 
 
@@ -1652,6 +1661,14 @@ def test_train_aggregates_task_batching_telemetry_across_grad_accum_steps(
         "singleton_fallback_count": 1,
         "singleton_fallback_fraction": 0.5,
         "signature_counts": {"6x3x4x3": 2},
+        "signature_family_steps": {
+            "one_family_step_count": 1,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 0,
+            "consecutive_switched_family_step_count": 0,
+            "family_block_count": 1,
+            "estimated_family_switch_count": 0,
+        },
     }
 
 
@@ -1714,11 +1731,13 @@ def test_train_rejects_auto_runtime_device_when_it_resolves_to_mps(
         (
             "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1",
             {
-                "num_workers": 0,
-                "loader_pin_memory": False,
+                "num_workers": 8,
+                "loader_pin_memory": True,
                 "loader_persistent_workers": False,
-                "loader_prefetch_factor": None,
-                "non_blocking_device_transfer": False,
+                "loader_prefetch_factor": 4,
+                "non_blocking_device_transfer": True,
+                "cache_mode": "bounded_streaming",
+                "max_batches": 10000,
             },
         ),
         (
@@ -1729,6 +1748,8 @@ def test_train_rejects_auto_runtime_device_when_it_resolves_to_mps(
                 "loader_persistent_workers": True,
                 "loader_prefetch_factor": 2,
                 "non_blocking_device_transfer": True,
+                "cache_mode": "bounded_streaming",
+                "max_batches": 10000,
             },
         ),
     ],
@@ -1763,17 +1784,31 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
+        signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
     ) -> object:
-        del shuffle, seed, task_batch_size
+        del shuffle, seed, task_batch_size, grad_accum_steps
         captured["num_workers"] = num_workers
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_task_batches"] = cache_task_batches
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
+        captured["signature_family_run_length"] = signature_family_run_length
+        captured["signature_family_optimizer_step_block_length"] = (
+            signature_family_optimizer_step_block_length
+        )
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
     monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+    monkeypatch.setattr(training_runtime_config_module.os, "cpu_count", lambda: 40)
 
     cfg = compose_config([f"experiment={experiment_name}", "logging.use_wandb=false"])
     cfg.runtime.output_dir = str(tmp_path / experiment_name)
@@ -1790,6 +1825,11 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
     assert captured["pin_memory"] is expected_runtime["loader_pin_memory"]
     assert captured["persistent_workers"] is expected_runtime["loader_persistent_workers"]
     assert captured["prefetch_factor"] == expected_runtime["loader_prefetch_factor"]
+    assert captured["cache_task_batches"] is False
+    assert captured["cache_mode"] == expected_runtime["cache_mode"]
+    assert captured["max_batches"] == expected_runtime["max_batches"]
+    assert captured["signature_family_run_length"] == 4
+    assert captured["signature_family_optimizer_step_block_length"] is None
 
 
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
@@ -1936,6 +1976,12 @@ def test_train_passes_loader_overlap_runtime_knobs(
         pin_memory: bool,
         persistent_workers: bool,
         prefetch_factor: int | None,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
+        signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -1944,6 +1990,14 @@ def test_train_passes_loader_overlap_runtime_knobs(
         captured["pin_memory"] = pin_memory
         captured["persistent_workers"] = persistent_workers
         captured["prefetch_factor"] = prefetch_factor
+        captured["cache_task_batches"] = cache_task_batches
+        captured["cache_mode"] = cache_mode
+        captured["max_batches"] = max_batches
+        captured["signature_family_run_length"] = signature_family_run_length
+        captured["signature_family_optimizer_step_block_length"] = (
+            signature_family_optimizer_step_block_length
+        )
+        captured["grad_accum_steps"] = grad_accum_steps
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
@@ -1966,7 +2020,130 @@ def test_train_passes_loader_overlap_runtime_knobs(
         "pin_memory": True,
         "persistent_workers": True,
         "prefetch_factor": 2,
+        "cache_task_batches": False,
+        "cache_mode": "off",
+        "max_batches": None,
+        "signature_family_run_length": 1,
+        "signature_family_optimizer_step_block_length": None,
+        "grad_accum_steps": 1,
     }
+
+
+def test_train_rejects_bounded_streaming_without_max_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: pytest.fail("train should reject before accelerator construction"),
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.loader_task_batch_cache_mode = "bounded_streaming"
+    cfg.runtime.max_steps = None
+
+    with pytest.raises(ValueError, match="requires runtime.max_steps"):
+        _ = trainer_module.train(cfg)
+
+
+def test_train_resolves_auto_loader_overlap_runtime_knobs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "model_build_spec_from_mappings",
+        lambda **_kwargs: SimpleNamespace(task="classification", arch="tabfoundry_simple"),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "resolve_training_loss_surface",
+        lambda *_args, **_kwargs: "classification",
+    )
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_module,
+        "resolve_loader_overlap_runtime_settings",
+        lambda _runtime: SimpleNamespace(
+            num_workers=8,
+            prefetch_factor=4,
+            num_workers_is_auto=True,
+            prefetch_factor_is_auto=True,
+        ),
+    )
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+        pin_memory: bool,
+        persistent_workers: bool,
+        prefetch_factor: int | None,
+        cache_task_batches: bool = False,
+        cache_mode: str | None = None,
+        max_batches: int | None = None,
+        signature_family_run_length: int = 1,
+        signature_family_optimizer_step_block_length: int | None = None,
+        grad_accum_steps: int = 1,
+    ) -> None:
+        del shuffle, seed, task_batch_size, pin_memory, persistent_workers, cache_task_batches
+        del cache_mode, max_batches, signature_family_run_length
+        del signature_family_optimizer_step_block_length, grad_accum_steps
+        captured["num_workers"] = num_workers
+        captured["prefetch_factor"] = prefetch_factor
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.num_workers = "auto"
+    cfg.runtime.loader_prefetch_factor = "auto"
+    cfg.runtime.val_batches = 0
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = trainer_module.train(cfg)
+
+    assert captured == {"num_workers": 8, "prefetch_factor": 4}
+
+
+def test_train_can_sample_module_grad_norms_and_record_step_timing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    monkeypatch.setattr(
+        trainer_loop_module,
+        "module_grad_norms",
+        lambda _model: {"direct_head": 1.0},
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.module_grad_norm_every = 2
+    cfg.runtime.profile_step_timing = True
+    cfg.runtime.val_batches = 0
+    cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
+
+    result = trainer_module.train(cfg)
+
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert gradient_history[0]["module_grad_norms"] == {}
+    assert gradient_history[1]["module_grad_norms"] == {"direct_head": 1.0}
+    assert "data_wait" in gradient_history[0]["timing_seconds"]
+    assert "forward_backward" in gradient_history[0]["timing_seconds"]
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2112,6 +2289,11 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["artifacts/gradient_history_jsonl"].endswith("gradient_history.jsonl")
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
     assert fake_run.summary["runtime_summary/non_train_overhead_seconds"] >= 0.0
+    assert (
+        fake_run.summary["runtime_summary/end_to_end_wall_seconds"]
+        >= fake_run.summary["metrics/wall_elapsed_seconds"]
+    )
+    assert fake_run.summary["runtime_summary/loader_setup_seconds"] >= 0.0
     assert fake_run.summary["runtime_summary/throughput_examples_per_second"] > 0.0
     assert fake_run.summary["runtime_summary/throughput_tokens_per_second"] > 0.0
     assert fake_run.summary["hardware_summary/device_type"] == "cpu"
@@ -2133,6 +2315,13 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
         "throughput_examples_per_second": fake_run.summary["runtime_summary/throughput_examples_per_second"],
         "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
         "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
+        "end_to_end_wall_seconds": fake_run.summary["runtime_summary/end_to_end_wall_seconds"],
+        "loader_setup_seconds": fake_run.summary["runtime_summary/loader_setup_seconds"],
+        "loader_effective_num_workers": 0,
+        "loader_effective_prefetch_factor": None,
+        "loader_task_batch_cache_mode": "off",
+        "compile_shape_dispatch_mode": "off",
+        "compile_shape_dispatch_max_families": 16,
     }
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"

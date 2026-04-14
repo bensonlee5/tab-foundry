@@ -19,6 +19,9 @@ from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 TaskSignature = tuple[int, int, int, int | None]
+_PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS: tuple[tuple[str, ...], ...] = (
+    ("catalog_path", "catalog_dataset_index", "catalog_record_sha256"),
+)
 
 _LOAD_MANIFEST_RECORD_CATALOG = getattr(manifest_module, "load_manifest_record_catalog", None)
 _LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS = getattr(
@@ -33,6 +36,41 @@ def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, 
         str(record["catalog_path"]),
         int(record["catalog_dataset_index"]),
         str(record["catalog_record_sha256"]),
+    )
+
+
+def _present_manifest_locator_keys(record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        str(key)
+        for key in record
+        if str(key).startswith("catalog_") or str(key).startswith("metadata_")
+    )
+
+
+def _require_manifest_catalog_locator(
+    record: Mapping[str, Any],
+    *,
+    context: str,
+) -> None:
+    required_keys = {"dataset_index"}
+    missing = sorted(required_keys - set(record))
+    expected_locator_key_sets = [list(keys) for keys in _PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS]
+    present_locator_keys = _present_manifest_locator_keys(record)
+    if missing:
+        raise RuntimeError(
+            "manifest record is missing required packed-contract fields: "
+            f"missing_required_keys={missing}, "
+            f"expected_locator_key_sets={expected_locator_key_sets}, "
+            f"present_locator_keys={present_locator_keys}, "
+            f"context={context}"
+        )
+    if any(all(key in record for key in locator_keys) for locator_keys in _PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS):
+        return
+    raise RuntimeError(
+        "manifest record uses an unsupported packed-contract locator shape: "
+        f"expected_locator_key_sets={expected_locator_key_sets}, "
+        f"present_locator_keys={present_locator_keys}, "
+        f"context={context}"
     )
 
 
@@ -64,7 +102,7 @@ def _fallback_load_manifest_record_catalog(
         )
     if observed_sha256 != expected_sha256:
         raise RuntimeError(
-            "parquet catalog digest mismatch: "
+            "parquet catalog checksum mismatch: "
             f"path={catalog_path}, dataset_index={dataset_index}, "
             f"expected={expected_sha256}, stored={observed_sha256}"
         )
@@ -125,7 +163,10 @@ def _load_manifest_record_catalog(
     record: Mapping[str, Any],
 ) -> dict[str, Any]:
     if callable(_LOAD_MANIFEST_RECORD_CATALOG):
-        payload = _LOAD_MANIFEST_RECORD_CATALOG(manifest_path, record=record)
+        try:
+            payload = _LOAD_MANIFEST_RECORD_CATALOG(manifest_path, record=record)
+        except Exception:
+            return _fallback_load_manifest_record_catalog(manifest_path, record=record)
         return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
     return _fallback_load_manifest_record_catalog(manifest_path, record=record)
 
@@ -296,14 +337,7 @@ def load_manifest_record_metadata(
 ) -> tuple[dict[str, Any], list[str] | None]:
     """Load one packed-manifest metadata payload plus validated feature types."""
 
-    required_keys = {"dataset_index"}
-    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
-    missing = sorted(required_keys - set(record))
-    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
-        raise RuntimeError(
-            "manifest record is missing required packed-contract fields: "
-            f"missing={missing}"
-        )
+    _require_manifest_catalog_locator(record, context="load_manifest_record_metadata")
 
     dataset_index = int(record["dataset_index"])
     catalog_record = _load_manifest_record_catalog(
@@ -357,14 +391,7 @@ def load_manifest_record_catalog(
 ) -> dict[str, Any]:
     """Load the public packed-catalog record for one manifest row."""
 
-    required_keys = {"dataset_index"}
-    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
-    missing = sorted(required_keys - set(record))
-    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
-        raise RuntimeError(
-            "manifest record is missing required packed-contract fields: "
-            f"missing={missing}"
-        )
+    _require_manifest_catalog_locator(record, context="load_manifest_record_catalog")
 
     dataset_index = int(record["dataset_index"])
     catalog_record = _load_manifest_record_catalog(
@@ -720,6 +747,39 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             return None
         return n_features
 
+    @staticmethod
+    def _record_positive_int(record: Mapping[str, Any], key: str) -> int | None:
+        raw_value = record.get(key)
+        if raw_value is None:
+            return None
+        try:
+            value = int(raw_value)
+        except (TypeError, ValueError):
+            return None
+        if value <= 0:
+            return None
+        return value
+
+    def _manifest_signature_fast_path(self, index: int) -> TaskSignature | None:
+        record = self.records[index]
+        n_train = self._record_positive_int(record, "n_train")
+        n_test = self._record_positive_int(record, "n_test")
+        n_features = self._record_positive_int(record, "n_features")
+        if n_train is None or n_test is None or n_features is None:
+            return None
+        if self.task != "classification":
+            return (int(n_train), int(n_test), int(n_features), None)
+        if self.label_mapping != "train_only_remap" or self.unseen_test_label_policy != "filter":
+            return None
+        filter_status = str(record.get("filter_status", "")).strip().lower()
+        filter_accepted = record.get("filter_accepted") is True
+        if filter_status != "accepted" and not filter_accepted:
+            return None
+        num_classes = self._record_positive_int(record, "n_classes")
+        if num_classes is None:
+            return None
+        return (int(n_train), int(n_test), int(n_features), int(num_classes))
+
     def _fast_task_signature(self, index: int) -> TaskSignature | None:
         record = self.records[index]
         if (
@@ -730,6 +790,9 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 "manifest record contains NaN or Inf while allow_missing_values=False: "
                 f"{_record_identity_text(record)}, manifest_path={self.manifest_path}"
             )
+        manifest_signature = self._manifest_signature_fast_path(index)
+        if manifest_signature is not None:
+            return manifest_signature
         n_features = self._record_n_features(record)
         if n_features is None:
             return None

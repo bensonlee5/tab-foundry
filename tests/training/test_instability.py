@@ -134,6 +134,14 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
         "singleton_fallback_count": 20,
         "singleton_fallback_fraction": 0.2,
         "signature_counts": {"18x6x6x2": 33, "24x8x6x2": 67},
+        "signature_family_steps": {
+            "one_family_step_count": 100,
+            "mixed_family_step_count": 0,
+            "consecutive_repeated_family_step_count": 33,
+            "consecutive_switched_family_step_count": 66,
+            "family_block_count": 67,
+            "estimated_family_switch_count": 66,
+        },
     }
 
 
@@ -202,12 +210,14 @@ def test_history_loss_summary_weights_losses_by_actual_task_count() -> None:
             {
                 "step": 1,
                 "train_loss": 1.0,
+                "train_loss_ema": 1.0,
                 "train_loss_delta": None,
                 "task_batch_size_actual": 2,
             },
             {
                 "step": 2,
                 "train_loss": 3.0,
+                "train_loss_ema": 2.5,
                 "train_loss_delta": 2.0,
                 "task_batch_size_actual": 1,
             },
@@ -217,9 +227,13 @@ def test_history_loss_summary_weights_losses_by_actual_task_count() -> None:
     assert summary["record_count"] == 2
     assert summary["initial_train_loss"] == 1.0
     assert summary["final_train_loss"] == 3.0
+    assert summary["final_train_loss_ema"] == 2.5
     assert summary["mean_train_loss"] == pytest.approx(5.0 / 3.0)
     assert summary["train_loss_variance"] == pytest.approx(8.0 / 9.0)
     assert summary["max_abs_train_loss_delta"] == 2.0
+    assert summary["final_tail_record_count"] == 1
+    assert summary["final_tail_mean_train_loss"] == 3.0
+    assert summary["final_tail_mean_train_loss_ema"] == 2.5
 
 
 def test_build_training_telemetry_handles_missing_context_stage_metrics(tmp_path: Path) -> None:
@@ -479,3 +493,40 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
     assert telemetry["regime_budget"]["unique_task_budget"] == 96
     assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert telemetry["regime_budget"]["curriculum_id"] == "1" * 32
+
+
+def test_build_runtime_summary_records_loader_wall_metadata() -> None:
+    summary = build_runtime_summary(
+        train_elapsed_seconds=3.0,
+        wall_elapsed_seconds=3.8,
+        end_to_end_wall_seconds=4.2,
+        loader_setup_seconds=0.4,
+        examples_seen=96,
+        tokens_seen=38400,
+        peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
+        loader_effective_num_workers=8,
+        loader_effective_prefetch_factor=4,
+        loader_task_batch_cache_mode="bounded_streaming",
+        compile_shape_dispatch_mode="signature_family",
+        compile_shape_dispatch_max_families=16,
+        compile_shape_dispatch_summary={"compiled_family_count": 3, "family_switch_count": 7},
+    )
+
+    assert summary == {
+        "peak_vram_allocated": 1024,
+        "peak_vram_reserved": 2048,
+        "throughput_examples_per_second": 32.0,
+        "throughput_tokens_per_second": 12800.0,
+        "non_train_overhead_seconds": pytest.approx(0.8),
+        "end_to_end_wall_seconds": 4.2,
+        "loader_setup_seconds": 0.4,
+        "loader_effective_num_workers": 8,
+        "loader_effective_prefetch_factor": 4,
+        "loader_task_batch_cache_mode": "bounded_streaming",
+        "compile_shape_dispatch_mode": "signature_family",
+        "compile_shape_dispatch_max_families": 16,
+        "compile_shape_dispatch": {
+            "compiled_family_count": 3,
+            "family_switch_count": 7,
+        },
+    }

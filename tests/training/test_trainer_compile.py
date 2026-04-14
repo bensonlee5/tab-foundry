@@ -167,6 +167,44 @@ def test_train_compile_model_is_opt_in(
     assert compile_calls == 0
 
 
+def test_train_signature_family_compile_dispatch_compiles_after_prepare(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    events: list[str] = []
+    _install_classification_fakes(monkeypatch)
+    model = _TraceableStageLocalClassifier()
+    fake_spec = SimpleNamespace(task="classification", arch="tabfoundry_sandwich")
+    monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+    monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _CompileTrackingAccelerator(events=events),
+    )
+
+    def _fake_compile(compiled_model, **_kwargs):
+        assert compiled_model is model
+        events.append("compile")
+        return compiled_model
+
+    monkeypatch.setattr(trainer_module.torch, "compile", _fake_compile)
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.device = "cuda"
+    cfg.runtime.compile_model = True
+    cfg.runtime.compile_backend = "eager"
+    cfg.runtime.compile_dynamic = True
+    cfg.runtime.compile_shape_dispatch_mode = "signature_family"
+    cfg.runtime.compile_shape_dispatch_max_families = 4
+    cfg.runtime.val_batches = 0
+    cfg.schedule.stages = [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]
+
+    _ = trainer_module.train(cfg)
+
+    assert events.index("prepare") < events.index("compile")
+    assert events.count("compile") == 1
+
+
 def test_train_profiler_steps_once_per_optimizer_step(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

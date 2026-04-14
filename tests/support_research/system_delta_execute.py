@@ -1758,7 +1758,24 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     (tmp_path / 'telemetry.json').write_text(
         json.dumps(
             {
+                'loss_summary': {
+                    'final_train_loss': 1.41,
+                    'final_train_loss_ema': 1.37,
+                    'final_tail_mean_train_loss': 1.39,
+                    'final_tail_mean_train_loss_ema': 1.35,
+                    'final_tail_record_count': 16,
+                },
                 'diagnostics': {
+                    'task_batching': {
+                        'signature_family_steps': {
+                            'one_family_step_count': 112,
+                            'mixed_family_step_count': 16,
+                            'consecutive_repeated_family_step_count': 48,
+                            'consecutive_switched_family_step_count': 63,
+                            'family_block_count': 64,
+                            'estimated_family_switch_count': 63,
+                        }
+                    },
                     'stage_local_gradients': {
                         'modules': {
                             'column_encoder': {
@@ -1807,7 +1824,11 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
             'best_roc_auc': 0.82,
             'final_roc_auc': 0.80,
             'best_to_final_roc_auc_delta': -0.02,
-            'training_diagnostics': {'max_grad_norm': 7.5},
+            'training_diagnostics': {
+                'max_grad_norm': 7.5,
+                'train_elapsed_seconds': 264.3,
+                'wall_elapsed_seconds': 267.4,
+            },
         },
         'nanotabpfn': {
             'best_log_loss': 0.46,
@@ -1822,9 +1843,20 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
         'runtime_summary': {
             'peak_vram_allocated': 1024,
             'peak_vram_reserved': 2048,
+            'end_to_end_wall_seconds': 273.0,
+            'loader_setup_seconds': 8.7,
             'throughput_examples_per_second': 12.5,
             'throughput_tokens_per_second': 6400.0,
             'non_train_overhead_seconds': 0.8,
+            'loader_effective_num_workers': 8,
+            'loader_effective_prefetch_factor': 4,
+            'loader_task_batch_cache_mode': 'bounded_streaming',
+            'compile_shape_dispatch_mode': 'signature_family',
+            'compile_shape_dispatch_max_families': 16,
+            'compile_shape_dispatch': {
+                'compiled_family_count': 16,
+                'family_switch_count': 63,
+            },
         },
         'regime_budget': {
             'tokens_per_step': 512.0,
@@ -1859,12 +1891,34 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['primary_external_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['nanotabpfn_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['clipped_step_fraction'] == pytest.approx(0.5)
+    assert queue_metrics['train_elapsed_seconds'] == pytest.approx(264.3)
+    assert queue_metrics['wall_elapsed_seconds'] == pytest.approx(267.4)
+    assert queue_metrics['end_to_end_wall_seconds'] == pytest.approx(273.0)
+    assert queue_metrics['loader_setup_seconds'] == pytest.approx(8.7)
     assert queue_metrics['peak_vram_reserved'] == 2048
     assert queue_metrics['throughput_tokens_per_second'] == pytest.approx(6400.0)
+    assert queue_metrics['loader_effective_num_workers'] == 8
+    assert queue_metrics['loader_effective_prefetch_factor'] == 4
+    assert queue_metrics['loader_task_batch_cache_mode'] == 'bounded_streaming'
+    assert queue_metrics['compile_shape_dispatch_mode'] == 'signature_family'
+    assert queue_metrics['compile_shape_dispatch_max_families'] == 16
+    assert queue_metrics['compile_dispatch_compiled_family_count'] == 16
+    assert queue_metrics['compile_dispatch_family_switch_count'] == 63
     assert queue_metrics['tokens_per_step'] == pytest.approx(512.0)
     assert queue_metrics['token_budget'] == 38400
     assert queue_metrics['unique_task_budget'] == 96
     assert queue_metrics['curriculum_id'] == 'dagzoo_shape_aware_multi_invocation'
+    assert queue_metrics['final_train_loss'] == pytest.approx(1.41)
+    assert queue_metrics['final_train_loss_ema'] == pytest.approx(1.37)
+    assert queue_metrics['final_tail_mean_train_loss'] == pytest.approx(1.39)
+    assert queue_metrics['final_tail_mean_train_loss_ema'] == pytest.approx(1.35)
+    assert queue_metrics['final_tail_record_count'] == 16
+    assert queue_metrics['one_family_step_count'] == 112
+    assert queue_metrics['mixed_family_step_count'] == 16
+    assert queue_metrics['consecutive_repeated_family_step_count'] == 48
+    assert queue_metrics['consecutive_switched_family_step_count'] == 63
+    assert queue_metrics['family_block_count'] == 64
+    assert queue_metrics['estimated_family_switch_count'] == 63
     assert queue_metrics['column_encoder_final_window_mean_grad_norm'] == pytest.approx(0.42)
     assert queue_metrics['row_pool_final_window_mean_grad_norm'] == pytest.approx(0.55)
     assert queue_metrics['context_encoder_final_window_mean_grad_norm'] == pytest.approx(0.73)

@@ -38,7 +38,12 @@ from . import curve_reuse as _curve_reuse
 from . import row_dependencies as _row_dependencies
 from . import training_state as _training_state
 from .artifacts import ExecutionPaths
-from .configuration import compose_cfg, resolve_training_backend, row_id_for_order
+from .configuration import (
+    compose_cfg,
+    resolve_training_backend,
+    row_id_for_order,
+    validate_one_epoch_contract,
+)
 from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS, SweepPayload
 from .objective_metrics import (
     first_present_metric_key,
@@ -277,6 +282,12 @@ def run_row(
     run_root = delta_root / run_id
     train_dir = run_root / "train"
     benchmark_dir = run_root / "benchmark"
+    validate_one_epoch_contract(
+        materialized_row,
+        repo_root=paths.repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=paths.sweeps_root,
+    )
 
     write_research_package(
         delta_root=delta_root,

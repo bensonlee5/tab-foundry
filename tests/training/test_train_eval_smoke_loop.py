@@ -9,6 +9,7 @@ from tests.support.train_eval_smoke_cases import (
     test_train_activation_checkpointing_enables_supported_model,
     test_train_activation_checkpointing_requires_supported_model,
     test_train_history_uses_linear_schedule_values,
+    test_train_can_sample_module_grad_norms_and_record_step_timing,
     test_train_rejects_existing_checkpoint_artifacts,
     test_train_rejects_non_empty_history_jsonl,
     test_train_smoke_runs_end_to_end,

@@ -112,6 +112,7 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "integer_likelihood": str(spec.integer_likelihood),
                 "sandwich_activation": str(spec.sandwich_activation),
                 "sandwich_block_norm": str(spec.sandwich_block_norm),
+                "sandwich_packed_attention": bool(spec.sandwich_packed_attention),
                 "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
                 "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
                 "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",

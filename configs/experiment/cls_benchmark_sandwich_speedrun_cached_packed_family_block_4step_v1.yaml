@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_speedrun_cached_packed_v1
+  - _self_
+
+runtime:
+  signature_family_optimizer_step_block_length: 4
+  output_dir: outputs/cls_benchmark_sandwich_speedrun_cached_packed_family_block_4step_v1
+
+logging:
+  run_name: cls-benchmark-sandwich-speedrun-cached-packed-family-block-4step-v1

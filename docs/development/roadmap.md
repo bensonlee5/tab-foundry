@@ -685,6 +685,18 @@ Legacy wording note:
     matched-budget result on the same host, so TF-RD-022 records compile-first
     eager-plus-dynamic-shape execution as the kept kernel-level
     training-acceleration outcome on the carried runtime surface
+  - the follow-up 1000-step, `signature_family_optimizer_step_block_length=2`
+    optimizer A/B on the packed TF-RD-010 v5 medium surface now keeps Muon as
+    the carried packed optimizer: `cached_packed` seeds 1 and 2 averaged
+    `end_to_end_wall_seconds=715.6769`,
+    `ma100_train_acc=0.3999542236`, and
+    `ma100_train_loss_ema=1.4393207842`, while
+    `cached_packed_muon` seeds 1 and 2 averaged
+    `end_to_end_wall_seconds=693.7159`,
+    `ma100_train_acc=0.5102392578`, and
+    `ma100_train_loss_ema=1.2215796496`; the broad packed defaults therefore
+    stay on `cached_packed_muon` and `cached_packed` remains the explicit
+    `schedulefree_adamw` comparator
   - issues [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241) remain useful
     operational evidence on benchmark and materialization speed, but they no
@@ -696,6 +708,9 @@ Legacy wording note:
   - the carried TF-RD-022 runtime policy remains the medium-rung winner:
     `mixed_precision=bf16`, `trace_activations=false`, and
     `activation_checkpointing=true`
+  - the carried packed optimizer remains Muon on the bounded-streaming packed
+    lane; `schedulefree_adamw` stays as the explicit comparator rather than a
+    new default
   - low-risk overlap and transfer tweaks remain closed negative evidence under
     issue [#239](https://github.com/bensonlee5/tab-foundry/issues/239)
   - compile-first kernel investigation now closes under issue
@@ -942,6 +957,10 @@ Legacy wording note:
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
   large-rung validation / hardware-freeze child
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  post-fit frontier and robustness umbrella
+  [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
+  fixed-budget upper-family reopen child
+  [#269](https://github.com/bensonlee5/tab-foundry/issues/269),
   compute-frontier child
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259), and
   curriculum/repetition slice child
@@ -1020,9 +1039,8 @@ Legacy wording note:
     constraint-model point
   - `176x6` completed cleanly at `final_log_loss=0.5816` and
     `final_roc_auc=0.7238`; keep it as upper-family and near-ceiling evidence,
-    but do not add extra near-ceiling rows on this branch because
-    capacity-targeted probes would no longer preserve the original TF-RD-009
-    width-depth relationship
+    and treat the old "stop at `176x6`" guidance as historical closeout for
+    the first fixed-budget family rather than a live global rule
   - observed training VRAM reserved for the top rows was `16.59 GiB` at
     `152x5` and `17.84 GiB` at `176x6`, materially below the old pre-run
     width-evidence memory bridge; after the corrected [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
@@ -1039,6 +1057,13 @@ Legacy wording note:
     `tf_rd_009_ns_medium_v1` and 20 `batch_critical` rows from
     `tf_rd_009_batch_critical_medium_v1`, rooted under
     `outputs/research_scaling/tf_rd_009_phase2`
+  - as of April 13, 2026 PT, that Phase-2 fit is historical/superseded for
+    scaling-law and `Cmin` interpretation: the higher-budget `NS` and
+    `batch_critical` rows cycle the same 143,976-task train manifest, so the
+    corrected rerun uses `tf_rd_010_dagzoo_medium_control_curated_v6` and new
+    artifact ids `tf_rd_009_ns_one_epoch_medium_v1`,
+    `tf_rd_009_batch_critical_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_one_epoch_v1`
   - the validation-backed `L(N,S)` surface is the useful primary signal:
     `alpha_n=0.0302565`, `alpha_s=0.331430`, `Nc=258222760.6`, `Sc=608.501`,
     `log_space_r2=0.820915`, and `rmse=0.033284`
@@ -1056,6 +1081,27 @@ Legacy wording note:
     leave-one-step residual checks, bootstrap intervals, diagnostic
     broken-power-law univariate checks, and an iso-loss `Bcrit(L)` readiness
     gate before treating any derived `Cmin` relation as compute-optimal
+  - as of April 13, 2026, [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    is the active `#258` child that deliberately reopens the fixed-budget
+    upper family before the deferred stabilization child: it adds
+    `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    `tf_rd_009_ns_upper_extension_medium_v1`, and
+    `tf_rd_009_phase2_upper_extension_v1`, with the deterministic selection
+    artifact choosing continuation
+    `192x7 -> 208x8 -> 224x9 -> 248x10` by D-optimal information gain on the
+    current validation `L(N,S)` fit under the corrected post-`#257` hardware
+    model
+  - `tf_rd_009_ns_upper_extension_medium_v1` stays intentionally empty until
+    the reopened gate rows return benchmark-backed health=`ok`; this child is
+    law-information-first, so healthy upper rows may expand even if they do
+    not beat `152x5` on the carried matched-budget benchmark objective
+  - the interrupted upper-extension gate launch is also historical diagnostic
+    evidence under the one-epoch correction; corrected upper-extension ids
+    `tf_rd_009_width_depth_upper_extension_one_epoch_medium_v1`,
+    `tf_rd_009_ns_upper_extension_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_upper_extension_one_epoch_v1` remain scaffolded until
+    `tf_rd_009_phase2_one_epoch_v1` lands and the D-optimal row selection is
+    rerun on corrected validation `L(N,S)`
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
@@ -1097,6 +1143,12 @@ Legacy wording note:
     command and keep validation loss as the primary law-fitting target while
     treating benchmark log loss as external transfer validation and
     repo-facing ranking evidence
+  - run [#269](https://github.com/bensonlee5/tab-foundry/issues/269) first as
+    the `#258` upper-family reopen child: gate the selected continuation
+    `192x7 -> 208x8 -> 224x9 -> 248x10` at the carried fixed-budget row, then
+    expand only health=`ok` survivors into the full
+    `{625,1250,2500,5000}` NS ladder under
+    `tf_rd_009_ns_upper_extension_medium_v1`
   - redesign the batch-critical branch before deriving `Cmin`: run the
     TF-RD-009 medium `96x2`, `152x5`, and `176x6` batch sweep over
     `grad_accum_steps={1,2,4,8}` to `5000` steps with validation checkpoints at
@@ -1124,7 +1176,14 @@ Legacy wording note:
     is now complete and records the corrected one-row `152x5` large-rung
     transfer passing on the terminal `latest.pt` rerun, so the hardware
     baseline is frozen and any further large-rung diagnosis remains separate
-    follow-on work
+    follow-on work; if [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    surfaces a new medium winner candidate, require a fresh one-row large-rung
+    validation before replacing the frozen preferred baseline
+  - after [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    completes, resume the deferred `#258` stabilization child for seed or
+    noise follow-up plus the redesigned multi-geometry `Bcrit` study, then
+    return to [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for
+    the principled compute-frontier branch
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
     the first fixed-budget law family

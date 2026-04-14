@@ -10,6 +10,7 @@ from tab_foundry.model.architectures.tabfoundry_staged.subsystems import PreNorm
 from tab_foundry.model.components.attention import (
     attention_bias_from_allowed_mask,
     multihead_attention_sdpa,
+    packed_projection_multihead_attention_sdpa,
 )
 from tab_foundry.model.components.qass import QASSMultiheadAttention
 
@@ -105,6 +106,44 @@ def test_multihead_attention_sdpa_matches_torch_module_with_additive_bias() -> N
         query,
         attn_bias=attn_bias,
     )
+
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_packed_projection_multihead_attention_sdpa_matches_self_attention_path() -> None:
+    torch.manual_seed(7)
+    module = nn.MultiheadAttention(16, 4, batch_first=True, dropout=0.0)
+    query = torch.randn(2, 5, 16)
+    allowed_mask = torch.ones((5, 5), dtype=torch.bool)
+    allowed_mask[-1, -1] = False
+    attn_bias = attention_bias_from_allowed_mask(allowed_mask, dtype=query.dtype)
+
+    expected = multihead_attention_sdpa(
+        module,
+        query,
+        query,
+        query,
+        attn_bias=attn_bias,
+    )
+    observed = packed_projection_multihead_attention_sdpa(
+        module,
+        query,
+        query,
+        query,
+        attn_bias=attn_bias,
+    )
+
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_packed_projection_multihead_attention_sdpa_matches_cross_attention_path() -> None:
+    torch.manual_seed(8)
+    module = nn.MultiheadAttention(16, 4, batch_first=True, dropout=0.0)
+    query = torch.randn(2, 3, 16)
+    key_value = torch.randn(2, 5, 16)
+
+    expected = multihead_attention_sdpa(module, query, key_value, key_value)
+    observed = packed_projection_multihead_attention_sdpa(module, query, key_value, key_value)
 
     assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
 

@@ -1092,7 +1092,7 @@ def test_cli_groups_register_expected_commands() -> None:
         "validate",
     ]
 
-    assert _command_names(train_group.GROUP) == ["legacy-prior", "run"]
+    assert _command_names(train_group.GROUP) == ["legacy-prior", "profile", "run"]
 
     data_ctx = click.Context(data_group.GROUP)
     corpus_group = data_group.GROUP.get_command(data_ctx, "corpus")

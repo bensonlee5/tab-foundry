@@ -99,6 +99,7 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
             sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
             sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
+            sandwich_packed_attention=bool(spec.sandwich_packed_attention),
             feature_type_conditioning=str(spec.feature_type_conditioning),
             floating_likelihood=str(spec.floating_likelihood),
             integer_likelihood=str(spec.integer_likelihood),

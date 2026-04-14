@@ -9,7 +9,7 @@ import torch
 from tab_foundry.model.outputs import ClassificationOutput, flatten_classification_output_rows
 
 from .blocks import _CrossAttentionBlock, _PerceiverStage, _SelfAttentionBlock
-from .feature_flow import fourier_positions, role_ids
+from .feature_flow import role_ids
 from .states import SandwichClassificationState, SandwichFeatureState
 
 
@@ -112,7 +112,7 @@ def row_summary_tokens(
     conditioned = model.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(
         dtype=row_summaries.dtype
     )
-    row_pos = fourier_positions(
+    row_pos = model._fourier_positions(
         num_positions=num_rows,
         embedding_size=int(row_summaries.shape[3]),
         device=row_summaries.device,

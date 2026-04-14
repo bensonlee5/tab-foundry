@@ -138,8 +138,23 @@ tab-foundry train run \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
+Short profiler runs write TensorBoard traces and a `key_averages.txt` summary.
+Run them through the checked-out module entrypoint so the repo-local `profile`
+subcommand is used:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m tab_foundry train profile \
+  experiment=cls_benchmark_sandwich_speedrun_cached_packed_v1 \
+  runtime.output_dir=outputs/profile_speedrun_cached_packed
+```
+
 `cls_workstation_sandwich` is the default sandwich training surface for new
-development work. Regression remains intentionally removed in the current repo
+development work. The carried packed speed lane remains the Muon variant after
+the 1000-step, family-block-2 optimizer A/B on the TF-RD-010 v5 medium corpus;
+use `cls_benchmark_sandwich_speedrun_cached_packed_v1` as the
+`schedulefree_adamw` comparator and
+`cls_benchmark_sandwich_speedrun_cached_packed_muon_v1` as the kept packed
+benchmark surface. Regression remains intentionally removed in the current repo
 state.
 
 The prior-trained staged control surface is still available:
@@ -465,6 +480,14 @@ requires observed training-shape summaries and same-model monotone NS compute
 accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
 Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
 lower envelope has only two points.
+
+For the corrected one-epoch TF-RD-009 rerun, materialize
+`tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than
+generating it locally. A Vast `research sweep materialize-corpora` job syncs
+`outputs/corpora` and `data/manifests` to the launch artifacts and uploads the
+corpus cache to GCS; later `research sweep execute` launches restore that cache
+before training. Use larger-than-default Vast disks for these launches because
+v6 is about 9.33x the v5 corpus size.
 
 Use `research scaling audit` before interpreting the Phase-2 fit as a
 compute-optimal law. It writes `audit/audit_summary.json` and `audit/audit.md`

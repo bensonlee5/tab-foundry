@@ -1,0 +1,1883 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_batch_critical_one_epoch_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=625 and grad_accum_steps=1
+    on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=10000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 1 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 1; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=1250 and
+    grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=20000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 2 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 2; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=2500 and
+    grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 3 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 3; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=5000 and
+    grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 1
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 4 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 4; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=625 and grad_accum_steps=2
+    on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=20000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 5 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 5; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=1250 and
+    grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 6 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 6; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 7
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=2500 and
+    grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 7 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 7; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 8
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=5000 and
+    grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 2
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 8 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 8; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 9
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=625 and grad_accum_steps=4
+    on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 9 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 9; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 10
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=1250 and
+    grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 10 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 10; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 11
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=2500 and
+    grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 11 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 11; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 12
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=5000 and
+    grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 12 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 12; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 13
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=625 and grad_accum_steps=8
+    on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 13 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 13; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 14
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=1250 and
+    grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 14 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 14; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 15
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=2500 and
+    grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 15 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 15; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 16
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=5000 and
+    grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 8
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=640000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 16 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 16; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 17
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=625 and grad_accum_steps=16
+    on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=625 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 17 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 17; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 18
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=1250 and
+    grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=1250 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 18 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 18; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 19
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=2500 and
+    grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=2500 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=640000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 19 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 19; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 20
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: ready
+  rationale: Execute corrected one-epoch batch-critical row at max_steps=5000 and
+    grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two scaling row 96x2 reuses the locked 96x2 anchor surface and
+    changes only the declared geometry or step budget for the study family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 16
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry at 96x2 while varying only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=5000 for the Bcrit(L) ladder.
+  - Final reported fits must use validation loss from completed runs plus inspected
+    training-only compute accounting.
+  - 'Corrected one-epoch contract: required_train_tasks=1280000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Do not mix this corrected row with historical sub-epoch TF-RD-009 Phase 2 rows
+    in scaling-law fits.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 20 as corrected one-epoch row in `tf_rd_009_batch_critical_one_epoch_medium_v1`;
+    admit it only into corrected one-epoch Phase 2 fits.
+  notes:
+  - Corrected one-epoch rerun of historical `delta_tf_rd_009_cls_sandwich_dicl96_v1`
+    order 20; uses `tf_rd_010_dagzoo_medium_control_curated_v6` instead of `tf_rd_010_dagzoo_medium_control_curated_v5`.
+  - Historical TF-RD-009 Phase 2 evidence remains preserved under the original sweep
+    id and is superseded for Cmin interpretation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

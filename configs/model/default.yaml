@@ -35,6 +35,7 @@ sandwich_self_attention_per_cross: 4
 sandwich_pre_row_attention_layers: 1
 sandwich_pre_column_attention_layers: 1
 sandwich_pre_column_inducing_tokens: 16
+sandwich_packed_attention: false
 feature_type_conditioning: film
 floating_likelihood: single_gaussian
 integer_likelihood: hybrid_mixture

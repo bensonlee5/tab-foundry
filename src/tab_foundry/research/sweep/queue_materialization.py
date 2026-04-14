@@ -14,7 +14,11 @@ from tab_foundry.research.lane_contract import resolve_sweep_semantics
 from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
-from .configuration import _resolved_repo_root, apply_synthetic_epoch_budget
+from .configuration import (
+    _resolved_repo_root,
+    apply_synthetic_epoch_budget,
+    validate_one_epoch_contract,
+)
 from .models import (
     DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
     MATERIALIZED_QUEUE_SCHEMA,
@@ -559,6 +563,12 @@ def materialize_row(
         payload["parent_delta_ref"] = parent_delta_ref
     apply_synthetic_epoch_budget(
         row_payload=payload,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    validate_one_epoch_contract(
+        payload,
         repo_root=repo_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,

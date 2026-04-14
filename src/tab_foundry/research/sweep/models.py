@@ -320,7 +320,7 @@ class QueueRowPayload(_SweepPayloadModel):
 class SweepQueuePayload(_SweepPayloadModel):
     schema_name: Literal["tab-foundry-system-delta-sweep-queue-v1"] = Field(alias="schema")
     sweep_id: StrictStr
-    rows: list[QueueRowPayload] = Field(min_length=1)
+    rows: list[QueueRowPayload] = Field(default_factory=list)
 
     @field_validator("sweep_id")
     @classmethod
@@ -433,7 +433,7 @@ class MaterializedQueuePayload(_SweepPayloadModel):
     upstream_reference: dict[StrictStr, Any] = Field(default_factory=dict)
     anchor_surface: dict[StrictStr, Any] = Field(default_factory=dict)
     anchor_context: dict[StrictStr, Any] = Field(default_factory=dict)
-    rows: list[MaterializedQueueRowPayload] = Field(min_length=1)
+    rows: list[MaterializedQueueRowPayload] = Field(default_factory=list)
 
     @field_validator(
         "generated_from_sweep_id",
@@ -487,7 +487,7 @@ class ResolvedQueuePayload(MaterializedQueuePayload):
     schema_name: Literal["tab-foundry-system-delta-resolved-queue-v1"] = Field(alias="schema")  # type: ignore[assignment]
     canonical_resolved_queue_path: StrictStr
     inputs_fingerprint: StrictStr
-    rows: list[ResolvedQueueRowPayload] = Field(min_length=1)  # type: ignore[assignment]
+    rows: list[ResolvedQueueRowPayload] = Field(default_factory=list)  # type: ignore[assignment]
 
     @field_validator("canonical_resolved_queue_path", "inputs_fingerprint")
     @classmethod

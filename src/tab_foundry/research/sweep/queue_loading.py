@@ -12,6 +12,7 @@ from .catalog import (
     load_system_delta_queue_instance_payload,
     load_system_delta_sweep_payload,
 )
+from .configuration import _resolved_repo_root, validate_one_epoch_contract
 from .models import (
     MaterializedQueuePayload,
     MaterializedQueueRowPayload,
@@ -27,6 +28,64 @@ from .queue_materialization import (
     materialize_resolved_system_delta_queue,
     materialize_system_delta_queue,
 )
+
+
+def _drop_compatibility_only_row_fields(row: dict[str, Any]) -> None:
+    training = row.get("training")
+    if not isinstance(training, dict):
+        return
+    synthetic_epoch_budget = training.get("synthetic_epoch_budget")
+    if isinstance(synthetic_epoch_budget, dict):
+        synthetic_epoch_budget.pop("resolution_source", None)
+
+
+def _drop_compatibility_only_payload_fields(payload: dict[str, Any]) -> None:
+    payload.pop("catalog_path", None)
+    payload.pop("canonical_sweep_path", None)
+    payload.pop("canonical_queue_path", None)
+    payload.pop("canonical_matrix_path", None)
+    rows = payload.get("rows")
+    if isinstance(rows, list):
+        for row in rows:
+            if isinstance(row, dict):
+                _drop_compatibility_only_row_fields(row)
+
+
+def _resolved_queue_semantically_matches(
+    *,
+    stored: ResolvedQueuePayload,
+    regenerated: ResolvedQueuePayload,
+) -> bool:
+    stored_payload = stored.to_payload_dict()
+    regenerated_payload = regenerated.to_payload_dict()
+    stored_payload.pop("inputs_fingerprint", None)
+    regenerated_payload.pop("inputs_fingerprint", None)
+    for payload in (stored_payload, regenerated_payload):
+        _drop_compatibility_only_payload_fields(payload)
+    return stored_payload == regenerated_payload
+
+
+def _resolved_queue_matches_materialized_inputs(
+    *,
+    stored: ResolvedQueuePayload,
+    materialized: MaterializedQueuePayload,
+) -> bool:
+    stored_payload = stored.to_payload_dict()
+    materialized_payload = materialized.to_payload_dict()
+    stored_payload.pop("schema", None)
+    materialized_payload.pop("schema", None)
+    stored_payload.pop("canonical_resolved_queue_path", None)
+    stored_payload.pop("inputs_fingerprint", None)
+    _drop_compatibility_only_payload_fields(stored_payload)
+    _drop_compatibility_only_payload_fields(materialized_payload)
+    stored_rows = stored_payload.get("rows")
+    if isinstance(stored_rows, list):
+        for row in stored_rows:
+            if not isinstance(row, dict):
+                continue
+            row.pop("resolved_surface", None)
+            row.pop("resolved_surface_fingerprint", None)
+    return stored_payload == materialized_payload
 
 
 def write_resolved_system_delta_queue(
@@ -110,6 +169,23 @@ def _load_system_delta_queue_common(
                 sweeps_root=sweeps_root,
             )
 
+    def _validate_resolved_one_epoch_contracts(
+        payload: MaterializedQueuePayload | ResolvedQueuePayload,
+        *,
+        resolved_sweep_id: str,
+    ) -> None:
+        resolved_repo_root = _resolved_repo_root(
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+        for row in payload.rows:
+            validate_one_epoch_contract(
+                row.to_payload_dict(),
+                repo_root=resolved_repo_root,
+                sweep_id=resolved_sweep_id,
+                sweeps_root=sweeps_root,
+            )
+
     if path is None:
         catalog = load_system_delta_catalog_payload(catalog_path)
         sweep = load_system_delta_sweep_payload(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
@@ -127,12 +203,49 @@ def _load_system_delta_queue_common(
                 queue_instance=queue_instance,
             )
             if resolved_queue.inputs_fingerprint != expected_inputs_fingerprint:
+                materialized_queue = _materialize_or_fallback(
+                    queue_instance=queue_instance,
+                )
+                if _resolved_queue_matches_materialized_inputs(
+                    stored=resolved_queue,
+                    materialized=materialized_queue,
+                ):
+                    _validate_resolved_one_epoch_contracts(
+                        resolved_queue,
+                        resolved_sweep_id=sweep.sweep_id,
+                    )
+                    return resolved_queue
+                regenerated_queue = materialize_resolved_system_delta_queue(
+                    catalog=catalog,
+                    sweep=sweep,
+                    queue_instance=queue_instance,
+                    catalog_path=catalog_path,
+                    sweeps_root=sweeps_root,
+                )
+                if _resolved_queue_semantically_matches(
+                    stored=resolved_queue,
+                    regenerated=regenerated_queue,
+                ):
+                    _validate_resolved_one_epoch_contracts(
+                        regenerated_queue,
+                        resolved_sweep_id=sweep.sweep_id,
+                    )
+                    return regenerated_queue
                 raise RuntimeError(
                     "resolved_queue.yaml is stale for "
                     f"sweep {sweep.sweep_id!r}; regenerate it before inspection or execution"
                 )
+            _validate_resolved_one_epoch_contracts(
+                resolved_queue,
+                resolved_sweep_id=sweep.sweep_id,
+            )
             return resolved_queue
-        return _materialize_or_fallback(queue_instance=queue_instance)
+        materialized_queue = _materialize_or_fallback(queue_instance=queue_instance)
+        _validate_resolved_one_epoch_contracts(
+            materialized_queue,
+            resolved_sweep_id=sweep.sweep_id,
+        )
+        return materialized_queue
 
     payload = load_yaml_mapping(path, context="system delta queue")
     schema = payload.get("schema")
@@ -144,13 +257,22 @@ def _load_system_delta_queue_common(
         return _materialize_or_fallback(queue_instance=queue_instance)
     if schema == RESOLVED_QUEUE_SCHEMA:
         try:
-            return ResolvedQueuePayload.model_validate(payload)
+            resolved_queue = ResolvedQueuePayload.model_validate(payload)
         except ValidationError as exc:
             raise RuntimeError(f"system delta resolved queue is invalid: {exc}") from exc
+        _validate_resolved_one_epoch_contracts(
+            resolved_queue,
+            resolved_sweep_id=str(sweep_id or resolved_queue.sweep_id),
+        )
+        return resolved_queue
     try:
         materialized = MaterializedQueuePayload.model_validate(payload)
     except ValidationError as exc:
         raise RuntimeError(f"system delta queue is invalid: {exc}") from exc
+    _validate_resolved_one_epoch_contracts(
+        materialized,
+        resolved_sweep_id=str(sweep_id or materialized.sweep_id),
+    )
     return materialized
 
 

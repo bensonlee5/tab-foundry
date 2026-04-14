@@ -1,0 +1,67 @@
+# @package _global_
+
+defaults:
+  - _self_
+
+task: classification
+
+data:
+  source: manifest
+  surface_label: tf_rd_010_dagzoo_medium_control
+  corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+
+model:
+  arch: tabfoundry_sandwich
+  d_icl: 60
+  input_normalization: train_zscore_clip
+  many_class_base: 10
+  head_hidden_dim: 96
+  sandwich_latents: 24
+  sandwich_layers: 2
+  sandwich_heads: 4
+  sandwich_ff_expansion: 2
+  sandwich_summary_tokens_per_axis: 3
+  sandwich_self_attention_per_cross: 4
+  sandwich_pre_row_attention_layers: 1
+  sandwich_pre_column_attention_layers: 1
+  sandwich_pre_column_inducing_tokens: 16
+  feature_type_conditioning: film
+  floating_likelihood: single_gaussian
+  integer_likelihood: hybrid_mixture
+training:
+  surface_label: prior_cosine_warmup
+  apply_schedule: true
+  task_batch_size: 16
+  loss_surface: classification
+  prior_dump_batch_size: 64
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_legacy_v1
+  device: cuda
+  mixed_precision: bf16
+  grad_clip: 0.0
+  grad_accum_steps: 4
+  trace_activations: false
+  activation_checkpointing: true
+  eval_every: 25
+  checkpoint_every: 25
+  val_batches: 0
+  max_steps: 2500
+optimizer:
+  name: schedulefree_adamw
+  require_requested: true
+  weight_decay: 0.0
+  betas: [0.9, 0.999]
+  min_lr: 1.0e-5
+  muon_per_parameter_lr: false
+  muon_lr_scale_base: 0.2
+  muon_partition_non2d: true
+schedule:
+  stages:
+    - name: prior_dump
+      steps: 2500
+      lr_max: 1.0e-3
+      lr_schedule: linear
+      warmup_ratio: 0.10
+logging:
+  run_name: cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-legacy-v1
+  history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

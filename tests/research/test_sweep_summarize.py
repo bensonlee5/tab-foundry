@@ -109,10 +109,32 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
                     "objective_metric": "final_log_loss_at_matched_regime_budget",
                     "final_log_loss": 0.41,
                     "delta_final_log_loss": -0.02,
+                    "final_train_loss": 1.43,
+                    "final_train_loss_ema": 1.39,
+                    "final_tail_mean_train_loss": 1.37,
+                    "final_tail_mean_train_loss_ema": 1.35,
+                    "final_tail_record_count": 100,
                     "clipped_step_fraction": 0.01,
                     "upper_block_post_warmup_mean_slope": 0.001,
+                    "train_elapsed_seconds": 264.3,
+                    "wall_elapsed_seconds": 267.4,
+                    "end_to_end_wall_seconds": 273.0,
+                    "loader_setup_seconds": 8.7,
                     "peak_vram_reserved": 2048,
                     "throughput_tokens_per_second": 6400.0,
+                    "loader_effective_num_workers": 8,
+                    "loader_effective_prefetch_factor": 4,
+                    "loader_task_batch_cache_mode": "bounded_streaming",
+                    "compile_shape_dispatch_mode": "signature_family",
+                    "compile_shape_dispatch_max_families": 16,
+                    "compile_dispatch_compiled_family_count": 16,
+                    "compile_dispatch_family_switch_count": 63,
+                    "one_family_step_count": 112,
+                    "mixed_family_step_count": 16,
+                    "consecutive_repeated_family_step_count": 48,
+                    "consecutive_switched_family_step_count": 63,
+                    "family_block_count": 64,
+                    "estimated_family_switch_count": 63,
                     "tokens_per_step": 512.0,
                     "token_budget": 38400,
                     "unique_task_budget": 96,
@@ -133,12 +155,38 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
 
     assert payload["row_count"] == 1
     row = payload["rows"][0]
+    assert row["final_train_loss"] == 1.43
+    assert row["final_train_loss_ema"] == 1.39
+    assert row["final_tail_mean_train_loss"] == 1.37
+    assert row["final_tail_mean_train_loss_ema"] == 1.35
+    assert row["final_tail_record_count"] == 100
+    assert row["train_elapsed_seconds"] == 264.3
+    assert row["wall_elapsed_seconds"] == 267.4
+    assert row["end_to_end_wall_seconds"] == 273.0
+    assert row["loader_setup_seconds"] == 8.7
+    assert row["compile_dispatch_compiled_family_count"] == 16
+    assert row["compile_dispatch_family_switch_count"] == 63
+    assert row["one_family_step_count"] == 112
+    assert row["mixed_family_step_count"] == 16
+    assert row["consecutive_repeated_family_step_count"] == 48
+    assert row["consecutive_switched_family_step_count"] == 63
+    assert row["family_block_count"] == 64
+    assert row["estimated_family_switch_count"] == 63
     assert row["runtime_summary"] == {
+        "end_to_end_wall_seconds": 273.0,
+        "loader_setup_seconds": 8.7,
         "peak_vram_allocated": None,
         "peak_vram_reserved": 2048,
         "throughput_examples_per_second": None,
         "throughput_tokens_per_second": 6400.0,
         "non_train_overhead_seconds": None,
+        "loader_effective_num_workers": 8,
+        "loader_effective_prefetch_factor": 4,
+        "loader_task_batch_cache_mode": "bounded_streaming",
+        "compile_shape_dispatch_mode": "signature_family",
+        "compile_shape_dispatch_max_families": 16,
+        "compile_dispatch_compiled_family_count": 16,
+        "compile_dispatch_family_switch_count": 63,
     }
     assert row["regime_budget"] == {
         "tokens_per_step": 512.0,

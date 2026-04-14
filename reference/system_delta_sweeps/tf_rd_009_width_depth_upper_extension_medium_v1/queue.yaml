@@ -1,0 +1,335 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_width_depth_upper_extension_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 192
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 7
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 1 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 208
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 8
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 2 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 224
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 9
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 3 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 248
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 10
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 4 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

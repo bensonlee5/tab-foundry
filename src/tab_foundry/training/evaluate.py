@@ -27,8 +27,8 @@ from .trainer_metrics import _evaluate_loader
 from .trainer_runtime_config import (
     _resolve_loader_persistent_workers,
     _resolve_loader_pin_memory,
-    _resolve_loader_prefetch_factor,
     _resolve_non_blocking_device_transfer,
+    resolve_loader_overlap_runtime_settings,
 )
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
@@ -235,7 +235,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     task_batch_size = resolve_task_batch_size(training_cfg)
     loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
     loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
-    loader_prefetch_factor = _resolve_loader_prefetch_factor(cfg.runtime)
+    loader_overlap_settings = resolve_loader_overlap_runtime_settings(cfg.runtime)
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
     model = build_model_from_spec(model_spec)
     model.load_state_dict(state_dict)
@@ -259,12 +259,12 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     loader = build_task_loader(
         ds,
         shuffle=False,
-        num_workers=int(cfg.runtime.num_workers),
+        num_workers=loader_overlap_settings.num_workers,
         seed=dataset_seed,
         task_batch_size=task_batch_size,
         pin_memory=loader_pin_memory,
         persistent_workers=loader_persistent_workers,
-        prefetch_factor=loader_prefetch_factor,
+        prefetch_factor=loader_overlap_settings.prefetch_factor,
     )
 
     accelerator = build_accelerator_from_runtime(

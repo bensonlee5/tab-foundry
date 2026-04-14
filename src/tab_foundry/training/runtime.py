@@ -16,6 +16,8 @@ from .trainer_runtime_config import (
     _resolve_compile_dynamic,
     _resolve_compile_mode,
     _resolve_compile_model,
+    _resolve_compile_shape_dispatch_max_families,
+    _resolve_compile_shape_dispatch_mode,
     _resolve_trace_activations,
 )
 
@@ -123,6 +125,15 @@ def resolve_compile_policy(runtime_cfg: DictConfig) -> CompilePolicy:
         backend=compile_backend,
         mode=compile_mode,
         dynamic=compile_dynamic,
+    )
+
+
+def resolve_compile_shape_dispatch_policy(runtime_cfg: DictConfig) -> tuple[str, int]:
+    """Resolve compile-time shape dispatch controls."""
+
+    return (
+        _resolve_compile_shape_dispatch_mode(runtime_cfg),
+        _resolve_compile_shape_dispatch_max_families(runtime_cfg),
     )
 
 

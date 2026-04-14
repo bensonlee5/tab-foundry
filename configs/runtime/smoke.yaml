@@ -6,6 +6,8 @@ num_workers: 0
 loader_pin_memory: false
 loader_persistent_workers: false
 loader_prefetch_factor: null
+loader_task_batch_cache: false
+loader_task_batch_cache_mode: "off"
 non_blocking_device_transfer: false
 grad_clip: 1.0
 grad_accum_steps: 1
@@ -13,7 +15,12 @@ compile_model: false
 compile_dynamic: false
 compile_backend: inductor
 compile_mode: max-autotune-no-cudagraphs
+compile_shape_dispatch_mode: "off"
+compile_shape_dispatch_max_families: 16
 trace_activations: false
+signature_family_run_length: 1
+module_grad_norm_every: 1
+profile_step_timing: false
 activation_checkpointing: false
 eval_every: 5
 checkpoint_every: null

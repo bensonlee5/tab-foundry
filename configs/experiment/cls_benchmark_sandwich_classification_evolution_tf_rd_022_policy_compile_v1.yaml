@@ -6,6 +6,9 @@ defaults:
 
 runtime:
   compile_model: true
+  compile_backend: inductor
+  compile_dynamic: false
+  compile_shape_dispatch_mode: "off"
   output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_v1
 
 logging:

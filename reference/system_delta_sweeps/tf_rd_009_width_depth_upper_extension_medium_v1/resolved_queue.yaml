@@ -1,0 +1,1391 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_009_width_depth_upper_extension_medium_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/matrix.md
+sweep_id: tf_rd_009_width_depth_upper_extension_medium_v1
+parent_sweep_id: tf_rd_009_width_depth_medium_v1
+sweep_status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+surface_role: classification_scaling_law
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    sourced from `nanotabpfn_openml_classification_medium` (242 tasks).
+  - This child intentionally reopens the fixed-budget TF-RD-009 upper family under
+    the corrected post-`#257` medium-evidence parameter and VRAM fits before the deferred
+    stabilization child continues.
+  - The materialized gate rows come from the deterministic selection artifact recorded
+    at `reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/support/selection_summary.{json,md}`.
+  - Run only the carried fixed-budget gate row in this sweep; only health=`ok` survivors
+    may expand into `tf_rd_009_ns_upper_extension_medium_v1`.
+  - Do not replace the frozen preferred RTX 8000 baseline from this medium-only evidence
+    alone; any new preferred row still requires a fresh one-row large-rung validation
+    gate.
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `tabfoundry_sandwich`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - The manifest surface keeps the same bundle provenance (missing values permitted).
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+      sourced from `nanotabpfn_openml_classification_medium` (242 tasks (missing values
+      permitted)) with data surface label `tf_rd_010_dagzoo_medium_control`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 192
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 7
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 1 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the first reopened TF-RD-009 upper-family gate row at `d_icl=192`,
+    `sandwich_layers=7`, selected by the deterministic post-`#257` validation `L(N,S)`
+    information-gain design pass.
+  upstream_delta: TF-RD-009 deliberately reopens the fixed-budget upper family after
+    the corrected `#257` large-rung gate froze a lower-memory hardware model. This
+    row belongs to the winning continuation `192x7 -> 208x8 -> 224x9 -> 248x10`, chosen
+    by D-optimal information gain on the current validation `L(N,S)` fit rather than
+    by direct model chasing.
+  entangled_legacy_stage: none
+  expected_effect: If the corrected headroom can support a wider reopened upper family,
+    `192x7` should widen the validation `L(N,S)` design space at the carried matched-budget
+    row while preserving the fixed-contract architecture surface.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - upper-family gate-first policy before any reopened NS ladder spend
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+      budget on reopened upper geometries.
+    - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed
+      and health=`ok`; keep health=`warn` as upper-family evidence only.
+    - Use this row for validation `L(N,S)` information gain even if it is weaker than
+      `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+      preferred baseline without a fresh large-rung validation gate.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 192
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 7
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 7
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 46d064ae3bf0dd14e6c9f5852f042f97b3c2e7d50fb84def704b04c18c86594b
+- order: 2
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 208
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 8
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 2 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the second reopened TF-RD-009 upper-family gate row at `d_icl=208`,
+    `sandwich_layers=8`, continuing the winning post-`#257` information-first continuation.
+  upstream_delta: TF-RD-009 reopens the upper family under the corrected medium-evidence
+    parameter and VRAM fits, then spends compute only on rows selected by the deterministic
+    validation `L(N,S)` design helper.
+  entangled_legacy_stage: none
+  expected_effect: '`208x8` should probe whether a deeper upper row remains healthy
+    enough to improve law information before the reopened branch reaches the near-40
+    GB regime.'
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - upper-family gate-first policy before any reopened NS ladder spend
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+      budget on reopened upper geometries.
+    - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed
+      and health=`ok`; keep health=`warn` as upper-family evidence only.
+    - Use this row for validation `L(N,S)` information gain even if it is weaker than
+      `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+      preferred baseline without a fresh large-rung validation gate.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 208
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 8
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 8
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 4cabd07d4a7d0a33bdf95a38d4919791a3f417a31b81bd1850101ba4892c182a
+- order: 3
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 224
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 9
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 3 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the third reopened TF-RD-009 upper-family gate row at `d_icl=224`,
+    `sandwich_layers=9`, continuing the winning post-`#257` information-first continuation.
+  upstream_delta: This row exists because the corrected frozen VRAM fit showed materially
+    more headroom than the original `176x6` branch assumed, so TF-RD-009 now reopens
+    the upper family by explicit validation-law design rather than by ad hoc capacity
+    chasing.
+  entangled_legacy_stage: none
+  expected_effect: '`224x9` should test whether the reopened upper family keeps adding
+    validation `L(N,S)` curvature information near the corrected medium-rung ceiling.'
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - upper-family gate-first policy before any reopened NS ladder spend
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+      budget on reopened upper geometries.
+    - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed
+      and health=`ok`; keep health=`warn` as upper-family evidence only.
+    - Use this row for validation `L(N,S)` information gain even if it is weaker than
+      `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+      preferred baseline without a fresh large-rung validation gate.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 224
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 9
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 9
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: 92e42be8b60262f4b42b770d3fda35c1321f3a997f63cee6dac9ffedcbf0f3ae
+- order: 4
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1`
+    against anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
+    for sweep `tf_rd_009_width_depth_upper_extension_medium_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1`
+    against locked anchor `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 248
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 10
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        min_lr: 1.0e-05
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+    budget on reopened upper geometries.
+  - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and
+    health=`ok`; keep health=`warn` as upper-family evidence only.
+  - Use this row for validation `L(N,S)` information gain even if it is weaker than
+    `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+    preferred baseline without a fresh large-rung validation gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as order 4 in `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    then expand only after health=`ok`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the reopened TF-RD-009 near-ceiling gate row at `d_icl=248`,
+    `sandwich_layers=10`, selected as the largest member of the winning post-`#257`
+    information-first continuation.
+  upstream_delta: TF-RD-009 no longer stops at `176x6` by policy; it now intentionally
+    reopens the upper family under the corrected frozen hardware model, but still
+    gates every new geometry at the carried fixed-budget row before spending full
+    NS-ladder budget.
+  entangled_legacy_stage: none
+  expected_effect: '`248x10` should act as the reopened near-ceiling evidence row
+    for the corrected `~40 GB` target while still participating in the same deterministic
+    validation-law design set as the lower reopened rows.'
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - upper-family gate-first policy before any reopened NS ladder spend
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute only at the carried fixed-budget gate row before spending any NS-ladder
+      budget on reopened upper geometries.
+    - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed
+      and health=`ok`; keep health=`warn` as upper-family evidence only.
+    - Use this row for validation `L(N,S)` information gain even if it is weaker than
+      `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new
+      preferred baseline without a fresh large-rung validation gate.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 248
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 10
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 10
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b/manifest.parquet
+        manifest_sha256: 192bd49fd87ba50790a9e4632d93476676ae108c597f38310cb6c9196b2fdf88
+      dagzoo_provenance:
+        acceptance_rate: 0.9986650538337475
+        accepted_datasets: 183283
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5/tf_rd_010_dagzoo_medium_control_curated_v5__192bd49fd87b
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 159984
+        filter_policy: accepted_only
+        generator_fingerprint: f781789b135e
+        invocation_count: 144
+        manifest_record_count: 159984
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v5
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 159984
+          per_invocation_num_datasets: 1111
+          synthetic_epoch_regime: one_epoch_159984_records_2500_steps
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v5
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 245
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 159984
+          missingness: null
+          num_datasets_per_invocation: 1111
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: schedulefree_adamw
+      optimizer_min_lr: 1.0e-05
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: 0
+      loader_pin_memory: false
+      loader_persistent_workers: false
+      loader_prefetch_factor: null
+      non_blocking_device_transfer: false
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      trace_activations: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: d70c1476270f09f7b7c5c371f255a4d3bd0075848d99779e4fb139cf5e7e6d51
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/resolved_queue.yaml
+inputs_fingerprint: 8c10d8b2b5ce4ca4f19a28a23ff40e3e97a24df935d4ad73d7850b8872b2a75e

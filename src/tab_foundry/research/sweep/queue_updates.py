@@ -119,6 +119,8 @@ def runtime_and_regime_metrics(
             if value is not None:
                 metrics[key] = value
         for key in (
+            "end_to_end_wall_seconds",
+            "loader_setup_seconds",
             "throughput_examples_per_second",
             "throughput_tokens_per_second",
             "non_train_overhead_seconds",
@@ -126,6 +128,33 @@ def runtime_and_regime_metrics(
             metric_value = optional_metric(runtime_summary, key)
             if metric_value is not None:
                 metrics[key] = metric_value
+        for key in (
+            "loader_effective_num_workers",
+            "loader_effective_prefetch_factor",
+            "compile_shape_dispatch_max_families",
+        ):
+            integer_value = optional_int(runtime_summary, key)
+            if integer_value is not None:
+                metrics[key] = integer_value
+        for key in (
+            "loader_task_batch_cache_mode",
+            "compile_shape_dispatch_mode",
+        ):
+            text_value = optional_text(runtime_summary, key)
+            if text_value is not None:
+                metrics[key] = text_value
+        compile_shape_dispatch = runtime_summary.get("compile_shape_dispatch")
+        if isinstance(compile_shape_dispatch, Mapping):
+            for source_key, metric_key in (
+                ("compiled_family_count", "compile_dispatch_compiled_family_count"),
+                ("family_switch_count", "compile_dispatch_family_switch_count"),
+            ):
+                integer_value = optional_int(
+                    cast(Mapping[str, Any], compile_shape_dispatch),
+                    source_key,
+                )
+                if integer_value is not None:
+                    metrics[metric_key] = integer_value
     if regime_budget is not None:
         metric_value = optional_metric(regime_budget, "tokens_per_step")
         if metric_value is not None:
@@ -256,6 +285,7 @@ def queue_metrics(
     )
     if max_grad_norm is None:
         raise RuntimeError("benchmark summary omitted training_diagnostics.max_grad_norm")
+    training_diagnostics = cast(Mapping[str, Any], tab_foundry["training_diagnostics"])
     best_step = optional_metric(tab_foundry, "best_step")
     if best_step is None:
         raise RuntimeError("benchmark summary omitted tab_foundry.best_step")
@@ -265,6 +295,10 @@ def queue_metrics(
         "max_grad_norm": max_grad_norm,
         "clipped_step_fraction": clipped_step_fraction(gradient_records),
     }
+    for key in ("train_elapsed_seconds", "wall_elapsed_seconds"):
+        metric_value = optional_metric(training_diagnostics, key)
+        if metric_value is not None:
+            metrics[key] = metric_value
     metrics.update(
         runtime_and_regime_metrics(
             run_entry=run_entry,
@@ -353,6 +387,39 @@ def queue_metrics(
         if drift_value is not None:
             metrics["drift"] = drift_value
             break
+
+    if isinstance(telemetry_payload, Mapping):
+        loss_summary = telemetry_payload.get("loss_summary")
+        if isinstance(loss_summary, Mapping):
+            for key in (
+                "final_train_loss",
+                "final_train_loss_ema",
+                "final_tail_mean_train_loss",
+                "final_tail_mean_train_loss_ema",
+            ):
+                metric_value = optional_metric(cast(Mapping[str, Any], loss_summary), key)
+                if metric_value is not None:
+                    metrics[key] = metric_value
+            tail_record_count = optional_int(cast(Mapping[str, Any], loss_summary), "final_tail_record_count")
+            if tail_record_count is not None:
+                metrics["final_tail_record_count"] = tail_record_count
+        diagnostics = telemetry_payload.get("diagnostics")
+        if isinstance(diagnostics, Mapping):
+            task_batching = diagnostics.get("task_batching")
+            if isinstance(task_batching, Mapping):
+                signature_family_steps = task_batching.get("signature_family_steps")
+                if isinstance(signature_family_steps, Mapping):
+                    for key in (
+                        "one_family_step_count",
+                        "mixed_family_step_count",
+                        "consecutive_repeated_family_step_count",
+                        "consecutive_switched_family_step_count",
+                        "family_block_count",
+                        "estimated_family_switch_count",
+                    ):
+                        integer_value = optional_int(cast(Mapping[str, Any], signature_family_steps), key)
+                        if integer_value is not None:
+                            metrics[key] = integer_value
     preferred_external_metric_pairs = (
         ("primary_external_best_log_loss", "primary_external_final_log_loss", "primary_external_best", "primary_external_final"),
         ("primary_external_best_roc_auc", "primary_external_final_roc_auc", "primary_external_best", "primary_external_final"),

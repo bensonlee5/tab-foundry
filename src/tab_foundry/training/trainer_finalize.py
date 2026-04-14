@@ -16,6 +16,7 @@ from .instability import (
     build_runtime_summary,
     build_training_telemetry,
     grad_norm_summary_from_running_totals,
+    history_loss_summary,
     peak_device_memory_summary,
     training_shape_summary_from_signature_task_counts,
     write_training_telemetry,
@@ -41,18 +42,42 @@ def finalize_training_run(
     loss_surface: str,
     state: TrainingLoopState,
     train_start: float,
+    end_to_end_start: float,
+    loader_setup_seconds: float,
+    loader_effective_num_workers: int,
+    loader_effective_prefetch_factor: int | None,
+    loader_task_batch_cache_mode: str,
+    compile_shape_dispatch_mode: str,
+    compile_shape_dispatch_max_families: int,
+    compile_shape_dispatch_summary: Mapping[str, Any] | None,
     success: bool,
     error: Exception | None = None,
 ) -> tuple[TrainResult | None, float, Mapping[str, Any] | None]:
-    wall_elapsed_seconds = time.perf_counter() - train_start
+    now = time.perf_counter()
+    wall_elapsed_seconds = now - train_start
+    end_to_end_wall_seconds = now - end_to_end_start
+    loss_summary = history_loss_summary(state.history_records)
+
+    def _optional_loss_metric(key: str) -> float | None:
+        value = loss_summary.get(key)
+        return None if value is None else float(value)
+
     task_batching_summary: Mapping[str, Any] | None = None
     if accelerator.is_main_process:
         runtime_summary = build_runtime_summary(
             train_elapsed_seconds=state.train_elapsed_seconds,
             wall_elapsed_seconds=wall_elapsed_seconds,
+            end_to_end_wall_seconds=end_to_end_wall_seconds,
+            loader_setup_seconds=loader_setup_seconds,
             examples_seen=state.examples_seen,
             tokens_seen=state.tokens_seen,
             peak_memory_summary=peak_device_memory_summary(accelerator.device),
+            loader_effective_num_workers=loader_effective_num_workers,
+            loader_effective_prefetch_factor=loader_effective_prefetch_factor,
+            loader_task_batch_cache_mode=loader_task_batch_cache_mode,
+            compile_shape_dispatch_mode=compile_shape_dispatch_mode,
+            compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
+            compile_shape_dispatch_summary=compile_shape_dispatch_summary,
         )
         hardware_summary = build_hardware_summary(accelerator.device)
         regime_budget = build_regime_budget_summary(
@@ -132,8 +157,17 @@ def finalize_training_run(
                 "final_val_loss": float(state.last_val_metrics["val_loss"])
                 if state.last_val_metrics is not None
                 else float(state.best_val),
+                "final_train_loss": _optional_loss_metric("final_train_loss"),
+                "final_train_loss_ema": _optional_loss_metric("final_train_loss_ema"),
+                "final_tail_mean_train_loss": _optional_loss_metric(
+                    "final_tail_mean_train_loss"
+                ),
+                "final_tail_mean_train_loss_ema": _optional_loss_metric(
+                    "final_tail_mean_train_loss_ema"
+                ),
                 "train_elapsed_seconds": float(state.train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
+                "end_to_end_wall_seconds": float(end_to_end_wall_seconds),
                 "nan_skip_count": float(state.nan_skip_count),
                 **grad_norm_summary_from_running_totals(
                     grad_norm_sum=state.grad_norm_sum,

@@ -61,6 +61,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         sandwich_pre_row_attention_layers: int = _D["sandwich_pre_row_attention_layers"],
         sandwich_pre_column_attention_layers: int = _D["sandwich_pre_column_attention_layers"],
         sandwich_pre_column_inducing_tokens: int = _D["sandwich_pre_column_inducing_tokens"],
+        sandwich_packed_attention: bool = _D["sandwich_packed_attention"],
         feature_type_conditioning: str = _D["feature_type_conditioning"],
         floating_likelihood: str = _D["floating_likelihood"],
         integer_likelihood: str = _D["integer_likelihood"],
@@ -86,6 +87,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
             sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
             sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
+            sandwich_packed_attention=sandwich_packed_attention,
             feature_type_conditioning=feature_type_conditioning,
             floating_likelihood=floating_likelihood,
             integer_likelihood=integer_likelihood,
@@ -109,6 +111,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
         self.pre_column_attention_layers = int(self.model_spec.sandwich_pre_column_attention_layers)
         self.pre_column_inducing_tokens = int(self.model_spec.sandwich_pre_column_inducing_tokens)
+        self.sandwich_packed_attention = bool(self.model_spec.sandwich_packed_attention)
         self.feature_type_conditioning = (
             str(self.model_spec.feature_type_conditioning).strip().lower()
         )
@@ -145,6 +148,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
+            packed_attention=self.sandwich_packed_attention,
         )
         self.column_summary_builder = _CrossAttentionBlock(
             embedding_size=self.d_icl,
@@ -152,6 +156,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
+            packed_attention=self.sandwich_packed_attention,
         )
         self.pre_row_attention_blocks = nn.ModuleList(
             [
@@ -161,6 +166,7 @@ class TabFoundrySandwichClassifier(nn.Module):
                     ff_expansion=self.sandwich_ff_expansion,
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
+                    packed_attention=self.sandwich_packed_attention,
                 )
                 for _ in range(self.pre_row_attention_layers)
             ]
@@ -174,6 +180,7 @@ class TabFoundrySandwichClassifier(nn.Module):
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
                     num_inducing=self.pre_column_inducing_tokens,
+                    packed_attention=self.sandwich_packed_attention,
                 )
                 for _ in range(self.pre_column_attention_layers)
             ]
@@ -192,6 +199,7 @@ class TabFoundrySandwichClassifier(nn.Module):
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
                     self_attention_per_cross=self.self_attention_per_cross,
+                    packed_attention=self.sandwich_packed_attention,
                 )
                 for _ in range(self.sandwich_layers)
             ]
@@ -202,6 +210,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
+            packed_attention=self.sandwich_packed_attention,
         )
         self.cell_readout = _CrossAttentionBlock(
             embedding_size=self.d_icl,
@@ -209,6 +218,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
+            packed_attention=self.sandwich_packed_attention,
         )
         self.test_row_pool = _CrossAttentionBlock(
             embedding_size=self.d_icl,
@@ -216,6 +226,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
+            packed_attention=self.sandwich_packed_attention,
         )
         self.direct_head = DirectMulticlassHead(
             self.d_icl,
@@ -231,6 +242,7 @@ class TabFoundrySandwichClassifier(nn.Module):
                     ff_expansion=self.sandwich_ff_expansion,
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
+                    packed_attention=self.sandwich_packed_attention,
                 )
                 for _ in range(self.sandwich_layers)
             ]
@@ -249,6 +261,10 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
+        self._fourier_position_cache: dict[
+            tuple[int, int, torch.device, torch.dtype],
+            torch.Tensor,
+        ] = {}
 
     def enable_activation_checkpointing(self) -> None:
         _shared_hooks.enable_activation_checkpointing(self)
@@ -341,20 +357,26 @@ class TabFoundrySandwichClassifier(nn.Module):
             apply_input_normalization=apply_input_normalization,
         )
 
-    @staticmethod
     def _fourier_positions(
+        self,
         *,
         num_positions: int,
         embedding_size: int,
         device: torch.device,
         dtype: torch.dtype,
     ) -> torch.Tensor:
-        return _feature_flow.fourier_positions(
+        key = (int(num_positions), int(embedding_size), torch.device(device), dtype)
+        cached = self._fourier_position_cache.get(key)
+        if cached is not None:
+            return cached
+        positions = _feature_flow.fourier_positions(
             num_positions=num_positions,
             embedding_size=embedding_size,
             device=device,
             dtype=dtype,
         )
+        self._fourier_position_cache[key] = positions
+        return positions
 
     @staticmethod
     def _normalize_required_feature_types(

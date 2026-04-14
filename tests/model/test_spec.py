@@ -183,6 +183,16 @@ def test_sandwich_model_spec_allows_zero_repeat_count_fields(field_name: str) ->
     assert getattr(spec, field_name) == 0
 
 
+def test_sandwich_model_spec_accepts_packed_attention_flag() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": "tabfoundry_sandwich", "sandwich_packed_attention": True},
+    )
+
+    assert spec.sandwich_packed_attention is True
+    assert spec.to_dict()["sandwich_packed_attention"] is True
+
+
 @pytest.mark.parametrize(
     "field_name",
     (

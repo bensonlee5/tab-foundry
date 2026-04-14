@@ -29,14 +29,16 @@ def test_tf_rd_022_compile_first_cfg_inherits_the_policy_surface_with_a_compile_
 
     base_runtime = dict(base_payload["runtime"])
     compile_runtime = dict(compile_payload["runtime"])
-    assert base_runtime.pop("compile_model") is False
+    assert base_runtime.pop("compile_model") is True
     assert compile_runtime.pop("compile_model") is True
-    assert base_runtime["compile_dynamic"] is False
-    assert compile_runtime["compile_dynamic"] is False
-    assert base_runtime["compile_backend"] == "inductor"
+    assert base_runtime.pop("compile_dynamic") is True
+    assert compile_runtime.pop("compile_dynamic") is False
+    assert base_runtime.pop("compile_backend") == "eager"
     assert base_runtime["compile_mode"] == "max-autotune-no-cudagraphs"
-    assert compile_runtime["compile_backend"] == "inductor"
+    assert compile_runtime.pop("compile_backend") == "inductor"
     assert compile_runtime["compile_mode"] == "max-autotune-no-cudagraphs"
+    assert base_runtime.pop("compile_shape_dispatch_mode") == "signature_family"
+    assert compile_runtime.pop("compile_shape_dispatch_mode") == "off"
     assert base_runtime.pop("output_dir") == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1"
     )
@@ -46,6 +48,9 @@ def test_tf_rd_022_compile_first_cfg_inherits_the_policy_surface_with_a_compile_
     assert compile_runtime == base_runtime
     assert compile_payload["logging"]["run_name"] == (
         "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-compile-v1"
+    )
+    assert compile_payload["logging"]["history_jsonl_path"] == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_v1/train_history.jsonl"
     )
 
 

@@ -128,6 +128,7 @@ def _model(
     sandwich_block_norm: str = "layernorm",
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
+    sandwich_packed_attention: bool = False,
     feature_type_conditioning: str = "film",
     input_normalization: str = "train_zscore_clip",
 ) -> TabFoundrySandwichClassifier:
@@ -147,6 +148,7 @@ def _model(
         sandwich_pre_row_attention_layers=1,
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
+        sandwich_packed_attention=sandwich_packed_attention,
         feature_type_conditioning=feature_type_conditioning,
     )
 
@@ -365,6 +367,40 @@ def test_tabfoundry_sandwich_forward_batched_shapes() -> None:
 
     assert tuple(logits.shape) == (2, 2, 4)
     assert torch.isfinite(logits).all()
+
+
+def test_tabfoundry_sandwich_packed_attention_matches_default_attention() -> None:
+    torch.manual_seed(101)
+    reference = _model().eval()
+    packed = _model(sandwich_packed_attention=True).eval()
+    packed.load_state_dict(reference.state_dict())
+
+    with torch.no_grad():
+        expected = reference(_finite_batch()).logits
+        observed = packed(_finite_batch()).logits
+
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-5)
+
+
+def test_tabfoundry_sandwich_packed_attention_uses_native_attention_modules() -> None:
+    model = _model(sandwich_packed_attention=True)
+
+    assert isinstance(
+        model.pre_row_attention_blocks[0].attn,
+        sandwich_blocks._NativePackedSelfAttention,
+    )
+    assert isinstance(
+        model.pre_column_attention_blocks[0].inducing_self.attn,
+        sandwich_blocks._NativePackedSelfAttention,
+    )
+    assert isinstance(
+        model.pre_column_attention_blocks[0].rows_to_inducing.attn,
+        sandwich_blocks._NativePackedCrossAttention,
+    )
+    assert isinstance(
+        model.perceiver_stages[0].input_read.attn,
+        sandwich_blocks._NativePackedCrossAttention,
+    )
 
 
 def test_tabfoundry_sandwich_accepts_zero_self_attention_per_cross() -> None:

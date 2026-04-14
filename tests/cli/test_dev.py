@@ -67,7 +67,12 @@ def test_resolve_config_payload_reports_resolved_sandwich_contract() -> None:
 
 
 def test_resolve_config_payload_omits_backend_for_unsupported_data_source() -> None:
-    payload = resolve_config_payload(["data.source=dagzoo"])
+    payload = resolve_config_payload(
+        [
+            "data.source=dagzoo",
+            "++data.corpus_ref=null",
+        ]
+    )
 
     assert payload["data"]["source"] == "dagzoo"
     assert "backend" not in payload["training"]

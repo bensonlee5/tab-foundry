@@ -7,6 +7,7 @@ import tab_foundry.training.runtime as training_runtime_module
 from tab_foundry.training.runtime import (
     resolve_compile_policy,
     resolve_compile_model,
+    resolve_compile_shape_dispatch_policy,
     resolve_cpu_mode,
     resolve_grad_accum_steps,
     resolve_mixed_precision,
@@ -201,3 +202,14 @@ def test_runtime_compile_dynamic_is_inert_when_compile_is_disabled() -> None:
     assert policy.enabled is False
     assert policy.dynamic is True
     assert policy.torch_compile_kwargs() == {}
+
+
+def test_runtime_compile_shape_dispatch_resolution() -> None:
+    cfg = OmegaConf.create(
+        {
+            "compile_shape_dispatch_mode": "signature_family",
+            "compile_shape_dispatch_max_families": 12,
+        }
+    )
+
+    assert resolve_compile_shape_dispatch_policy(cfg) == ("signature_family", 12)
