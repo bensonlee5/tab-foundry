@@ -94,17 +94,25 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
                 yield list(remainder)
 
     def _iter_family_grouped_batches(self, *, ordered_indices: list[int]):
+        grouped_batches = list(self._iter_grouped_batches(ordered_indices=ordered_indices))
+        if self.max_batches is not None:
+            prefix_batches = grouped_batches[: int(self.max_batches)]
+            suffix_batches = grouped_batches[int(self.max_batches) :]
+            yield from self._emit_family_runs_from_batches(prefix_batches)
+            yield from self._emit_family_runs_from_batches(suffix_batches)
+            return
+        full_batches = [batch for batch in grouped_batches if len(batch) == self.task_batch_size]
+        remainder_batches = [batch for batch in grouped_batches if len(batch) < self.task_batch_size]
+        yield from self._emit_family_runs_from_batches(full_batches)
+        yield from self._emit_family_runs_from_batches(remainder_batches)
+
+    def _emit_family_runs_from_batches(self, batches: list[list[int]]):
         family_runs: OrderedDict[_SignatureFamily, list[list[int]]] = OrderedDict()
-        signature_buckets: OrderedDict[_Signature, list[int]] = OrderedDict()
-        for index in ordered_indices:
-            signature = self.dataset.task_signature(index)
-            bucket = signature_buckets.setdefault(signature, [])
-            bucket.append(int(index))
-        for signature, indices in signature_buckets.items():
-            family = self._signature_family(signature)
-            family_batches = family_runs.setdefault(family, [])
-            for start in range(0, len(indices), self.task_batch_size):
-                family_batches.append(indices[start : start + self.task_batch_size])
+        for batch in batches:
+            if not batch:
+                continue
+            family = self._signature_family(self.dataset.task_signature(batch[0]))
+            family_runs.setdefault(family, []).append(list(batch))
         while True:
             emitted = False
             for family_batches in family_runs.values():

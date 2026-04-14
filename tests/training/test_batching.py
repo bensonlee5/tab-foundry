@@ -384,6 +384,71 @@ def test_manifest_task_batch_sampler_signature_family_runs_preserve_batch_multis
     )
 
 
+def test_manifest_task_batch_sampler_signature_family_runs_emit_full_batches_before_remainders() -> None:
+    signatures = [
+        (2, 2, 3, 2),
+        (2, 2, 3, 2),
+        (2, 2, 3, 2),
+        (2, 2, 3, 5),
+        (2, 2, 3, 5),
+        (2, 2, 3, 5),
+        (4, 2, 3, 2),
+        (4, 2, 3, 2),
+        (4, 2, 3, 5),
+        (4, 2, 3, 5),
+    ]
+    sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(signatures=signatures),
+        task_batch_size=2,
+        shuffle=True,
+        seed=0,
+        signature_family_run_length=2,
+    )
+
+    batch_sizes = [len(batch) for batch in sampler]
+
+    assert batch_sizes[:4] == [2, 2, 2, 2]
+    assert batch_sizes == [2, 2, 2, 2, 1, 1]
+
+
+def test_manifest_task_batch_sampler_signature_family_runs_preserve_capped_prefix_multiset() -> None:
+    signatures = [
+        (2, 2, 3, 2),
+        (2, 2, 3, 2),
+        (2, 2, 3, 2),
+        (2, 2, 3, 5),
+        (2, 2, 3, 5),
+        (2, 2, 3, 5),
+        (4, 2, 3, 2),
+        (4, 2, 3, 2),
+        (4, 2, 3, 5),
+        (4, 2, 3, 5),
+    ]
+    default_sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(signatures=signatures),
+        task_batch_size=2,
+        shuffle=True,
+        seed=0,
+        max_batches=4,
+        signature_family_run_length=1,
+    )
+    family_sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(signatures=signatures),
+        task_batch_size=2,
+        shuffle=True,
+        seed=0,
+        max_batches=4,
+        signature_family_run_length=2,
+    )
+
+    default_batches = list(default_sampler)
+    family_batches = list(family_sampler)
+
+    assert sorted(sorted(batch) for batch in family_batches) == sorted(
+        sorted(batch) for batch in default_batches
+    )
+
+
 def test_manifest_task_batch_sampler_supports_accelerate_sharding_without_padding() -> None:
     sampler = _ManifestTaskBatchSampler(
         _StubManifestTaskDataset(size=5),
@@ -672,6 +737,118 @@ def test_build_task_loader_bounded_streaming_caps_manifest_microbatches(
         "task_0",
         "task_1",
     ]
+
+
+def test_build_task_loader_bounded_streaming_family_runs_fill_full_horizon_before_remainders(
+    tmp_path: Path,
+) -> None:
+    dataset = PackedParquetTaskDataset(
+        _write_manifest_dataset(
+            tmp_path,
+            datasets=[
+                _manifest_task_payload(
+                    dataset_index=1,
+                    order_tag="task_0",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=2,
+                ),
+                _manifest_task_payload(
+                    dataset_index=2,
+                    order_tag="task_1",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=2,
+                ),
+                _manifest_task_payload(
+                    dataset_index=3,
+                    order_tag="task_2",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=2,
+                ),
+                _manifest_task_payload(
+                    dataset_index=4,
+                    order_tag="task_3",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=5,
+                ),
+                _manifest_task_payload(
+                    dataset_index=5,
+                    order_tag="task_4",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=5,
+                ),
+                _manifest_task_payload(
+                    dataset_index=6,
+                    order_tag="task_5",
+                    n_train=2,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=5,
+                ),
+                _manifest_task_payload(
+                    dataset_index=7,
+                    order_tag="task_6",
+                    n_train=4,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=2,
+                ),
+                _manifest_task_payload(
+                    dataset_index=8,
+                    order_tag="task_7",
+                    n_train=4,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=2,
+                ),
+                _manifest_task_payload(
+                    dataset_index=9,
+                    order_tag="task_8",
+                    n_train=4,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=5,
+                ),
+                _manifest_task_payload(
+                    dataset_index=10,
+                    order_tag="task_9",
+                    n_train=4,
+                    n_test=2,
+                    n_features=3,
+                    n_classes=5,
+                ),
+            ],
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+        split="train",
+        task="classification",
+    )
+
+    loader = build_task_loader(
+        dataset,
+        num_workers=0,
+        shuffle=True,
+        seed=0,
+        task_batch_size=2,
+        cache_mode="bounded_streaming",
+        max_batches=4,
+        signature_family_run_length=2,
+    )
+
+    batches = list(loader)
+
+    assert len(batches) == 4
+    assert [int(batch.metadata["task_batch_size_actual"]) for batch in batches] == [2, 2, 2, 2]
 
 
 def test_packed_parquet_task_dataset_can_seed_shuffle_manifest_records(tmp_path: Path) -> None:
