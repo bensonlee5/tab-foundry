@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: staged accepted-only corpus salvage now hard-cuts to the
+  parquet-catalog contract. `tab-foundry data corpus compact-staged` can
+  deterministically merge legacy staged curated shards into `512`-dataset
+  parquet-catalog shards with dense `dataset_index` rewrites, emits live
+  per-invocation progress, and `tab-foundry data corpus finalize-staged` now
+  forwards `--manifest-workers` into the manifest v3 parquet builder before
+  promotion.
 - User-facing note: corpus manifest characteristics now treat upstream
   `missing_value_status=not_checked` rows as unknown missingness rather than
   clean or non-finite, manifest compatibility preflight warns when unchecked
