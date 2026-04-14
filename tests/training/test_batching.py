@@ -157,6 +157,30 @@ def _write_manifest_dataset(
     return manifest_path
 
 
+def test_manifest_dataset_reports_unsupported_legacy_locator_shape(tmp_path: Path) -> None:
+    manifest_path = _write_manifest_dataset(tmp_path)
+    legacy_row = pq.read_table(manifest_path).to_pylist()[0]
+    legacy_row.pop("catalog_dataset_index", None)
+    legacy_row.pop("catalog_record_sha256", None)
+    legacy_row["catalog_path"] = "manifest_data/shard_00000/metadata.ndjson"
+    legacy_row["catalog_offset_bytes"] = 0
+    legacy_row["catalog_size_bytes"] = 1
+    legacy_row["catalog_sha256"] = "0" * 64
+    pq.write_table(pa.Table.from_pylist([legacy_row]), manifest_path)
+
+    dataset = PackedParquetTaskDataset(manifest_path, split="train", task="classification")
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "unsupported packed-contract locator shape: "
+            ".*catalog_offset_bytes.*catalog_path.*catalog_sha256.*catalog_size_bytes"
+            ".*context=load_manifest_record_metadata"
+        ),
+    ):
+        _ = dataset[0]
+
+
 class _FakeEvalAccelerator:
     def __init__(self) -> None:
         self.device = torch.device("cpu")

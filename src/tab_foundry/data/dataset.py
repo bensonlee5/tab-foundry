@@ -19,6 +19,9 @@ from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 TaskSignature = tuple[int, int, int, int | None]
+_PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS: tuple[tuple[str, ...], ...] = (
+    ("catalog_path", "catalog_dataset_index", "catalog_record_sha256"),
+)
 
 _LOAD_MANIFEST_RECORD_CATALOG = getattr(manifest_module, "load_manifest_record_catalog", None)
 _LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS = getattr(
@@ -33,6 +36,41 @@ def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, 
         str(record["catalog_path"]),
         int(record["catalog_dataset_index"]),
         str(record["catalog_record_sha256"]),
+    )
+
+
+def _present_manifest_locator_keys(record: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        str(key)
+        for key in record
+        if str(key).startswith("catalog_") or str(key).startswith("metadata_")
+    )
+
+
+def _require_manifest_catalog_locator(
+    record: Mapping[str, Any],
+    *,
+    context: str,
+) -> None:
+    required_keys = {"dataset_index"}
+    missing = sorted(required_keys - set(record))
+    expected_locator_key_sets = [list(keys) for keys in _PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS]
+    present_locator_keys = _present_manifest_locator_keys(record)
+    if missing:
+        raise RuntimeError(
+            "manifest record is missing required packed-contract fields: "
+            f"missing_required_keys={missing}, "
+            f"expected_locator_key_sets={expected_locator_key_sets}, "
+            f"present_locator_keys={present_locator_keys}, "
+            f"context={context}"
+        )
+    if any(all(key in record for key in locator_keys) for locator_keys in _PACKED_MANIFEST_CATALOG_LOCATOR_KEY_SETS):
+        return
+    raise RuntimeError(
+        "manifest record uses an unsupported packed-contract locator shape: "
+        f"expected_locator_key_sets={expected_locator_key_sets}, "
+        f"present_locator_keys={present_locator_keys}, "
+        f"context={context}"
     )
 
 
@@ -299,14 +337,7 @@ def load_manifest_record_metadata(
 ) -> tuple[dict[str, Any], list[str] | None]:
     """Load one packed-manifest metadata payload plus validated feature types."""
 
-    required_keys = {"dataset_index"}
-    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
-    missing = sorted(required_keys - set(record))
-    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
-        raise RuntimeError(
-            "manifest record is missing required packed-contract fields: "
-            f"missing={missing}"
-        )
+    _require_manifest_catalog_locator(record, context="load_manifest_record_metadata")
 
     dataset_index = int(record["dataset_index"])
     catalog_record = _load_manifest_record_catalog(
@@ -360,14 +391,7 @@ def load_manifest_record_catalog(
 ) -> dict[str, Any]:
     """Load the public packed-catalog record for one manifest row."""
 
-    required_keys = {"dataset_index"}
-    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
-    missing = sorted(required_keys - set(record))
-    if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
-        raise RuntimeError(
-            "manifest record is missing required packed-contract fields: "
-            f"missing={missing}"
-        )
+    _require_manifest_catalog_locator(record, context="load_manifest_record_catalog")
 
     dataset_index = int(record["dataset_index"])
     catalog_record = _load_manifest_record_catalog(
