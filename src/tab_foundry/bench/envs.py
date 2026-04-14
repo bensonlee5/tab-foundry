@@ -40,7 +40,7 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.5"
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.8"
 LINUX_TORCH_INSTALL_SPEC = "torch==2.11.0+cu128"
 LINUX_TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
 TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
@@ -202,15 +202,10 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     resolved_tab_realdata_hub_root = resolve_tab_realdata_hub_root(
         tab_realdata_hub_root=config.tab_realdata_hub_root,
     )
-    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(
-        resolved_tab_realdata_hub_root
-    )
+    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(resolved_tab_realdata_hub_root)
     tabicl_python_version = _python_version_info(tabicl_python)
     tabicl_requires_runtime_dependency_bootstrap = tabicl_python_version < (3, 14)
-    if (
-        tabicl_requires_runtime_dependency_bootstrap
-        and resolved_tab_realdata_hub_root is None
-    ):
+    if tabicl_requires_runtime_dependency_bootstrap and resolved_tab_realdata_hub_root is None:
         raise RuntimeError(
             "tabicl benchmark env uses Python "
             f"{tabicl_python_version[0]}.{tabicl_python_version[1]}, but the published "
@@ -241,7 +236,10 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     _validate_import(nanotabpfn_python, "tab_realdata_hub")
     _validate_import(tabpfn_python, "tabpfn")
     _validate_import(tabicl_python, "pyarrow")
-    if not tabicl_requires_runtime_dependency_bootstrap or resolved_tab_realdata_hub_root is not None:
+    if (
+        not tabicl_requires_runtime_dependency_bootstrap
+        or resolved_tab_realdata_hub_root is not None
+    ):
         _validate_import(tabicl_python, "tab_realdata_hub")
     _validate_import(tabicl_python, "tabicl")
 
