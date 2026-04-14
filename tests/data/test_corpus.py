@@ -159,6 +159,7 @@ def test_build_dagzoo_provenance_summary_aggregates_materialization_timing() -> 
     )
 
     assert summary["materialization_timing"] == {
+        "invocation_count": len(recipe.invocations),
         "recipe_elapsed_seconds": 30.0,
         "invocation_fanout_elapsed_seconds": 20.0,
         "manifest_build_elapsed_seconds": 4.0,
@@ -172,6 +173,8 @@ def test_build_dagzoo_provenance_summary_aggregates_materialization_timing() -> 
         "cumulative_upstream_elapsed_seconds": 11.0,
         "cumulative_local_overhead_elapsed_seconds": 0.75,
         "cumulative_invocation_elapsed_seconds": 12.75,
+        "cumulative_generate_datasets_per_minute": pytest.approx(14 / 9 * 60),
+        "cumulative_filter_datasets_per_minute": pytest.approx(14 / 2 * 60),
     }
 
 
@@ -1243,6 +1246,7 @@ def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess
         sweeps_root: Path | None,
         materialize_processes: int | None,
         materialize_worker_threads: int | None,
+        compact_shard_workers: int | None,
     ) -> None:
         captured.update(
             {
@@ -1250,6 +1254,7 @@ def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess
                 "invocation_ids": [str(spec.invocation_id) for spec in invocations],
                 "materialize_processes": materialize_processes,
                 "materialize_worker_threads": materialize_worker_threads,
+                "compact_shard_workers": compact_shard_workers,
             }
         )
         for spec in invocations:
@@ -1275,6 +1280,7 @@ def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess
         force=True,
         materialize_processes=3,
         materialize_worker_threads=2,
+        compact_shard_workers=4,
         repo_root=repo_tmp_path,
     )
 
@@ -1283,6 +1289,7 @@ def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess
         "invocation_ids": ["benchmark_cpu", "large_shape"],
         "materialize_processes": 3,
         "materialize_worker_threads": 2,
+        "compact_shard_workers": 4,
     }
     assert Path(str(record["manifest"]["manifest_path"])).exists()
 
@@ -1333,6 +1340,9 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         pending_requests,
         materialize_processes: int | None,
         materialize_worker_threads: int | None,
+        compact_workers: int | None,
+        compact_shard_workers: int | None,
+        manifest_workers: int | None,
         prioritized_recipe_ids,
         on_recipe_materialized=None,
     ) -> list[dict[str, Any]]:
@@ -1347,6 +1357,9 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
                 ],
                 "materialize_processes": materialize_processes,
                 "materialize_worker_threads": materialize_worker_threads,
+                "compact_workers": compact_workers,
+                "compact_shard_workers": compact_shard_workers,
+                "manifest_workers": manifest_workers,
                 "prioritized_recipe_ids": list(prioritized_recipe_ids),
             }
         )
@@ -1368,6 +1381,9 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         force=True,
         materialize_processes=3,
         materialize_worker_threads=2,
+        compact_workers=4,
+        compact_shard_workers=5,
+        manifest_workers=6,
         prioritized_recipe_ids=["current_recipe"],
         on_corpus_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
         repo_root=repo_tmp_path,
@@ -1379,6 +1395,9 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         "requires_recipe_record": [True, True],
         "materialize_processes": 3,
         "materialize_worker_threads": 2,
+        "compact_workers": 4,
+        "compact_shard_workers": 5,
+        "manifest_workers": 6,
         "prioritized_recipe_ids": ["current_recipe"],
     }
     assert callback_order == ["current_recipe", "size_recipe"]
@@ -1446,6 +1465,9 @@ def test_materialize_corpus_refs_batch_rejects_mismatched_pinned_exact_ref_from_
         pending_requests,
         materialize_processes: int | None,
         materialize_worker_threads: int | None,
+        compact_workers: int | None,
+        compact_shard_workers: int | None,
+        manifest_workers: int | None,
         prioritized_recipe_ids,
         on_recipe_materialized=None,
     ) -> list[dict[str, Any]]:
@@ -1453,6 +1475,9 @@ def test_materialize_corpus_refs_batch_rejects_mismatched_pinned_exact_ref_from_
             pending_requests,
             materialize_processes,
             materialize_worker_threads,
+            compact_workers,
+            compact_shard_workers,
+            manifest_workers,
             prioritized_recipe_ids,
         )
         assert on_recipe_materialized is not None
@@ -1628,6 +1653,9 @@ def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_a
             ],
             materialize_processes=4,
             materialize_worker_threads=None,
+            compact_workers=None,
+            compact_shard_workers=None,
+            manifest_workers=None,
             prioritized_recipe_ids=["current_recipe"],
             on_recipe_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
         )
@@ -1718,6 +1746,9 @@ def test_materialize_pending_recipes_with_subprocess_fanout_forwards_explicit_wo
             ],
             materialize_processes=2,
             materialize_worker_threads=3,
+            compact_workers=None,
+            compact_shard_workers=None,
+            manifest_workers=None,
             prioritized_recipe_ids=(),
         )
     )
@@ -1810,6 +1841,9 @@ def test_materialize_pending_recipes_with_subprocess_fanout_terminates_remaining
             ],
             materialize_processes=2,
             materialize_worker_threads=3,
+            compact_workers=None,
+            compact_shard_workers=None,
+            manifest_workers=None,
             prioritized_recipe_ids=(),
         )
 
@@ -1830,11 +1864,24 @@ def test_recipe_worker_run_from_args_writes_record_and_preserves_optional_thread
         force: bool = False,
         materialize_processes: int | None = None,
         materialize_worker_threads: int | None = None,
+        compact_workers: int | None = None,
+        compact_shard_workers: int | None = None,
+        manifest_workers: int | None = None,
         repo_root: Path | None = None,
         sweep_id: str | None = None,
         sweeps_root: Path | None = None,
     ) -> dict[str, Any]:
-        del dagzoo_root, force, materialize_processes, repo_root, sweep_id, sweeps_root
+        del (
+            dagzoo_root,
+            force,
+            materialize_processes,
+            compact_workers,
+            compact_shard_workers,
+            manifest_workers,
+            repo_root,
+            sweep_id,
+            sweeps_root,
+        )
         captured_threads.append(materialize_worker_threads)
         return {
             "recipe_id": recipe_id,
@@ -1944,13 +1991,20 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     )
     materialization_summary = json.loads(materialization_summary_path.read_text(encoding="utf-8"))
     assert materialization_summary["curated_compaction"]["dataset_count"] == 1
+    assert materialization_summary["curated_compaction"]["source_shard_count"] == 1
+    assert materialization_summary["curated_compaction"]["output_shard_count"] == 1
+    assert materialization_summary["curated_compaction"]["compact_shard_workers"] == 1
     assert materialization_summary["filter_policy"] == "accepted_only"
     assert materialization_summary["generated_datasets"] == 1
     assert materialization_summary["round_count"] == 1
+    assert materialization_summary["requested_materialize_worker_threads"] == 2
     assert materialization_summary["materialize_worker_threads"] == 2
+    assert materialization_summary["compact_shard_workers"] == 1
     assert materialization_summary["generate_elapsed_seconds"] >= 0.0
+    assert materialization_summary["generate_datasets_per_minute"] is not None
     assert materialization_summary["filter_elapsed_seconds"] == pytest.approx(0.1)
     assert materialization_summary["copy_elapsed_seconds"] >= 0.0
+    assert materialization_summary["copy_datasets_per_minute"] is not None
     assert materialization_summary["upstream_elapsed_seconds"] == pytest.approx(
         materialization_summary["generate_elapsed_seconds"] + 0.1
     )
@@ -1989,6 +2043,10 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert round_timing["filter_elapsed_seconds"] == pytest.approx(0.1)
     assert round_timing["filter_datasets_per_minute"] == pytest.approx(600.0)
     assert round_timing["copy_elapsed_seconds"] >= 0.0
+    assert round_timing["copy_datasets_per_minute"] is not None
+    assert round_timing["source_shard_count"] == 1
+    assert round_timing["output_shard_count"] == 1
+    assert round_timing["compact_shard_workers"] == 1
     assert round_timing["upstream_elapsed_seconds"] == pytest.approx(
         round_timing["generate_elapsed_seconds"] + 0.1
     )
@@ -2000,7 +2058,8 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert timing_summary["timed_invocation_count"] == 1
     assert timing_summary["cumulative_round_count"] == 1
     assert timing_summary["cumulative_generated_datasets"] == 1
-    assert timing_summary["staged_compaction_status"] == "completed"
+    assert timing_summary["staged_compaction_status"] == "already_compacted"
+    assert timing_summary["staged_compaction_reused"] is True
     assert timing_summary["staged_compaction_elapsed_seconds"] >= 0.0
     assert timing_summary["cumulative_generate_elapsed_seconds"] == pytest.approx(
         invocation_timing["generate_elapsed_seconds"]
@@ -2099,6 +2158,7 @@ def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
         start_shard_index: int = 0,
         max_datasets: int | None = None,
         target_datasets_per_shard: int = 512,
+        compact_shard_workers: int | None = None,
     ) -> dict[str, Any]:
         del target_datasets_per_shard
         return real_compact_curated_root(
@@ -2107,6 +2167,7 @@ def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
             start_shard_index=start_shard_index,
             target_datasets_per_shard=2,
             max_datasets=max_datasets,
+            compact_shard_workers=compact_shard_workers,
         )
 
     monkeypatch.setattr(
@@ -2229,6 +2290,7 @@ def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_res
         start_shard_index: int = 0,
         target_datasets_per_shard: int = 512,
         max_datasets: int | None = None,
+        compact_shard_workers: int | None = None,
     ) -> dict[str, Any]:
         if "slow" in str(source_curated_dir):
             time.sleep(0.1)
@@ -2238,6 +2300,7 @@ def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_res
             start_shard_index=start_shard_index,
             target_datasets_per_shard=target_datasets_per_shard,
             max_datasets=max_datasets,
+            compact_shard_workers=compact_shard_workers,
         )
 
     monkeypatch.setattr(
@@ -2277,6 +2340,8 @@ def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_res
 
     assert progress_invocation_ids == ["fast", "slow"]
     assert [item["invocation_id"] for item in compacted["invocations"]] == ["slow", "fast"]
+    assert compacted["compact_workers"] == 2
+    assert compacted["compact_shard_workers"] == 1
     assert compacted["invocations"][0]["curated_compaction"]["dataset_count"] == 2
     assert compacted["invocations"][1]["curated_compaction"]["dataset_count"] == 2
 
@@ -2637,6 +2702,55 @@ def test_copy_curated_round_shards_compacts_full_shards_into_parquet_catalogs(
     assert compaction_summary["source_shard_count"] == 1
     assert compaction_summary["output_shard_count"] == 1
     assert compaction_summary["dataset_count"] == 2
+
+
+def test_compact_curated_root_parallel_matches_serial_output(tmp_path: Path) -> None:
+    source_curated_dir = tmp_path / "source_curated"
+    serial_output_dir = tmp_path / "serial_curated"
+    parallel_output_dir = tmp_path / "parallel_curated"
+    _write_curated_datasets(source_curated_dir, dataset_count=5, seed_base=1200)
+
+    serial_summary = corpus_materialization_invocation_module.compact_curated_root(
+        source_curated_dir=source_curated_dir,
+        output_curated_dir=serial_output_dir,
+        target_datasets_per_shard=2,
+        compact_shard_workers=1,
+    )
+    parallel_summary = corpus_materialization_invocation_module.compact_curated_root(
+        source_curated_dir=source_curated_dir,
+        output_curated_dir=parallel_output_dir,
+        target_datasets_per_shard=2,
+        compact_shard_workers=3,
+    )
+
+    def _snapshot(curated_dir: Path) -> list[dict[str, Any]]:
+        snapshots: list[dict[str, Any]] = []
+        for shard_dir in sorted(curated_dir.glob("shard_*")):
+            snapshots.append(
+                {
+                    "shard": shard_dir.name,
+                    "catalog": pq.read_table(shard_dir / "dataset_catalog.parquet").to_pylist(),
+                    "train_dataset_index": pq.read_table(shard_dir / "train.parquet")[
+                        "dataset_index"
+                    ].to_pylist(),
+                    "test_dataset_index": pq.read_table(shard_dir / "test.parquet")[
+                        "dataset_index"
+                    ].to_pylist(),
+                }
+            )
+        return snapshots
+
+    assert serial_summary["target_datasets_per_shard"] == 2
+    assert serial_summary["source_shard_count"] == 5
+    assert serial_summary["output_shard_count"] == 3
+    assert serial_summary["dataset_count"] == 5
+    assert serial_summary["compact_shard_workers"] == 1
+    assert parallel_summary["target_datasets_per_shard"] == 2
+    assert parallel_summary["source_shard_count"] == 5
+    assert parallel_summary["output_shard_count"] == 3
+    assert parallel_summary["dataset_count"] == 5
+    assert parallel_summary["compact_shard_workers"] == 3
+    assert _snapshot(serial_output_dir) == _snapshot(parallel_output_dir)
 
 
 def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(

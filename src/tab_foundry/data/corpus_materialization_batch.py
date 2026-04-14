@@ -61,6 +61,9 @@ def _recipe_worker_argv(
     result_path: Path,
     materialize_processes: int,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     sweep_id: str | None,
     sweeps_root: Path | None,
 ) -> list[str]:
@@ -86,6 +89,17 @@ def _recipe_worker_argv(
                 str(int(materialize_worker_threads)),
             ]
         )
+    if compact_workers is not None:
+        argv.extend(["--compact-workers", str(int(compact_workers))])
+    if compact_shard_workers is not None:
+        argv.extend(
+            [
+                "--compact-shard-workers",
+                str(int(compact_shard_workers)),
+            ]
+        )
+    if manifest_workers is not None:
+        argv.extend(["--manifest-workers", str(int(manifest_workers))])
     if force:
         argv.append("--force")
     if sweep_id is not None:
@@ -183,6 +197,9 @@ def _materialize_pending_recipes_with_subprocess_fanout(
     pending_requests: Sequence[_PendingRecipeWorkerMaterialization],
     materialize_processes: int | None,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     prioritized_recipe_ids: Sequence[str],
     on_recipe_materialized: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
@@ -234,6 +251,9 @@ def _materialize_pending_recipes_with_subprocess_fanout(
                             result_path=result_path,
                             materialize_processes=allocated_processes,
                             materialize_worker_threads=materialize_worker_threads,
+                            compact_workers=compact_workers,
+                            compact_shard_workers=compact_shard_workers,
+                            manifest_workers=manifest_workers,
                             sweep_id=pending.sweep_id,
                             sweeps_root=pending.sweeps_root,
                         ),
@@ -285,6 +305,9 @@ def materialize_corpus_ref(
     force: bool = False,
     materialize_processes: int | None = None,
     materialize_worker_threads: int | None = None,
+    compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
+    manifest_workers: int | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
@@ -298,6 +321,9 @@ def materialize_corpus_ref(
             force=force,
             materialize_processes=materialize_processes,
             materialize_worker_threads=materialize_worker_threads,
+            compact_workers=compact_workers,
+            compact_shard_workers=compact_shard_workers,
+            manifest_workers=manifest_workers,
             repo_root=repo_root,
             sweep_id=sweep_id,
             sweeps_root=sweeps_root,
@@ -319,6 +345,9 @@ def materialize_corpus_ref(
         force=force,
         materialize_processes=materialize_processes,
         materialize_worker_threads=materialize_worker_threads,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+        manifest_workers=manifest_workers,
         repo_root=repo_root,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
@@ -342,6 +371,9 @@ def materialize_corpus_refs_batch(
     force: bool = False,
     materialize_processes: int | None = None,
     materialize_worker_threads: int | None = None,
+    compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
+    manifest_workers: int | None = None,
     prioritized_recipe_ids: Sequence[str] = (),
     on_corpus_materialized: Callable[[dict[str, Any]], None] | None = None,
     repo_root: Path | None = None,
@@ -491,6 +523,9 @@ def materialize_corpus_refs_batch(
             pending_requests=pending_requests,
             materialize_processes=materialize_processes,
             materialize_worker_threads=materialize_worker_threads,
+            compact_workers=compact_workers,
+            compact_shard_workers=compact_shard_workers,
+            manifest_workers=manifest_workers,
             prioritized_recipe_ids=prioritized_recipe_ids,
             on_recipe_materialized=_on_recipe_materialized,
         )

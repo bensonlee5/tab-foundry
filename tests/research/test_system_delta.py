@@ -149,11 +149,14 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         force: bool = False,
         materialize_processes: int | None = None,
         materialize_worker_threads: int | None = None,
+        compact_workers: int | None = None,
+        compact_shard_workers: int | None = None,
+        manifest_workers: int | None = None,
         repo_root: Path | None = None,
         sweep_id: str | None = None,
         sweeps_root: Path | None = None,
     ) -> list[dict[str, object]]:
-        del materialize_worker_threads
+        del materialize_worker_threads, compact_workers, compact_shard_workers, manifest_workers
         records: list[dict[str, object]] = []
         for corpus_ref in corpus_refs:
             recipe_id = str(corpus_ref).split("/", 1)[0]
@@ -244,6 +247,13 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         "global_recipe/global_recipe__123456789abc",
         "local_recipe/local_recipe__cached",
     ]
+    assert payload["telemetry_summary"]["requested_recipe_count"] == 2
+    assert payload["telemetry_summary"]["newly_materialized_recipe_count"] == 2
+    telemetry_summary_path = Path(str(payload["telemetry_summary_path"]))
+    assert telemetry_summary_path.exists()
+    assert json.loads(telemetry_summary_path.read_text(encoding="utf-8")) == payload[
+        "telemetry_summary"
+    ]
 
 
 def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
@@ -306,6 +316,7 @@ def test_materialize_sweep_corpora_reads_corpus_ref_from_surface_overrides(
     assert payload["requested_corpus_refs"] == ["override_recipe"]
     assert payload["requested_recipe_ids"] == ["override_recipe"]
     assert payload["corpus_refs"] == ["override_recipe/override_recipe__123456789abc"]
+    assert payload["telemetry_summary"]["requested_recipe_count"] == 1
 
 
 def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
@@ -372,6 +383,7 @@ def test_materialize_sweep_corpora_prefers_explicit_queue_corpus_ref(
         "top_level_recipe/top_level_recipe__123456789abc",
         "override_recipe/override_recipe__123456789abc",
     ]
+    assert payload["telemetry_summary"]["requested_recipe_count"] == 2
 
 
 def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_materialization(
@@ -390,12 +402,17 @@ def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_mate
         },
     )
     captured_materialize_processes: list[int] = []
-
     captured_materialize_worker_threads: list[int | None] = []
+    captured_compact_workers: list[int | None] = []
+    captured_compact_shard_workers: list[int | None] = []
+    captured_manifest_workers: list[int | None] = []
 
     def _fake_materialize_corpus_refs_batch(**kwargs) -> list[dict[str, object]]:
         captured_materialize_processes.append(int(kwargs["materialize_processes"]))
         captured_materialize_worker_threads.append(kwargs["materialize_worker_threads"])
+        captured_compact_workers.append(kwargs["compact_workers"])
+        captured_compact_shard_workers.append(kwargs["compact_shard_workers"])
+        captured_manifest_workers.append(kwargs["manifest_workers"])
         records: list[dict[str, object]] = []
         for corpus_ref in kwargs["corpus_refs"]:
             corpus_ref = str(corpus_ref)
@@ -423,6 +440,9 @@ def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_mate
         force=True,
         materialize_processes=3,
         materialize_worker_threads=2,
+        compact_workers=4,
+        compact_shard_workers=5,
+        manifest_workers=6,
         index_path=tmp_path / "index.yaml",
         catalog_path=tmp_path / "reference" / "system_delta_catalog.yaml",
     )
@@ -430,6 +450,9 @@ def test_materialize_sweep_corpora_forwards_materialize_processes_to_corpus_mate
     assert payload["requested_corpus_refs"] == ["recipe_a", "recipe_b"]
     assert captured_materialize_processes == [3]
     assert captured_materialize_worker_threads == [2]
+    assert captured_compact_workers == [4]
+    assert captured_compact_shard_workers == [5]
+    assert captured_manifest_workers == [6]
 
 
 def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(

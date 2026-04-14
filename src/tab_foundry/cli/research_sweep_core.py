@@ -144,6 +144,9 @@ def _run_sweep_materialize_corpora(
     json_mode: bool,
     materialize_processes: int,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     index_path: Path,
     catalog_path: Path,
 ) -> int:
@@ -153,6 +156,9 @@ def _run_sweep_materialize_corpora(
         force=force,
         materialize_processes=materialize_processes,
         materialize_worker_threads=materialize_worker_threads,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+        manifest_workers=manifest_workers,
         index_path=index_path,
         catalog_path=catalog_path,
     )
@@ -163,6 +169,18 @@ def _run_sweep_materialize_corpora(
         f"Sweep corpora materialized: sweep_id={payload['sweep_id']} "
         f"count={payload['recipe_count']}"
     )
+    telemetry_summary = payload.get("telemetry_summary")
+    if isinstance(telemetry_summary, dict):
+        print(
+            "Telemetry:",
+            f"requested_recipes={telemetry_summary.get('requested_recipe_count')}",
+            f"reused={telemetry_summary.get('reused_recipe_count')}",
+            f"new={telemetry_summary.get('newly_materialized_recipe_count')}",
+            f"elapsed={float(telemetry_summary.get('batch_elapsed_seconds', 0.0)):.2f}s",
+        )
+    telemetry_summary_path = payload.get("telemetry_summary_path")
+    if telemetry_summary_path is not None:
+        print(f"Telemetry summary: {telemetry_summary_path}")
     for record in payload["records"]:
         print(
             f"{record['recipe_id']}: corpus_ref={record['corpus_ref']} "
@@ -247,6 +265,24 @@ def VALIDATE_COMMAND(
 @materialize_worker_options(
     processes_help="Maximum concurrent invocation subprocesses to use while materializing each corpus",
 )
+@click.option(
+    "--compact-workers",
+    default=None,
+    type=click.IntRange(min=1),
+    help="Optional parallelism override for staged compaction across invocations",
+)
+@click.option(
+    "--compact-shard-workers",
+    default=None,
+    type=click.IntRange(min=1),
+    help="Optional parallelism override for shard writes within each compaction task",
+)
+@click.option(
+    "--manifest-workers",
+    default=None,
+    type=click.IntRange(min=1),
+    help="Optional parallelism override for manifest assembly",
+)
 @sweep_path_options(include_registry=True, include_sweeps_root=False)
 def MATERIALIZE_CORPORA_COMMAND(
     sweep_id: str,
@@ -255,6 +291,9 @@ def MATERIALIZE_CORPORA_COMMAND(
     json_mode: bool,
     materialize_processes: int,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     catalog_path: Path,
     index_path: Path,
     registry_path: Path,
@@ -267,6 +306,9 @@ def MATERIALIZE_CORPORA_COMMAND(
         json_mode=json_mode,
         materialize_processes=materialize_processes,
         materialize_worker_threads=materialize_worker_threads,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+        manifest_workers=manifest_workers,
         index_path=index_path,
         catalog_path=catalog_path,
     )

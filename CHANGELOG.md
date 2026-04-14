@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-04-14
+
+### Changed
+
+- User-facing note: corpus materialization now exposes `--compact-workers`,
+  `--compact-shard-workers`, and `--manifest-workers` across the data corpus
+  and research sweep materialization entrypoints, and accepted-only curated
+  compaction now parallelizes inner shard writes through the shared compaction
+  engine.
+- User-facing note: finalized corpus records and staged invocation
+  `materialization_summary.json` payloads now persist richer corpus
+  materialization telemetry, including worker settings, compaction/copy shard
+  counts, staged-compaction reuse markers, and stage throughput summaries.
+- User-facing note: `research sweep materialize-corpora --json` now returns a
+  top-level `telemetry_summary`, and each sweep materialization writes a
+  sweep-local aggregate artifact at
+  `outputs/staged_ladder/research/<sweep_id>/corpus_materialization_summary.json`.
+- User-facing note: `data corpus inspect` now prints a compact materialization
+  telemetry block when the finalized corpus record includes persisted timing
+  data.
+
 ## [0.17.0] - 2026-04-14
 
 ### Changed

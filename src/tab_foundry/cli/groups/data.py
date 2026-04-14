@@ -217,6 +217,9 @@ def _run_corpus_materialize(
     force: bool,
     materialize_processes: int,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     json_mode: bool,
 ) -> int:
     record = materialize_corpus_recipe(
@@ -225,6 +228,9 @@ def _run_corpus_materialize(
         force=force,
         materialize_processes=materialize_processes,
         materialize_worker_threads=materialize_worker_threads,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+        manifest_workers=manifest_workers,
         sweep_id=sweep_id,
     )
     if json_mode:
@@ -246,6 +252,8 @@ def _run_corpus_finalize_staged(
     verify: str,
     experiment: str | None,
     override: tuple[str, ...],
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
     manifest_workers: int | None,
     force: bool,
     json_mode: bool,
@@ -257,6 +265,8 @@ def _run_corpus_finalize_staged(
         stage_root=stage_root,
         force=force,
         sweep_id=sweep_id,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
         manifest_workers=manifest_workers,
     )
     record = result["record"]
@@ -314,6 +324,7 @@ def _run_corpus_compact_staged(
     stage_root: Path | None,
     force: bool,
     compact_workers: int | None,
+    compact_shard_workers: int | None,
     json_mode: bool,
 ) -> int:
     progress_callback = None
@@ -336,6 +347,7 @@ def _run_corpus_compact_staged(
         stage_root=stage_root,
         force=force,
         compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
         progress_callback=progress_callback,
         sweep_id=sweep_id,
     )
@@ -357,6 +369,74 @@ def _run_corpus_compact_staged(
     return 0
 
 
+def _print_materialization_timing_summary(record: dict[str, object]) -> None:
+    dagzoo_provenance_summary = record.get("dagzoo_provenance_summary")
+    if not isinstance(dagzoo_provenance_summary, dict):
+        return
+    materialization_timing = dagzoo_provenance_summary.get("materialization_timing")
+    if not isinstance(materialization_timing, dict) or not materialization_timing:
+        return
+    print("Materialization:")
+    worker_bits: list[str] = []
+    for label, key in (
+        ("processes", "materialize_processes"),
+        ("worker_threads", "materialize_worker_threads"),
+        ("compact_workers", "compact_workers"),
+        ("compact_shard_workers", "compact_shard_workers"),
+        ("manifest_workers", "manifest_workers"),
+    ):
+        value = materialization_timing.get(key)
+        if value is not None:
+            worker_bits.append(f"{label}={value}")
+    if worker_bits:
+        print("  Workers:", ", ".join(worker_bits))
+    totals_bits: list[str] = []
+    for label, key in (
+        ("invocations", "invocation_count"),
+        ("rounds", "cumulative_round_count"),
+        ("generated", "cumulative_generated_datasets"),
+        ("accepted", "cumulative_accepted_datasets"),
+        ("rejected", "cumulative_rejected_datasets"),
+        ("curated", "cumulative_curated_accepted_datasets"),
+        ("source_shards", "cumulative_source_shard_count"),
+        ("output_shards", "cumulative_output_shard_count"),
+    ):
+        value = materialization_timing.get(key)
+        if value is not None:
+            totals_bits.append(f"{label}={value}")
+    if totals_bits:
+        print("  Totals:", ", ".join(totals_bits))
+    elapsed_bits: list[str] = []
+    for label, key in (
+        ("fanout", "invocation_fanout_elapsed_seconds"),
+        ("generate", "cumulative_generate_elapsed_seconds"),
+        ("filter", "cumulative_filter_elapsed_seconds"),
+        ("copy", "cumulative_copy_elapsed_seconds"),
+        ("staged_compact", "staged_compaction_elapsed_seconds"),
+        ("manifest", "manifest_build_elapsed_seconds"),
+        ("promote", "promotion_elapsed_seconds"),
+        ("recipe", "recipe_elapsed_seconds"),
+    ):
+        value = materialization_timing.get(key)
+        if value is not None:
+            elapsed_bits.append(f"{label}={float(value):.2f}s")
+    if elapsed_bits:
+        print("  Elapsed:", ", ".join(elapsed_bits))
+    status_bits: list[str] = []
+    for label, key in (
+        ("mode", "materialization_mode"),
+        ("reused", "materialization_reused"),
+        ("staged_compaction", "staged_compaction_status"),
+        ("staged_compaction_reused", "staged_compaction_reused"),
+        ("cached_corpus_reuse", "cached_corpus_reuse"),
+    ):
+        value = materialization_timing.get(key)
+        if value is not None:
+            status_bits.append(f"{label}={value}")
+    if status_bits:
+        print("  Status:", ", ".join(status_bits))
+
+
 def _run_corpus_inspect(*, corpus_ref: str, json_mode: bool) -> int:
     record = load_corpus_record(corpus_ref)
     if json_mode:
@@ -369,6 +449,7 @@ def _run_corpus_inspect(*, corpus_ref: str, json_mode: bool) -> int:
     print(f"Manifest: {manifest['manifest_path']}")
     print(f"Records: {manifest['inspection']['total_records']}")
     print(f"Splits: {json.dumps(manifest['inspection']['split_counts'], sort_keys=True)}")
+    _print_materialization_timing_summary(record)
     return 0
 
 
@@ -548,6 +629,24 @@ def CORPUS_LIST_RECIPES_COMMAND(sweep_id: str | None, json_mode: bool) -> int:
 @materialize_worker_options(
     processes_help="Maximum concurrent invocation subprocesses to use while materializing the corpus",
 )
+@click.option(
+    "--compact-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for staged compaction across invocations",
+)
+@click.option(
+    "--compact-shard-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for shard writes within each compaction task",
+)
+@click.option(
+    "--manifest-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for manifest assembly",
+)
 @json_output_option
 def CORPUS_MATERIALIZE_COMMAND(
     recipe: str,
@@ -556,6 +655,9 @@ def CORPUS_MATERIALIZE_COMMAND(
     force: bool,
     materialize_processes: int,
     materialize_worker_threads: int | None,
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
+    manifest_workers: int | None,
     json_mode: bool,
 ) -> int:
     return _run_corpus_materialize(
@@ -565,6 +667,9 @@ def CORPUS_MATERIALIZE_COMMAND(
         force=force,
         materialize_processes=materialize_processes,
         materialize_worker_threads=materialize_worker_threads,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+        manifest_workers=manifest_workers,
         json_mode=json_mode,
     )
 
@@ -580,6 +685,18 @@ def CORPUS_MATERIALIZE_COMMAND(
 @click.option("--verify", default="fast", show_default=True, type=click.Choice(_VERIFY_CHOICES), help="Staged corpus verification level before promotion")
 @click.option("--experiment", default=None, help="Optional experiment name for manifest compatibility preflight after promotion")
 @click.option("--override", "override_", multiple=True, help="Optional Hydra override applied on top of --experiment or repo defaults")
+@click.option(
+    "--compact-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for staged compaction across invocations",
+)
+@click.option(
+    "--compact-shard-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for shard writes within each compaction task",
+)
 @click.option("--manifest-workers", default=None, type=POSITIVE_INT, help="Optional parallelism override for staged manifest assembly")
 @click.option("--force", is_flag=True, help="Replace an existing local materialization")
 @json_output_option
@@ -591,6 +708,8 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
     verify: str,
     experiment: str | None,
     override_: tuple[str, ...],
+    compact_workers: int | None,
+    compact_shard_workers: int | None,
     manifest_workers: int | None,
     force: bool,
     json_mode: bool,
@@ -603,6 +722,8 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
         verify=verify,
         experiment=experiment,
         override=override_,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
         manifest_workers=manifest_workers,
         force=force,
         json_mode=json_mode,
@@ -618,6 +739,12 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
 @dagzoo_root_option()
 @path_option("stage-root", default=None, help="Optional staged corpus root override. Defaults to outputs/corpora/<recipe>/.staging")
 @click.option("--compact-workers", default=None, type=POSITIVE_INT, help="Optional parallelism override for staged compaction across invocations")
+@click.option(
+    "--compact-shard-workers",
+    default=None,
+    type=POSITIVE_INT,
+    help="Optional parallelism override for shard writes within each compaction task",
+)
 @click.option("--force", is_flag=True, help="Recompact even if parquet catalogs already exist in the staged curated roots")
 @json_output_option
 def CORPUS_COMPACT_STAGED_COMMAND(
@@ -626,6 +753,7 @@ def CORPUS_COMPACT_STAGED_COMMAND(
     dagzoo_root: Path,
     stage_root: Path | None,
     compact_workers: int | None,
+    compact_shard_workers: int | None,
     force: bool,
     json_mode: bool,
 ) -> int:
@@ -635,6 +763,7 @@ def CORPUS_COMPACT_STAGED_COMMAND(
         dagzoo_root=dagzoo_root,
         stage_root=stage_root,
         compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
         force=force,
         json_mode=json_mode,
     )

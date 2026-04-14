@@ -485,13 +485,95 @@ def build_dagzoo_provenance_summary(
             return None
         return int(sum(resolved))
 
+    def _resolved_optional_int(items: Sequence[Mapping[str, Any]], key: str) -> int | None:
+        resolved = [
+            value
+            for value in (_optional_int(item.get(key)) for item in items)
+            if value is not None
+        ]
+        if not resolved:
+            return None
+        unique_values = sorted(set(resolved))
+        return int(unique_values[0] if len(unique_values) == 1 else max(unique_values))
+
+    def _datasets_per_minute(
+        dataset_count: int | None,
+        elapsed_seconds: float | None,
+    ) -> float | None:
+        if dataset_count is None or elapsed_seconds is None or elapsed_seconds <= 0.0:
+            return None
+        return float(dataset_count) / float(elapsed_seconds) * 60.0
+
+    cumulative_generated_datasets = _sum_optional_int(
+        invocation_materialization_timings,
+        "generated_datasets",
+    )
+    cumulative_generate_elapsed_seconds = _sum_optional_float(
+        invocation_materialization_timings,
+        "generate_elapsed_seconds",
+    )
+    cumulative_filter_elapsed_seconds = _sum_optional_float(
+        invocation_materialization_timings,
+        "filter_elapsed_seconds",
+    )
+    cumulative_copy_elapsed_seconds = _sum_optional_float(
+        invocation_materialization_timings,
+        "copy_elapsed_seconds",
+    )
+    cumulative_accepted_datasets = _sum_optional_int(
+        invocation_materialization_timings,
+        "accepted_datasets",
+    )
+    cumulative_rejected_datasets = _sum_optional_int(
+        invocation_materialization_timings,
+        "rejected_datasets",
+    )
+    cumulative_curated_accepted_datasets = _sum_optional_int(
+        invocation_materialization_timings,
+        "curated_accepted_datasets",
+    )
+    cumulative_source_shard_count = _sum_optional_int(
+        invocation_materialization_timings,
+        "source_shard_count",
+    )
+    cumulative_output_shard_count = _sum_optional_int(
+        invocation_materialization_timings,
+        "output_shard_count",
+    )
+
     materialization_timing = _drop_none_values(
         {
+            "materialization_mode": (
+                _optional_string(top_level_materialization_timing.get("materialization_mode"))
+            ),
+            "materialization_reused": _optional_bool(
+                top_level_materialization_timing.get("materialization_reused")
+            ),
             "recipe_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("recipe_elapsed_seconds")
             ),
             "invocation_fanout_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("invocation_fanout_elapsed_seconds")
+            ),
+            "materialize_processes": _optional_int(
+                top_level_materialization_timing.get("materialize_processes")
+            ),
+            "materialize_worker_threads": (
+                _optional_int(top_level_materialization_timing.get("materialize_worker_threads"))
+                or _resolved_optional_int(
+                    invocation_materialization_timings,
+                    "materialize_worker_threads",
+                )
+            ),
+            "compact_workers": _optional_int(
+                top_level_materialization_timing.get("compact_workers")
+            ),
+            "compact_shard_workers": (
+                _optional_int(top_level_materialization_timing.get("compact_shard_workers"))
+                or _resolved_optional_int(
+                    invocation_materialization_timings,
+                    "compact_shard_workers",
+                )
             ),
             "staged_compaction_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("staged_compaction_elapsed_seconds")
@@ -511,6 +593,7 @@ def build_dagzoo_provenance_summary(
             "promotion_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("promotion_elapsed_seconds")
             ),
+            "invocation_count": invocation_count,
             "timed_invocation_count": len(invocation_materialization_timings)
             if invocation_materialization_timings
             else None,
@@ -518,22 +601,25 @@ def build_dagzoo_provenance_summary(
                 invocation_materialization_timings,
                 "round_count",
             ),
-            "cumulative_generated_datasets": _sum_optional_int(
-                invocation_materialization_timings,
-                "generated_datasets",
+            "cumulative_generated_datasets": cumulative_generated_datasets,
+            "cumulative_accepted_datasets": (
+                cumulative_accepted_datasets
+                if cumulative_accepted_datasets is not None
+                else accepted_datasets
             ),
-            "cumulative_generate_elapsed_seconds": _sum_optional_float(
-                invocation_materialization_timings,
-                "generate_elapsed_seconds",
+            "cumulative_rejected_datasets": (
+                cumulative_rejected_datasets
+                if cumulative_rejected_datasets is not None
+                else rejected_datasets
             ),
-            "cumulative_filter_elapsed_seconds": _sum_optional_float(
-                invocation_materialization_timings,
-                "filter_elapsed_seconds",
+            "cumulative_curated_accepted_datasets": (
+                cumulative_curated_accepted_datasets
+                if cumulative_curated_accepted_datasets is not None
+                else curated_accepted_datasets
             ),
-            "cumulative_copy_elapsed_seconds": _sum_optional_float(
-                invocation_materialization_timings,
-                "copy_elapsed_seconds",
-            ),
+            "cumulative_generate_elapsed_seconds": cumulative_generate_elapsed_seconds,
+            "cumulative_filter_elapsed_seconds": cumulative_filter_elapsed_seconds,
+            "cumulative_copy_elapsed_seconds": cumulative_copy_elapsed_seconds,
             "cumulative_upstream_elapsed_seconds": _sum_optional_float(
                 invocation_materialization_timings,
                 "upstream_elapsed_seconds",
@@ -545,6 +631,23 @@ def build_dagzoo_provenance_summary(
             "cumulative_invocation_elapsed_seconds": _sum_optional_float(
                 invocation_materialization_timings,
                 "invocation_elapsed_seconds",
+            ),
+            "cumulative_source_shard_count": cumulative_source_shard_count,
+            "cumulative_output_shard_count": cumulative_output_shard_count,
+            "cumulative_generate_datasets_per_minute": _datasets_per_minute(
+                cumulative_generated_datasets,
+                cumulative_generate_elapsed_seconds,
+            ),
+            "cumulative_filter_datasets_per_minute": _datasets_per_minute(
+                cumulative_generated_datasets,
+                cumulative_filter_elapsed_seconds,
+            ),
+            "cumulative_copy_datasets_per_minute": _datasets_per_minute(
+                cumulative_curated_accepted_datasets,
+                cumulative_copy_elapsed_seconds,
+            ),
+            "staged_compaction_reused": _optional_bool(
+                top_level_materialization_timing.get("staged_compaction_reused")
             ),
         }
     )

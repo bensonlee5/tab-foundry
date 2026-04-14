@@ -6,11 +6,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 import inspect
 import json
+import math
 import os
 from pathlib import Path
 import shutil
 import time
-from typing import Any, Callable, cast
+from typing import Any, Callable, Mapping, cast
 
 from tab_realdata_hub.dagzoo_handoff import load_dagzoo_handoff_info
 from tab_realdata_hub.manifest import build_manifest
@@ -38,6 +39,7 @@ from .corpus_materialization_shared import (
     _git_info,
     _int_or_none,
     _materialization_usable_cpu_budget,
+    _resolve_materialize_processes,
     _read_json_mapping,
     _snapshot_tree,
 )
@@ -47,7 +49,6 @@ from . import corpus_materialization_invocation as invocation_module
 _BUILD_MANIFEST_SUPPORTS_WORKERS = (
     "manifest_workers" in inspect.signature(build_manifest).parameters
 )
-_AUTO_MANIFEST_WORKERS_MIN_DATASETS = 512
 _AUTO_MANIFEST_WORKER_CAP = 32
 
 
@@ -358,18 +359,206 @@ def _resolved_compact_workers(
     return max(1, min(int(invocation_count), cpu_count, 32))
 
 
+def _estimated_manifest_work_units(pending: _PendingCorpusMaterialization) -> int:
+    invocation_count = len(pending.recipe.invocations)
+    if invocation_count <= 0:
+        return 1
+    if str(pending.recipe.manifest_policy.filter_policy).strip() != "accepted_only":
+        generated_roots, _dagzoo_handoff_manifest_path = _manifest_inputs_for_pending(pending)
+        return max(1, len(generated_roots))
+    output_shard_count = 0
+    for spec in pending.recipe.invocations:
+        summary_path = invocation_module._invocation_materialization_summary_path(
+            corpus_root=pending.stage_root,
+            invocation_id=str(spec.invocation_id),
+        )
+        if summary_path.exists():
+            summary_payload = _read_json_mapping(
+                summary_path,
+                context=f"materialization summary for invocation {spec.invocation_id!r}",
+            )
+            curated_compaction = _curated_compaction_payload(summary_payload)
+            resolved_output_shards = _int_or_none(curated_compaction.get("output_shard_count"))
+            if resolved_output_shards is not None:
+                output_shard_count += max(0, int(resolved_output_shards))
+                continue
+        output_shard_count += max(
+            1,
+            int(
+                math.ceil(
+                    float(int(spec.num_datasets))
+                    / float(invocation_module.CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD)
+                )
+            ),
+        )
+    return max(invocation_count, output_shard_count)
+
+
 def _auto_manifest_workers_for_pending(
     pending: _PendingCorpusMaterialization,
 ) -> int | None:
     if not _BUILD_MANIFEST_SUPPORTS_WORKERS:
         return None
-    if str(pending.recipe.manifest_policy.filter_policy).strip() != "accepted_only":
+    estimated_work_units = _estimated_manifest_work_units(pending)
+    if estimated_work_units <= 1:
         return None
-    requested_datasets = sum(int(spec.num_datasets) for spec in pending.recipe.invocations)
-    if requested_datasets < _AUTO_MANIFEST_WORKERS_MIN_DATASETS:
-        return None
-    return max(1, min(_materialization_usable_cpu_budget(), _AUTO_MANIFEST_WORKER_CAP))
+    return max(
+        1,
+        min(
+            int(estimated_work_units),
+            int(_materialization_usable_cpu_budget()),
+            _AUTO_MANIFEST_WORKER_CAP,
+        ),
+    )
 
+
+def _resolved_staged_compact_shard_workers(
+    *,
+    compact_workers: int,
+    compact_shard_workers: int | None,
+) -> int | None:
+    if compact_shard_workers is not None:
+        return int(compact_shard_workers)
+    if int(compact_workers) > 1:
+        return 1
+    return None
+
+
+def _curated_compaction_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    raw_payload = payload.get("curated_compaction")
+    return cast(Mapping[str, Any], raw_payload) if isinstance(raw_payload, Mapping) else {}
+
+
+def _curated_compaction_int(payload: Mapping[str, Any], key: str) -> int:
+    value = _int_or_none(_curated_compaction_payload(payload).get(key))
+    return 0 if value is None else int(value)
+
+
+def _staged_compaction_result(
+    *,
+    recipe_id: str,
+    stage_root: Path,
+    resolved_compact_workers: int,
+    requested_compact_workers: int | None,
+    requested_compact_shard_workers: int | None,
+    invocation_summaries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    compacted_invocation_count = sum(
+        1 for summary in invocation_summaries if str(summary.get("status")) == "compacted"
+    )
+    already_compacted_invocation_count = sum(
+        1 for summary in invocation_summaries if str(summary.get("status")) == "already_compacted"
+    )
+    compact_shard_worker_values = [
+        resolved
+        for resolved in (
+            _int_or_none(_curated_compaction_payload(summary).get("compact_shard_workers"))
+            for summary in invocation_summaries
+        )
+        if resolved is not None
+    ]
+    summary = {
+        "invocation_count": len(invocation_summaries),
+        "compacted_invocation_count": compacted_invocation_count,
+        "already_compacted_invocation_count": already_compacted_invocation_count,
+        "source_shard_count": sum(
+            _curated_compaction_int(invocation_summary, "source_shard_count")
+            for invocation_summary in invocation_summaries
+        ),
+        "output_shard_count": sum(
+            _curated_compaction_int(invocation_summary, "output_shard_count")
+            for invocation_summary in invocation_summaries
+        ),
+        "dataset_count": sum(
+            _curated_compaction_int(invocation_summary, "dataset_count")
+            for invocation_summary in invocation_summaries
+        ),
+    }
+    resolved_compact_shard_workers = (
+        max(compact_shard_worker_values) if compact_shard_worker_values else None
+    )
+    if compacted_invocation_count == 0 and already_compacted_invocation_count > 0:
+        status = "already_compacted"
+    elif compacted_invocation_count > 0 and already_compacted_invocation_count > 0:
+        status = "mixed"
+    else:
+        status = "compacted"
+    return {
+        "recipe_id": recipe_id,
+        "stage_root": str(stage_root.resolve()),
+        "status": status,
+        "requested_compact_workers": (
+            None if requested_compact_workers is None else int(requested_compact_workers)
+        ),
+        "compact_workers": int(resolved_compact_workers),
+        "requested_compact_shard_workers": (
+            None
+            if requested_compact_shard_workers is None
+            else int(requested_compact_shard_workers)
+        ),
+        "compact_shard_workers": (
+            None
+            if resolved_compact_shard_workers is None
+            else int(resolved_compact_shard_workers)
+        ),
+        "summary": summary,
+        "invocations": invocation_summaries,
+    }
+
+
+def _compaction_timing_payload(
+    *,
+    compaction: Mapping[str, Any],
+    elapsed_seconds: float,
+) -> dict[str, Any]:
+    summary = (
+        cast(Mapping[str, Any], compaction.get("summary"))
+        if isinstance(compaction.get("summary"), Mapping)
+        else {}
+    )
+    compacted_invocation_count = _int_or_none(summary.get("compacted_invocation_count"))
+    already_compacted_invocation_count = _int_or_none(
+        summary.get("already_compacted_invocation_count")
+    )
+    source_shard_count = _int_or_none(summary.get("source_shard_count"))
+    output_shard_count = _int_or_none(summary.get("output_shard_count"))
+    dataset_count = _int_or_none(summary.get("dataset_count"))
+    return _drop_none_values(
+        {
+            "staged_compaction_elapsed_seconds": float(elapsed_seconds),
+            "staged_compaction_status": (
+                str(compaction.get("status")).strip()
+                if isinstance(compaction.get("status"), str)
+                and str(compaction.get("status")).strip()
+                else "completed"
+            ),
+            "compact_workers": _int_or_none(compaction.get("compact_workers")),
+            "compact_shard_workers": _int_or_none(compaction.get("compact_shard_workers")),
+            "staged_compaction_invocation_count": _int_or_none(summary.get("invocation_count")),
+            "staged_compaction_compacted_invocation_count": compacted_invocation_count,
+            "staged_compaction_reused_invocation_count": already_compacted_invocation_count,
+            "staged_compaction_reused": (
+                True
+                if compacted_invocation_count == 0 and already_compacted_invocation_count is not None
+                else False if compacted_invocation_count is not None else None
+            ),
+            "staged_compaction_source_shard_count": source_shard_count,
+            "staged_compaction_output_shard_count": output_shard_count,
+            "staged_compaction_dataset_count": dataset_count,
+            "staged_compaction_datasets_per_minute": (
+                None
+                if dataset_count is None or float(elapsed_seconds) <= 0.0
+                else float(dataset_count) / float(elapsed_seconds) * 60.0
+            ),
+        }
+    )
+
+
+def _fresh_materialization_timing() -> dict[str, Any]:
+    return {
+        "materialization_mode": "fresh",
+        "materialization_reused": False,
+    }
 
 def _existing_compacted_summary(curated_root: Path) -> dict[str, Any] | None:
     if not curated_root.exists():
@@ -406,7 +595,9 @@ def _compact_staged_invocation(
     stage_root: Path,
     invocation_id: str,
     force: bool,
+    compact_shard_workers: int | None = None,
 ) -> dict[str, Any]:
+    compaction_start_time = time.perf_counter()
     curated_root = invocation_module._invocation_curated_root(
         corpus_root=stage_root,
         invocation_id=invocation_id,
@@ -425,7 +616,11 @@ def _compact_staged_invocation(
             if summary_path.exists()
             else {}
         )
-        summary_payload["curated_compaction"] = existing_compacted
+        prior_curated_compaction = dict(_curated_compaction_payload(summary_payload))
+        summary_payload["curated_compaction"] = {
+            **prior_curated_compaction,
+            **existing_compacted,
+        }
         summary_path.write_text(
             json.dumps(summary_payload, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -434,6 +629,8 @@ def _compact_staged_invocation(
             "invocation_id": invocation_id,
             "curated_root": str(curated_root.resolve()),
             "curated_compaction": existing_compacted,
+            "compact_shard_workers": _int_or_none(existing_compacted.get("compact_shard_workers")),
+            "elapsed_seconds": _elapsed_seconds_since(compaction_start_time),
             "status": "already_compacted",
         }
     compacting_root = curated_root.parent / f"{curated_root.name}.compacting"
@@ -445,6 +642,7 @@ def _compact_staged_invocation(
     summary = invocation_module.compact_curated_root(
         source_curated_dir=curated_root,
         output_curated_dir=compacting_root,
+        compact_shard_workers=compact_shard_workers,
     )
     curated_root.rename(backup_root)
     compacting_root.rename(curated_root)
@@ -467,6 +665,7 @@ def _compact_staged_invocation(
         "source_shard_count": int(summary["source_shard_count"]),
         "output_shard_count": int(summary["output_shard_count"]),
         "dataset_count": int(summary["dataset_count"]),
+        "compact_shard_workers": int(summary["compact_shard_workers"]),
     }
     summary_path.write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n",
@@ -476,6 +675,8 @@ def _compact_staged_invocation(
         "invocation_id": invocation_id,
         "curated_root": str(curated_root.resolve()),
         "curated_compaction": summary_payload["curated_compaction"],
+        "compact_shard_workers": int(summary["compact_shard_workers"]),
+        "elapsed_seconds": _elapsed_seconds_since(compaction_start_time),
         "status": "compacted",
     }
 
@@ -487,11 +688,13 @@ def compact_staged_corpus_recipe(
     stage_root: Path | None = None,
     force: bool = False,
     compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
+    compaction_start_time = time.perf_counter()
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
     pending = _pending_recipe_materialization_from_existing_stage(
@@ -513,6 +716,10 @@ def compact_staged_corpus_recipe(
         compact_workers=compact_workers,
         invocation_count=invocation_count,
     )
+    resolved_compact_shard_workers = _resolved_staged_compact_shard_workers(
+        compact_workers=resolved_compact_workers,
+        compact_shard_workers=compact_shard_workers,
+    )
     completed_by_invocation_id: dict[str, dict[str, Any]] = {}
     if resolved_compact_workers <= 1 or invocation_count <= 1:
         for index, spec in enumerate(pending.recipe.invocations, start=1):
@@ -520,6 +727,7 @@ def compact_staged_corpus_recipe(
                 stage_root=pending.stage_root,
                 invocation_id=str(spec.invocation_id),
                 force=force,
+                compact_shard_workers=resolved_compact_shard_workers,
             )
             completed_by_invocation_id[str(spec.invocation_id)] = summary
             if progress_callback is not None:
@@ -538,6 +746,7 @@ def compact_staged_corpus_recipe(
                     stage_root=pending.stage_root,
                     invocation_id=str(spec.invocation_id),
                     force=force,
+                    compact_shard_workers=resolved_compact_shard_workers,
                 ): (index, str(spec.invocation_id))
                 for index, spec in enumerate(pending.recipe.invocations, start=1)
             }
@@ -556,11 +765,16 @@ def compact_staged_corpus_recipe(
     invocation_summaries = [
         completed_by_invocation_id[str(spec.invocation_id)] for spec in pending.recipe.invocations
     ]
-    return {
-        "recipe_id": pending.recipe.recipe_id,
-        "stage_root": str(pending.stage_root.resolve()),
-        "invocations": invocation_summaries,
-    }
+    result = _staged_compaction_result(
+        recipe_id=pending.recipe.recipe_id,
+        stage_root=pending.stage_root,
+        resolved_compact_workers=resolved_compact_workers,
+        requested_compact_workers=compact_workers,
+        requested_compact_shard_workers=compact_shard_workers,
+        invocation_summaries=invocation_summaries,
+    )
+    result["elapsed_seconds"] = _elapsed_seconds_since(compaction_start_time)
+    return result
 
 
 def _ensure_staged_accepted_only_compaction(
@@ -568,6 +782,7 @@ def _ensure_staged_accepted_only_compaction(
     *,
     force: bool = False,
     compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if str(pending.recipe.manifest_policy.filter_policy).strip() != "accepted_only":
@@ -584,6 +799,7 @@ def _ensure_staged_accepted_only_compaction(
         stage_root=pending.stage_root,
         force=force,
         compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
         progress_callback=progress_callback,
         repo_root=pending.repo_root,
         sweep_id=pending.sweep_id,
@@ -984,6 +1200,8 @@ def finalize_staged_corpus_recipe(
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
+    compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
     manifest_workers: int | None = None,
 ) -> dict[str, Any]:
     recipe_start_time = time.perf_counter()
@@ -1002,15 +1220,24 @@ def finalize_staged_corpus_recipe(
         verify=verify,
     )
     compaction_start_time = time.perf_counter()
-    compaction = _ensure_staged_accepted_only_compaction(pending)
+    compaction = _ensure_staged_accepted_only_compaction(
+        pending,
+        compact_workers=compact_workers,
+        compact_shard_workers=compact_shard_workers,
+    )
     record = _finalize_materialized_recipe(
         pending,
         force=force,
         recipe_start_time=recipe_start_time,
-        materialization_timing={
-            "staged_compaction_elapsed_seconds": _elapsed_seconds_since(compaction_start_time),
-            "staged_compaction_status": str(compaction.get("status", "completed")),
-        },
+        materialization_timing=_drop_none_values(
+            {
+                **_fresh_materialization_timing(),
+                **_compaction_timing_payload(
+                    compaction=compaction,
+                    elapsed_seconds=_elapsed_seconds_since(compaction_start_time),
+                ),
+            }
+        ),
         manifest_workers=manifest_workers,
     )
     return {
@@ -1062,6 +1289,9 @@ def materialize_corpus_recipe(
     force: bool = False,
     materialize_processes: int | None = None,
     materialize_worker_threads: int | None = None,
+    compact_workers: int | None = None,
+    compact_shard_workers: int | None = None,
+    manifest_workers: int | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
@@ -1081,6 +1311,13 @@ def materialize_corpus_recipe(
         return prepared
 
     try:
+        resolved_materialize_processes = max(
+            1,
+            min(
+                _resolve_materialize_processes(materialize_processes),
+                len(prepared.recipe.invocations),
+            ),
+        )
         invocation_fanout_start_time = time.perf_counter()
         invocation_module._materialize_invocations_with_subprocess_fanout(
             recipe_id=prepared.recipe.recipe_id,
@@ -1092,20 +1329,37 @@ def materialize_corpus_recipe(
             sweeps_root=prepared.sweeps_root,
             materialize_processes=materialize_processes,
             materialize_worker_threads=materialize_worker_threads,
+            compact_shard_workers=compact_shard_workers,
         )
         compaction_start_time = time.perf_counter()
-        compaction = _ensure_staged_accepted_only_compaction(prepared)
+        compaction = _ensure_staged_accepted_only_compaction(
+            prepared,
+            compact_workers=compact_workers,
+            compact_shard_workers=compact_shard_workers,
+        )
         return _finalize_materialized_recipe(
             prepared,
             force=force,
-            materialization_timing={
-                "invocation_fanout_elapsed_seconds": _elapsed_seconds_since(
-                    invocation_fanout_start_time
-                ),
-                "staged_compaction_elapsed_seconds": _elapsed_seconds_since(compaction_start_time),
-                "staged_compaction_status": str(compaction.get("status", "completed")),
-            },
+            materialization_timing=_drop_none_values(
+                {
+                    **_fresh_materialization_timing(),
+                    "materialize_processes": int(resolved_materialize_processes),
+                    "materialize_worker_threads": (
+                        None
+                        if materialize_worker_threads is None
+                        else int(materialize_worker_threads)
+                    ),
+                    **_compaction_timing_payload(
+                        compaction=compaction,
+                        elapsed_seconds=_elapsed_seconds_since(compaction_start_time),
+                    ),
+                    "invocation_fanout_elapsed_seconds": _elapsed_seconds_since(
+                        invocation_fanout_start_time
+                    ),
+                }
+            ),
             recipe_start_time=recipe_start_time,
+            manifest_workers=manifest_workers,
         )
     finally:
         if prepared.stage_root.exists():

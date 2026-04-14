@@ -20,6 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--materialize-processes", type=int, required=True)
     parser.add_argument("--materialize-worker-threads", type=int, default=None)
+    parser.add_argument("--compact-workers", type=int, default=None)
+    parser.add_argument("--compact-shard-workers", type=int, default=None)
+    parser.add_argument("--manifest-workers", type=int, default=None)
     parser.add_argument("--sweep-id", default=None)
     parser.add_argument("--sweeps-root", default=None)
     return parser
@@ -33,8 +36,23 @@ def run_from_args(args: argparse.Namespace) -> int:
         materialize_processes=int(args.materialize_processes),
         materialize_worker_threads=(
             None
-            if args.materialize_worker_threads is None
-            else int(args.materialize_worker_threads)
+            if getattr(args, "materialize_worker_threads", None) is None
+            else int(getattr(args, "materialize_worker_threads"))
+        ),
+        compact_workers=(
+            None
+            if getattr(args, "compact_workers", None) is None
+            else int(getattr(args, "compact_workers"))
+        ),
+        compact_shard_workers=(
+            None
+            if getattr(args, "compact_shard_workers", None) is None
+            else int(getattr(args, "compact_shard_workers"))
+        ),
+        manifest_workers=(
+            None
+            if getattr(args, "manifest_workers", None) is None
+            else int(getattr(args, "manifest_workers"))
         ),
         repo_root=Path(str(args.repo_root)).expanduser().resolve(),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),

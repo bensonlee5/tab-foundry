@@ -18,6 +18,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--corpus-root", required=True)
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--materialize-worker-threads", type=int, default=None)
+    parser.add_argument("--requested-materialize-worker-threads", type=int, default=None)
+    parser.add_argument("--compact-shard-workers", type=int, default=None)
+    parser.add_argument("--requested-compact-shard-workers", type=int, default=None)
     parser.add_argument("--initial-expected-acceptance-rate", type=float, default=None)
     parser.add_argument("--sweep-id", default=None)
     parser.add_argument("--sweeps-root", default=None)
@@ -32,13 +35,28 @@ def run_from_args(args: argparse.Namespace) -> int:
         corpus_root=Path(str(args.corpus_root)).expanduser().resolve(),
         materialize_worker_threads=(
             None
-            if args.materialize_worker_threads is None
-            else int(args.materialize_worker_threads)
+            if getattr(args, "materialize_worker_threads", None) is None
+            else int(getattr(args, "materialize_worker_threads"))
+        ),
+        requested_materialize_worker_threads=(
+            None
+            if getattr(args, "requested_materialize_worker_threads", None) is None
+            else int(getattr(args, "requested_materialize_worker_threads"))
+        ),
+        compact_shard_workers=(
+            None
+            if getattr(args, "compact_shard_workers", None) is None
+            else int(getattr(args, "compact_shard_workers"))
+        ),
+        requested_compact_shard_workers=(
+            None
+            if getattr(args, "requested_compact_shard_workers", None) is None
+            else int(getattr(args, "requested_compact_shard_workers"))
         ),
         initial_expected_acceptance_rate=(
             None
-            if args.initial_expected_acceptance_rate is None
-            else float(args.initial_expected_acceptance_rate)
+            if getattr(args, "initial_expected_acceptance_rate", None) is None
+            else float(getattr(args, "initial_expected_acceptance_rate"))
         ),
         repo_root=Path(str(args.repo_root)).expanduser().resolve(),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),

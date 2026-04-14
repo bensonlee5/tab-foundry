@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from hashlib import sha256
 import json
 import math
+import os
 from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -42,6 +44,7 @@ from .corpus_materialization_shared import (
     _drop_none_values,
     _float_or_none,
     _int_or_none,
+    _materialization_usable_cpu_budget,
     _read_json_mapping,
     _resolve_materialize_processes,
     _resolve_materialize_worker_threads,
@@ -60,6 +63,12 @@ from .dagzoo_workflow import (
 class _ActiveInvocationProcess:
     process: subprocess.Popen[str]
     spec: DagzooInvocationRecipe
+
+
+@dataclass(slots=True)
+class _CompactedCuratedShardWorkItem:
+    destination: Path
+    entries: list[tuple[Path, Mapping[str, Any]]]
 
 
 CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD = 512
@@ -373,6 +382,22 @@ def _invocation_shape_key(
     return (row_total, n_features, n_classes)
 
 
+def _prioritized_invocations_for_acceptance_learning(
+    invocations: Sequence[DagzooInvocationRecipe],
+) -> list[DagzooInvocationRecipe]:
+    seen_shape_keys: set[tuple[int | None, int | None, int | None]] = set()
+    prioritized: list[DagzooInvocationRecipe] = []
+    deferred: list[DagzooInvocationRecipe] = []
+    for spec in invocations:
+        shape_key = _invocation_shape_key(spec)
+        if shape_key in seen_shape_keys:
+            deferred.append(spec)
+            continue
+        seen_shape_keys.add(shape_key)
+        prioritized.append(spec)
+    return prioritized + deferred
+
+
 def _dagzoo_generate_config(
     *,
     dagzoo_root: Path,
@@ -604,16 +629,17 @@ def _write_compacted_curated_shard(
     _write_dataset_catalog(destination / HUB_DATASET_CATALOG_FILENAME, catalog_records)
 
 
-def compact_curated_root(
+def _planned_compacted_curated_shards(
     *,
     source_curated_dir: Path,
     output_curated_dir: Path,
     start_shard_index: int = 0,
     target_datasets_per_shard: int = CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD,
     max_datasets: int | None = None,
-) -> dict[str, int]:
+) -> tuple[list[_CompactedCuratedShardWorkItem], dict[str, int]]:
+    work_items: list[_CompactedCuratedShardWorkItem] = []
     if not source_curated_dir.exists():
-        return {
+        return work_items, {
             "next_shard_index": int(start_shard_index),
             "copied_datasets": 0,
             "source_shard_count": 0,
@@ -621,11 +647,10 @@ def compact_curated_root(
             "dataset_count": 0,
             "target_datasets_per_shard": int(target_datasets_per_shard),
         }
-    output_curated_dir.mkdir(parents=True, exist_ok=True)
+
     remaining_datasets = None if max_datasets is None else max(0, int(max_datasets))
     next_shard_index = int(start_shard_index)
     source_shard_count = 0
-    output_shard_count = 0
     dataset_count = 0
     bucket: list[tuple[Path, Mapping[str, Any]]] = []
 
@@ -646,29 +671,95 @@ def compact_curated_root(
             if remaining_datasets is not None:
                 remaining_datasets -= 1
             if len(bucket) >= int(target_datasets_per_shard):
-                _write_compacted_curated_shard(
-                    destination=output_curated_dir / f"shard_{next_shard_index:05d}",
-                    entries=bucket,
+                work_items.append(
+                    _CompactedCuratedShardWorkItem(
+                        destination=output_curated_dir / f"shard_{next_shard_index:05d}",
+                        entries=list(bucket),
+                    )
                 )
-                output_shard_count += 1
                 next_shard_index += 1
                 bucket = []
 
     if bucket:
-        _write_compacted_curated_shard(
-            destination=output_curated_dir / f"shard_{next_shard_index:05d}",
-            entries=bucket,
+        work_items.append(
+            _CompactedCuratedShardWorkItem(
+                destination=output_curated_dir / f"shard_{next_shard_index:05d}",
+                entries=list(bucket),
+            )
         )
-        output_shard_count += 1
         next_shard_index += 1
 
-    return {
+    return work_items, {
         "next_shard_index": next_shard_index,
         "copied_datasets": dataset_count,
         "source_shard_count": source_shard_count,
-        "output_shard_count": output_shard_count,
+        "output_shard_count": len(work_items),
         "dataset_count": dataset_count,
         "target_datasets_per_shard": int(target_datasets_per_shard),
+    }
+
+
+def _resolved_compact_shard_workers(
+    *,
+    compact_shard_workers: int | None,
+    output_shard_count: int,
+) -> int:
+    if output_shard_count <= 0:
+        return 1
+    if compact_shard_workers is not None:
+        return max(1, min(int(compact_shard_workers), int(output_shard_count)))
+    return max(
+        1,
+        min(
+            int(output_shard_count),
+            int(_materialization_usable_cpu_budget(cpu_count=os.cpu_count() or 1)),
+            32,
+        ),
+    )
+
+
+def compact_curated_root(
+    *,
+    source_curated_dir: Path,
+    output_curated_dir: Path,
+    start_shard_index: int = 0,
+    target_datasets_per_shard: int = CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD,
+    max_datasets: int | None = None,
+    compact_shard_workers: int | None = None,
+) -> dict[str, int]:
+    output_curated_dir.mkdir(parents=True, exist_ok=True)
+    work_items, summary = _planned_compacted_curated_shards(
+        source_curated_dir=source_curated_dir,
+        output_curated_dir=output_curated_dir,
+        start_shard_index=start_shard_index,
+        target_datasets_per_shard=target_datasets_per_shard,
+        max_datasets=max_datasets,
+    )
+    resolved_compact_shard_workers = _resolved_compact_shard_workers(
+        compact_shard_workers=compact_shard_workers,
+        output_shard_count=len(work_items),
+    )
+    if resolved_compact_shard_workers <= 1 or len(work_items) <= 1:
+        for work_item in work_items:
+            _write_compacted_curated_shard(
+                destination=work_item.destination,
+                entries=work_item.entries,
+            )
+    else:
+        with ThreadPoolExecutor(max_workers=resolved_compact_shard_workers) as executor:
+            futures = [
+                executor.submit(
+                    _write_compacted_curated_shard,
+                    destination=work_item.destination,
+                    entries=work_item.entries,
+                )
+                for work_item in work_items
+            ]
+            for future in as_completed(futures):
+                future.result()
+    return {
+        **summary,
+        "compact_shard_workers": int(resolved_compact_shard_workers),
     }
 
 
@@ -678,6 +769,7 @@ def _copy_curated_round_shards(
     final_curated_dir: Path,
     next_shard_index: int,
     max_datasets: int | None = None,
+    compact_shard_workers: int | None = None,
 ) -> tuple[int, int, dict[str, int]]:
     summary = compact_curated_root(
         source_curated_dir=round_curated_dir,
@@ -685,6 +777,7 @@ def _copy_curated_round_shards(
         start_shard_index=next_shard_index,
         target_datasets_per_shard=CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD,
         max_datasets=max_datasets,
+        compact_shard_workers=compact_shard_workers,
     )
     return (
         int(summary["next_shard_index"]),
@@ -769,6 +862,9 @@ def _materialize_accepted_only_invocation(
     corpus_root: Path,
     spec: DagzooInvocationRecipe,
     materialize_worker_threads: int | None = None,
+    requested_materialize_worker_threads: int | None = None,
+    compact_shard_workers: int | None = None,
+    requested_compact_shard_workers: int | None = None,
     initial_expected_acceptance_rate: float | None = None,
 ) -> None:
     invocation_start_time = time.perf_counter()
@@ -795,12 +891,22 @@ def _materialize_accepted_only_invocation(
     next_shard_index = 0
     round_payloads: list[dict[str, Any]] = []
     handoff_provenances: list[Mapping[str, Any]] = []
-    curated_compaction_summary = {
+    curated_compaction_summary: dict[str, Any] = {
         "target_datasets_per_shard": int(CURATED_COMPACTION_TARGET_DATASETS_PER_SHARD),
         "source_shard_count": 0,
         "output_shard_count": 0,
         "dataset_count": 0,
+        "compact_shard_workers": None,
     }
+    resolved_compact_shard_workers = (
+        int(compact_shard_workers)
+        if compact_shard_workers is not None
+        else (
+            int(materialize_worker_threads)
+            if materialize_worker_threads is not None
+            else None
+        )
+    )
 
     round_index = 1
     while (
@@ -883,6 +989,7 @@ def _materialize_accepted_only_invocation(
                 final_curated_dir=final_curated_root,
                 next_shard_index=next_shard_index,
                 max_datasets=accepted_target - curated_accepted_datasets,
+                compact_shard_workers=resolved_compact_shard_workers,
             )
         )
         copy_elapsed_seconds = _elapsed_seconds_since(copy_start_time)
@@ -896,6 +1003,10 @@ def _materialize_accepted_only_invocation(
         curated_compaction_summary["dataset_count"] += int(
             round_compaction_summary["dataset_count"]
         )
+        round_compact_shard_workers = _int_or_none(round_compaction_summary.get("compact_shard_workers"))
+        if round_compact_shard_workers is not None:
+            resolved_compact_shard_workers = int(round_compact_shard_workers)
+            curated_compaction_summary["compact_shard_workers"] = int(round_compact_shard_workers)
         handoff_provenance = getattr(handoff, "provenance", None)
         if isinstance(handoff_provenance, Mapping):
             handoff_provenances.append(
@@ -927,9 +1038,19 @@ def _materialize_accepted_only_invocation(
                 "filter_elapsed_seconds": float(filter_elapsed_seconds),
                 "filter_datasets_per_minute": filter_result.datasets_per_minute,
                 "copy_elapsed_seconds": float(copy_elapsed_seconds),
+                "copy_datasets_per_minute": _datasets_per_minute(
+                    dataset_count=int(committed_curated_datasets),
+                    elapsed_seconds=float(copy_elapsed_seconds),
+                ),
                 "upstream_elapsed_seconds": upstream_elapsed_seconds,
                 "local_overhead_elapsed_seconds": float(local_overhead_elapsed_seconds),
                 "round_elapsed_seconds": float(round_elapsed_seconds),
+                "source_shard_count": int(round_compaction_summary["source_shard_count"]),
+                "output_shard_count": int(round_compaction_summary["output_shard_count"]),
+                "target_datasets_per_shard": int(
+                    round_compaction_summary["target_datasets_per_shard"]
+                ),
+                "compact_shard_workers": round_compact_shard_workers,
             }
         )
         if curated_accepted_datasets >= accepted_target:
@@ -1011,12 +1132,35 @@ def _materialize_accepted_only_invocation(
                     else float(accepted_datasets) / float(total_generated_datasets)
                 ),
                 "round_count": len(round_payloads),
+                "requested_materialize_worker_threads": (
+                    None
+                    if requested_materialize_worker_threads is None
+                    else int(requested_materialize_worker_threads)
+                ),
                 "materialize_worker_threads": (
                     None if materialize_worker_threads is None else int(materialize_worker_threads)
                 ),
+                "requested_compact_shard_workers": (
+                    None
+                    if requested_compact_shard_workers is None
+                    else int(requested_compact_shard_workers)
+                ),
+                "compact_shard_workers": resolved_compact_shard_workers,
                 "generate_elapsed_seconds": total_generate_elapsed_seconds,
+                "generate_datasets_per_minute": _datasets_per_minute(
+                    dataset_count=total_generated_datasets,
+                    elapsed_seconds=total_generate_elapsed_seconds,
+                ),
                 "filter_elapsed_seconds": total_filter_elapsed_seconds,
+                "filter_datasets_per_minute": _datasets_per_minute(
+                    dataset_count=total_generated_datasets,
+                    elapsed_seconds=total_filter_elapsed_seconds,
+                ),
                 "copy_elapsed_seconds": total_copy_elapsed_seconds,
+                "copy_datasets_per_minute": _datasets_per_minute(
+                    dataset_count=curated_accepted_datasets,
+                    elapsed_seconds=total_copy_elapsed_seconds,
+                ),
                 "upstream_elapsed_seconds": upstream_elapsed_seconds,
                 "local_overhead_elapsed_seconds": float(local_overhead_elapsed_seconds),
                 "invocation_elapsed_seconds": float(invocation_elapsed_seconds),
@@ -1042,16 +1186,29 @@ def _materialize_accepted_only_invocation(
                             round_payload["curated_accepted_datasets"]
                         ),
                         "generate_elapsed_seconds": round_payload.get("generate_elapsed_seconds"),
+                        "generate_datasets_per_minute": _datasets_per_minute(
+                            dataset_count=int(round_payload["generated_datasets"]),
+                            elapsed_seconds=_float_or_none(
+                                round_payload.get("generate_elapsed_seconds")
+                            ),
+                        ),
                         "filter_elapsed_seconds": round_payload.get("filter_elapsed_seconds"),
                         "filter_datasets_per_minute": round_payload.get(
                             "filter_datasets_per_minute"
                         ),
                         "copy_elapsed_seconds": round_payload.get("copy_elapsed_seconds"),
+                        "copy_datasets_per_minute": round_payload.get("copy_datasets_per_minute"),
                         "upstream_elapsed_seconds": round_payload.get("upstream_elapsed_seconds"),
                         "local_overhead_elapsed_seconds": round_payload.get(
                             "local_overhead_elapsed_seconds"
                         ),
                         "round_elapsed_seconds": round_payload.get("round_elapsed_seconds"),
+                        "source_shard_count": round_payload.get("source_shard_count"),
+                        "output_shard_count": round_payload.get("output_shard_count"),
+                        "target_datasets_per_shard": round_payload.get(
+                            "target_datasets_per_shard"
+                        ),
+                        "compact_shard_workers": round_payload.get("compact_shard_workers"),
                     }
                     for round_payload in round_payloads
                 ],
@@ -1072,6 +1229,9 @@ def _materialize_invocation(
     spec: DagzooInvocationRecipe,
     filter_policy: str,
     materialize_worker_threads: int | None = None,
+    requested_materialize_worker_threads: int | None = None,
+    compact_shard_workers: int | None = None,
+    requested_compact_shard_workers: int | None = None,
     initial_expected_acceptance_rate: float | None = None,
 ) -> None:
     if str(filter_policy).strip() == "accepted_only":
@@ -1080,6 +1240,9 @@ def _materialize_invocation(
             corpus_root=corpus_root,
             spec=spec,
             materialize_worker_threads=materialize_worker_threads,
+            requested_materialize_worker_threads=requested_materialize_worker_threads,
+            compact_shard_workers=compact_shard_workers,
+            requested_compact_shard_workers=requested_compact_shard_workers,
             initial_expected_acceptance_rate=initial_expected_acceptance_rate,
         )
         return
@@ -1114,10 +1277,22 @@ def _materialize_invocation(
                     handoff,
                     fallback=int(spec.num_datasets),
                 ),
+                "requested_materialize_worker_threads": (
+                    None
+                    if requested_materialize_worker_threads is None
+                    else int(requested_materialize_worker_threads)
+                ),
                 "materialize_worker_threads": (
                     None if materialize_worker_threads is None else int(materialize_worker_threads)
                 ),
                 "generate_elapsed_seconds": float(generate_elapsed_seconds),
+                "generate_datasets_per_minute": _datasets_per_minute(
+                    dataset_count=_generated_datasets_from_handoff(
+                        handoff,
+                        fallback=int(spec.num_datasets),
+                    ),
+                    elapsed_seconds=float(generate_elapsed_seconds),
+                ),
                 "upstream_elapsed_seconds": float(generate_elapsed_seconds),
                 "local_overhead_elapsed_seconds": max(
                     0.0,
@@ -1147,6 +1322,9 @@ def materialize_recipe_invocation(
     dagzoo_root: Path,
     corpus_root: Path,
     materialize_worker_threads: int | None = None,
+    requested_materialize_worker_threads: int | None = None,
+    compact_shard_workers: int | None = None,
+    requested_compact_shard_workers: int | None = None,
     initial_expected_acceptance_rate: float | None = None,
     repo_root: Path | None = None,
     sweep_id: str | None = None,
@@ -1175,6 +1353,9 @@ def materialize_recipe_invocation(
         spec=spec,
         filter_policy=str(recipe.manifest_policy.filter_policy),
         materialize_worker_threads=materialize_worker_threads,
+        requested_materialize_worker_threads=requested_materialize_worker_threads,
+        compact_shard_workers=compact_shard_workers,
+        requested_compact_shard_workers=requested_compact_shard_workers,
         initial_expected_acceptance_rate=initial_expected_acceptance_rate,
     )
 
@@ -1187,6 +1368,9 @@ def _invocation_worker_argv(
     corpus_root: Path,
     repo_root: Path,
     materialize_worker_threads: int | None,
+    requested_materialize_worker_threads: int | None,
+    compact_shard_workers: int | None,
+    requested_compact_shard_workers: int | None,
     initial_expected_acceptance_rate: float | None,
     sweep_id: str | None,
     sweeps_root: Path | None,
@@ -1208,6 +1392,22 @@ def _invocation_worker_argv(
     ]
     if materialize_worker_threads is not None:
         argv.extend(["--materialize-worker-threads", str(int(materialize_worker_threads))])
+    if requested_materialize_worker_threads is not None:
+        argv.extend(
+            [
+                "--requested-materialize-worker-threads",
+                str(int(requested_materialize_worker_threads)),
+            ]
+        )
+    if compact_shard_workers is not None:
+        argv.extend(["--compact-shard-workers", str(int(compact_shard_workers))])
+    if requested_compact_shard_workers is not None:
+        argv.extend(
+            [
+                "--requested-compact-shard-workers",
+                str(int(requested_compact_shard_workers)),
+            ]
+        )
     if initial_expected_acceptance_rate is not None:
         argv.extend(
             [
@@ -1256,16 +1456,18 @@ def _materialize_invocations_with_subprocess_fanout(
     sweeps_root: Path | None,
     materialize_processes: int | None,
     materialize_worker_threads: int | None,
+    compact_shard_workers: int | None,
 ) -> None:
     max_processes = min(_resolve_materialize_processes(materialize_processes), len(invocations))
     resolved_worker_threads = _resolve_materialize_worker_threads(
         materialize_worker_threads,
         materialize_processes=max_processes,
     )
+    prioritized_invocations = _prioritized_invocations_for_acceptance_learning(invocations)
     shape_acceptance_rates: dict[tuple[int | None, int | None, int | None], list[float]] = {}
     row_acceptance_rates: dict[int, list[float]] = {}
     if max_processes <= 1:
-        for spec in invocations:
+        for spec in prioritized_invocations:
             shape_key = _invocation_shape_key(spec)
             shape_rates = shape_acceptance_rates.get(shape_key)
             initial_expected_acceptance_rate = None
@@ -1285,6 +1487,9 @@ def _materialize_invocations_with_subprocess_fanout(
                 dagzoo_root=dagzoo_root,
                 corpus_root=corpus_root,
                 materialize_worker_threads=resolved_worker_threads,
+                requested_materialize_worker_threads=materialize_worker_threads,
+                compact_shard_workers=compact_shard_workers,
+                requested_compact_shard_workers=compact_shard_workers,
                 initial_expected_acceptance_rate=initial_expected_acceptance_rate,
                 repo_root=repo_root,
                 sweep_id=sweep_id,
@@ -1312,7 +1517,7 @@ def _materialize_invocations_with_subprocess_fanout(
                         row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
         return
 
-    pending = deque(invocations)
+    pending = deque(prioritized_invocations)
     active_processes: dict[int, _ActiveInvocationProcess] = {}
     try:
         while pending or active_processes:
@@ -1339,6 +1544,9 @@ def _materialize_invocations_with_subprocess_fanout(
                         corpus_root=corpus_root,
                         repo_root=repo_root,
                         materialize_worker_threads=resolved_worker_threads,
+                        requested_materialize_worker_threads=materialize_worker_threads,
+                        compact_shard_workers=compact_shard_workers,
+                        requested_compact_shard_workers=compact_shard_workers,
                         initial_expected_acceptance_rate=initial_expected_acceptance_rate,
                         sweep_id=sweep_id,
                         sweeps_root=sweeps_root,
@@ -1442,16 +1650,35 @@ def _invocation_record_payload(
             materialization_summary_path,
             context=f"materialization summary for invocation {spec.invocation_id!r}",
         )
+        curated_compaction_payload = (
+            cast(Mapping[str, Any], summary_payload.get("curated_compaction"))
+            if isinstance(summary_payload.get("curated_compaction"), Mapping)
+            else {}
+        )
         timing_payload = _drop_none_values(
             {
                 "generated_datasets": _int_or_none(summary_payload.get("generated_datasets")),
+                "accepted_datasets": _int_or_none(summary_payload.get("accepted_datasets")),
+                "rejected_datasets": _int_or_none(summary_payload.get("rejected_datasets")),
+                "curated_accepted_datasets": _int_or_none(
+                    summary_payload.get("curated_accepted_datasets")
+                ),
                 "generate_elapsed_seconds": _float_or_none(
                     summary_payload.get("generate_elapsed_seconds")
+                ),
+                "generate_datasets_per_minute": _float_or_none(
+                    summary_payload.get("generate_datasets_per_minute")
                 ),
                 "filter_elapsed_seconds": _float_or_none(
                     summary_payload.get("filter_elapsed_seconds")
                 ),
+                "filter_datasets_per_minute": _float_or_none(
+                    summary_payload.get("filter_datasets_per_minute")
+                ),
                 "copy_elapsed_seconds": _float_or_none(summary_payload.get("copy_elapsed_seconds")),
+                "copy_datasets_per_minute": _float_or_none(
+                    summary_payload.get("copy_datasets_per_minute")
+                ),
                 "upstream_elapsed_seconds": _float_or_none(
                     summary_payload.get("upstream_elapsed_seconds")
                 ),
@@ -1461,10 +1688,25 @@ def _invocation_record_payload(
                 "invocation_elapsed_seconds": _float_or_none(
                     summary_payload.get("invocation_elapsed_seconds")
                 ),
+                "requested_materialize_worker_threads": _int_or_none(
+                    summary_payload.get("requested_materialize_worker_threads")
+                ),
                 "materialize_worker_threads": _int_or_none(
                     summary_payload.get("materialize_worker_threads")
                 ),
+                "requested_compact_shard_workers": _int_or_none(
+                    summary_payload.get("requested_compact_shard_workers")
+                ),
+                "compact_shard_workers": _int_or_none(
+                    summary_payload.get("compact_shard_workers")
+                ),
                 "round_count": _int_or_none(summary_payload.get("round_count")),
+                "source_shard_count": _int_or_none(
+                    curated_compaction_payload.get("source_shard_count")
+                ),
+                "output_shard_count": _int_or_none(
+                    curated_compaction_payload.get("output_shard_count")
+                ),
             }
         )
         if timing_payload:
@@ -1548,6 +1790,9 @@ def _invocation_record_payload(
                     "copy_elapsed_seconds": _float_or_none(
                         normalized_round_payload.get("copy_elapsed_seconds")
                     ),
+                    "copy_datasets_per_minute": _float_or_none(
+                        normalized_round_payload.get("copy_datasets_per_minute")
+                    ),
                     "upstream_elapsed_seconds": _float_or_none(
                         normalized_round_payload.get("upstream_elapsed_seconds")
                     ),
@@ -1556,6 +1801,18 @@ def _invocation_record_payload(
                     ),
                     "round_elapsed_seconds": _float_or_none(
                         normalized_round_payload.get("round_elapsed_seconds")
+                    ),
+                    "source_shard_count": _int_or_none(
+                        normalized_round_payload.get("source_shard_count")
+                    ),
+                    "output_shard_count": _int_or_none(
+                        normalized_round_payload.get("output_shard_count")
+                    ),
+                    "target_datasets_per_shard": _int_or_none(
+                        normalized_round_payload.get("target_datasets_per_shard")
+                    ),
+                    "compact_shard_workers": _int_or_none(
+                        normalized_round_payload.get("compact_shard_workers")
                     ),
                 }
             )
