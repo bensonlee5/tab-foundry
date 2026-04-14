@@ -1,0 +1,8 @@
+{
+  "notes": [
+    "Placeholder overlay for corrected one-epoch reruns; populate after the corrected rows land."
+  ],
+  "rows": [],
+  "schema": "tab-foundry-scaling-validation-overlay-v1",
+  "study_id": "tf_rd_009_phase2_upper_extension_one_epoch_v1"
+}

@@ -366,6 +366,36 @@ def _corpus_task_count_from_record(
     raise RuntimeError(f"corpus record for {corpus_ref!r} is missing manifest total_records")
 
 
+def _corpus_train_task_count_from_record(
+    record: Mapping[str, Any],
+    *,
+    corpus_ref: str,
+) -> int | None:
+    manifest = record.get("manifest")
+    if not isinstance(manifest, Mapping):
+        raise RuntimeError(f"corpus record for {corpus_ref!r} is missing manifest metadata")
+    for summary_key in ("characteristics", "inspection"):
+        summary = manifest.get(summary_key)
+        if not isinstance(summary, Mapping):
+            continue
+        persisted_summary = summary.get("persisted_summary")
+        if isinstance(persisted_summary, Mapping) and persisted_summary.get("train_records") is not None:
+            return _positive_int(
+                persisted_summary.get("train_records"),
+                context=(
+                    f"corpus record {corpus_ref!r}.manifest.{summary_key}."
+                    "persisted_summary.train_records"
+                ),
+            )
+        split_counts = summary.get("split_counts")
+        if isinstance(split_counts, Mapping) and split_counts.get("train") is not None:
+            return _positive_int(
+                split_counts.get("train"),
+                context=f"corpus record {corpus_ref!r}.manifest.{summary_key}.split_counts.train",
+            )
+    return None
+
+
 def _synthetic_task_count(
     *,
     corpus_ref: str,
@@ -394,6 +424,136 @@ def _synthetic_task_count(
     if record_task_count != recipe_task_count:
         return recipe_task_count, "recipe_definition"
     return record_task_count, "local_corpus_record"
+
+
+def _one_epoch_train_task_count(
+    *,
+    corpus_ref: str,
+    repo_root: Path | None,
+    sweep_id: str,
+    sweeps_root: Path | None,
+) -> tuple[int, str]:
+    recipe_id = str(corpus_ref).split("/", 1)[0]
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    recipe_task_count = sum(int(invocation.num_datasets) for invocation in recipe.invocations)
+    recipe_train_task_count = int(float(recipe_task_count) * float(recipe.manifest_policy.train_ratio))
+    try:
+        record = load_corpus_record(
+            corpus_ref,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+    except RuntimeError:
+        return recipe_train_task_count, "recipe_definition"
+    record_train_task_count = _corpus_train_task_count_from_record(record, corpus_ref=corpus_ref)
+    if record_train_task_count is not None:
+        return record_train_task_count, "local_corpus_record"
+    record_task_count = _corpus_task_count_from_record(record, corpus_ref=corpus_ref)
+    return int(float(record_task_count) * float(recipe.manifest_policy.train_ratio)), (
+        "local_corpus_record_estimated_train_ratio"
+    )
+
+
+def _one_epoch_contract_payload(training_payload: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    payload = training_payload.get("one_epoch_contract")
+    if payload is None:
+        return None
+    if not isinstance(payload, Mapping):
+        raise RuntimeError("training.one_epoch_contract must be a mapping when present")
+    enabled = payload.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise RuntimeError("training.one_epoch_contract.enabled must be a boolean when present")
+    if not enabled:
+        return None
+    scope = str(payload.get("scope", "train_manifest_unique_tasks")).strip()
+    if scope != "train_manifest_unique_tasks":
+        raise RuntimeError(
+            "training.one_epoch_contract.scope must be 'train_manifest_unique_tasks'"
+        )
+    return payload
+
+
+def one_epoch_required_train_tasks(row_payload: Mapping[str, Any]) -> int:
+    training_payload = row_payload.get("training")
+    if not isinstance(training_payload, Mapping):
+        raise RuntimeError("queue row training payload must be a mapping for one-epoch validation")
+    task_batch_size = _positive_int(
+        training_payload.get("task_batch_size"),
+        context="training.task_batch_size",
+    )
+    overrides = training_payload.get("overrides")
+    if not isinstance(overrides, Mapping):
+        raise RuntimeError("training.overrides must be a mapping for one-epoch validation")
+    runtime_overrides = overrides.get("runtime")
+    if not isinstance(runtime_overrides, Mapping):
+        raise RuntimeError("training.overrides.runtime must be a mapping for one-epoch validation")
+    max_steps = _positive_int(
+        runtime_overrides.get("max_steps"),
+        context="training.overrides.runtime.max_steps",
+    )
+    grad_accum_steps = _positive_int(
+        runtime_overrides.get("grad_accum_steps", 1),
+        context="training.overrides.runtime.grad_accum_steps",
+    )
+    return int(max_steps * task_batch_size * grad_accum_steps)
+
+
+def validate_one_epoch_contract(
+    row_payload: Mapping[str, Any],
+    *,
+    repo_root: Path | None,
+    sweep_id: str,
+    sweeps_root: Path | None,
+    require_declared_contract: bool = True,
+) -> dict[str, Any] | None:
+    training_payload = row_payload.get("training")
+    if not isinstance(training_payload, Mapping):
+        if require_declared_contract:
+            return None
+        raise RuntimeError("queue row training payload must be a mapping for one-epoch validation")
+    contract_payload = _one_epoch_contract_payload(training_payload)
+    if contract_payload is None and require_declared_contract:
+        return None
+
+    data_payload = row_payload.get("data")
+    if not isinstance(data_payload, Mapping):
+        raise RuntimeError("queue row data payload must be a mapping for one-epoch validation")
+    corpus_ref = _effective_queue_corpus_ref(data_payload)
+    if corpus_ref is None:
+        raise RuntimeError(
+            "queue row declares training.one_epoch_contract but does not define data.corpus_ref"
+        )
+    required_train_tasks = one_epoch_required_train_tasks(row_payload)
+    train_records_available, resolution_source = _one_epoch_train_task_count(
+        corpus_ref=corpus_ref,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if required_train_tasks > train_records_available:
+        row_id = row_payload.get("delta_id") or row_payload.get("delta_ref") or "<unknown>"
+        order = row_payload.get("order", "<unknown>")
+        raise RuntimeError(
+            "one-epoch train-manifest contract failed for "
+            f"sweep {sweep_id!r} row {order!r} ({row_id!r}): "
+            f"required_train_tasks={required_train_tasks} exceeds "
+            f"train_records_available={train_records_available} for corpus_ref={corpus_ref!r} "
+            f"resolution_source={resolution_source}; expand the corpus or reduce "
+            "max_steps, task_batch_size, or grad_accum_steps"
+        )
+    return {
+        "scope": "train_manifest_unique_tasks",
+        "required_train_tasks": required_train_tasks,
+        "train_records_available": train_records_available,
+        "corpus_ref": corpus_ref,
+        "resolution_source": resolution_source,
+    }
 
 
 def _resolved_repo_root(

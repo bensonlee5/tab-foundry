@@ -1042,6 +1042,13 @@ Legacy wording note:
     `tf_rd_009_ns_medium_v1` and 20 `batch_critical` rows from
     `tf_rd_009_batch_critical_medium_v1`, rooted under
     `outputs/research_scaling/tf_rd_009_phase2`
+  - as of April 13, 2026 PT, that Phase-2 fit is historical/superseded for
+    scaling-law and `Cmin` interpretation: the higher-budget `NS` and
+    `batch_critical` rows cycle the same 143,976-task train manifest, so the
+    corrected rerun uses `tf_rd_010_dagzoo_medium_control_curated_v6` and new
+    artifact ids `tf_rd_009_ns_one_epoch_medium_v1`,
+    `tf_rd_009_batch_critical_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_one_epoch_v1`
   - the validation-backed `L(N,S)` surface is the useful primary signal:
     `alpha_n=0.0302565`, `alpha_s=0.331430`, `Nc=258222760.6`, `Sc=608.501`,
     `log_space_r2=0.820915`, and `rmse=0.033284`
@@ -1073,6 +1080,13 @@ Legacy wording note:
     the reopened gate rows return benchmark-backed health=`ok`; this child is
     law-information-first, so healthy upper rows may expand even if they do
     not beat `152x5` on the carried matched-budget benchmark objective
+  - the interrupted upper-extension gate launch is also historical diagnostic
+    evidence under the one-epoch correction; corrected upper-extension ids
+    `tf_rd_009_width_depth_upper_extension_one_epoch_medium_v1`,
+    `tf_rd_009_ns_upper_extension_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_upper_extension_one_epoch_v1` remain scaffolded until
+    `tf_rd_009_phase2_one_epoch_v1` lands and the D-optimal row selection is
+    rerun on corrected validation `L(N,S)`
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic

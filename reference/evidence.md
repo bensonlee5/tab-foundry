@@ -424,6 +424,14 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     accounting, and C-axis fits reject missing or non-monotone compute metadata
   - the primary usable fit signal is `L(N,S)`; `Bcrit(L)` is recorded but weak
     because its completed lower envelope has only two points
+  - April 13, 2026 PT correction: the complete Phase-2 `NS` and
+    `batch_critical` artifacts are now historical/superseded for scaling-law
+    interpretation because higher-budget rows reused the 143,976-task train
+    manifest; corrected one-epoch artifacts use
+    `tf_rd_010_dagzoo_medium_control_curated_v6`,
+    `tf_rd_009_ns_one_epoch_medium_v1`,
+    `tf_rd_009_batch_critical_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_one_epoch_v1`
   - the stronger `research scaling audit` surface now separates validation-loss
     fits from benchmark-loss transfer checks, adds grouped holdouts and
     bootstrap intervals, and keeps `Cmin` quarantined until the redesigned

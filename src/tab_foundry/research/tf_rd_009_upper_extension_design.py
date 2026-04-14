@@ -36,9 +36,19 @@ from tab_foundry.training.health import health_check
 
 
 TF_RD_009_PHASE2_STUDY_ID = "tf_rd_009_phase2"
+TF_RD_009_PHASE2_ONE_EPOCH_STUDY_ID = "tf_rd_009_phase2_one_epoch_v1"
 TF_RD_009_UPPER_EXTENSION_GATE_SWEEP_ID = "tf_rd_009_width_depth_upper_extension_medium_v1"
 TF_RD_009_UPPER_EXTENSION_NS_SWEEP_ID = "tf_rd_009_ns_upper_extension_medium_v1"
 TF_RD_009_UPPER_EXTENSION_STUDY_ID = "tf_rd_009_phase2_upper_extension_v1"
+TF_RD_009_UPPER_EXTENSION_ONE_EPOCH_GATE_SWEEP_ID = (
+    "tf_rd_009_width_depth_upper_extension_one_epoch_medium_v1"
+)
+TF_RD_009_UPPER_EXTENSION_ONE_EPOCH_NS_SWEEP_ID = (
+    "tf_rd_009_ns_upper_extension_one_epoch_medium_v1"
+)
+TF_RD_009_UPPER_EXTENSION_ONE_EPOCH_STUDY_ID = (
+    "tf_rd_009_phase2_upper_extension_one_epoch_v1"
+)
 TF_RD_009_UPPER_EXTENSION_SELECTION_ARTIFACT_ROOT = (
     "reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/support"
 )
@@ -178,6 +188,7 @@ def corrected_tf_rd_009_vram_fit() -> LinearFit:
 
 def load_tf_rd_009_phase2_ns_validation_points(
     *,
+    study_id: str = TF_RD_009_PHASE2_STUDY_ID,
     studies_root: Path | None = None,
     registry_path: Path | None = None,
     index_path: Path | None = None,
@@ -186,7 +197,7 @@ def load_tf_rd_009_phase2_ns_validation_points(
 ) -> tuple[ScalingStudyRunPoint, ...]:
     resolved_repo_root = repo_root()
     config = load_scaling_study_config(
-        study_id=TF_RD_009_PHASE2_STUDY_ID,
+        study_id=study_id,
         studies_root=studies_root,
     )
     resolved_registry_path = (
@@ -270,11 +281,12 @@ def fit_tf_rd_009_upper_extension_canonical_bridge(
 def enumerate_tf_rd_009_upper_extension_candidates(
     *,
     points: Sequence[ScalingStudyRunPoint] | None = None,
+    scoring_study_id: str = TF_RD_009_PHASE2_STUDY_ID,
 ) -> tuple[TfRd009UpperExtensionCandidate, ...]:
     resolved_points = (
         tuple(points)
         if points is not None
-        else load_tf_rd_009_phase2_ns_validation_points()
+        else load_tf_rd_009_phase2_ns_validation_points(study_id=scoring_study_id)
     )
     canonical_bridge = fit_tf_rd_009_upper_extension_canonical_bridge(resolved_points)
     parameter_bridge = corrected_tf_rd_009_parameter_bridge()
@@ -385,18 +397,22 @@ def enumerate_tf_rd_009_upper_extension_candidates(
 def select_tf_rd_009_upper_extension(
     *,
     points: Sequence[ScalingStudyRunPoint] | None = None,
+    scoring_study_id: str = TF_RD_009_PHASE2_STUDY_ID,
 ) -> TfRd009UpperExtensionSelection:
     resolved_points = (
         tuple(points)
         if points is not None
-        else load_tf_rd_009_phase2_ns_validation_points()
+        else load_tf_rd_009_phase2_ns_validation_points(study_id=scoring_study_id)
     )
     current_fit = fit_loss_vs_ns(points=resolved_points, target_key="validation_loss")
     canonical_bridge = fit_tf_rd_009_upper_extension_canonical_bridge(resolved_points)
-    candidates = enumerate_tf_rd_009_upper_extension_candidates(points=resolved_points)
+    candidates = enumerate_tf_rd_009_upper_extension_candidates(
+        points=resolved_points,
+        scoring_study_id=scoring_study_id,
+    )
     selected_candidate = candidates[0]
     return TfRd009UpperExtensionSelection(
-        scoring_study_id=TF_RD_009_PHASE2_STUDY_ID,
+        scoring_study_id=scoring_study_id,
         selected_candidate_id=selected_candidate.candidate_id,
         selected_row_labels=selected_candidate.row_labels,
         current_validation_fit=current_fit,

@@ -12,6 +12,7 @@ from .catalog import (
     load_system_delta_queue_instance_payload,
     load_system_delta_sweep_payload,
 )
+from .configuration import _resolved_repo_root, validate_one_epoch_contract
 from .models import (
     MaterializedQueuePayload,
     MaterializedQueueRowPayload,
@@ -168,6 +169,23 @@ def _load_system_delta_queue_common(
                 sweeps_root=sweeps_root,
             )
 
+    def _validate_resolved_one_epoch_contracts(
+        payload: MaterializedQueuePayload | ResolvedQueuePayload,
+        *,
+        resolved_sweep_id: str,
+    ) -> None:
+        resolved_repo_root = _resolved_repo_root(
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+        for row in payload.rows:
+            validate_one_epoch_contract(
+                row.to_payload_dict(),
+                repo_root=resolved_repo_root,
+                sweep_id=resolved_sweep_id,
+                sweeps_root=sweeps_root,
+            )
+
     if path is None:
         catalog = load_system_delta_catalog_payload(catalog_path)
         sweep = load_system_delta_sweep_payload(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
@@ -192,6 +210,10 @@ def _load_system_delta_queue_common(
                     stored=resolved_queue,
                     materialized=materialized_queue,
                 ):
+                    _validate_resolved_one_epoch_contracts(
+                        resolved_queue,
+                        resolved_sweep_id=sweep.sweep_id,
+                    )
                     return resolved_queue
                 regenerated_queue = materialize_resolved_system_delta_queue(
                     catalog=catalog,
@@ -204,13 +226,26 @@ def _load_system_delta_queue_common(
                     stored=resolved_queue,
                     regenerated=regenerated_queue,
                 ):
+                    _validate_resolved_one_epoch_contracts(
+                        regenerated_queue,
+                        resolved_sweep_id=sweep.sweep_id,
+                    )
                     return regenerated_queue
                 raise RuntimeError(
                     "resolved_queue.yaml is stale for "
                     f"sweep {sweep.sweep_id!r}; regenerate it before inspection or execution"
                 )
+            _validate_resolved_one_epoch_contracts(
+                resolved_queue,
+                resolved_sweep_id=sweep.sweep_id,
+            )
             return resolved_queue
-        return _materialize_or_fallback(queue_instance=queue_instance)
+        materialized_queue = _materialize_or_fallback(queue_instance=queue_instance)
+        _validate_resolved_one_epoch_contracts(
+            materialized_queue,
+            resolved_sweep_id=sweep.sweep_id,
+        )
+        return materialized_queue
 
     payload = load_yaml_mapping(path, context="system delta queue")
     schema = payload.get("schema")
@@ -222,13 +257,22 @@ def _load_system_delta_queue_common(
         return _materialize_or_fallback(queue_instance=queue_instance)
     if schema == RESOLVED_QUEUE_SCHEMA:
         try:
-            return ResolvedQueuePayload.model_validate(payload)
+            resolved_queue = ResolvedQueuePayload.model_validate(payload)
         except ValidationError as exc:
             raise RuntimeError(f"system delta resolved queue is invalid: {exc}") from exc
+        _validate_resolved_one_epoch_contracts(
+            resolved_queue,
+            resolved_sweep_id=str(sweep_id or resolved_queue.sweep_id),
+        )
+        return resolved_queue
     try:
         materialized = MaterializedQueuePayload.model_validate(payload)
     except ValidationError as exc:
         raise RuntimeError(f"system delta queue is invalid: {exc}") from exc
+    _validate_resolved_one_epoch_contracts(
+        materialized,
+        resolved_sweep_id=str(sweep_id or materialized.sweep_id),
+    )
     return materialized
 
 

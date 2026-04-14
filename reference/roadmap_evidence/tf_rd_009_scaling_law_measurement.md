@@ -306,6 +306,17 @@ materialized through `reference/scaling_studies/tf_rd_009_phase2_validation_back
 This is the current Phase-2 fit evidence payload for
 [#256](https://github.com/bensonlee5/tab-foundry/issues/256).
 
+Correction note, April 13, 2026 PT: the above `tf_rd_009_phase2` payload is now
+historical/superseded for scaling-law and `Cmin` interpretation. The
+higher-budget `NS` and `batch_critical` rows cycled the same 143,976-task train
+manifest, so the corrected path is to rerun the original `{625,1250,2500,5000}`
+and `{1,2,4,8,16}` ladders on
+`tf_rd_010_dagzoo_medium_control_curated_v6`, using
+`tf_rd_009_ns_one_epoch_medium_v1`,
+`tf_rd_009_batch_critical_one_epoch_medium_v1`, and
+`tf_rd_009_phase2_one_epoch_v1`. The original artifacts remain preserved as
+diagnostic history and must not be mixed into the corrected one-epoch fit.
+
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row
 (`11`) originally carried `compute_accounting.training_shape_summary: null`,
@@ -361,6 +372,11 @@ and partly degenerate on this small matrix, so carry them as diagnostics. The
 batch-critical data is complete, but `Bcrit(L)` is weak: its lower envelope has
 only two points and a negative log-space R2, so `L(Cmin)` is a derived
 diagnostic rather than a high-confidence operating law.
+
+After the one-epoch correction, this `Bcrit(L)` and its derived `L(Cmin)` are
+not admissible for the corrected compute-optimal story. Refit both only from
+the corrected one-epoch batch-critical artifact once its validation backfill
+lands.
 
 Axis audit for the complete matrix:
 

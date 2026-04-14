@@ -1,0 +1,38 @@
+schema: tab-foundry-scaling-study-v1
+study_id: tf_rd_009_phase2_upper_extension_one_epoch_v1
+phase: 2
+output_root: outputs/research_scaling/tf_rd_009_phase2_upper_extension_one_epoch_v1
+validation_overlay_path: reference/scaling_studies/tf_rd_009_phase2_upper_extension_one_epoch_v1_validation_backfill_v1.json
+phase1_reference_sweep_id: tf_rd_009_width_depth_upper_extension_one_epoch_medium_v1
+sweeps:
+- name: ns_core
+  sweep_id: tf_rd_009_ns_upper_extension_one_epoch_medium_v1
+  family: ns_core
+geometry_row_labels: []
+step_ladder:
+- 625
+- 1250
+- 2500
+- 5000
+batch_grad_accum_ladder: []
+canonical_loss_axes:
+  benchmark: benchmark_log_loss
+  validation: validation_loss
+canonical_variables:
+  'N': parameter_accounting.canonical_non_embedding_params
+  D: regime_budget.tokens_seen
+  S: tab_foundry_metrics.final_step
+  B_eff: regime_budget.tokens_per_step
+  C: compute_accounting.total_train_flops
+slice_selection:
+  l_n: highest_completed_s
+  l_d: highest_completed_n
+  l_c: all_completed_runs
+  l_nd: full_ns_matrix
+  l_ns: full_ns_matrix
+  l_cmin: lower_envelope_from_bcrit
+  bcrit: batch_envelope
+primary_fit:
+  law: L(N,S)
+  target: validation_loss
+selection_dependency: tf_rd_009_phase2_one_epoch_v1

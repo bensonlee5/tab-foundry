@@ -466,6 +466,14 @@ accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
 Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
 lower envelope has only two points.
 
+For the corrected one-epoch TF-RD-009 rerun, materialize
+`tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than
+generating it locally. A Vast `research sweep materialize-corpora` job syncs
+`outputs/corpora` and `data/manifests` to the launch artifacts and uploads the
+corpus cache to GCS; later `research sweep execute` launches restore that cache
+before training. Use larger-than-default Vast disks for these launches because
+v6 is about 9.33x the v5 corpus size.
+
 Use `research scaling audit` before interpreting the Phase-2 fit as a
 compute-optimal law. It writes `audit/audit_summary.json` and `audit/audit.md`
 under the study artifact root by default, compares validation-loss and
