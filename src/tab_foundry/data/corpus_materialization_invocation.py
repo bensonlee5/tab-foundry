@@ -67,7 +67,6 @@ HUB_DATASET_CATALOG_FILENAME = str(
     getattr(hub_manifest_module, "DATASET_CATALOG_FILENAME", "dataset_catalog.parquet")
 )
 _WRITE_DATASET_CATALOG = getattr(hub_manifest_module, "write_dataset_catalog", None)
-_LOAD_DATASET_CATALOG_RECORDS = getattr(hub_manifest_module, "load_dataset_catalog_records", None)
 
 
 def _write_dataset_catalog(path: Path, records: Sequence[Mapping[str, Any]]) -> None:
@@ -112,10 +111,14 @@ def _write_dataset_catalog(path: Path, records: Sequence[Mapping[str, Any]]) -> 
                     None if payload.get("n_classes") is None else int(payload["n_classes"])
                 ),
                 "resolved_filter_mode": (
-                    filter_payload.get("mode") if isinstance(filter_payload, Mapping) else None
+                    filter_payload.get("mode")
+                    if isinstance(filter_payload, Mapping)
+                    else None
                 ),
                 "resolved_filter_status": (
-                    filter_payload.get("status") if isinstance(filter_payload, Mapping) else None
+                    filter_payload.get("status")
+                    if isinstance(filter_payload, Mapping)
+                    else None
                 ),
                 "resolved_filter_accepted": (
                     filter_payload.get("accepted")
@@ -165,8 +168,14 @@ def _dagzoo_public_catalog_paths(generated_dir: Path) -> list[Path]:
     parquet_catalog_paths = sorted(resolved_generated_dir.rglob(HUB_DATASET_CATALOG_FILENAME))
     if parquet_catalog_paths:
         return parquet_catalog_paths
+    catalog_paths = sorted(resolved_generated_dir.rglob("dataset_catalog.ndjson"))
+    if catalog_paths:
+        return catalog_paths
+    metadata_paths = sorted(resolved_generated_dir.rglob("metadata.ndjson"))
+    if metadata_paths:
+        return metadata_paths
     raise RuntimeError(
-        "dagzoo generated directory does not contain dataset_catalog.parquet: "
+        "dagzoo generated directory does not contain dataset_catalog.ndjson or metadata.ndjson: "
         f"{resolved_generated_dir}"
     )
 
@@ -191,32 +200,44 @@ def _scan_dagzoo_generated_identity(generated_dir: Path) -> DagzooGeneratedIdent
 
 def _load_public_catalog_records(catalog_path: Path) -> list[dict[str, Any]]:
     resolved_catalog_path = catalog_path.expanduser().resolve()
-    if callable(_LOAD_DATASET_CATALOG_RECORDS):
-        records = _LOAD_DATASET_CATALOG_RECORDS(resolved_catalog_path)
-        return [
-            {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
-            for payload in records
-        ]
-    if resolved_catalog_path.suffix != ".parquet":
-        raise RuntimeError(
-            "legacy dagzoo catalog formats are unsupported; expected "
-            f"{HUB_DATASET_CATALOG_FILENAME}: {resolved_catalog_path}"
-        )
-    rows = pq.read_table(
-        resolved_catalog_path,
-        columns=["dataset_index", "record_json"],
-    ).to_pylist()
-    payloads: list[dict[str, Any]] = []
-    for row in rows:
-        record_json = row.get("record_json")
-        if not isinstance(record_json, str):
+    if resolved_catalog_path.suffix == ".parquet":
+        rows = pq.read_table(
+            resolved_catalog_path,
+            columns=["dataset_index", "record_json"],
+        ).to_pylist()
+        payloads: list[dict[str, Any]] = []
+        for row in rows:
+            record_json = row.get("record_json")
+            if not isinstance(record_json, str):
+                raise RuntimeError(
+                    f"parquet catalog row is missing record_json: {resolved_catalog_path}"
+                )
+            payload = json.loads(record_json)
+            if not isinstance(payload, Mapping):
+                raise RuntimeError(
+                    f"parquet catalog record_json must decode to an object: {resolved_catalog_path}"
+                )
+            payloads.append({str(key): value for key, value in payload.items()})
+        return payloads
+
+    payloads = []
+    for line_number, raw_line in enumerate(
+        resolved_catalog_path.read_text(encoding="utf-8").splitlines(),
+        start=1,
+    ):
+        if not raw_line.strip():
+            continue
+        try:
+            payload = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
             raise RuntimeError(
-                f"parquet catalog row is missing record_json: {resolved_catalog_path}"
-            )
-        payload = json.loads(record_json)
+                "failed to parse dagzoo catalog record while verifying handoff: "
+                f"path={resolved_catalog_path}, line={line_number}"
+            ) from exc
         if not isinstance(payload, Mapping):
             raise RuntimeError(
-                f"parquet catalog record_json must decode to an object: {resolved_catalog_path}"
+                "dagzoo catalog NDJSON record must decode to an object: "
+                f"path={resolved_catalog_path}, line={line_number}"
             )
         payloads.append({str(key): value for key, value in payload.items()})
     return payloads
@@ -236,13 +257,10 @@ def _invocation_rounds_root(*, corpus_root: Path, invocation_id: str) -> Path:
 
 
 def _invocation_round_root(*, corpus_root: Path, invocation_id: str, round_index: int) -> Path:
-    return (
-        _invocation_rounds_root(
-            corpus_root=corpus_root,
-            invocation_id=invocation_id,
-        )
-        / f"round_{int(round_index):02d}"
-    )
+    return _invocation_rounds_root(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    ) / f"round_{int(round_index):02d}"
 
 
 def _invocation_filter_root(*, corpus_root: Path, invocation_id: str) -> Path:
@@ -452,17 +470,31 @@ def _aggregate_handoff_provenance(
         )
         if isinstance(bound, Mapping)
     ]
-    minimum_counts = [int(bound["min"]) for bound in count_bounds if bound.get("min") is not None]
-    maximum_counts = [int(bound["max"]) for bound in count_bounds if bound.get("max") is not None]
+    minimum_counts = [
+        int(bound["min"])
+        for bound in count_bounds
+        if bound.get("min") is not None
+    ]
+    maximum_counts = [
+        int(bound["max"])
+        for bound in count_bounds
+        if bound.get("max") is not None
+    ]
     minimum_fractions = [
-        float(bound["min"]) for bound in fraction_bounds if bound.get("min") is not None
+        float(bound["min"])
+        for bound in fraction_bounds
+        if bound.get("min") is not None
     ]
     maximum_fractions = [
-        float(bound["max"]) for bound in fraction_bounds if bound.get("max") is not None
+        float(bound["max"])
+        for bound in fraction_bounds
+        if bound.get("max") is not None
     ]
     payload = _drop_none_values(
         {
-            "target_derivation": (target_derivations[0] if len(target_derivations) == 1 else None),
+            "target_derivation": (
+                target_derivations[0] if len(target_derivations) == 1 else None
+            ),
             "target_relevant_feature_count_range": (
                 {
                     "min": min(minimum_counts),
@@ -490,7 +522,9 @@ def _elapsed_seconds_since(start_time: float) -> float:
 
 def _sum_elapsed_seconds(*values: float | None) -> float | None:
     resolved = [
-        float(value) for value in values if value is not None and math.isfinite(float(value))
+        float(value)
+        for value in values
+        if value is not None and math.isfinite(float(value))
     ]
     if not resolved:
         return None
@@ -522,7 +556,14 @@ def _generated_datasets_from_handoff(
 
 def _resolved_public_shard_dir(shard_dir: Path) -> Path:
     resolved_shard_dir = shard_dir
-    if not (resolved_shard_dir / HUB_DATASET_CATALOG_FILENAME).exists():
+    if not any(
+        candidate.exists()
+        for candidate in (
+            resolved_shard_dir / HUB_DATASET_CATALOG_FILENAME,
+            resolved_shard_dir / "dataset_catalog.ndjson",
+            resolved_shard_dir / "metadata.ndjson",
+        )
+    ):
         nested_shards = sorted(path for path in resolved_shard_dir.glob("shard_*") if path.is_dir())
         if len(nested_shards) == 1:
             resolved_shard_dir = nested_shards[0]
@@ -530,10 +571,14 @@ def _resolved_public_shard_dir(shard_dir: Path) -> Path:
 
 
 def _public_catalog_path_for_shard(shard_dir: Path) -> Path:
-    catalog_path = shard_dir / HUB_DATASET_CATALOG_FILENAME
-    if catalog_path.exists():
-        return catalog_path
-    raise RuntimeError(f"curated shard is missing {HUB_DATASET_CATALOG_FILENAME}: {shard_dir}")
+    for candidate in (
+        shard_dir / HUB_DATASET_CATALOG_FILENAME,
+        shard_dir / "dataset_catalog.ndjson",
+        shard_dir / "metadata.ndjson",
+    ):
+        if candidate.exists():
+            return candidate
+    raise RuntimeError(f"curated shard is missing dataset catalog metadata: {shard_dir}")
 
 
 def _renumber_catalog_record(record: Mapping[str, Any], *, dataset_index: int) -> dict[str, Any]:
@@ -580,7 +625,9 @@ def _write_compacted_curated_shard(
     catalog_records: list[dict[str, Any]] = []
     for target_dataset_index, (source_shard_dir, record) in enumerate(entries):
         source_dataset_index = int(record["dataset_index"])
-        catalog_records.append(_renumber_catalog_record(record, dataset_index=target_dataset_index))
+        catalog_records.append(
+            _renumber_catalog_record(record, dataset_index=target_dataset_index)
+        )
         for split_filename, tables in (
             ("train.parquet", train_tables),
             ("test.parquet", test_tables),
@@ -597,9 +644,7 @@ def _write_compacted_curated_shard(
                     target_dataset_index=target_dataset_index,
                 )
             )
-    pq.write_table(
-        pa.concat_tables(train_tables), destination / "train.parquet", compression="zstd"
-    )
+    pq.write_table(pa.concat_tables(train_tables), destination / "train.parquet", compression="zstd")
     pq.write_table(pa.concat_tables(test_tables), destination / "test.parquet", compression="zstd")
     _write_dataset_catalog(destination / HUB_DATASET_CATALOG_FILENAME, catalog_records)
 
@@ -705,17 +750,17 @@ def _write_accepted_only_filter_artifacts(
     materialize_worker_threads: int | None = None,
 ) -> None:
     filter_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = filter_root / "filter_manifest.parquet"
-    manifest_tables: list[pa.Table] = []
-    for round_payload in rounds:
-        round_manifest_path = Path(str(round_payload["filter_manifest_path"]))
-        if not round_manifest_path.exists():
-            raise RuntimeError(f"round filter manifest is missing: {round_manifest_path}")
-        manifest_tables.append(pq.read_table(round_manifest_path))
-    if manifest_tables:
-        pq.write_table(pa.concat_tables(manifest_tables), manifest_path, compression="zstd")
-    else:
-        pq.write_table(pa.table({}), manifest_path, compression="zstd")
+    manifest_path = filter_root / "filter_manifest.ndjson"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        for round_payload in rounds:
+            round_manifest_path = Path(str(round_payload["filter_manifest_path"]))
+            if not round_manifest_path.exists():
+                raise RuntimeError(f"round filter manifest is missing: {round_manifest_path}")
+            text = round_manifest_path.read_text(encoding="utf-8")
+            if text:
+                handle.write(text)
+                if not text.endswith("\n"):
+                    handle.write("\n")
     summary_path = filter_root / "filter_summary.json"
     acceptance_rate = (
         None
@@ -737,7 +782,9 @@ def _write_accepted_only_filter_artifacts(
                     int(target_accepted_datasets) * _ACCEPTED_ONLY_MAX_GENERATED_MULTIPLIER
                 ),
                 "materialize_worker_threads": (
-                    None if materialize_worker_threads is None else int(materialize_worker_threads)
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
                 ),
                 "rounds": [
                     {
@@ -818,16 +865,22 @@ def _materialize_accepted_only_invocation(
             if expected_acceptance_rate is None:
                 expected_acceptance_rate = _INITIAL_ACCEPTED_ONLY_EXPECTED_ACCEPTANCE_RATE
             requested_generated_datasets = int(
-                math.ceil(float(remaining_accepted_datasets) / float(expected_acceptance_rate))
+                math.ceil(
+                    float(remaining_accepted_datasets) / float(expected_acceptance_rate)
+                )
             )
         elif curated_accepted_datasets > 0:
-            empirical_acceptance_rate = float(curated_accepted_datasets) / float(
-                total_generated_datasets
+            empirical_acceptance_rate = (
+                float(curated_accepted_datasets) / float(total_generated_datasets)
             )
             if 0.0 < empirical_acceptance_rate < 1.0:
                 requested_generated_datasets = max(
                     requested_generated_datasets,
-                    int(math.ceil(float(remaining_accepted_datasets) / empirical_acceptance_rate)),
+                    int(
+                        math.ceil(
+                            float(remaining_accepted_datasets) / empirical_acceptance_rate
+                        )
+                    ),
                 )
         requested_generated_datasets = min(
             requested_generated_datasets,
@@ -877,13 +930,11 @@ def _materialize_accepted_only_invocation(
         accepted_datasets += int(filter_result.accepted_datasets)
         rejected_datasets += int(filter_result.rejected_datasets)
         copy_start_time = time.perf_counter()
-        next_shard_index, committed_curated_datasets, round_compaction_summary = (
-            _copy_curated_round_shards(
-                round_curated_dir=filter_result.curated_out_dir,
-                final_curated_dir=final_curated_root,
-                next_shard_index=next_shard_index,
-                max_datasets=accepted_target - curated_accepted_datasets,
-            )
+        next_shard_index, committed_curated_datasets, round_compaction_summary = _copy_curated_round_shards(
+            round_curated_dir=filter_result.curated_out_dir,
+            final_curated_dir=final_curated_root,
+            next_shard_index=next_shard_index,
+            max_datasets=accepted_target - curated_accepted_datasets,
         )
         copy_elapsed_seconds = _elapsed_seconds_since(copy_start_time)
         curated_accepted_datasets += int(committed_curated_datasets)
@@ -1012,7 +1063,9 @@ def _materialize_accepted_only_invocation(
                 ),
                 "round_count": len(round_payloads),
                 "materialize_worker_threads": (
-                    None if materialize_worker_threads is None else int(materialize_worker_threads)
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
                 ),
                 "generate_elapsed_seconds": total_generate_elapsed_seconds,
                 "filter_elapsed_seconds": total_filter_elapsed_seconds,
@@ -1041,17 +1094,25 @@ def _materialize_accepted_only_invocation(
                         "curated_accepted_datasets": int(
                             round_payload["curated_accepted_datasets"]
                         ),
-                        "generate_elapsed_seconds": round_payload.get("generate_elapsed_seconds"),
-                        "filter_elapsed_seconds": round_payload.get("filter_elapsed_seconds"),
+                        "generate_elapsed_seconds": round_payload.get(
+                            "generate_elapsed_seconds"
+                        ),
+                        "filter_elapsed_seconds": round_payload.get(
+                            "filter_elapsed_seconds"
+                        ),
                         "filter_datasets_per_minute": round_payload.get(
                             "filter_datasets_per_minute"
                         ),
                         "copy_elapsed_seconds": round_payload.get("copy_elapsed_seconds"),
-                        "upstream_elapsed_seconds": round_payload.get("upstream_elapsed_seconds"),
+                        "upstream_elapsed_seconds": round_payload.get(
+                            "upstream_elapsed_seconds"
+                        ),
                         "local_overhead_elapsed_seconds": round_payload.get(
                             "local_overhead_elapsed_seconds"
                         ),
-                        "round_elapsed_seconds": round_payload.get("round_elapsed_seconds"),
+                        "round_elapsed_seconds": round_payload.get(
+                            "round_elapsed_seconds"
+                        ),
                     }
                     for round_payload in round_payloads
                 ],
@@ -1115,7 +1176,9 @@ def _materialize_invocation(
                     fallback=int(spec.num_datasets),
                 ),
                 "materialize_worker_threads": (
-                    None if materialize_worker_threads is None else int(materialize_worker_threads)
+                    None
+                    if materialize_worker_threads is None
+                    else int(materialize_worker_threads)
                 ),
                 "generate_elapsed_seconds": float(generate_elapsed_seconds),
                 "upstream_elapsed_seconds": float(generate_elapsed_seconds),
@@ -1168,7 +1231,9 @@ def materialize_recipe_invocation(
         None,
     )
     if spec is None:
-        raise RuntimeError(f"recipe {recipe_id!r} does not define invocation {invocation_id!r}")
+        raise RuntimeError(
+            f"recipe {recipe_id!r} does not define invocation {invocation_id!r}"
+        )
     _materialize_invocation(
         dagzoo_root=dagzoo_root.expanduser().resolve(),
         corpus_root=corpus_root.expanduser().resolve(),
@@ -1207,7 +1272,9 @@ def _invocation_worker_argv(
         str(repo_root.expanduser().resolve()),
     ]
     if materialize_worker_threads is not None:
-        argv.extend(["--materialize-worker-threads", str(int(materialize_worker_threads))])
+        argv.extend(
+            ["--materialize-worker-threads", str(int(materialize_worker_threads))]
+        )
     if initial_expected_acceptance_rate is not None:
         argv.extend(
             [
@@ -1309,7 +1376,9 @@ def _materialize_invocations_with_subprocess_fanout(
                     shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
                     row_total = shape_key[0]
                     if row_total is not None:
-                        row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
+                        row_acceptance_rates.setdefault(int(row_total), []).append(
+                            acceptance_rate
+                        )
         return
 
     pending = deque(invocations)
@@ -1397,7 +1466,9 @@ def _materialize_invocations_with_subprocess_fanout(
                     shape_acceptance_rates.setdefault(shape_key, []).append(acceptance_rate)
                     row_total = shape_key[0]
                     if row_total is not None:
-                        row_acceptance_rates.setdefault(int(row_total), []).append(acceptance_rate)
+                        row_acceptance_rates.setdefault(int(row_total), []).append(
+                            acceptance_rate
+                        )
         return
     finally:
         if active_processes:
@@ -1451,7 +1522,9 @@ def _invocation_record_payload(
                 "filter_elapsed_seconds": _float_or_none(
                     summary_payload.get("filter_elapsed_seconds")
                 ),
-                "copy_elapsed_seconds": _float_or_none(summary_payload.get("copy_elapsed_seconds")),
+                "copy_elapsed_seconds": _float_or_none(
+                    summary_payload.get("copy_elapsed_seconds")
+                ),
                 "upstream_elapsed_seconds": _float_or_none(
                     summary_payload.get("upstream_elapsed_seconds")
                 ),
@@ -1473,7 +1546,9 @@ def _invocation_record_payload(
         summary_payload is not None
         and str(summary_payload.get("filter_policy")).strip() == "accepted_only"
     ):
-        materialize_worker_threads = _int_or_none(summary_payload.get("materialize_worker_threads"))
+        materialize_worker_threads = _int_or_none(
+            summary_payload.get("materialize_worker_threads")
+        )
         rounds_payload = []
         command_list: list[str] = []
         for round_payload in cast(list[Any], summary_payload.get("rounds", [])):
@@ -1481,7 +1556,9 @@ def _invocation_record_payload(
                 raise RuntimeError(
                     "accepted_only materialization summary rounds must contain mappings"
                 )
-            normalized_round_payload = {str(key): value for key, value in round_payload.items()}
+            normalized_round_payload = {
+                str(key): value for key, value in round_payload.items()
+            }
             round_index = int(normalized_round_payload["round_index"])
             requested_generated_datasets = int(
                 normalized_round_payload["requested_generated_datasets"]
@@ -1507,8 +1584,12 @@ def _invocation_record_payload(
                 curated_out_dir=round_root / "curated",
                 worker_threads=materialize_worker_threads,
             )
-            generate_command = _stringify_command(build_dagzoo_generate_argv(round_generate_config))
-            filter_command = _stringify_command(build_dagzoo_filter_argv(round_filter_config))
+            generate_command = _stringify_command(
+                build_dagzoo_generate_argv(round_generate_config)
+            )
+            filter_command = _stringify_command(
+                build_dagzoo_filter_argv(round_filter_config)
+            )
             command_list.extend([generate_command, filter_command])
             round_entry: dict[str, Any] = {
                 "round_index": round_index,
@@ -1588,7 +1669,7 @@ def _invocation_record_payload(
                                     corpus_root=corpus_root,
                                     invocation_id=spec.invocation_id,
                                 )
-                                / "filter_manifest.parquet"
+                                / "filter_manifest.ndjson"
                             ).resolve()
                         ),
                         "filter_summary_path": str(

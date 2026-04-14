@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 from typing import Any
-from typing import Mapping
 
 from click.testing import CliRunner
 import numpy as np
@@ -16,117 +15,12 @@ import torch
 
 import tab_foundry.cli as cli_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
-from tab_realdata_hub.manifest import _stable_split, build_manifest
+from tab_realdata_hub.manifest import _stable_split, build_manifest, write_dataset_catalog
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
-
-try:
-    from tab_realdata_hub.manifest import write_dataset_catalog as _hub_write_dataset_catalog
-except ImportError:  # pragma: no cover - local test fallback for older released hub builds
-    _hub_write_dataset_catalog = None
-
-
-def _write_dataset_catalog_file(path: Path, records: list[dict[str, Any]]) -> None:
-    if callable(_hub_write_dataset_catalog):
-        _hub_write_dataset_catalog(path, records)
-        return
-    rows = []
-    for record in records:
-        record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
-        metadata = record.get("metadata")
-        metadata_mapping = metadata if isinstance(metadata, dict) else None
-        filter_payload = (
-            metadata_mapping.get("filter") if isinstance(metadata_mapping, dict) else None
-        )
-        rows.append(
-            {
-                "dataset_index": int(record["dataset_index"]),
-                "record_json": record_json,
-                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
-                "resolved_dataset_id": record.get("dataset_id"),
-                "resolved_request_run": None,
-                "resolved_task": str(
-                    record.get(
-                        "task",
-                        (
-                            metadata_mapping.get("config", {}).get("dataset", {}).get("task")
-                            if isinstance(metadata_mapping, dict)
-                            else "classification"
-                        ),
-                    )
-                ),
-                "resolved_n_train": int(record["n_train"]),
-                "resolved_n_test": int(record["n_test"]),
-                "resolved_n_features": int(record["n_features"]),
-                "resolved_n_classes": (
-                    None if record.get("n_classes") is None else int(record["n_classes"])
-                ),
-                "resolved_filter_mode": (
-                    filter_payload.get("mode") if isinstance(filter_payload, dict) else None
-                ),
-                "resolved_filter_status": (
-                    filter_payload.get("status") if isinstance(filter_payload, dict) else None
-                ),
-                "resolved_filter_accepted": (
-                    filter_payload.get("accepted")
-                    if isinstance(filter_payload, dict)
-                    and isinstance(filter_payload.get("accepted"), bool)
-                    else None
-                ),
-                "teacher_conditionals_available": False,
-            }
-        )
-    schema = pa.schema(
-        [
-            pa.field("dataset_index", pa.int64()),
-            pa.field("record_json", pa.large_string()),
-            pa.field("record_sha256", pa.string()),
-            pa.field("resolved_dataset_id", pa.string()),
-            pa.field("resolved_request_run", pa.string()),
-            pa.field("resolved_task", pa.string()),
-            pa.field("resolved_n_train", pa.int64()),
-            pa.field("resolved_n_test", pa.int64()),
-            pa.field("resolved_n_features", pa.int64()),
-            pa.field("resolved_n_classes", pa.int64()),
-            pa.field("resolved_filter_mode", pa.string()),
-            pa.field("resolved_filter_status", pa.string()),
-            pa.field("resolved_filter_accepted", pa.bool_()),
-            pa.field("teacher_conditionals_available", pa.bool_()),
-        ]
-    )
-    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
-
-
-def _write_json_record_parquet_file(path: Path, records: list[dict[str, Any]]) -> None:
-    rows = []
-    for record in records:
-        record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
-        rows.append(
-            {
-                "dataset_index": int(record["dataset_index"]),
-                "record_json": record_json,
-                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
-            }
-        )
-    table = pa.Table.from_pylist(
-        rows,
-        schema=pa.schema(
-            [
-                pa.field("dataset_index", pa.int64()),
-                pa.field("record_json", pa.large_string()),
-                pa.field("record_sha256", pa.string()),
-            ]
-        ),
-    )
-    pq.write_table(table, path, compression="zstd")
-
-
-def _catalog_record_digest(record: Mapping[str, Any]) -> str:
-    record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    return sha256(record_json.encode("utf-8")).hexdigest()
 
 
 def _manifest_summary_metadata(path: Path) -> dict[str, Any]:
@@ -171,12 +65,8 @@ def _classification_arrays(
     rng = np.random.default_rng(seed)
     x_train = rng.standard_normal((n_train, n_features)).astype(np.float32)
     x_test = rng.standard_normal((n_test, n_features)).astype(np.float32)
-    y_train = np.tile(np.arange(n_classes, dtype=np.int64), int(np.ceil(n_train / n_classes)))[
-        :n_train
-    ]
-    y_test = np.tile(np.arange(n_classes, dtype=np.int64), int(np.ceil(n_test / n_classes)))[
-        :n_test
-    ]
+    y_train = np.tile(np.arange(n_classes, dtype=np.int64), int(np.ceil(n_train / n_classes)))[:n_train]
+    y_test = np.tile(np.arange(n_classes, dtype=np.int64), int(np.ceil(n_test / n_classes)))[:n_test]
     rng.shuffle(y_train)
     rng.shuffle(y_test)
     return x_train, y_train, x_test, y_test
@@ -208,7 +98,7 @@ def _write_packed_shard(
     shard_dir: Path,
     *,
     datasets: list[dict[str, Any]],
-) -> dict[int, str]:
+) -> dict[int, tuple[int, int, str]]:
     shard_dir.mkdir(parents=True, exist_ok=True)
 
     train_rows = [
@@ -230,23 +120,27 @@ def _write_packed_shard(
     pq.write_table(_build_split_table(train_rows), shard_dir / "train.parquet")
     pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
 
-    catalog_digests: dict[int, str] = {}
+    offsets: dict[int, tuple[int, int, str]] = {}
     catalog_records: list[dict[str, Any]] = []
-    for dataset in datasets:
-        payload = {
-            "dataset_index": int(dataset["dataset_index"]),
-            "n_train": int(dataset["x_train"].shape[0]),
-            "n_test": int(dataset["x_test"].shape[0]),
-            "n_features": int(dataset["x_train"].shape[1]),
-            "metadata": dict(dataset["metadata"]),
-        }
-        if dataset.get("feature_types") is not None:
-            payload["feature_types"] = list(dataset["feature_types"])
-        catalog_records.append(payload)
-        catalog_digests[int(dataset["dataset_index"])] = _catalog_record_digest(payload)
-    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", catalog_records)
+    with (shard_dir / "metadata.ndjson").open("wb") as handle:
+        for dataset in datasets:
+            payload = {
+                "dataset_index": int(dataset["dataset_index"]),
+                "n_train": int(dataset["x_train"].shape[0]),
+                "n_test": int(dataset["x_test"].shape[0]),
+                "n_features": int(dataset["x_train"].shape[1]),
+                "metadata": dict(dataset["metadata"]),
+            }
+            if dataset.get("feature_types") is not None:
+                payload["feature_types"] = list(dataset["feature_types"])
+            raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
+            offset = int(handle.tell())
+            handle.write(raw)
+            offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
+            catalog_records.append(payload)
+    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
 
-    return catalog_digests
+    return offsets
 
 
 def _write_split_drift_shard(
@@ -255,7 +149,7 @@ def _write_split_drift_shard(
     metadata_datasets: list[dict[str, Any]],
     train_datasets: list[dict[str, Any]],
     test_datasets: list[dict[str, Any]],
-) -> dict[int, str]:
+) -> dict[int, tuple[int, int, str]]:
     shard_dir.mkdir(parents=True, exist_ok=True)
 
     train_rows = [
@@ -277,23 +171,27 @@ def _write_split_drift_shard(
     pq.write_table(_build_split_table(train_rows), shard_dir / "train.parquet")
     pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
 
-    catalog_digests: dict[int, str] = {}
+    offsets: dict[int, tuple[int, int, str]] = {}
     catalog_records: list[dict[str, Any]] = []
-    for dataset in metadata_datasets:
-        payload = {
-            "dataset_index": int(dataset["dataset_index"]),
-            "n_train": int(dataset["x_train"].shape[0]),
-            "n_test": int(dataset["x_test"].shape[0]),
-            "n_features": int(dataset["x_train"].shape[1]),
-            "metadata": dict(dataset["metadata"]),
-        }
-        if dataset.get("feature_types") is not None:
-            payload["feature_types"] = list(dataset["feature_types"])
-        catalog_records.append(payload)
-        catalog_digests[int(dataset["dataset_index"])] = _catalog_record_digest(payload)
-    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", catalog_records)
+    with (shard_dir / "metadata.ndjson").open("wb") as handle:
+        for dataset in metadata_datasets:
+            payload = {
+                "dataset_index": int(dataset["dataset_index"]),
+                "n_train": int(dataset["x_train"].shape[0]),
+                "n_test": int(dataset["x_test"].shape[0]),
+                "n_features": int(dataset["x_train"].shape[1]),
+                "metadata": dict(dataset["metadata"]),
+            }
+            if dataset.get("feature_types") is not None:
+                payload["feature_types"] = list(dataset["feature_types"])
+            raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
+            offset = int(handle.tell())
+            handle.write(raw)
+            offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
+            catalog_records.append(payload)
+    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
 
-    return catalog_digests
+    return offsets
 
 
 def _write_dataset(
@@ -446,9 +344,7 @@ def test_dataset_rejects_wrong_feature_types_length(tmp_path: Path) -> None:
 def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> None:
     accepted_dir = tmp_path / "run" / "accepted" / "shard_00000"
     missing_dir = tmp_path / "run" / "missing" / "shard_00000"
-    _ = _write_dataset(
-        accepted_dir, dataset_index=0, filter_status="accepted", filter_accepted=True
-    )
+    _ = _write_dataset(accepted_dir, dataset_index=0, filter_status="accepted", filter_accepted=True)
     _ = _write_dataset(missing_dir, dataset_index=1, include_filter=False)
 
     manifest_path = tmp_path / "manifest.parquet"
@@ -464,18 +360,8 @@ def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> 
 
 def test_manifest_accepted_only_excludes_unaccepted_records(tmp_path: Path) -> None:
     root = tmp_path / "run"
-    _ = _write_dataset(
-        root / "accepted" / "shard_00000",
-        dataset_index=0,
-        filter_status="accepted",
-        filter_accepted=True,
-    )
-    _ = _write_dataset(
-        root / "rejected" / "shard_00000",
-        dataset_index=1,
-        filter_status="rejected",
-        filter_accepted=False,
-    )
+    _ = _write_dataset(root / "accepted" / "shard_00000", dataset_index=0, filter_status="accepted", filter_accepted=True)
+    _ = _write_dataset(root / "rejected" / "shard_00000", dataset_index=1, filter_status="rejected", filter_accepted=False)
     _ = _write_dataset(root / "pending" / "shard_00000", dataset_index=2, filter_status="not_run")
 
     manifest_path = tmp_path / "manifest.parquet"
@@ -599,12 +485,7 @@ def test_manifest_rejects_selected_dataset_index_missing_from_packed_split(
 
     manifest_path = tmp_path / "manifest.parquet"
     with pytest.raises(RuntimeError) as excinfo:
-        _ = build_manifest(
-            [root],
-            manifest_path,
-            filter_policy="accepted_only",
-            missing_value_policy="forbid_any",
-        )
+        _ = build_manifest([root], manifest_path, filter_policy="accepted_only")
 
     message = str(excinfo.value)
     assert "dataset_index=0" in message
@@ -942,10 +823,8 @@ def test_manifest_prefers_canonical_dagzoo_dataset_id_across_root_paths(tmp_path
     row_b = pq.read_table(manifest_b).to_pylist()[0]
     assert row_a["dataset_id"] == canonical_dataset_id
     assert row_b["dataset_id"] == canonical_dataset_id
-    assert (
-        row_a["dataset_identity_key"]
-        == row_b["dataset_identity_key"]
-        == (f"dagzoo_request_{generate_run_id}/dataset_{canonical_dataset_id}")
+    assert row_a["dataset_identity_key"] == row_b["dataset_identity_key"] == (
+        f"dagzoo_request_{generate_run_id}/dataset_{canonical_dataset_id}"
     )
     assert row_a["split"] == row_b["split"]
     assert row_a["source_root_id"] != row_b["source_root_id"]
@@ -1034,7 +913,7 @@ def test_manifest_dataset_id_is_unique_across_nested_runs_with_same_root(tmp_pat
 def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     offsets = _write_dataset(shard_dir, filter_status="accepted", filter_accepted=True)
-    catalog_sha256 = offsets[0]
+    metadata_offset, metadata_size, catalog_sha256 = offsets[0]
 
     manifest_dir = tmp_path / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
@@ -1049,9 +928,10 @@ def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) 
         "dataset_index": 0,
         "train_path": os.path.relpath(shard_dir / "train.parquet", manifest_dir),
         "test_path": os.path.relpath(shard_dir / "test.parquet", manifest_dir),
-        "catalog_path": os.path.relpath(shard_dir / "dataset_catalog.parquet", manifest_dir),
-        "catalog_dataset_index": 0,
-        "catalog_record_sha256": catalog_sha256,
+        "catalog_path": os.path.relpath(shard_dir / "metadata.ndjson", manifest_dir),
+        "catalog_offset_bytes": metadata_offset,
+        "catalog_size_bytes": metadata_size,
+        "catalog_sha256": catalog_sha256,
         "n_train": 16,
         "n_test": 8,
         "n_features": 4,
@@ -1089,13 +969,9 @@ def test_manifest_paths_are_relative_to_manifest_dir(tmp_path: Path) -> None:
     assert not Path(str(row["test_path"])).is_absolute()
     locator_prefix = "catalog" if "catalog_path" in row else "metadata"
     assert not Path(str(row[f"{locator_prefix}_path"])).is_absolute()
-    if "catalog_dataset_index" in row:
-        assert int(row["catalog_dataset_index"]) == 0
-        assert len(str(row["catalog_record_sha256"])) == 64
-    else:
-        assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
-        assert int(row[f"{locator_prefix}_size_bytes"]) > 0
-        assert len(str(row[f"{locator_prefix}_sha256"])) == 64
+    assert int(row[f"{locator_prefix}_offset_bytes"]) >= 0
+    assert int(row[f"{locator_prefix}_size_bytes"]) > 0
+    assert len(str(row[f"{locator_prefix}_sha256"])) == 64
 
 
 def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
@@ -1170,7 +1046,8 @@ def test_manifest_handles_null_n_features_in_metadata(tmp_path: Path) -> None:
             "config": {"dataset": {"task": "classification"}},
         },
     }
-    _write_dataset_catalog_file(shard_dir / "dataset_catalog.parquet", [payload])
+    with (shard_dir / "metadata.ndjson").open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload) + "\n")
 
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
@@ -1185,10 +1062,15 @@ def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    table = pq.read_table(manifest_path)
-    corrupted_rows = table.to_pylist()
-    corrupted_rows[0]["catalog_record_sha256"] = "0" * 64
-    pq.write_table(pa.Table.from_pylist(corrupted_rows, schema=table.schema), manifest_path)
+    locator_prefix = "catalog" if "catalog_path" in row else "metadata"
+    catalog_path = (manifest_path.parent / str(row[f"{locator_prefix}_path"])).resolve()
+
+    offset = int(row[f"{locator_prefix}_offset_bytes"])
+    with catalog_path.open("r+b") as handle:
+        handle.seek(offset + 1)
+        original = handle.read(1)
+        handle.seek(offset + 1)
+        handle.write(b"{" if original != b"{" else b"}")
 
     ds = PackedParquetTaskDataset(manifest_path, split=str(row["split"]), task="classification")
     with pytest.raises(RuntimeError, match="checksum mismatch"):

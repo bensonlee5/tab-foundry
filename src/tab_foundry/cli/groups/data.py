@@ -313,30 +313,13 @@ def _run_corpus_compact_staged(
     dagzoo_root: Path,
     stage_root: Path | None,
     force: bool,
-    compact_workers: int | None,
     json_mode: bool,
 ) -> int:
-    progress_callback = None
-    if not json_mode:
-        def _emit_progress(payload: dict[str, object]) -> None:
-            compaction = payload["curated_compaction"]
-            assert isinstance(compaction, dict)
-            print(
-                f"[{payload['index']}/{payload['total']}]",
-                payload["invocation_id"],
-                f"source_shards={compaction['source_shard_count']}",
-                f"output_shards={compaction['output_shard_count']}",
-                f"datasets={compaction['dataset_count']}",
-            )
-
-        progress_callback = _emit_progress
     result = compact_staged_corpus_recipe(
         recipe_id=recipe,
         dagzoo_root=dagzoo_root,
         stage_root=stage_root,
         force=force,
-        compact_workers=compact_workers,
-        progress_callback=progress_callback,
         sweep_id=sweep_id,
     )
     if json_mode:
@@ -617,7 +600,6 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
 @click.option("--sweep-id", default=None, help="Optional sweep id to resolve sweep-local corpus recipes first")
 @dagzoo_root_option()
 @path_option("stage-root", default=None, help="Optional staged corpus root override. Defaults to outputs/corpora/<recipe>/.staging")
-@click.option("--compact-workers", default=None, type=POSITIVE_INT, help="Optional parallelism override for staged compaction across invocations")
 @click.option("--force", is_flag=True, help="Recompact even if parquet catalogs already exist in the staged curated roots")
 @json_output_option
 def CORPUS_COMPACT_STAGED_COMMAND(
@@ -625,7 +607,6 @@ def CORPUS_COMPACT_STAGED_COMMAND(
     sweep_id: str | None,
     dagzoo_root: Path,
     stage_root: Path | None,
-    compact_workers: int | None,
     force: bool,
     json_mode: bool,
 ) -> int:
@@ -634,7 +615,6 @@ def CORPUS_COMPACT_STAGED_COMMAND(
         sweep_id=sweep_id,
         dagzoo_root=dagzoo_root,
         stage_root=stage_root,
-        compact_workers=compact_workers,
         force=force,
         json_mode=json_mode,
     )

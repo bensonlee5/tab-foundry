@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 import shutil
-import time
 from typing import Any
 
 import pytest
@@ -100,9 +99,7 @@ def test_build_dagzoo_provenance_summary_preserves_latent_target_provenance() ->
     assert summary["review_summary"]["target_derivation"] == "tabiclv2_latent_node"
 
 
-def test_build_dagzoo_provenance_summary_falls_back_to_recipe_metadata_without_handoff_provenance() -> (
-    None
-):
+def test_build_dagzoo_provenance_summary_falls_back_to_recipe_metadata_without_handoff_provenance() -> None:
     recipe = load_corpus_recipe("tf_rd_010_dagzoo_medium_control_v4", repo_root=REPO_ROOT)
 
     summary = build_dagzoo_provenance_summary(
@@ -181,9 +178,7 @@ def _patch_corpus_repo_root(monkeypatch: pytest.MonkeyPatch, repo_root: Path) ->
 
 
 def _patch_dagzoo_generate(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
-    monkeypatch.setattr(
-        corpus_materialization_invocation_module, "run_dagzoo_generate", replacement
-    )
+    monkeypatch.setattr(corpus_materialization_invocation_module, "run_dagzoo_generate", replacement)
 
 
 def _patch_dagzoo_filter(monkeypatch: pytest.MonkeyPatch, replacement: Any) -> None:
@@ -376,60 +371,6 @@ def _write_accepted_only_recipe_fixture(
     )
 
 
-def _write_multi_invocation_accepted_only_recipe_fixture(
-    repo_root: Path,
-    *,
-    recipe_id: str = "accepted_only_multi_recipe",
-    filename: str = "accepted_only_multi_recipe.yaml",
-    invocation_ids: tuple[str, str] = ("slow", "fast"),
-    num_datasets_per_invocation: int = 2,
-) -> None:
-    manifest_record_count = int(num_datasets_per_invocation) * len(invocation_ids)
-    _register_recipe_fixture(
-        repo_root,
-        recipe_id=recipe_id,
-        filename=filename,
-        contents="\n".join(
-            [
-                "schema: tab-foundry-corpus-recipe-v1",
-                f"recipe_id: {recipe_id}",
-                "kind: dagzoo_multi_invocation_manifest",
-                "description: Accepted-only multi-invocation corpus fixture.",
-                "surface_label: accepted_only_multi_surface",
-                "manifest:",
-                "  train_ratio: 0.9",
-                "  val_ratio: 0.05",
-                "  filter_policy: accepted_only",
-                "  missing_value_policy: allow_any",
-                "provenance_labels:",
-                "  corpus_variant: accepted_only_multi_surface",
-                "  comparator_role: control",
-                "  target_derivation: tabiclv2_latent_node",
-                "review_summary:",
-                "  config_refs:",
-                "  - configs/default.yaml",
-                f"  invocation_count: {len(invocation_ids)}",
-                f"  manifest_record_count: {manifest_record_count}",
-                "  target_derivation: tabiclv2_latent_node",
-                "invocations:",
-                *[
-                    line
-                    for invocation_id in invocation_ids
-                    for line in (
-                        f"  - invocation_id: {invocation_id}",
-                        "    config_ref: configs/default.yaml",
-                        f"    num_datasets: {num_datasets_per_invocation}",
-                        "    seed: 1",
-                        "    device: cpu",
-                        "    hardware_policy: none",
-                    )
-                ],
-            ]
-        )
-        + "\n",
-    )
-
-
 def _write_generator_recipe_registry(repo_root: Path) -> None:
     recipe_root = repo_root / "reference" / "corpus_recipes"
     recipe_root.mkdir(parents=True, exist_ok=True)
@@ -501,7 +442,13 @@ def _write_generator_recipe_registry(repo_root: Path) -> None:
 
 
 def _write_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> None:
-    recipe_root = repo_root / "reference" / "system_delta_sweeps" / sweep_id / "corpus_recipes"
+    recipe_root = (
+        repo_root
+        / "reference"
+        / "system_delta_sweeps"
+        / sweep_id
+        / "corpus_recipes"
+    )
     recipe_root.mkdir(parents=True, exist_ok=True)
     (recipe_root / "index.yaml").write_text(
         "\n".join(
@@ -581,7 +528,13 @@ def _write_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> None:
 
 
 def _write_matching_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> None:
-    recipe_root = repo_root / "reference" / "system_delta_sweeps" / sweep_id / "corpus_recipes"
+    recipe_root = (
+        repo_root
+        / "reference"
+        / "system_delta_sweeps"
+        / sweep_id
+        / "corpus_recipes"
+    )
     recipe_root.mkdir(parents=True, exist_ok=True)
     (recipe_root / "index.yaml").write_text(
         "\n".join(
@@ -625,7 +578,13 @@ def _write_matching_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> 
 
 
 def _write_broken_sweep_recipe_registry(repo_root: Path, *, sweep_id: str) -> None:
-    recipe_root = repo_root / "reference" / "system_delta_sweeps" / sweep_id / "corpus_recipes"
+    recipe_root = (
+        repo_root
+        / "reference"
+        / "system_delta_sweeps"
+        / sweep_id
+        / "corpus_recipes"
+    )
     recipe_root.mkdir(parents=True, exist_ok=True)
     (recipe_root / "index.yaml").write_text(
         "\n".join(
@@ -665,9 +624,7 @@ def _write_handoff_manifest(
     if curated_dir_rel is not None:
         payload["artifacts_relative"]["curated_dir"] = curated_dir_rel
     handoff_manifest_path = handoff_root / "handoff_manifest.json"
-    handoff_manifest_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    handoff_manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return handoff_manifest_path
 
 
@@ -715,9 +672,7 @@ def _fake_run_dagzoo_generate_many(config) -> object:
     handoff_root = Path(str(config.handoff_root)).expanduser().resolve()
     generated_dir = handoff_root / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
-    _write_curated_datasets(
-        generated_dir, dataset_count=max(int(config.num_datasets), 1), seed_base=10
-    )
+    _write_curated_datasets(generated_dir, dataset_count=max(int(config.num_datasets), 1), seed_base=10)
     handoff_manifest_path = _write_handoff_manifest(handoff_root)
     return load_dagzoo_handoff_info(handoff_manifest_path)
 
@@ -745,12 +700,9 @@ def _fake_run_dagzoo_filter(config) -> DagzooFilterResult:
     filter_root.mkdir(parents=True, exist_ok=True)
     curated_dir.mkdir(parents=True, exist_ok=True)
     _write_curated_datasets(curated_dir, dataset_count=1)
-    manifest_path = filter_root / "filter_manifest.parquet"
+    manifest_path = filter_root / "filter_manifest.ndjson"
     summary_path = filter_root / "filter_summary.json"
-    cases._write_json_record_parquet_file(
-        manifest_path,
-        [{"dataset_index": 0, "status": "accepted"}],
-    )
+    manifest_path.write_text("{}\n", encoding="utf-8")
     summary_path.write_text(
         json.dumps(
             {
@@ -787,15 +739,9 @@ def _fake_run_dagzoo_filter_all(config) -> DagzooFilterResult:
     curated_dir.mkdir(parents=True, exist_ok=True)
     dataset_count = len(sorted(input_dir.glob("shard_*")))
     _write_curated_datasets(curated_dir, dataset_count=max(dataset_count, 1), seed_base=200)
-    manifest_path = filter_root / "filter_manifest.parquet"
+    manifest_path = filter_root / "filter_manifest.ndjson"
     summary_path = filter_root / "filter_summary.json"
-    cases._write_json_record_parquet_file(
-        manifest_path,
-        [
-            {"dataset_index": dataset_index, "status": "accepted"}
-            for dataset_index in range(max(1, dataset_count))
-        ],
-    )
+    manifest_path.write_text("{}\n" * max(1, dataset_count), encoding="utf-8")
     summary_path.write_text(
         json.dumps(
             {
@@ -858,15 +804,9 @@ def _round_sequence_fake_run_dagzoo_filter(
             dataset_count=curated_count,
             seed_base=200 + call_index * 10,
         )
-        manifest_path = filter_root / "filter_manifest.parquet"
+        manifest_path = filter_root / "filter_manifest.ndjson"
         summary_path = filter_root / "filter_summary.json"
-        cases._write_json_record_parquet_file(
-            manifest_path,
-            [
-                {"dataset_index": dataset_index, "status": "accepted"}
-                for dataset_index in range(max(1, curated_count))
-            ],
-        )
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
         summary_path.write_text(
             json.dumps(
                 {
@@ -1021,9 +961,7 @@ def _write_legacy_unscoped_corpus_record(
         },
         "corpus_record_path": str(record_path.resolve()),
     }
-    record_path.write_text(
-        json.dumps(legacy_record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    record_path.write_text(json.dumps(legacy_record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     latest_pointer_path.write_text(
         json.dumps(
             {
@@ -1091,11 +1029,7 @@ def test_load_and_list_corpus_recipes_include_sweep_local_shadowing(repo_tmp_pat
 
     recipes = list_corpus_recipes(repo_root=repo_tmp_path, sweep_id="tf_rd_local")
 
-    assert [recipe.recipe_id for recipe in recipes] == [
-        "current_recipe",
-        "size_recipe",
-        "sweep_recipe",
-    ]
+    assert [recipe.recipe_id for recipe in recipes] == ["current_recipe", "size_recipe", "sweep_recipe"]
     current = load_corpus_recipe("current_recipe", repo_root=repo_tmp_path, sweep_id="tf_rd_local")
     assert current.surface_label == "sweep_local_current"
     assert current.recipe_path == (
@@ -1180,7 +1114,9 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     materialization_summary_path = (
         Path(str(invocation["invocation_root"])) / "materialization_summary.json"
     )
-    materialization_summary = json.loads(materialization_summary_path.read_text(encoding="utf-8"))
+    materialization_summary = json.loads(
+        materialization_summary_path.read_text(encoding="utf-8")
+    )
     assert materialization_summary["filter_policy"] == "include_all"
     assert materialization_summary["generated_datasets"] == invocation["num_datasets"]
     assert materialization_summary["generate_elapsed_seconds"] >= 0.0
@@ -1325,7 +1261,9 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         return {
             "recipe_id": recipe_id,
             "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
-            "manifest": {"manifest_path": str((repo_tmp_path / f"{recipe_id}.parquet").resolve())},
+            "manifest": {
+                "manifest_path": str((repo_tmp_path / f"{recipe_id}.parquet").resolve())
+            },
         }
 
     def _fake_recipe_worker_fanout(
@@ -1339,9 +1277,7 @@ def test_materialize_corpus_refs_batch_delegates_pending_recipes_to_recipe_worke
         captured.update(
             {
                 "pending_recipe_ids": [pending.recipe_id for pending in pending_requests],
-                "requested_exact_refs": [
-                    pending.requested_exact_ref for pending in pending_requests
-                ],
+                "requested_exact_refs": [pending.requested_exact_ref for pending in pending_requests],
                 "requires_recipe_record": [
                     pending.requires_recipe_record for pending in pending_requests
                 ],
@@ -1422,9 +1358,7 @@ def test_materialize_corpus_refs_batch_rejects_conflicting_uncached_exact_refs(
 ) -> None:
     _write_recipe_registry(repo_tmp_path)
 
-    with pytest.raises(
-        RuntimeError, match="multiple pinned corpus ids for recipe 'current_recipe'"
-    ):
+    with pytest.raises(RuntimeError, match="multiple pinned corpus ids for recipe 'current_recipe'"):
         _ = corpus_materialization_module.materialize_corpus_refs_batch(
             corpus_refs=[
                 "current_recipe/current_recipe__deadbeefdead",
@@ -1449,12 +1383,7 @@ def test_materialize_corpus_refs_batch_rejects_mismatched_pinned_exact_ref_from_
         prioritized_recipe_ids,
         on_recipe_materialized=None,
     ) -> list[dict[str, Any]]:
-        del (
-            pending_requests,
-            materialize_processes,
-            materialize_worker_threads,
-            prioritized_recipe_ids,
-        )
+        del pending_requests, materialize_processes, materialize_worker_threads, prioritized_recipe_ids
         assert on_recipe_materialized is not None
         on_recipe_materialized(
             {
@@ -1592,45 +1521,43 @@ def test_materialize_pending_recipes_with_subprocess_fanout_prioritizes_launch_a
     monkeypatch.setattr(corpus_materialization_batch_module.subprocess, "Popen", FakePopen)
     monkeypatch.setattr(corpus_materialization_batch_module.time, "sleep", _fake_sleep)
 
-    records = (
-        corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
-            pending_requests=[
-                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
-                    recipe_id="adequacy_recipe",
-                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
-                    force=True,
-                    repo_root=repo_tmp_path,
-                    requested_exact_ref=None,
-                    requires_recipe_record=True,
-                    sweep_id=None,
-                    sweeps_root=None,
-                ),
-                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
-                    recipe_id="current_recipe",
-                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
-                    force=True,
-                    repo_root=repo_tmp_path,
-                    requested_exact_ref=None,
-                    requires_recipe_record=True,
-                    sweep_id=None,
-                    sweeps_root=None,
-                ),
-                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
-                    recipe_id="size_recipe",
-                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
-                    force=True,
-                    repo_root=repo_tmp_path,
-                    requested_exact_ref=None,
-                    requires_recipe_record=True,
-                    sweep_id=None,
-                    sweeps_root=None,
-                ),
-            ],
-            materialize_processes=4,
-            materialize_worker_threads=None,
-            prioritized_recipe_ids=["current_recipe"],
-            on_recipe_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
-        )
+    records = corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
+        pending_requests=[
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
+                recipe_id="adequacy_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
+                recipe_id="current_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
+                recipe_id="size_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+        ],
+        materialize_processes=4,
+        materialize_worker_threads=None,
+        prioritized_recipe_ids=["current_recipe"],
+        on_recipe_materialized=lambda record: callback_order.append(str(record["recipe_id"])),
     )
 
     assert launched_recipe_ids == ["current_recipe", "adequacy_recipe", "size_recipe"]
@@ -1702,24 +1629,22 @@ def test_materialize_pending_recipes_with_subprocess_fanout_forwards_explicit_wo
 
     monkeypatch.setattr(corpus_materialization_batch_module.subprocess, "Popen", FakePopen)
 
-    records = (
-        corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
-            pending_requests=[
-                corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
-                    recipe_id="current_recipe",
-                    dagzoo_root=repo_tmp_path.parent / "dagzoo",
-                    force=True,
-                    repo_root=repo_tmp_path,
-                    requested_exact_ref=None,
-                    requires_recipe_record=True,
-                    sweep_id=None,
-                    sweeps_root=None,
-                ),
-            ],
-            materialize_processes=2,
-            materialize_worker_threads=3,
-            prioritized_recipe_ids=(),
-        )
+    records = corpus_materialization_batch_module._materialize_pending_recipes_with_subprocess_fanout(
+        pending_requests=[
+            corpus_materialization_batch_module._PendingRecipeWorkerMaterialization(
+                recipe_id="current_recipe",
+                dagzoo_root=repo_tmp_path.parent / "dagzoo",
+                force=True,
+                repo_root=repo_tmp_path,
+                requested_exact_ref=None,
+                requires_recipe_record=True,
+                sweep_id=None,
+                sweeps_root=None,
+            ),
+        ],
+        materialize_processes=2,
+        materialize_worker_threads=3,
+        prioritized_recipe_ids=(),
     )
 
     assert launched_worker_threads == [3]
@@ -1839,7 +1764,9 @@ def test_recipe_worker_run_from_args_writes_record_and_preserves_optional_thread
         return {
             "recipe_id": recipe_id,
             "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
-            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
+            "manifest": {
+                "manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())
+            },
         }
 
     monkeypatch.setattr(
@@ -1881,7 +1808,8 @@ def test_recipe_worker_run_from_args_writes_record_and_preserves_optional_thread
     assert second_exit_code == 0
     assert captured_threads == [None, 5]
     assert (
-        json.loads(first_result_path.read_text(encoding="utf-8"))["recipe_id"] == "current_recipe"
+        json.loads(first_result_path.read_text(encoding="utf-8"))["recipe_id"]
+        == "current_recipe"
     )
     assert json.loads(second_result_path.read_text(encoding="utf-8"))["recipe_id"] == "size_recipe"
 
@@ -1942,8 +1870,9 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     materialization_summary_path = (
         Path(str(invocation["invocation_root"])) / "materialization_summary.json"
     )
-    materialization_summary = json.loads(materialization_summary_path.read_text(encoding="utf-8"))
-    assert materialization_summary["curated_compaction"]["dataset_count"] == 1
+    materialization_summary = json.loads(
+        materialization_summary_path.read_text(encoding="utf-8")
+    )
     assert materialization_summary["filter_policy"] == "accepted_only"
     assert materialization_summary["generated_datasets"] == 1
     assert materialization_summary["round_count"] == 1
@@ -2000,8 +1929,6 @@ def test_materialize_corpus_recipe_runs_generate_then_filter_for_accepted_only(
     assert timing_summary["timed_invocation_count"] == 1
     assert timing_summary["cumulative_round_count"] == 1
     assert timing_summary["cumulative_generated_datasets"] == 1
-    assert timing_summary["staged_compaction_status"] == "completed"
-    assert timing_summary["staged_compaction_elapsed_seconds"] >= 0.0
     assert timing_summary["cumulative_generate_elapsed_seconds"] == pytest.approx(
         invocation_timing["generate_elapsed_seconds"]
     )
@@ -2030,7 +1957,9 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
     _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
     _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
 
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
     stage_root.mkdir(parents=True, exist_ok=True)
     corpus_materialization_module.materialize_recipe_invocation(
         recipe_id="accepted_only_recipe",
@@ -2049,12 +1978,10 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
 
     record = result["record"]
     verification = result["verification"]
-    compaction = result["compaction"]
     assert verification["mode"] == "fast"
     assert verification["verified_invocations"] == 1
     assert verification["accepted_only"]["target_accepted_datasets"] == 1
     assert verification["accepted_only"]["curated_accepted_datasets"] == 1
-    assert compaction["invocations"][0]["status"] == "already_compacted"
     manifest_path = Path(str(record["manifest"]["manifest_path"]))
     assert manifest_path.exists()
     assert stage_root.exists()
@@ -2079,11 +2006,9 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
 
     loaded = load_corpus_record("accepted_only_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
-    timing_summary = record["dagzoo_provenance_summary"]["materialization_timing"]
-    assert timing_summary["staged_compaction_elapsed_seconds"] >= 0.0
 
 
-def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
+def test_compact_staged_corpus_recipe_rewrites_legacy_curated_root_and_finalize_builds_manifest(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
 ) -> None:
@@ -2115,7 +2040,9 @@ def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
         _compact_to_two,
     )
 
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
     stage_root.mkdir(parents=True, exist_ok=True)
     corpus_materialization_module.materialize_recipe_invocation(
         recipe_id="accepted_only_recipe",
@@ -2130,53 +2057,52 @@ def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
     )
     _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=3)
 
-    with pytest.raises(
-        RuntimeError,
-        match="legacy dagzoo catalog formats are unsupported|missing dataset_catalog.parquet",
-    ):
-        corpus_materialization_module.compact_staged_corpus_recipe(
-            recipe_id="accepted_only_recipe",
-            dagzoo_root=repo_tmp_path.parent / "dagzoo",
-            repo_root=repo_tmp_path,
-        )
-
-
-def test_finalize_staged_corpus_recipe_rejects_legacy_curated_stage(
-    monkeypatch: pytest.MonkeyPatch,
-    repo_tmp_path: Path,
-) -> None:
-    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=2)
-    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_many)
-    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter_all)
-
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
-    stage_root.mkdir(parents=True, exist_ok=True)
-    corpus_materialization_module.materialize_recipe_invocation(
+    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
         recipe_id="accepted_only_recipe",
-        invocation_id="default",
         dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        corpus_root=stage_root,
         repo_root=repo_tmp_path,
     )
-    curated_root = corpus_materialization_invocation_module._invocation_curated_root(
+
+    assert compacted["recipe_id"] == "accepted_only_recipe"
+    assert compacted["invocations"][0]["curated_compaction"] == {
+        "target_datasets_per_shard": 2,
+        "source_shard_count": 3,
+        "output_shard_count": 2,
+        "dataset_count": 3,
+    }
+    shard_dirs = sorted(curated_root.glob("shard_*"))
+    assert [path.name for path in shard_dirs] == ["shard_00000", "shard_00001"]
+    assert all((path / "dataset_catalog.parquet").exists() for path in shard_dirs)
+    assert not list(curated_root.rglob("metadata.ndjson"))
+
+    summary_path = corpus_materialization_invocation_module._invocation_materialization_summary_path(
         corpus_root=stage_root,
         invocation_id="default",
     )
-    _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=2)
+    summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary_payload["curated_compaction"] == {
+        "target_datasets_per_shard": 2,
+        "source_shard_count": 3,
+        "output_shard_count": 2,
+        "dataset_count": 3,
+    }
 
-    with pytest.raises(
-        RuntimeError,
-        match="legacy dagzoo catalog formats are unsupported|missing dataset_catalog.parquet",
-    ):
-        finalize_staged_corpus_recipe(
-            recipe_id="accepted_only_recipe",
-            dagzoo_root=repo_tmp_path.parent / "dagzoo",
-            verify="fast",
-            repo_root=repo_tmp_path,
-        )
+    result = finalize_staged_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        verify="fast",
+        repo_root=repo_tmp_path,
+        manifest_workers=4,
+    )
+
+    assert result["verification"]["mode"] == "fast"
+    assert result["verification"]["accepted_only"]["target_accepted_datasets"] == 3
+    assert result["verification"]["accepted_only"]["curated_accepted_datasets"] == 3
+    assert result["verification"]["accepted_only"]["accepted_datasets"] >= 3
+    assert result["record"]["manifest"]["inspection"]["persisted_summary"]["total_records"] == 3
 
 
-def test_compact_staged_corpus_recipe_skips_already_compacted_stage_without_force(
+def test_compact_staged_corpus_recipe_refuses_already_compacted_stage_without_force(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
 ) -> None:
@@ -2184,7 +2110,9 @@ def test_compact_staged_corpus_recipe_skips_already_compacted_stage_without_forc
     _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
     _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
 
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
     stage_root.mkdir(parents=True, exist_ok=True)
     corpus_materialization_module.materialize_recipe_invocation(
         recipe_id="accepted_only_recipe",
@@ -2194,14 +2122,12 @@ def test_compact_staged_corpus_recipe_skips_already_compacted_stage_without_forc
         repo_root=repo_tmp_path,
     )
 
-    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
-        recipe_id="accepted_only_recipe",
-        dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        repo_root=repo_tmp_path,
-    )
-
-    assert compacted["invocations"][0]["status"] == "already_compacted"
-    assert compacted["invocations"][0]["curated_compaction"]["dataset_count"] == 1
+    with pytest.raises(RuntimeError, match="already contains parquet catalogs"):
+        corpus_materialization_module.compact_staged_corpus_recipe(
+            recipe_id="accepted_only_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            repo_root=repo_tmp_path,
+        )
 
     forced = corpus_materialization_module.compact_staged_corpus_recipe(
         recipe_id="accepted_only_recipe",
@@ -2213,74 +2139,6 @@ def test_compact_staged_corpus_recipe_skips_already_compacted_stage_without_forc
     assert forced["invocations"][0]["curated_compaction"]["dataset_count"] == 1
 
 
-def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_result_order(
-    monkeypatch: pytest.MonkeyPatch,
-    repo_tmp_path: Path,
-) -> None:
-    _write_multi_invocation_accepted_only_recipe_fixture(repo_tmp_path)
-    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_many)
-    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter_all)
-    real_compact_curated_root = corpus_materialization_invocation_module.compact_curated_root
-
-    def _sleepy_compact(
-        *,
-        source_curated_dir: Path,
-        output_curated_dir: Path,
-        start_shard_index: int = 0,
-        target_datasets_per_shard: int = 512,
-        max_datasets: int | None = None,
-    ) -> dict[str, Any]:
-        if "slow" in str(source_curated_dir):
-            time.sleep(0.1)
-        return real_compact_curated_root(
-            source_curated_dir=source_curated_dir,
-            output_curated_dir=output_curated_dir,
-            start_shard_index=start_shard_index,
-            target_datasets_per_shard=target_datasets_per_shard,
-            max_datasets=max_datasets,
-        )
-
-    monkeypatch.setattr(
-        corpus_materialization_invocation_module,
-        "compact_curated_root",
-        _sleepy_compact,
-    )
-
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_multi_recipe" / ".staging"
-    stage_root.mkdir(parents=True, exist_ok=True)
-    for invocation_id in ("slow", "fast"):
-        corpus_materialization_module.materialize_recipe_invocation(
-            recipe_id="accepted_only_multi_recipe",
-            invocation_id=invocation_id,
-            dagzoo_root=repo_tmp_path.parent / "dagzoo",
-            corpus_root=stage_root,
-            repo_root=repo_tmp_path,
-        )
-        curated_root = corpus_materialization_invocation_module._invocation_curated_root(
-            corpus_root=stage_root,
-            invocation_id=invocation_id,
-        )
-        assert list(curated_root.rglob("dataset_catalog.parquet"))
-
-    progress_invocation_ids: list[str] = []
-
-    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
-        recipe_id="accepted_only_multi_recipe",
-        dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        repo_root=repo_tmp_path,
-        force=True,
-        compact_workers=2,
-        progress_callback=lambda payload: progress_invocation_ids.append(
-            str(payload["invocation_id"])
-        ),
-    )
-
-    assert progress_invocation_ids == ["fast", "slow"]
-    assert [item["invocation_id"] for item in compacted["invocations"]] == ["slow", "fast"]
-    assert compacted["invocations"][0]["curated_compaction"]["dataset_count"] == 2
-    assert compacted["invocations"][1]["curated_compaction"]["dataset_count"] == 2
-
-
 def test_load_staged_corpus_recipe_preview_returns_stage_metadata(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
@@ -2289,7 +2147,9 @@ def test_load_staged_corpus_recipe_preview_returns_stage_metadata(
     _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
     _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
 
-    stage_root = repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
     stage_root.mkdir(parents=True, exist_ok=True)
     corpus_materialization_module.materialize_recipe_invocation(
         recipe_id="accepted_only_recipe",
@@ -2393,15 +2253,9 @@ def test_materialize_corpus_recipe_scales_accepted_only_topup_by_observed_accept
             dataset_count=curated_count,
             seed_base=500 + round_index * 10,
         )
-        manifest_path = filter_root / "filter_manifest.parquet"
+        manifest_path = filter_root / "filter_manifest.ndjson"
         summary_path = filter_root / "filter_summary.json"
-        cases._write_json_record_parquet_file(
-            manifest_path,
-            [
-                {"dataset_index": dataset_index, "status": "accepted"}
-                for dataset_index in range(max(1, curated_count))
-            ],
-        )
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
         summary_path.write_text(
             json.dumps(
                 {
@@ -2476,15 +2330,9 @@ def test_materialize_corpus_recipe_trims_overaccepted_curated_output_to_exact_ta
             dataset_count=curated_count,
             seed_base=700 + round_index * 100,
         )
-        manifest_path = filter_root / "filter_manifest.parquet"
+        manifest_path = filter_root / "filter_manifest.ndjson"
         summary_path = filter_root / "filter_summary.json"
-        cases._write_json_record_parquet_file(
-            manifest_path,
-            [
-                {"dataset_index": dataset_index, "status": "accepted"}
-                for dataset_index in range(max(1, curated_count))
-            ],
-        )
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
         summary_path.write_text(
             json.dumps(
                 {
@@ -2561,23 +2409,17 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
         )
     cases._write_packed_shard(shard_dir, datasets=datasets)
 
-    next_shard_index, copied_datasets, compaction_summary = (
-        corpus_materialization_invocation_module._copy_curated_round_shards(
-            round_curated_dir=round_curated_dir,
-            final_curated_dir=final_curated_dir,
-            next_shard_index=0,
-            max_datasets=1,
-        )
+    next_shard_index, copied_datasets, compaction_summary = corpus_materialization_invocation_module._copy_curated_round_shards(
+        round_curated_dir=round_curated_dir,
+        final_curated_dir=final_curated_dir,
+        next_shard_index=0,
+        max_datasets=1,
     )
 
     trimmed_shard = final_curated_dir / "shard_00000"
     catalog_rows = pq.read_table(trimmed_shard / "dataset_catalog.parquet").to_pylist()
-    train_dataset_indices = pq.read_table(trimmed_shard / "train.parquet")[
-        "dataset_index"
-    ].to_pylist()
-    test_dataset_indices = pq.read_table(trimmed_shard / "test.parquet")[
-        "dataset_index"
-    ].to_pylist()
+    train_dataset_indices = pq.read_table(trimmed_shard / "train.parquet")["dataset_index"].to_pylist()
+    test_dataset_indices = pq.read_table(trimmed_shard / "test.parquet")["dataset_index"].to_pylist()
 
     assert next_shard_index == 1
     assert copied_datasets == 1
@@ -2619,13 +2461,11 @@ def test_copy_curated_round_shards_compacts_full_shards_into_parquet_catalogs(
         )
     cases._write_packed_shard(shard_dir, datasets=datasets)
 
-    next_shard_index, copied_datasets, compaction_summary = (
-        corpus_materialization_invocation_module._copy_curated_round_shards(
-            round_curated_dir=round_curated_dir,
-            final_curated_dir=final_curated_dir,
-            next_shard_index=0,
-            max_datasets=None,
-        )
+    next_shard_index, copied_datasets, compaction_summary = corpus_materialization_invocation_module._copy_curated_round_shards(
+        round_curated_dir=round_curated_dir,
+        final_curated_dir=final_curated_dir,
+        next_shard_index=0,
+        max_datasets=None,
     )
 
     destination_shard = final_curated_dir / "shard_00000"
@@ -2670,15 +2510,9 @@ def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budge
         curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
         filter_root.mkdir(parents=True, exist_ok=True)
         curated_dir.mkdir(parents=True, exist_ok=True)
-        manifest_path = filter_root / "filter_manifest.parquet"
+        manifest_path = filter_root / "filter_manifest.ndjson"
         summary_path = filter_root / "filter_summary.json"
-        cases._write_json_record_parquet_file(
-            manifest_path,
-            [
-                {"dataset_index": dataset_index, "status": "accepted"}
-                for dataset_index in range(max(1, curated_count))
-            ],
-        )
+        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
         summary_path.write_text(
             json.dumps(
                 {
@@ -2853,7 +2687,8 @@ def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_ren
     dagzoo_root = repo_tmp_path.parent / "dagzoo"
     _write_sweep_recipe_registry(repo_tmp_path, sweep_id=sweep_id)
     config_files_before = sorted(
-        str(path.relative_to(dagzoo_root)) for path in (dagzoo_root / "configs").rglob("*.yaml")
+        str(path.relative_to(dagzoo_root))
+        for path in (dagzoo_root / "configs").rglob("*.yaml")
     )
     captured_runs: list[dict[str, object]] = []
 
@@ -2933,9 +2768,7 @@ def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_ren
         f"reference/system_delta_sweeps/{sweep_id}/corpus_recipes/current_recipe.yaml"
     )
     assert str(local_record["corpus_id"]).endswith(f"__{local_record['recipe_identity']}")
-    global_latest_pointer_path = (
-        repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "latest.json"
-    )
+    global_latest_pointer_path = repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "latest.json"
     global_latest_payload = json.loads(global_latest_pointer_path.read_text(encoding="utf-8"))
     assert global_latest_payload["corpus_ref"] == global_record["corpus_ref"]
     local_latest_pointer_path = Path(str(local_record["artifacts"]["latest_pointer_path"]))
@@ -2947,7 +2780,8 @@ def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_ren
     assert loaded_global["corpus_ref"] == global_record["corpus_ref"]
     assert loaded_local["corpus_ref"] == local_record["corpus_ref"]
     config_files_after = sorted(
-        str(path.relative_to(dagzoo_root)) for path in (dagzoo_root / "configs").rglob("*.yaml")
+        str(path.relative_to(dagzoo_root))
+        for path in (dagzoo_root / "configs").rglob("*.yaml")
     )
     assert config_files_after == config_files_before
 
@@ -2979,9 +2813,7 @@ def test_shadowed_sweep_local_corpus_refs_stay_distinct_when_manifest_hash_match
     )
 
     assert call_counter == [2]
-    assert (
-        global_record["manifest"]["manifest_sha256"] == local_record["manifest"]["manifest_sha256"]
-    )
+    assert global_record["manifest"]["manifest_sha256"] == local_record["manifest"]["manifest_sha256"]
     assert global_record["corpus_ref"] != local_record["corpus_ref"]
     assert global_record["corpus_id"] != local_record["corpus_id"]
     loaded_global = load_corpus_record(global_record["corpus_ref"], repo_root=repo_tmp_path)
@@ -3081,12 +2913,8 @@ def test_sweep_only_corpus_refs_stay_distinct_when_manifest_hash_matches(
     assert latest_pointer_a != latest_pointer_b
     assert latest_pointer_a.name == f"latest__{record_a['recipe_identity']}.json"
     assert latest_pointer_b.name == f"latest__{record_b['recipe_identity']}.json"
-    stored_record_a = json.loads(
-        Path(str(record_a["corpus_record_path"])).read_text(encoding="utf-8")
-    )
-    stored_record_b = json.loads(
-        Path(str(record_b["corpus_record_path"])).read_text(encoding="utf-8")
-    )
+    stored_record_a = json.loads(Path(str(record_a["corpus_record_path"])).read_text(encoding="utf-8"))
+    stored_record_b = json.loads(Path(str(record_b["corpus_record_path"])).read_text(encoding="utf-8"))
     assert stored_record_a["recipe_path"] == record_a["recipe_path"]
     assert stored_record_b["recipe_path"] == record_b["recipe_path"]
     loaded_a = load_corpus_record("sweep_recipe", repo_root=repo_tmp_path, sweep_id=sweep_a)
@@ -3394,9 +3222,7 @@ def test_materialize_corpus_recipe_rebuilds_when_cached_invocation_artifact_is_m
     assert call_counter == [2]
     assert rebuilt["corpus_ref"] == record["corpus_ref"]
     assert Path(str(rebuilt["manifest"]["manifest_path"])).exists()
-    assert Path(
-        str(rebuilt["dagzoo_provenance"]["invocations"][0]["handoff"]["generated_dir"])
-    ).exists()
+    assert Path(str(rebuilt["dagzoo_provenance"]["invocations"][0]["handoff"]["generated_dir"])).exists()
 
 
 def test_materialize_corpus_recipe_rejects_single_invocation_handoff_mismatch(
@@ -3461,9 +3287,7 @@ def test_corpus_compare_payload_reports_differences(
 
 
 def test_corpus_results_payload_groups_runs_by_corpus_ref(repo_tmp_path: Path) -> None:
-    corpus_root = (
-        repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "current_recipe__123456789abc"
-    )
+    corpus_root = repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "current_recipe__123456789abc"
     corpus_root.mkdir(parents=True, exist_ok=True)
     corpus_record_path = corpus_root / "corpus_record.json"
     corpus_record = {
@@ -3473,9 +3297,7 @@ def test_corpus_results_payload_groups_runs_by_corpus_ref(repo_tmp_path: Path) -
         "corpus_id": "current_recipe__123456789abc",
         "corpus_ref": "current_recipe/current_recipe__123456789abc",
         "corpus_record_path": str(corpus_record_path),
-        "recipe_path": str(
-            (repo_tmp_path / "reference" / "corpus_recipes" / "current_recipe.yaml").resolve()
-        ),
+        "recipe_path": str((repo_tmp_path / "reference" / "corpus_recipes" / "current_recipe.yaml").resolve()),
         "surface_label": "anchor_manifest_default",
         "recipe": {"invocations": []},
         "manifest": {
@@ -3486,9 +3308,7 @@ def test_corpus_results_payload_groups_runs_by_corpus_ref(repo_tmp_path: Path) -
         },
         "dagzoo_provenance": {},
     }
-    corpus_record_path.write_text(
-        json.dumps(corpus_record, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    corpus_record_path.write_text(json.dumps(corpus_record, indent=2, sort_keys=True), encoding="utf-8")
     latest_pointer = repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "latest.json"
     latest_pointer.write_text(
         json.dumps(

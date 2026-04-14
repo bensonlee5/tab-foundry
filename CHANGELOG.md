@@ -7,60 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.17.0] - 2026-04-14
-
 ### Changed
 
-- User-facing note: accepted-only DagZoo filter provenance is now parquet-only
-  in tab-foundry. Staged invocation verification and accepted-only aggregation
-  now require `filter_manifest.parquet` instead of the removed
-  `filter_manifest.ndjson` surface.
-- User-facing note: tab-foundry now hard-cuts the remaining legacy NDJSON
-  shard-catalog surface. Runtime dataset loading, smoke fixtures, and training
-  fixtures now use only v3 parquet catalog locators
-  (`catalog_path`, `catalog_dataset_index`, `catalog_record_sha256`).
-- User-facing note: tab-foundry now hard-cuts to the `tab-realdata-hub`
-  v3 manifest contract and requires `tab-realdata-hub>=0.2.0`. Legacy
-  NDJSON catalogs and legacy manifest locator fields are no longer readable.
-- User-facing note: manifest-backed dataset loading, staged curated-corpus
-  validation, and smoke fixtures now require canonical
-  `dataset_catalog.parquet` sidecars and v3 parquet catalog locators
-  (`catalog_path`, `catalog_dataset_index`, `catalog_record_sha256`).
-- User-facing note: the TF-RD-009 one-epoch staged corpus recovery path now
-  rebuilds final manifest outputs from existing parquet-catalog staged data
-  without regenerating compacted shard parquet.
-- User-facing note: tab-foundry’s docs and smoke fixtures now describe the
-  parquet-backed per-dataset catalog surface (`dataset_catalog.parquet`
-  `record_json`) instead of legacy NDJSON metadata files.
-
-## [0.16.16] - 2026-04-14
-
-### Changed
-
-- User-facing note: normal accepted-only corpus materialization now
-  auto-compacts staged curated shards before final manifest assembly, so
-  `materialize_corpus_recipe`, batch materialization, and sweep materialization
-  all pick up the compact parquet-catalog path without requiring operators to
-  run `tab-foundry data corpus compact-staged` manually.
-- User-facing note: `tab-foundry data corpus compact-staged` is now idempotent
-  on already-parquet-catalog staged curated roots, and staged finalization now
-  records compaction timing alongside manifest build timing while continuing to
-  forward explicit `--manifest-workers` overrides into upstream manifest
-  assembly.
-- User-facing note: the runtime dependency floor now moves to
-  `tab-realdata-hub>=0.1.8` to pick up canonical parquet catalog IO and the
-  parallel manifest scan surface used by large accepted-only corpus builds.
-- User-facing note: staged accepted-only corpus salvage now hard-cuts to the
-  parquet-catalog contract. `tab-foundry data corpus compact-staged` can
-  deterministically merge legacy staged curated shards into `512`-dataset
-  parquet-catalog shards with dense `dataset_index` rewrites, emits live
-  per-invocation progress, and `tab-foundry data corpus finalize-staged` now
-  forwards `--manifest-workers` into the manifest v3 parquet builder before
-  promotion.
 - User-facing note: corpus manifest characteristics now treat upstream
   `missing_value_status=not_checked` rows as unknown missingness rather than
-  clean or non-finite, and manifest compatibility preflight now warns when
-  unchecked rows are used with `allow_missing_values=false`.
+  clean or non-finite, manifest compatibility preflight warns when unchecked
+  rows are used with `allow_missing_values=false`, and the runtime dependency
+  floor moves to `tab-realdata-hub>=0.1.7` for the fast large-corpus manifest
+  builder.
 - User-facing note: the packaged CLI now exposes
   `tab-foundry research scaling audit`, which writes fit-audit artifacts with
   validation-vs-benchmark target comparisons, grouped holdout residuals,
