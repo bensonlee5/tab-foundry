@@ -102,7 +102,7 @@ def _fallback_load_manifest_record_catalog(
         )
     if observed_sha256 != expected_sha256:
         raise RuntimeError(
-            "parquet catalog digest mismatch: "
+            "parquet catalog checksum mismatch: "
             f"path={catalog_path}, dataset_index={dataset_index}, "
             f"expected={expected_sha256}, stored={observed_sha256}"
         )
