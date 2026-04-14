@@ -284,7 +284,7 @@ def run_dagzoo_filter(config: DagzooFilterConfig) -> DagzooFilterResult:
     )
 
     filter_out_dir = _resolve_from_root(dagzoo_root, config.filter_out_dir)
-    manifest_path = filter_out_dir / "filter_manifest.ndjson"
+    manifest_path = filter_out_dir / "filter_manifest.parquet"
     summary_path = filter_out_dir / "filter_summary.json"
     if not manifest_path.exists():
         raise RuntimeError(f"dagzoo filter manifest not found: {manifest_path}")

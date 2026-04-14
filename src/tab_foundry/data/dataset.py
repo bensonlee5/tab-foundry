@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any, Mapping, cast
@@ -29,49 +28,11 @@ _LOAD_MANIFEST_RECORD_TEACHER_CONDITIONALS = getattr(
 )
 
 
-def _read_ndjson_record_by_offset(
-    ndjson_path: Path,
-    *,
-    offset_bytes: int,
-    size_bytes: int,
-    expected_sha256: str,
-) -> dict[str, Any]:
-    with ndjson_path.open("rb") as handle:
-        handle.seek(offset_bytes)
-        raw_payload = handle.read(size_bytes)
-    observed_sha256 = sha256(raw_payload).hexdigest()
-    if observed_sha256 != expected_sha256:
-        raise RuntimeError(
-            "NDJSON record digest mismatch: "
-            f"path={ndjson_path}, offset={offset_bytes}, expected={expected_sha256}, observed={observed_sha256}"
-        )
-    try:
-        payload = json.loads(raw_payload.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError(
-            "failed to parse NDJSON record: "
-            f"path={ndjson_path}, offset={offset_bytes}, size={size_bytes}"
-        ) from exc
-    if not isinstance(payload, Mapping):
-        raise RuntimeError(
-            f"NDJSON payload must be an object: path={ndjson_path}, offset={offset_bytes}"
-        )
-    return {str(key): value for key, value in cast(Mapping[str, Any], payload).items()}
-
-
-def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, int, str]:
-    if "catalog_dataset_index" in record:
-        return (
-            str(record["catalog_path"]),
-            int(record["catalog_dataset_index"]),
-            -1,
-            str(record["catalog_record_sha256"]),
-        )
+def _manifest_row_catalog_locator(record: Mapping[str, Any]) -> tuple[str, int, str]:
     return (
         str(record["catalog_path"]),
-        int(record["catalog_offset_bytes"]),
-        int(record["catalog_size_bytes"]),
-        str(record["catalog_sha256"]),
+        int(record["catalog_dataset_index"]),
+        str(record["catalog_record_sha256"]),
     )
 
 
@@ -80,53 +41,45 @@ def _fallback_load_manifest_record_catalog(
     *,
     record: Mapping[str, Any],
 ) -> dict[str, Any]:
-    raw_path, offset_bytes, size_bytes, expected_sha256 = _manifest_row_catalog_locator(record)
+    raw_path, dataset_index, expected_sha256 = _manifest_row_catalog_locator(record)
     catalog_path = _resolve_record_path(manifest_path, raw_path)
-    if "catalog_dataset_index" in record:
-        table = pq.read_table(
-            catalog_path,
-            filters=[("dataset_index", "=", int(offset_bytes))],
-            columns=["dataset_index", "record_json", "record_sha256"],
-        )
-        rows = table.to_pylist()
-        if len(rows) != 1:
-            raise RuntimeError(
-                "parquet catalog lookup must resolve exactly one row: "
-                f"path={catalog_path}, dataset_index={offset_bytes}, matches={len(rows)}"
-            )
-        payload = rows[0]
-        record_json = payload.get("record_json")
-        observed_sha256 = payload.get("record_sha256")
-        if not isinstance(record_json, str) or not isinstance(observed_sha256, str):
-            raise RuntimeError(
-                "parquet catalog row must expose string record_json and record_sha256: "
-                f"path={catalog_path}, dataset_index={offset_bytes}"
-            )
-        actual_sha256 = sha256(record_json.encode("utf-8")).hexdigest()
-        if observed_sha256 != actual_sha256 or observed_sha256 != expected_sha256:
-            raise RuntimeError(
-                "parquet catalog digest mismatch: "
-                f"path={catalog_path}, dataset_index={offset_bytes}, "
-                f"expected={expected_sha256}, stored={observed_sha256}, actual={actual_sha256}"
-            )
-        try:
-            decoded = json.loads(record_json)
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise RuntimeError(
-                "failed to parse parquet catalog record_json: "
-                f"path={catalog_path}, dataset_index={offset_bytes}"
-            ) from exc
-        if not isinstance(decoded, Mapping):
-            raise RuntimeError(
-                f"parquet catalog payload must be an object: path={catalog_path}, dataset_index={offset_bytes}"
-            )
-        return {str(key): value for key, value in cast(Mapping[str, Any], decoded).items()}
-    return _read_ndjson_record_by_offset(
+    table = pq.read_table(
         catalog_path,
-        offset_bytes=offset_bytes,
-        size_bytes=size_bytes,
-        expected_sha256=expected_sha256,
+        filters=[("dataset_index", "=", int(dataset_index))],
+        columns=["dataset_index", "record_json", "record_sha256"],
     )
+    rows = table.to_pylist()
+    if len(rows) != 1:
+        raise RuntimeError(
+            "parquet catalog lookup must resolve exactly one row: "
+            f"path={catalog_path}, dataset_index={dataset_index}, matches={len(rows)}"
+        )
+    payload = rows[0]
+    record_json = payload.get("record_json")
+    observed_sha256 = payload.get("record_sha256")
+    if not isinstance(record_json, str) or not isinstance(observed_sha256, str):
+        raise RuntimeError(
+            "parquet catalog row must expose string record_json and record_sha256: "
+            f"path={catalog_path}, dataset_index={dataset_index}"
+        )
+    if observed_sha256 != expected_sha256:
+        raise RuntimeError(
+            "parquet catalog digest mismatch: "
+            f"path={catalog_path}, dataset_index={dataset_index}, "
+            f"expected={expected_sha256}, stored={observed_sha256}"
+        )
+    try:
+        decoded = json.loads(record_json)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "failed to parse parquet catalog record_json: "
+            f"path={catalog_path}, dataset_index={dataset_index}"
+        ) from exc
+    if not isinstance(decoded, Mapping):
+        raise RuntimeError(
+            f"parquet catalog payload must be an object: path={catalog_path}, dataset_index={dataset_index}"
+        )
+    return {str(key): value for key, value in cast(Mapping[str, Any], decoded).items()}
 
 
 def _teacher_probs_to_matrix(values: list[list[float]]) -> np.ndarray:
@@ -347,10 +300,7 @@ def load_manifest_record_metadata(
     """Load one packed-manifest metadata payload plus validated feature types."""
 
     required_keys = {"dataset_index"}
-    locator_key_sets = (
-        {"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},
-        {"catalog_path", "catalog_offset_bytes", "catalog_size_bytes", "catalog_sha256"},
-    )
+    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
     missing = sorted(required_keys - set(record))
     if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
         raise RuntimeError(
@@ -411,10 +361,7 @@ def load_manifest_record_catalog(
     """Load the public packed-catalog record for one manifest row."""
 
     required_keys = {"dataset_index"}
-    locator_key_sets = (
-        {"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},
-        {"catalog_path", "catalog_offset_bytes", "catalog_size_bytes", "catalog_sha256"},
-    )
+    locator_key_sets = ({"catalog_path", "catalog_dataset_index", "catalog_record_sha256"},)
     missing = sorted(required_keys - set(record))
     if missing or not any(locator_keys.issubset(record) for locator_keys in locator_key_sets):
         raise RuntimeError(
