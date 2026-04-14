@@ -29,6 +29,7 @@ from tab_foundry.cli.click_utils import (
 from tab_foundry.data.corpus_loading import list_corpus_recipes
 from tab_foundry.data.corpus_lookup import load_corpus_record
 from tab_foundry.data.corpus_materialization import (
+    compact_staged_corpus_recipe,
     finalize_staged_corpus_recipe,
     materialize_corpus_recipe,
 )
@@ -245,6 +246,7 @@ def _run_corpus_finalize_staged(
     verify: str,
     experiment: str | None,
     override: tuple[str, ...],
+    manifest_workers: int | None,
     force: bool,
     json_mode: bool,
 ) -> int:
@@ -255,6 +257,7 @@ def _run_corpus_finalize_staged(
         stage_root=stage_root,
         force=force,
         sweep_id=sweep_id,
+        manifest_workers=manifest_workers,
     )
     record = result["record"]
     manifest_preflight = None
@@ -301,6 +304,40 @@ def _run_corpus_finalize_staged(
                 f"summary={compatibility_summary}",
             )
     return exit_code
+
+
+def _run_corpus_compact_staged(
+    *,
+    recipe: str,
+    sweep_id: str | None,
+    dagzoo_root: Path,
+    stage_root: Path | None,
+    force: bool,
+    json_mode: bool,
+) -> int:
+    result = compact_staged_corpus_recipe(
+        recipe_id=recipe,
+        dagzoo_root=dagzoo_root,
+        stage_root=stage_root,
+        force=force,
+        sweep_id=sweep_id,
+    )
+    if json_mode:
+        emit_payload(result, json_mode=True)
+        return 0
+    print(f"Staged corpus compacted: {result['recipe_id']}")
+    print(f"Stage root: {result['stage_root']}")
+    for invocation in result["invocations"]:
+        compaction = invocation["curated_compaction"]
+        print(
+            "Invocation:",
+            invocation["invocation_id"],
+            f"curated_root={invocation['curated_root']}",
+            f"source_shards={compaction['source_shard_count']}",
+            f"output_shards={compaction['output_shard_count']}",
+            f"datasets={compaction['dataset_count']}",
+        )
+    return 0
 
 
 def _run_corpus_inspect(*, corpus_ref: str, json_mode: bool) -> int:
@@ -526,6 +563,7 @@ def CORPUS_MATERIALIZE_COMMAND(
 @click.option("--verify", default="fast", show_default=True, type=click.Choice(_VERIFY_CHOICES), help="Staged corpus verification level before promotion")
 @click.option("--experiment", default=None, help="Optional experiment name for manifest compatibility preflight after promotion")
 @click.option("--override", "override_", multiple=True, help="Optional Hydra override applied on top of --experiment or repo defaults")
+@click.option("--manifest-workers", default=None, type=POSITIVE_INT, help="Optional parallelism override for staged manifest assembly")
 @click.option("--force", is_flag=True, help="Replace an existing local materialization")
 @json_output_option
 def CORPUS_FINALIZE_STAGED_COMMAND(
@@ -536,6 +574,7 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
     verify: str,
     experiment: str | None,
     override_: tuple[str, ...],
+    manifest_workers: int | None,
     force: bool,
     json_mode: bool,
 ) -> int:
@@ -547,6 +586,35 @@ def CORPUS_FINALIZE_STAGED_COMMAND(
         verify=verify,
         experiment=experiment,
         override=override_,
+        manifest_workers=manifest_workers,
+        force=force,
+        json_mode=json_mode,
+    )
+
+
+@click.command(
+    name="compact-staged",
+    help="Compact accepted-only curated staged shards into parquet catalogs before finalization",
+)
+@click.option("--recipe", required=True, help="Tracked corpus recipe id")
+@click.option("--sweep-id", default=None, help="Optional sweep id to resolve sweep-local corpus recipes first")
+@dagzoo_root_option()
+@path_option("stage-root", default=None, help="Optional staged corpus root override. Defaults to outputs/corpora/<recipe>/.staging")
+@click.option("--force", is_flag=True, help="Recompact even if parquet catalogs already exist in the staged curated roots")
+@json_output_option
+def CORPUS_COMPACT_STAGED_COMMAND(
+    recipe: str,
+    sweep_id: str | None,
+    dagzoo_root: Path,
+    stage_root: Path | None,
+    force: bool,
+    json_mode: bool,
+) -> int:
+    return _run_corpus_compact_staged(
+        recipe=recipe,
+        sweep_id=sweep_id,
+        dagzoo_root=dagzoo_root,
+        stage_root=stage_root,
         force=force,
         json_mode=json_mode,
     )
@@ -591,6 +659,7 @@ def CORPUS_GROUP() -> None:
 
 CORPUS_GROUP.add_command(CORPUS_LIST_RECIPES_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_MATERIALIZE_COMMAND)
+CORPUS_GROUP.add_command(CORPUS_COMPACT_STAGED_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_FINALIZE_STAGED_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_INSPECT_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_COMPARE_COMMAND)

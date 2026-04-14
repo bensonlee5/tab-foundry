@@ -40,7 +40,7 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.5"
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub>=0.1.7"
 LINUX_TORCH_INSTALL_SPEC = "torch==2.11.0+cu128"
 LINUX_TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
 TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (

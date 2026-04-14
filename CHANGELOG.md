@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: corpus manifest characteristics now treat upstream
+  `missing_value_status=not_checked` rows as unknown missingness rather than
+  clean or non-finite, manifest compatibility preflight warns when unchecked
+  rows are used with `allow_missing_values=false`, and the runtime dependency
+  floor moves to `tab-realdata-hub>=0.1.7` for the fast large-corpus manifest
+  builder.
 - User-facing note: the packaged CLI now exposes
   `tab-foundry research scaling audit`, which writes fit-audit artifacts with
   validation-vs-benchmark target comparisons, grouped holdout residuals,

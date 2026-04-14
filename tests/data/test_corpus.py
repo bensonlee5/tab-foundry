@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import shutil
 from typing import Any
@@ -18,7 +17,6 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 import tab_foundry.data.corpus_materialization_batch as corpus_materialization_batch_module
 import tab_foundry.data.corpus_materialization_invocation as corpus_materialization_invocation_module
 import tab_foundry.data.corpus_materialization_recipe_worker as recipe_worker_module
-import tab_foundry.data.corpus_materialization_shared as corpus_materialization_shared_module
 from tab_foundry.data.corpus_loading import (
     _generator_fingerprint,
     build_dagzoo_provenance_summary,
@@ -670,6 +668,15 @@ def _fake_run_dagzoo_generate(config) -> object:
     return load_dagzoo_handoff_info(handoff_manifest_path)
 
 
+def _fake_run_dagzoo_generate_many(config) -> object:
+    handoff_root = Path(str(config.handoff_root)).expanduser().resolve()
+    generated_dir = handoff_root / "generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    _write_curated_datasets(generated_dir, dataset_count=max(int(config.num_datasets), 1), seed_base=10)
+    handoff_manifest_path = _write_handoff_manifest(handoff_root)
+    return load_dagzoo_handoff_info(handoff_manifest_path)
+
+
 def _write_fake_dagzoo_python(dagzoo_root: Path) -> Path:
     interpreter = dagzoo_root / ".venv" / "bin" / "python"
     interpreter.parent.mkdir(parents=True, exist_ok=True)
@@ -722,6 +729,59 @@ def _fake_run_dagzoo_filter(config) -> DagzooFilterResult:
         curated_out_dir=curated_dir.resolve(),
         curated_accepted_datasets=1,
     )
+
+
+def _fake_run_dagzoo_filter_all(config) -> DagzooFilterResult:
+    filter_root = Path(str(config.filter_out_dir)).expanduser().resolve()
+    curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
+    input_dir = Path(str(config.input_dir)).expanduser().resolve()
+    filter_root.mkdir(parents=True, exist_ok=True)
+    curated_dir.mkdir(parents=True, exist_ok=True)
+    dataset_count = len(sorted(input_dir.glob("shard_*")))
+    _write_curated_datasets(curated_dir, dataset_count=max(dataset_count, 1), seed_base=200)
+    manifest_path = filter_root / "filter_manifest.ndjson"
+    summary_path = filter_root / "filter_summary.json"
+    manifest_path.write_text("{}\n" * max(1, dataset_count), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(
+            {
+                "total_datasets": dataset_count,
+                "accepted_datasets": dataset_count,
+                "rejected_datasets": 0,
+                "curated_out_dir": str(curated_dir.resolve()),
+                "curated_accepted_datasets": dataset_count,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return DagzooFilterResult(
+        manifest_path=manifest_path.resolve(),
+        summary_path=summary_path.resolve(),
+        total_datasets=dataset_count,
+        accepted_datasets=dataset_count,
+        rejected_datasets=0,
+        elapsed_seconds=0.1,
+        datasets_per_minute=600.0,
+        curated_out_dir=curated_dir.resolve(),
+        curated_accepted_datasets=dataset_count,
+    )
+
+
+def _rewrite_curated_root_as_legacy_shards(
+    curated_root: Path,
+    *,
+    dataset_count: int,
+    seed_base: int = 300,
+) -> None:
+    if curated_root.exists():
+        shutil.rmtree(curated_root)
+    curated_root.mkdir(parents=True, exist_ok=True)
+    _write_curated_datasets(curated_root, dataset_count=dataset_count, seed_base=seed_base)
+    for catalog_path in curated_root.rglob("dataset_catalog.parquet"):
+        catalog_path.unlink()
 
 
 def _round_sequence_fake_run_dagzoo_filter(
@@ -1948,6 +2008,137 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
     assert loaded["corpus_ref"] == record["corpus_ref"]
 
 
+def test_compact_staged_corpus_recipe_rewrites_legacy_curated_root_and_finalize_builds_manifest(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=3)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate_many)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter_all)
+    real_compact_curated_root = corpus_materialization_invocation_module.compact_curated_root
+
+    def _compact_to_two(
+        *,
+        source_curated_dir: Path,
+        output_curated_dir: Path,
+        start_shard_index: int = 0,
+        max_datasets: int | None = None,
+        target_datasets_per_shard: int = 512,
+    ) -> dict[str, Any]:
+        del target_datasets_per_shard
+        return real_compact_curated_root(
+            source_curated_dir=source_curated_dir,
+            output_curated_dir=output_curated_dir,
+            start_shard_index=start_shard_index,
+            target_datasets_per_shard=2,
+            max_datasets=max_datasets,
+        )
+
+    monkeypatch.setattr(
+        corpus_materialization_invocation_module,
+        "compact_curated_root",
+        _compact_to_two,
+    )
+
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
+    stage_root.mkdir(parents=True, exist_ok=True)
+    corpus_materialization_module.materialize_recipe_invocation(
+        recipe_id="accepted_only_recipe",
+        invocation_id="default",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        corpus_root=stage_root,
+        repo_root=repo_tmp_path,
+    )
+    curated_root = corpus_materialization_invocation_module._invocation_curated_root(
+        corpus_root=stage_root,
+        invocation_id="default",
+    )
+    _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=3)
+
+    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        repo_root=repo_tmp_path,
+    )
+
+    assert compacted["recipe_id"] == "accepted_only_recipe"
+    assert compacted["invocations"][0]["curated_compaction"] == {
+        "target_datasets_per_shard": 2,
+        "source_shard_count": 3,
+        "output_shard_count": 2,
+        "dataset_count": 3,
+    }
+    shard_dirs = sorted(curated_root.glob("shard_*"))
+    assert [path.name for path in shard_dirs] == ["shard_00000", "shard_00001"]
+    assert all((path / "dataset_catalog.parquet").exists() for path in shard_dirs)
+    assert not list(curated_root.rglob("metadata.ndjson"))
+
+    summary_path = corpus_materialization_invocation_module._invocation_materialization_summary_path(
+        corpus_root=stage_root,
+        invocation_id="default",
+    )
+    summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary_payload["curated_compaction"] == {
+        "target_datasets_per_shard": 2,
+        "source_shard_count": 3,
+        "output_shard_count": 2,
+        "dataset_count": 3,
+    }
+
+    result = finalize_staged_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        verify="fast",
+        repo_root=repo_tmp_path,
+        manifest_workers=4,
+    )
+
+    assert result["verification"]["mode"] == "fast"
+    assert result["verification"]["accepted_only"]["target_accepted_datasets"] == 3
+    assert result["verification"]["accepted_only"]["curated_accepted_datasets"] == 3
+    assert result["verification"]["accepted_only"]["accepted_datasets"] >= 3
+    assert result["record"]["manifest"]["inspection"]["persisted_summary"]["total_records"] == 3
+
+
+def test_compact_staged_corpus_recipe_refuses_already_compacted_stage_without_force(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _write_accepted_only_recipe_fixture(repo_tmp_path, num_datasets=1)
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+    _patch_dagzoo_filter(monkeypatch, _fake_run_dagzoo_filter)
+
+    stage_root = (
+        repo_tmp_path / "outputs" / "corpora" / "accepted_only_recipe" / ".staging"
+    )
+    stage_root.mkdir(parents=True, exist_ok=True)
+    corpus_materialization_module.materialize_recipe_invocation(
+        recipe_id="accepted_only_recipe",
+        invocation_id="default",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        corpus_root=stage_root,
+        repo_root=repo_tmp_path,
+    )
+
+    with pytest.raises(RuntimeError, match="already contains parquet catalogs"):
+        corpus_materialization_module.compact_staged_corpus_recipe(
+            recipe_id="accepted_only_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            repo_root=repo_tmp_path,
+        )
+
+    forced = corpus_materialization_module.compact_staged_corpus_recipe(
+        recipe_id="accepted_only_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        repo_root=repo_tmp_path,
+        force=True,
+    )
+
+    assert forced["invocations"][0]["curated_compaction"]["dataset_count"] == 1
+
+
 def test_load_staged_corpus_recipe_preview_returns_stage_metadata(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
@@ -2218,7 +2409,7 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
         )
     cases._write_packed_shard(shard_dir, datasets=datasets)
 
-    next_shard_index, copied_datasets = corpus_materialization_invocation_module._copy_curated_round_shards(
+    next_shard_index, copied_datasets, compaction_summary = corpus_materialization_invocation_module._copy_curated_round_shards(
         round_curated_dir=round_curated_dir,
         final_curated_dir=final_curated_dir,
         next_shard_index=0,
@@ -2226,27 +2417,21 @@ def test_copy_curated_round_shards_trims_partial_shard_to_dataset_limit(
     )
 
     trimmed_shard = final_curated_dir / "shard_00000"
-    catalog_path = next(
-        candidate
-        for candidate in (
-            trimmed_shard / "dataset_catalog.ndjson",
-            trimmed_shard / "metadata.ndjson",
-        )
-        if candidate.exists()
-    )
-    catalog_lines = catalog_path.read_text(encoding="utf-8").splitlines()
+    catalog_rows = pq.read_table(trimmed_shard / "dataset_catalog.parquet").to_pylist()
     train_dataset_indices = pq.read_table(trimmed_shard / "train.parquet")["dataset_index"].to_pylist()
     test_dataset_indices = pq.read_table(trimmed_shard / "test.parquet")["dataset_index"].to_pylist()
 
     assert next_shard_index == 1
     assert copied_datasets == 1
-    assert len(catalog_lines) == 1
+    assert len(catalog_rows) == 1
     assert set(train_dataset_indices) == {0}
     assert set(test_dataset_indices) == {0}
+    assert compaction_summary["source_shard_count"] == 1
+    assert compaction_summary["output_shard_count"] == 1
+    assert compaction_summary["dataset_count"] == 1
 
 
-def test_copy_curated_round_shards_uses_snapshot_links_for_full_shards(
-    monkeypatch: pytest.MonkeyPatch,
+def test_copy_curated_round_shards_compacts_full_shards_into_parquet_catalogs(
     tmp_path: Path,
 ) -> None:
     round_curated_dir = tmp_path / "round_curated"
@@ -2276,23 +2461,7 @@ def test_copy_curated_round_shards_uses_snapshot_links_for_full_shards(
         )
     cases._write_packed_shard(shard_dir, datasets=datasets)
 
-    recorded_links: list[tuple[Path, Path]] = []
-    real_link = os.link
-
-    def _record_link(
-        src: str | os.PathLike[str],
-        dst: str | os.PathLike[str],
-        *args: object,
-        **kwargs: object,
-    ) -> None:
-        source_path = Path(src)
-        destination_path = Path(dst)
-        recorded_links.append((source_path, destination_path))
-        real_link(source_path, destination_path, *args, **kwargs)
-
-    monkeypatch.setattr(corpus_materialization_shared_module.os, "link", _record_link)
-
-    next_shard_index, copied_datasets = corpus_materialization_invocation_module._copy_curated_round_shards(
+    next_shard_index, copied_datasets, compaction_summary = corpus_materialization_invocation_module._copy_curated_round_shards(
         round_curated_dir=round_curated_dir,
         final_curated_dir=final_curated_dir,
         next_shard_index=0,
@@ -2302,9 +2471,12 @@ def test_copy_curated_round_shards_uses_snapshot_links_for_full_shards(
     destination_shard = final_curated_dir / "shard_00000"
     assert next_shard_index == 1
     assert copied_datasets == 2
-    assert recorded_links
-    assert (destination_shard / "train.parquet").stat().st_ino == (shard_dir / "train.parquet").stat().st_ino
-    assert (destination_shard / "test.parquet").stat().st_ino == (shard_dir / "test.parquet").stat().st_ino
+    assert (destination_shard / "dataset_catalog.parquet").exists()
+    catalog_rows = pq.read_table(destination_shard / "dataset_catalog.parquet").to_pylist()
+    assert len(catalog_rows) == 2
+    assert compaction_summary["source_shard_count"] == 1
+    assert compaction_summary["output_shard_count"] == 1
+    assert compaction_summary["dataset_count"] == 2
 
 
 def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budget(

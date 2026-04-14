@@ -2,11 +2,27 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pyarrow as pa
+import pyarrow.parquet as pq
+
 from tab_foundry.cli.data_inspect import manifest_inspect_payload
 from tab_foundry.config_inspection import resolve_config_payload
 from tab_realdata_hub.manifest import build_manifest
 
 from tests.support import manifest_and_dataset_cases as cases
+
+
+def _rewrite_missing_value_statuses(
+    manifest_path: Path,
+    statuses_by_dataset_index: dict[int, str],
+) -> None:
+    table = pq.read_table(manifest_path)
+    rows = table.to_pylist()
+    for row in rows:
+        dataset_index = int(row["dataset_index"])
+        if dataset_index in statuses_by_dataset_index:
+            row["missing_value_status"] = statuses_by_dataset_index[dataset_index]
+    pq.write_table(pa.Table.from_pylist(rows, schema=table.schema), manifest_path)
 
 
 def test_manifest_inspect_reports_summary_and_persisted_metadata(tmp_path: Path) -> None:
@@ -29,8 +45,9 @@ def test_manifest_inspect_reports_summary_and_persisted_metadata(tmp_path: Path)
 
     assert payload["total_records"] == 2
     assert payload["task_counts"] == {"classification": 2}
-    assert payload["missing_value_status_counts"] == {"clean": 2}
+    assert payload["missing_value_status_counts"] == {"not_checked": 2}
     assert payload["persisted_summary"]["filter_policy"] == "include_all"
+    assert payload["persisted_summary"]["missing_value_policy"] == "allow_any"
     assert payload["compatibility"] is None
 
 
@@ -58,7 +75,7 @@ def test_manifest_inspect_compatibility_accepts_matching_manifest(tmp_path: Path
         ],
     )
     manifest_path = tmp_path / "manifest.parquet"
-    _ = build_manifest([tmp_path / "run"], manifest_path)
+    _ = build_manifest([tmp_path / "run"], manifest_path, missing_value_policy="forbid_any")
 
     payload = manifest_inspect_payload(
         manifest_path,
@@ -72,6 +89,31 @@ def test_manifest_inspect_compatibility_accepts_matching_manifest(tmp_path: Path
     assert compatibility["has_task_rows"] is True
     assert compatibility["has_train_rows"] is True
     assert isinstance(compatibility["has_test_rows"], bool)
+
+
+def test_manifest_inspect_compatibility_warns_when_missing_values_unchecked_and_disallowed(
+    tmp_path: Path,
+) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = cases._write_dataset(
+        shard_dir,
+        filter_status="accepted",
+        filter_accepted=True,
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+
+    payload = manifest_inspect_payload(
+        manifest_path,
+        experiment="cls_smoke",
+        overrides=[f"data.manifest_path={manifest_path}"],
+    )
+
+    compatibility = payload["compatibility"]
+    assert compatibility["verdict"] == "warn"
+    assert compatibility["contains_non_finite_rows"] is False
+    assert compatibility["missing_values_unchecked"] is True
+    assert "missing-value status is unchecked" in compatibility["summary"]
 
 
 def test_manifest_inspect_compatibility_rejects_nonfinite_rows_when_missing_values_disallowed(
@@ -115,6 +157,13 @@ def test_manifest_inspect_compatibility_rejects_nonfinite_rows_when_missing_valu
     )
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([root], manifest_path, filter_policy="accepted_only", missing_value_policy="allow_any")
+    _rewrite_missing_value_statuses(
+        manifest_path,
+        {
+            0: "clean",
+            1: "contains_nan_or_inf",
+        },
+    )
 
     payload = manifest_inspect_payload(
         manifest_path,
@@ -177,6 +226,13 @@ def test_manifest_inspect_compatibility_ignores_nonfinite_rows_from_other_tasks(
     )
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([root], manifest_path, filter_policy="accepted_only", missing_value_policy="allow_any")
+    _rewrite_missing_value_statuses(
+        manifest_path,
+        {
+            0: "clean",
+            1: "contains_nan_or_inf",
+        },
+    )
 
     payload = manifest_inspect_payload(
         manifest_path,

@@ -250,6 +250,8 @@ def _manifest_inputs_for_pending(
 
 def _build_staged_manifest(
     pending: _PendingCorpusMaterialization,
+    *,
+    manifest_workers: int | None = None,
 ) -> Path:
     recipe = pending.recipe
     stage_root = pending.stage_root
@@ -264,6 +266,7 @@ def _build_staged_manifest(
         filter_policy=str(recipe.manifest_policy.filter_policy),
         missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
         dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+        manifest_workers=manifest_workers,
     )
     return manifest_path
 
@@ -277,6 +280,7 @@ def build_staged_corpus_manifest(
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
+    manifest_workers: int | None = None,
 ) -> Path:
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
@@ -299,12 +303,101 @@ def build_staged_corpus_manifest(
         filter_policy=str(pending.recipe.manifest_policy.filter_policy),
         missing_value_policy=str(pending.recipe.manifest_policy.missing_value_policy),
         dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+        manifest_workers=manifest_workers,
     )
     return resolved_out_manifest_path
 
 
 def _manifest_characteristics_sidecar_path(*, corpus_root: Path) -> Path:
     return corpus_root / "manifest_characteristics.json"
+
+
+def compact_staged_corpus_recipe(
+    *,
+    recipe_id: str,
+    dagzoo_root: Path,
+    stage_root: Path | None = None,
+    force: bool = False,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    pending = _pending_recipe_materialization_from_existing_stage(
+        recipe_id=recipe_id,
+        dagzoo_root=resolved_dagzoo_root,
+        repo_root=resolved_repo_root,
+        stage_root=stage_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if str(pending.recipe.manifest_policy.filter_policy).strip() != "accepted_only":
+        raise RuntimeError(
+            "compact-staged currently supports only accepted_only staged corpora: "
+            f"recipe_id={pending.recipe.recipe_id!r}"
+        )
+
+    invocation_summaries: list[dict[str, Any]] = []
+    for spec in pending.recipe.invocations:
+        curated_root = invocation_module._invocation_curated_root(
+            corpus_root=pending.stage_root,
+            invocation_id=spec.invocation_id,
+        )
+        existing_parquet_catalogs = sorted(curated_root.rglob("dataset_catalog.parquet"))
+        if existing_parquet_catalogs and not force:
+            raise RuntimeError(
+                "staged curated root already contains parquet catalogs; rerun with force=True to recompact: "
+                f"{curated_root}"
+            )
+        compacting_root = curated_root.parent / f"{curated_root.name}.compacting"
+        backup_root = curated_root.parent / f"{curated_root.name}.precompact"
+        if compacting_root.exists():
+            shutil.rmtree(compacting_root)
+        if backup_root.exists():
+            shutil.rmtree(backup_root)
+        summary = invocation_module.compact_curated_root(
+            source_curated_dir=curated_root,
+            output_curated_dir=compacting_root,
+        )
+        curated_root.rename(backup_root)
+        compacting_root.rename(curated_root)
+        shutil.rmtree(backup_root)
+
+        summary_path = invocation_module._invocation_materialization_summary_path(
+            corpus_root=pending.stage_root,
+            invocation_id=spec.invocation_id,
+        )
+        summary_payload = (
+            _read_json_mapping(
+                summary_path,
+                context=f"staged materialization summary for invocation {spec.invocation_id!r}",
+            )
+            if summary_path.exists()
+            else {}
+        )
+        summary_payload["curated_compaction"] = {
+            "target_datasets_per_shard": int(summary["target_datasets_per_shard"]),
+            "source_shard_count": int(summary["source_shard_count"]),
+            "output_shard_count": int(summary["output_shard_count"]),
+            "dataset_count": int(summary["dataset_count"]),
+        }
+        summary_path.write_text(
+            json.dumps(summary_payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        invocation_summaries.append(
+            {
+                "invocation_id": spec.invocation_id,
+                "curated_root": str(curated_root.resolve()),
+                "curated_compaction": summary_payload["curated_compaction"],
+            }
+        )
+    return {
+        "recipe_id": pending.recipe.recipe_id,
+        "stage_root": str(pending.stage_root.resolve()),
+        "invocations": invocation_summaries,
+    }
 
 
 def _promote_materialized_recipe(
@@ -517,6 +610,7 @@ def _finalize_materialized_recipe(
     force: bool,
     materialization_timing: dict[str, Any] | None = None,
     recipe_start_time: float | None = None,
+    manifest_workers: int | None = None,
 ) -> dict[str, Any]:
     resolved_materialization_timing = (
         {}
@@ -524,7 +618,7 @@ def _finalize_materialized_recipe(
         else {str(key): value for key, value in materialization_timing.items()}
     )
     manifest_build_start_time = time.perf_counter()
-    _ = _build_staged_manifest(pending)
+    _ = _build_staged_manifest(pending, manifest_workers=manifest_workers)
     resolved_materialization_timing["manifest_build_elapsed_seconds"] = (
         _elapsed_seconds_since(manifest_build_start_time)
     )
@@ -698,6 +792,7 @@ def finalize_staged_corpus_recipe(
     repo_root: Path | None = None,
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
+    manifest_workers: int | None = None,
 ) -> dict[str, Any]:
     recipe_start_time = time.perf_counter()
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
@@ -718,6 +813,7 @@ def finalize_staged_corpus_recipe(
         pending,
         force=force,
         recipe_start_time=recipe_start_time,
+        manifest_workers=manifest_workers,
     )
     return {
         "record": record,

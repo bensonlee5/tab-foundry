@@ -17,7 +17,7 @@ upstream_reference:
 anchor_surface:
   notes:
   - The locked anchor is benchmark registry run `sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`
-    on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
     sourced from `nanotabpfn_openml_classification_medium` (242 tasks).
   - This one-epoch scaffold stays empty until `tf_rd_009_width_depth_upper_extension_one_epoch_medium_v1`
     has corrected, benchmark-backed health=`ok` gate rows.
@@ -76,7 +76,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
       sourced from `nanotabpfn_openml_classification_medium` (242 tasks (missing values
       permitted)) with data surface label `tf_rd_010_dagzoo_medium_control`.
     interpretation: Manifest and training-data changes are first-class sweep rows

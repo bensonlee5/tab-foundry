@@ -15,7 +15,7 @@ import torch
 
 import tab_foundry.cli as cli_module
 from tab_foundry.data.dataset import PackedParquetTaskDataset
-from tab_realdata_hub.manifest import _stable_split, build_manifest
+from tab_realdata_hub.manifest import _stable_split, build_manifest, write_dataset_catalog
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model_from_spec
@@ -121,6 +121,7 @@ def _write_packed_shard(
     pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
 
     offsets: dict[int, tuple[int, int, str]] = {}
+    catalog_records: list[dict[str, Any]] = []
     with (shard_dir / "metadata.ndjson").open("wb") as handle:
         for dataset in datasets:
             payload = {
@@ -136,6 +137,8 @@ def _write_packed_shard(
             offset = int(handle.tell())
             handle.write(raw)
             offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
+            catalog_records.append(payload)
+    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
 
     return offsets
 
@@ -169,6 +172,7 @@ def _write_split_drift_shard(
     pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
 
     offsets: dict[int, tuple[int, int, str]] = {}
+    catalog_records: list[dict[str, Any]] = []
     with (shard_dir / "metadata.ndjson").open("wb") as handle:
         for dataset in metadata_datasets:
             payload = {
@@ -184,6 +188,8 @@ def _write_split_drift_shard(
             offset = int(handle.tell())
             handle.write(raw)
             offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
+            catalog_records.append(payload)
+    write_dataset_catalog(shard_dir / "dataset_catalog.parquet", catalog_records)
 
     return offsets
 
@@ -240,7 +246,7 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert summary.excluded_for_missing_values == 0
     assert summary.missing_value_policy == "allow_any"
     assert summary.filter_status_counts == {"not_run": 1}
-    assert summary.missing_value_status_counts == {"clean": 1}
+    assert summary.missing_value_status_counts == {"not_checked": 1}
     assert summary.warnings
 
     table = pq.read_table(manifest_path)
@@ -252,9 +258,9 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert row["filter_status"] == "not_run"
     assert row["filter_accepted"] is None
     assert row["missing_value_policy"] == "allow_any"
-    assert row["missing_value_status"] == "clean"
+    assert row["missing_value_status"] == "not_checked"
     assert persisted_summary["missing_value_policy"] == "allow_any"
-    assert persisted_summary["missing_value_status_counts"] == {"clean": 1}
+    assert persisted_summary["missing_value_status_counts"] == {"not_checked": 1}
 
     ds = PackedParquetTaskDataset(manifest_path, split=split, task="classification")
     sample = ds[0]

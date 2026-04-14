@@ -1809,7 +1809,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
-    { name = "tab-realdata-hub", specifier = ">=0.1.5" },
+    { name = "tab-realdata-hub", specifier = ">=0.1.7" },
     { name = "torch", marker = "sys_platform != 'linux'", specifier = ">=2.8" },
     { name = "torch", marker = "sys_platform == 'linux'", specifier = ">=2.8", index = "https://download.pytorch.org/whl/cu128" },
     { name = "torchview", specifier = ">=0.2.7" },
@@ -1841,7 +1841,7 @@ dev = [
 
 [[package]]
 name = "tab-realdata-hub"
-version = "0.1.5"
+version = "0.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -1850,9 +1850,9 @@ dependencies = [
     { name = "pyarrow" },
     { name = "scikit-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/e7/885ac1ddb79d3676591ade9ddd55551de6e3eb251d75f55d893bfcd9143a/tab_realdata_hub-0.1.5.tar.gz", hash = "sha256:44832e1b793e468f3598fb950ea961550b4069e09b09ed2e83e7ca5dfcd6fe40", size = 89222 }
+sdist = { url = "https://files.pythonhosted.org/packages/39/7b/477aab6f1e9bc34d72cb2583baa4ca38b4dd73310c8a3fcb676464daa124/tab_realdata_hub-0.1.7.tar.gz", hash = "sha256:e57f1892f22cad597f439df1cefc5c0778d0e9fe0e994160b74a922595dbc1a7", size = 90803 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/40/39026593b8be1b9e602774154bdade8010b6e9c25e3887470bf0ede000ad/tab_realdata_hub-0.1.5-py3-none-any.whl", hash = "sha256:e1dc31e5d06ab8fd2410186c6200d33e9ad8a00c280cee0d30ffcc40f5aa993f", size = 51076 },
+    { url = "https://files.pythonhosted.org/packages/05/e1/6cbec5d7964f5a86d8694645666eac3f5ba085907f01ecbc4aa6349c14dc/tab_realdata_hub-0.1.7-py3-none-any.whl", hash = "sha256:aac7ae7b4b20d55aac32759064a4eb247531c387c898e3b6e4ce4017dbb6f579", size = 51847 },
 ]
 
 [[package]]
