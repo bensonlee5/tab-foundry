@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.16.16"
+version = "0.17.0"
 description = "Tabular foundation model that generates its own training data via dagzoo, trains on it, and predicts on new tasks"
 readme = "README.md"
 license = "Apache-2.0"
@@ -35,7 +35,7 @@ dependencies = [
   "PyYAML>=6.0",
   "safetensors>=0.4",
   "schedulefree>=1.4",
-  "tab-realdata-hub>=0.1.8",
+  "tab-realdata-hub>=0.2.0",
   "torch>=2.8",
   "torchview>=0.2.7",
   "wandb>=0.20",
@@ -91,6 +91,7 @@ package = true
 default-groups = ["dev"]
 
 [tool.uv.sources]
+tab-realdata-hub = { git = "https://github.com/bensonlee5/tab-realdata-hub.git", rev = "7ba736e274612ef0fd5a677ccfc1ef3186c66ba0" }
 torch = [
   { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
 ]

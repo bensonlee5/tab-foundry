@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 import json
 from pathlib import Path
 import shutil
@@ -41,6 +42,71 @@ def binary_iris_arrays() -> tuple[np.ndarray, np.ndarray]:
     x = np.asarray(iris.data[iris.target != 0], dtype=np.float32)
     y = np.asarray(iris.target[iris.target != 0] - 1, dtype=np.int64)
     return x, y
+
+
+def _write_dataset_catalog_parquet(path: Path, records: list[dict[str, Any]]) -> None:
+    rows = []
+    for record in records:
+        record_json = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        metadata = record.get("metadata")
+        metadata_mapping = metadata if isinstance(metadata, dict) else None
+        filter_payload = (
+            metadata_mapping.get("filter") if isinstance(metadata_mapping, dict) else None
+        )
+        rows.append(
+            {
+                "dataset_index": int(record["dataset_index"]),
+                "record_json": record_json,
+                "record_sha256": sha256(record_json.encode("utf-8")).hexdigest(),
+                "resolved_dataset_id": record.get("dataset_id"),
+                "resolved_request_run": None,
+                "resolved_task": str(
+                    metadata_mapping.get("config", {}).get("dataset", {}).get("task", "classification")
+                    if isinstance(metadata_mapping, dict)
+                    else "classification"
+                ),
+                "resolved_n_train": int(record["n_train"]),
+                "resolved_n_test": int(record["n_test"]),
+                "resolved_n_features": int(record["n_features"]),
+                "resolved_n_classes": (
+                    None
+                    if metadata_mapping is None or metadata_mapping.get("n_classes") is None
+                    else int(metadata_mapping["n_classes"])
+                ),
+                "resolved_filter_mode": (
+                    filter_payload.get("mode") if isinstance(filter_payload, dict) else None
+                ),
+                "resolved_filter_status": (
+                    filter_payload.get("status") if isinstance(filter_payload, dict) else None
+                ),
+                "resolved_filter_accepted": (
+                    filter_payload.get("accepted")
+                    if isinstance(filter_payload, dict)
+                    and isinstance(filter_payload.get("accepted"), bool)
+                    else None
+                ),
+                "teacher_conditionals_available": False,
+            }
+        )
+    schema = pa.schema(
+        [
+            pa.field("dataset_index", pa.int64()),
+            pa.field("record_json", pa.large_string()),
+            pa.field("record_sha256", pa.string()),
+            pa.field("resolved_dataset_id", pa.string()),
+            pa.field("resolved_request_run", pa.string()),
+            pa.field("resolved_task", pa.string()),
+            pa.field("resolved_n_train", pa.int64()),
+            pa.field("resolved_n_test", pa.int64()),
+            pa.field("resolved_n_features", pa.int64()),
+            pa.field("resolved_n_classes", pa.int64()),
+            pa.field("resolved_filter_mode", pa.string()),
+            pa.field("resolved_filter_status", pa.string()),
+            pa.field("resolved_filter_accepted", pa.bool_()),
+            pa.field("teacher_conditionals_available", pa.bool_()),
+        ]
+    )
+    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
 
 
 def write_iris_tasks(
@@ -95,8 +161,5 @@ def write_iris_tasks(
 
     pq.write_table(build_split_table(train_rows), shard_dir / "train.parquet")
     pq.write_table(build_split_table(test_rows), shard_dir / "test.parquet")
-    with (shard_dir / "metadata.ndjson").open("wb") as handle:
-        for record in metadata_records:
-            serialized = (json.dumps(record, sort_keys=True) + "\n").encode("utf-8")
-            handle.write(serialized)
+    _write_dataset_catalog_parquet(shard_dir / "dataset_catalog.parquet", metadata_records)
     return generated_dir

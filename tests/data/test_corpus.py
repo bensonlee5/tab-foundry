@@ -745,9 +745,12 @@ def _fake_run_dagzoo_filter(config) -> DagzooFilterResult:
     filter_root.mkdir(parents=True, exist_ok=True)
     curated_dir.mkdir(parents=True, exist_ok=True)
     _write_curated_datasets(curated_dir, dataset_count=1)
-    manifest_path = filter_root / "filter_manifest.ndjson"
+    manifest_path = filter_root / "filter_manifest.parquet"
     summary_path = filter_root / "filter_summary.json"
-    manifest_path.write_text("{}\n", encoding="utf-8")
+    cases._write_json_record_parquet_file(
+        manifest_path,
+        [{"dataset_index": 0, "status": "accepted"}],
+    )
     summary_path.write_text(
         json.dumps(
             {
@@ -784,9 +787,15 @@ def _fake_run_dagzoo_filter_all(config) -> DagzooFilterResult:
     curated_dir.mkdir(parents=True, exist_ok=True)
     dataset_count = len(sorted(input_dir.glob("shard_*")))
     _write_curated_datasets(curated_dir, dataset_count=max(dataset_count, 1), seed_base=200)
-    manifest_path = filter_root / "filter_manifest.ndjson"
+    manifest_path = filter_root / "filter_manifest.parquet"
     summary_path = filter_root / "filter_summary.json"
-    manifest_path.write_text("{}\n" * max(1, dataset_count), encoding="utf-8")
+    cases._write_json_record_parquet_file(
+        manifest_path,
+        [
+            {"dataset_index": dataset_index, "status": "accepted"}
+            for dataset_index in range(max(1, dataset_count))
+        ],
+    )
     summary_path.write_text(
         json.dumps(
             {
@@ -849,9 +858,15 @@ def _round_sequence_fake_run_dagzoo_filter(
             dataset_count=curated_count,
             seed_base=200 + call_index * 10,
         )
-        manifest_path = filter_root / "filter_manifest.ndjson"
+        manifest_path = filter_root / "filter_manifest.parquet"
         summary_path = filter_root / "filter_summary.json"
-        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        cases._write_json_record_parquet_file(
+            manifest_path,
+            [
+                {"dataset_index": dataset_index, "status": "accepted"}
+                for dataset_index in range(max(1, curated_count))
+            ],
+        )
         summary_path.write_text(
             json.dumps(
                 {
@@ -2068,7 +2083,7 @@ def test_finalize_staged_corpus_recipe_promotes_existing_stage_with_fast_verific
     assert timing_summary["staged_compaction_elapsed_seconds"] >= 0.0
 
 
-def test_compact_staged_corpus_recipe_rewrites_legacy_curated_root_and_finalize_builds_manifest(
+def test_compact_staged_corpus_recipe_rejects_legacy_curated_root(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
 ) -> None:
@@ -2115,54 +2130,18 @@ def test_compact_staged_corpus_recipe_rewrites_legacy_curated_root_and_finalize_
     )
     _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=3)
 
-    compacted = corpus_materialization_module.compact_staged_corpus_recipe(
-        recipe_id="accepted_only_recipe",
-        dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        repo_root=repo_tmp_path,
-    )
-
-    assert compacted["recipe_id"] == "accepted_only_recipe"
-    assert compacted["invocations"][0]["curated_compaction"] == {
-        "target_datasets_per_shard": 2,
-        "source_shard_count": 3,
-        "output_shard_count": 2,
-        "dataset_count": 3,
-    }
-    shard_dirs = sorted(curated_root.glob("shard_*"))
-    assert [path.name for path in shard_dirs] == ["shard_00000", "shard_00001"]
-    assert all((path / "dataset_catalog.parquet").exists() for path in shard_dirs)
-    assert not list(curated_root.rglob("metadata.ndjson"))
-
-    summary_path = (
-        corpus_materialization_invocation_module._invocation_materialization_summary_path(
-            corpus_root=stage_root,
-            invocation_id="default",
+    with pytest.raises(
+        RuntimeError,
+        match="legacy dagzoo catalog formats are unsupported|missing dataset_catalog.parquet",
+    ):
+        corpus_materialization_module.compact_staged_corpus_recipe(
+            recipe_id="accepted_only_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            repo_root=repo_tmp_path,
         )
-    )
-    summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
-    assert summary_payload["curated_compaction"] == {
-        "target_datasets_per_shard": 2,
-        "source_shard_count": 3,
-        "output_shard_count": 2,
-        "dataset_count": 3,
-    }
-
-    result = finalize_staged_corpus_recipe(
-        recipe_id="accepted_only_recipe",
-        dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        verify="fast",
-        repo_root=repo_tmp_path,
-        manifest_workers=4,
-    )
-
-    assert result["verification"]["mode"] == "fast"
-    assert result["verification"]["accepted_only"]["target_accepted_datasets"] == 3
-    assert result["verification"]["accepted_only"]["curated_accepted_datasets"] == 3
-    assert result["verification"]["accepted_only"]["accepted_datasets"] >= 3
-    assert result["record"]["manifest"]["inspection"]["persisted_summary"]["total_records"] == 3
 
 
-def test_finalize_staged_corpus_recipe_auto_compacts_legacy_curated_stage(
+def test_finalize_staged_corpus_recipe_rejects_legacy_curated_stage(
     monkeypatch: pytest.MonkeyPatch,
     repo_tmp_path: Path,
 ) -> None:
@@ -2185,18 +2164,16 @@ def test_finalize_staged_corpus_recipe_auto_compacts_legacy_curated_stage(
     )
     _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=2)
 
-    result = finalize_staged_corpus_recipe(
-        recipe_id="accepted_only_recipe",
-        dagzoo_root=repo_tmp_path.parent / "dagzoo",
-        verify="fast",
-        repo_root=repo_tmp_path,
-    )
-
-    assert result["compaction"]["invocations"][0]["status"] == "compacted"
-    assert result["compaction"]["invocations"][0]["curated_compaction"]["dataset_count"] == 2
-    assert not list(curated_root.rglob("metadata.ndjson"))
-    assert list(curated_root.rglob("dataset_catalog.parquet"))
-    assert result["record"]["manifest"]["inspection"]["persisted_summary"]["total_records"] == 2
+    with pytest.raises(
+        RuntimeError,
+        match="legacy dagzoo catalog formats are unsupported|missing dataset_catalog.parquet",
+    ):
+        finalize_staged_corpus_recipe(
+            recipe_id="accepted_only_recipe",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            verify="fast",
+            repo_root=repo_tmp_path,
+        )
 
 
 def test_compact_staged_corpus_recipe_skips_already_compacted_stage_without_force(
@@ -2283,7 +2260,7 @@ def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_res
             corpus_root=stage_root,
             invocation_id=invocation_id,
         )
-        _rewrite_curated_root_as_legacy_shards(curated_root, dataset_count=2)
+        assert list(curated_root.rglob("dataset_catalog.parquet"))
 
     progress_invocation_ids: list[str] = []
 
@@ -2291,6 +2268,7 @@ def test_compact_staged_corpus_recipe_parallelizes_invocations_but_preserves_res
         recipe_id="accepted_only_multi_recipe",
         dagzoo_root=repo_tmp_path.parent / "dagzoo",
         repo_root=repo_tmp_path,
+        force=True,
         compact_workers=2,
         progress_callback=lambda payload: progress_invocation_ids.append(
             str(payload["invocation_id"])
@@ -2415,9 +2393,15 @@ def test_materialize_corpus_recipe_scales_accepted_only_topup_by_observed_accept
             dataset_count=curated_count,
             seed_base=500 + round_index * 10,
         )
-        manifest_path = filter_root / "filter_manifest.ndjson"
+        manifest_path = filter_root / "filter_manifest.parquet"
         summary_path = filter_root / "filter_summary.json"
-        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        cases._write_json_record_parquet_file(
+            manifest_path,
+            [
+                {"dataset_index": dataset_index, "status": "accepted"}
+                for dataset_index in range(max(1, curated_count))
+            ],
+        )
         summary_path.write_text(
             json.dumps(
                 {
@@ -2492,9 +2476,15 @@ def test_materialize_corpus_recipe_trims_overaccepted_curated_output_to_exact_ta
             dataset_count=curated_count,
             seed_base=700 + round_index * 100,
         )
-        manifest_path = filter_root / "filter_manifest.ndjson"
+        manifest_path = filter_root / "filter_manifest.parquet"
         summary_path = filter_root / "filter_summary.json"
-        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        cases._write_json_record_parquet_file(
+            manifest_path,
+            [
+                {"dataset_index": dataset_index, "status": "accepted"}
+                for dataset_index in range(max(1, curated_count))
+            ],
+        )
         summary_path.write_text(
             json.dumps(
                 {
@@ -2680,9 +2670,15 @@ def test_materialize_corpus_recipe_clamps_accepted_only_round_to_remaining_budge
         curated_dir = Path(str(config.curated_out_dir)).expanduser().resolve()
         filter_root.mkdir(parents=True, exist_ok=True)
         curated_dir.mkdir(parents=True, exist_ok=True)
-        manifest_path = filter_root / "filter_manifest.ndjson"
+        manifest_path = filter_root / "filter_manifest.parquet"
         summary_path = filter_root / "filter_summary.json"
-        manifest_path.write_text("{}\n" * max(1, curated_count), encoding="utf-8")
+        cases._write_json_record_parquet_file(
+            manifest_path,
+            [
+                {"dataset_index": dataset_index, "status": "accepted"}
+                for dataset_index in range(max(1, curated_count))
+            ],
+        )
         summary_path.write_text(
             json.dumps(
                 {
