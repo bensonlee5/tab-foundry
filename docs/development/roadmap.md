@@ -942,6 +942,10 @@ Legacy wording note:
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
   large-rung validation / hardware-freeze child
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  post-fit frontier and robustness umbrella
+  [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
+  fixed-budget upper-family reopen child
+  [#269](https://github.com/bensonlee5/tab-foundry/issues/269),
   compute-frontier child
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259), and
   curriculum/repetition slice child
@@ -1020,9 +1024,8 @@ Legacy wording note:
     constraint-model point
   - `176x6` completed cleanly at `final_log_loss=0.5816` and
     `final_roc_auc=0.7238`; keep it as upper-family and near-ceiling evidence,
-    but do not add extra near-ceiling rows on this branch because
-    capacity-targeted probes would no longer preserve the original TF-RD-009
-    width-depth relationship
+    and treat the old "stop at `176x6`" guidance as historical closeout for
+    the first fixed-budget family rather than a live global rule
   - observed training VRAM reserved for the top rows was `16.59 GiB` at
     `152x5` and `17.84 GiB` at `176x6`, materially below the old pre-run
     width-evidence memory bridge; after the corrected [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
@@ -1056,6 +1059,20 @@ Legacy wording note:
     leave-one-step residual checks, bootstrap intervals, diagnostic
     broken-power-law univariate checks, and an iso-loss `Bcrit(L)` readiness
     gate before treating any derived `Cmin` relation as compute-optimal
+  - as of April 13, 2026, [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    is the active `#258` child that deliberately reopens the fixed-budget
+    upper family before the deferred stabilization child: it adds
+    `tf_rd_009_width_depth_upper_extension_medium_v1`,
+    `tf_rd_009_ns_upper_extension_medium_v1`, and
+    `tf_rd_009_phase2_upper_extension_v1`, with the deterministic selection
+    artifact choosing continuation
+    `192x7 -> 208x8 -> 224x9 -> 248x10` by D-optimal information gain on the
+    current validation `L(N,S)` fit under the corrected post-`#257` hardware
+    model
+  - `tf_rd_009_ns_upper_extension_medium_v1` stays intentionally empty until
+    the reopened gate rows return benchmark-backed health=`ok`; this child is
+    law-information-first, so healthy upper rows may expand even if they do
+    not beat `152x5` on the carried matched-budget benchmark objective
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative fixed-budget family epic
@@ -1097,6 +1114,12 @@ Legacy wording note:
     command and keep validation loss as the primary law-fitting target while
     treating benchmark log loss as external transfer validation and
     repo-facing ranking evidence
+  - run [#269](https://github.com/bensonlee5/tab-foundry/issues/269) first as
+    the `#258` upper-family reopen child: gate the selected continuation
+    `192x7 -> 208x8 -> 224x9 -> 248x10` at the carried fixed-budget row, then
+    expand only health=`ok` survivors into the full
+    `{625,1250,2500,5000}` NS ladder under
+    `tf_rd_009_ns_upper_extension_medium_v1`
   - redesign the batch-critical branch before deriving `Cmin`: run the
     TF-RD-009 medium `96x2`, `152x5`, and `176x6` batch sweep over
     `grad_accum_steps={1,2,4,8}` to `5000` steps with validation checkpoints at
@@ -1124,7 +1147,14 @@ Legacy wording note:
     is now complete and records the corrected one-row `152x5` large-rung
     transfer passing on the terminal `latest.pt` rerun, so the hardware
     baseline is frozen and any further large-rung diagnosis remains separate
-    follow-on work
+    follow-on work; if [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    surfaces a new medium winner candidate, require a fresh one-row large-rung
+    validation before replacing the frozen preferred baseline
+  - after [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
+    completes, resume the deferred `#258` stabilization child for seed or
+    noise follow-up plus the redesigned multi-geometry `Bcrit` study, then
+    return to [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for
+    the principled compute-frontier branch
   - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
     the first fixed-budget law family

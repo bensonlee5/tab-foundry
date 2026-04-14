@@ -655,6 +655,21 @@ The historical width-family rows predate first-class `benchmark_timing` and
 `60x2` and `96x2`. The completed widened width-depth rows now register those
 timings directly.
 
+The reopened upper-family child under
+[#269](https://github.com/bensonlee5/tab-foundry/issues/269) keeps these
+frozen formulas as the design surface. The checked-in selector under
+`reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/support/selection_summary.{json,md}`
+records three admissible corrected-bridge continuations under the `~40 GB`
+target:
+
+- `216x7 -> 272x8`
+- `200x7 -> 224x8 -> 256x9`
+- `192x7 -> 208x8 -> 224x9 -> 248x10`
+
+It chooses `192x7 -> 208x8 -> 224x9 -> 248x10` because that continuation
+maximizes D-optimal information gain on the current validation `L(N,S)` fit
+while also reducing projected `alpha_n` and `alpha_s` uncertainty the most.
+
 ### Capacity Table
 
 | Row | `d_icl` | `sandwich_layers` | `S = L * d^2` | Predicted `P_local` | Predicted reserved GB | Observed reserved GB | Observed headroom to 44 GB |
@@ -708,9 +723,16 @@ timings directly.
   `176x6`) still undershot the old width-evidence reserved-memory fit, so the
   frozen baseline now uses the medium-evidence formulas above rather than the
   old conservative queue-construction heuristic
-- no extra near-ceiling rows were added on this branch because solving
-  directly against the old memory fit would require off-diagonal rows that no
-  longer preserve the original TF-RD-009 width-depth relationship
+- the old "stop at `176x6`" closeout remains historical evidence for the first
+  fixed-budget family only; as of April 13, 2026,
+  [#269](https://github.com/bensonlee5/tab-foundry/issues/269) deliberately
+  reopens the upper family under the corrected post-`#257` hardware model
+- this reopen is law-information-first rather than immediate model-chasing:
+  `tf_rd_009_width_depth_upper_extension_medium_v1` runs the selected
+  continuation only at the carried fixed-budget gate row first, and
+  `tf_rd_009_ns_upper_extension_medium_v1` stays empty until benchmark-backed
+  health=`ok` rows earn promotion into the full `{625,1250,2500,5000}` NS
+  ladder
 
 ## Literature Synthesis
 

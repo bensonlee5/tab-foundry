@@ -3747,6 +3747,322 @@ deltas:
     default_next_action: Execute as order 5 in `tf_rd_009_width_depth_medium_v1` after `152x5` is benchmark-backed; treat failure as ceiling evidence.
     applicability_guards: []
 
+  delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the first reopened TF-RD-009 upper-family gate row at `d_icl=192`, `sandwich_layers=7`, selected by the deterministic post-`#257` validation `L(N,S)` information-gain design pass.
+    upstream_delta: TF-RD-009 deliberately reopens the fixed-budget upper family after the corrected `#257` large-rung gate froze a lower-memory hardware model. This row belongs to the winning continuation `192x7 -> 208x8 -> 224x9 -> 248x10`, chosen by D-optimal information gain on the current validation `L(N,S)` fit rather than by direct model chasing.
+    expected_effect: If the corrected headroom can support a wider reopened upper family, `192x7` should widen the validation `L(N,S)` design space at the carried matched-budget row while preserving the fixed-contract architecture surface.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - upper-family gate-first policy before any reopened NS ladder spend
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute only at the carried fixed-budget gate row before spending any NS-ladder budget on reopened upper geometries.
+        - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and health=`ok`; keep health=`warn` as upper-family evidence only.
+        - Use this row for validation `L(N,S)` information gain even if it is weaker than `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new preferred baseline without a fresh large-rung validation gate.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 192
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 7
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 1 in `tf_rd_009_width_depth_upper_extension_medium_v1`, then expand only after health=`ok`.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl208_layers8_upper_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the second reopened TF-RD-009 upper-family gate row at `d_icl=208`, `sandwich_layers=8`, continuing the winning post-`#257` information-first continuation.
+    upstream_delta: TF-RD-009 reopens the upper family under the corrected medium-evidence parameter and VRAM fits, then spends compute only on rows selected by the deterministic validation `L(N,S)` design helper.
+    expected_effect: "`208x8` should probe whether a deeper upper row remains healthy enough to improve law information before the reopened branch reaches the near-40 GB regime."
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - upper-family gate-first policy before any reopened NS ladder spend
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute only at the carried fixed-budget gate row before spending any NS-ladder budget on reopened upper geometries.
+        - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and health=`ok`; keep health=`warn` as upper-family evidence only.
+        - Use this row for validation `L(N,S)` information gain even if it is weaker than `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new preferred baseline without a fresh large-rung validation gate.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 208
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 8
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 2 in `tf_rd_009_width_depth_upper_extension_medium_v1`, then expand only after health=`ok`.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl224_layers9_upper_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the third reopened TF-RD-009 upper-family gate row at `d_icl=224`, `sandwich_layers=9`, continuing the winning post-`#257` information-first continuation.
+    upstream_delta: This row exists because the corrected frozen VRAM fit showed materially more headroom than the original `176x6` branch assumed, so TF-RD-009 now reopens the upper family by explicit validation-law design rather than by ad hoc capacity chasing.
+    expected_effect: "`224x9` should test whether the reopened upper family keeps adding validation `L(N,S)` curvature information near the corrected medium-rung ceiling."
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - upper-family gate-first policy before any reopened NS ladder spend
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute only at the carried fixed-budget gate row before spending any NS-ladder budget on reopened upper geometries.
+        - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and health=`ok`; keep health=`warn` as upper-family evidence only.
+        - Use this row for validation `L(N,S)` information gain even if it is weaker than `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new preferred baseline without a fresh large-rung validation gate.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 224
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 9
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 3 in `tf_rd_009_width_depth_upper_extension_medium_v1`, then expand only after health=`ok`.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl248_layers10_upper_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the reopened TF-RD-009 near-ceiling gate row at `d_icl=248`, `sandwich_layers=10`, selected as the largest member of the winning post-`#257` information-first continuation.
+    upstream_delta: TF-RD-009 no longer stops at `176x6` by policy; it now intentionally reopens the upper family under the corrected frozen hardware model, but still gates every new geometry at the carried fixed-budget row before spending full NS-ladder budget.
+    expected_effect: "`248x10` should act as the reopened near-ceiling evidence row for the corrected `~40 GB` target while still participating in the same deterministic validation-law design set as the lower reopened rows."
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - upper-family gate-first policy before any reopened NS ladder spend
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute only at the carried fixed-budget gate row before spending any NS-ladder budget on reopened upper geometries.
+        - Promote to `tf_rd_009_ns_upper_extension_medium_v1` only if benchmark-backed and health=`ok`; keep health=`warn` as upper-family evidence only.
+        - Use this row for validation `L(N,S)` information gain even if it is weaker than `152x5` on `final_log_loss_at_matched_regime_budget`, and do not freeze a new preferred baseline without a fresh large-rung validation gate.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 248
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 10
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v5
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            min_lr: 1.0e-05
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as order 4 in `tf_rd_009_width_depth_upper_extension_medium_v1`, then expand only after health=`ok`.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

@@ -1228,6 +1228,77 @@ def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
     assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 2500
 
 
+def test_load_system_delta_queue_accepts_resolved_queue_when_only_unrelated_catalog_entries_change(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="catalog_tolerant_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_manifest_path="data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    catalog_path = reference_root / "system_delta_catalog.yaml"
+    catalog_payload = OmegaConf.to_container(OmegaConf.load(catalog_path), resolve=True)
+    assert isinstance(catalog_payload, dict)
+    deltas = catalog_payload["deltas"]
+    assert isinstance(deltas, dict)
+    deltas["delta_unrelated_catalog_probe"] = dict(deltas["delta_label_token"])
+    catalog_path.write_text(
+        OmegaConf.to_yaml(OmegaConf.create(catalog_payload), resolve=True),
+        encoding="utf-8",
+    )
+
+    queue = load_system_delta_queue(
+        sweep_id="catalog_tolerant_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_id"] for row in queue["rows"]] == ["delta_training_linear_warmup_decay"]
+
+
+def test_load_system_delta_queue_accepts_resolution_source_drift_in_historical_resolved_queue(
+    tmp_path: Path,
+) -> None:
+    catalog_path = tmp_path / "system_delta_catalog.yaml"
+    catalog_payload = OmegaConf.to_container(
+        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_catalog.yaml"),
+        resolve=True,
+    )
+    assert isinstance(catalog_payload, dict)
+    deltas = catalog_payload["deltas"]
+    assert isinstance(deltas, dict)
+    deltas["delta_unrelated_catalog_probe"] = dict(deltas["delta_label_token"])
+    catalog_path.write_text(
+        OmegaConf.to_yaml(OmegaConf.create(catalog_payload), resolve=True),
+        encoding="utf-8",
+    )
+
+    queue = load_system_delta_queue(
+        sweep_id="tf_rd_010_classification_evolution_medium_v4",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=catalog_path,
+    )
+
+    assert [row["delta_id"] for row in queue["rows"]] == [
+        "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control",
+        "delta_data_manifest_root_tf_rd_010_missingness_mcar",
+        "delta_data_manifest_root_tf_rd_010_missingness_mar",
+        "delta_data_manifest_root_tf_rd_010_missingness_mnar",
+    ]
+
+
 def test_create_sweep_preserves_legacy_generic_warm20_short_run_surface(
     tmp_path: Path,
 ) -> None:

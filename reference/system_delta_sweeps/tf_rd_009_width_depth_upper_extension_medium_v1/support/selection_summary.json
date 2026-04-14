@@ -1,0 +1,268 @@
+{
+  "candidates": [
+    {
+      "alpha_uncertainty_width": 30.57037785963111,
+      "candidate_id": "192x7->208x8->224x9->248x10",
+      "d_optimal_gain": 2.904636360229084,
+      "feasible_under_corrected_ceiling": true,
+      "final_layers": 10,
+      "max_predicted_reserved_vram_gb": 40.481304546295995,
+      "row_labels": [
+        "192x7",
+        "208x8",
+        "224x9",
+        "248x10"
+      ],
+      "rows": [
+        {
+          "d_icl": 192,
+          "layers": 7,
+          "predicted_canonical_non_embedding_params": 15250668.684556311,
+          "predicted_reserved_vram_gb": 22.837601255160003,
+          "predicted_total_params": 15260059.600000001,
+          "row_label": "192x7",
+          "target_total_params": 14954901.6759245
+        },
+        {
+          "d_icl": 208,
+          "layers": 8,
+          "predicted_canonical_non_embedding_params": 19963565.269348256,
+          "predicted_reserved_vram_gb": 27.213256930552,
+          "predicted_total_params": 19979783.12,
+          "row_label": "208x8",
+          "target_total_params": 19720426.233312808
+        },
+        {
+          "d_icl": 224,
+          "layers": 9,
+          "predicted_canonical_non_embedding_params": 25548502.767379504,
+          "predicted_reserved_vram_gb": 32.399448990456,
+          "predicted_total_params": 25573777.36,
+          "row_label": "224x9",
+          "target_total_params": 26004531.440658286
+        },
+        {
+          "d_icl": 248,
+          "layers": 10,
+          "predicted_canonical_non_embedding_params": 34252537.531325504,
+          "predicted_reserved_vram_gb": 40.481304546295995,
+          "predicted_total_params": 34291127.76,
+          "row_label": "248x10",
+          "target_total_params": 33771977.13299537
+        }
+      ]
+    },
+    {
+      "alpha_uncertainty_width": 32.21948692498573,
+      "candidate_id": "200x7->224x8->256x9",
+      "d_optimal_gain": 2.4813421359387817,
+      "feasible_under_corrected_ceiling": true,
+      "final_layers": 9,
+      "max_predicted_reserved_vram_gb": 39.652153773815996,
+      "row_labels": [
+        "200x7",
+        "224x8",
+        "256x9"
+      ],
+      "rows": [
+        {
+          "d_icl": 200,
+          "layers": 7,
+          "predicted_canonical_non_embedding_params": 16547346.935748221,
+          "predicted_reserved_vram_gb": 24.03965983148,
+          "predicted_total_params": 16556638.8,
+          "row_label": "200x7",
+          "target_total_params": 16255565.352882152
+        },
+        {
+          "d_icl": 224,
+          "layers": 8,
+          "predicted_canonical_non_embedding_params": 23151719.157069106,
+          "predicted_reserved_vram_gb": 30.169833121528,
+          "predicted_total_params": 23168841.68,
+          "row_label": "224x8",
+          "target_total_params": 23299861.00731158
+        },
+        {
+          "d_icl": 256,
+          "layers": 9,
+          "predicted_canonical_non_embedding_params": 33366998.45299931,
+          "predicted_reserved_vram_gb": 39.652153773815996,
+          "predicted_total_params": 33396778.96,
+          "row_label": "256x9",
+          "target_total_params": 33771977.13299537
+        }
+      ]
+    },
+    {
+      "alpha_uncertainty_width": 34.21359594688221,
+      "candidate_id": "216x7->272x8",
+      "d_optimal_gain": 1.9991562942510583,
+      "feasible_under_corrected_ceiling": true,
+      "final_layers": 8,
+      "max_predicted_reserved_vram_gb": 40.353595557112,
+      "row_labels": [
+        "216x7",
+        "272x8"
+      ],
+      "rows": [
+        {
+          "d_icl": 216,
+          "layers": 7,
+          "predicted_canonical_non_embedding_params": 19299480.36684942,
+          "predicted_reserved_vram_gb": 26.5909678302,
+          "predicted_total_params": 19308562.0,
+          "row_label": "216x7",
+          "target_total_params": 19680776.86889738
+        },
+        {
+          "d_icl": 272,
+          "layers": 8,
+          "predicted_canonical_non_embedding_params": 34133138.10366314,
+          "predicted_reserved_vram_gb": 40.353595557112,
+          "predicted_total_params": 34153376.72,
+          "row_label": "272x8",
+          "target_total_params": 33771977.13299537
+        }
+      ]
+    }
+  ],
+  "corrected_constraints": {
+    "baseline_row_label": "176x6",
+    "ceiling_target_gb": 40.0,
+    "ceiling_tolerance_gb": 0.5,
+    "gate_steps": 2500,
+    "parameter_bridge_expression": "P_local(d, L) \u2248 18638.80 + 77.94 * d^2 + 47.93 * L * d^2",
+    "reserved_vram_expression": "reserved_vram_gb \u2248 8.69 + 9.271e-07 * params",
+    "step_ladder": [
+      625,
+      1250,
+      2500,
+      5000
+    ],
+    "width_rung": 8
+  },
+  "current_validation_fit": {
+    "fit_kind": "nonlinear_positive_least_squares",
+    "name": "L(N,S)",
+    "parameters": {
+      "Nc": 258222763.01303703,
+      "Sc": 608.5013803148823,
+      "alpha_n": 0.03025652387489069,
+      "alpha_s": 0.3314295810867182,
+      "irreducible_loss": 0.0003004707292743779
+    },
+    "predictions": [
+      1.3895605205534924,
+      1.3008488074240425,
+      1.2515068805533172,
+      1.2252914326287672,
+      1.3663232847815159,
+      1.2742016570490713,
+      1.2226213013298601,
+      1.1950973806312557,
+      1.3524618948467642,
+      1.258204847223316,
+      1.2052037007384395,
+      1.176841860735462,
+      1.341129988566433,
+      1.2450673632299452,
+      1.1908531056158436,
+      1.1617711556850343,
+      1.329034945177366,
+      1.2309828034556902,
+      1.1754190339631432,
+      1.1455308377545002,
+      1.3189449243436002,
+      1.2191815863574487,
+      1.1624460865265343,
+      1.1318533506565287
+    ],
+    "stats": {
+      "aic": -153.3291280086342,
+      "bic": -147.43885885689448,
+      "log_space_r2": 0.8209148646939719,
+      "mae": 0.02768587287704601,
+      "n_points": 24,
+      "parameter_confidence_intervals_95": {
+        "Nc": {
+          "lower": 0.0,
+          "upper": 258222763.01303703
+        },
+        "Sc": {
+          "lower": 1.454352233931404e-41,
+          "upper": 2.5459714724279336e+46
+        },
+        "alpha_n": {
+          "lower": 2.0938692733362505e-17,
+          "upper": 43720840104463.3
+        },
+        "alpha_s": {
+          "lower": 1.3690918111465512e-10,
+          "upper": 802324331.5386324
+        },
+        "irreducible_loss": {
+          "lower": 0.0,
+          "upper": 0.0003004707292743779
+        }
+      },
+      "parameter_standard_errors": {
+        "Nc": 172377294639.41083,
+        "Sc": 31183.344750145563,
+        "alpha_n": 0.5388577214051028,
+        "alpha_s": 3.653734388541106,
+        "irreducible_loss": 20.35472322465005
+      },
+      "residuals": [
+        -0.03412296240916146,
+        0.052257747173573676,
+        -0.019517308262986033,
+        -0.026405166417719395,
+        -0.011727321869671625,
+        0.027178457580793403,
+        -0.026469160710626882,
+        0.02336320529074709,
+        0.00249847968736594,
+        0.05991225911005893,
+        -0.0423345825843906,
+        -0.02340932526220474,
+        0.008176263287271501,
+        0.01806469019745305,
+        0.0263563853315818,
+        0.06682125872388789,
+        -0.000678140851189335,
+        -0.04916040652445175,
+        -0.05049832374034757,
+        -0.010100345060941818,
+        0.010094569232091954,
+        -6.839860944118925e-05,
+        -0.03777730162130921,
+        0.0374688895098374
+      ],
+      "rmse": 0.0332836109488399,
+      "rss": 0.026587170187049647
+    },
+    "x_axis": "canonical_non_embedding_params,steps"
+  },
+  "projected_canonical_parameter_bridge": {
+    "d_squared_coefficient": 79.10887170953828,
+    "intercept": 8083.52768813679,
+    "layered_d_squared_coefficient": 47.76753049885198
+  },
+  "scoring_study_id": "tf_rd_009_phase2",
+  "selected_candidate_id": "192x7->208x8->224x9->248x10",
+  "selected_row_labels": [
+    "192x7",
+    "208x8",
+    "224x9",
+    "248x10"
+  ],
+  "selection_rule": {
+    "primary": "maximize D-optimal information gain on the current validation L(N,S) fit",
+    "secondary": "minimize projected parameter-uncertainty width for alpha_n and alpha_s",
+    "tie_breaks": [
+      "fewer new geometries",
+      "lower max predicted reserved VRAM"
+    ]
+  }
+}
