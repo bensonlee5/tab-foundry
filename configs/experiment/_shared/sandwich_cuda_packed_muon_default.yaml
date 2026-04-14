@@ -1,0 +1,28 @@
+# @package _global_
+
+model:
+  sandwich_packed_attention: true
+
+runtime:
+  device: cuda
+  mixed_precision: bf16
+  loader_task_batch_cache: false
+  loader_task_batch_cache_mode: bounded_streaming
+  num_workers: auto
+  loader_pin_memory: true
+  loader_persistent_workers: false
+  loader_prefetch_factor: auto
+  non_blocking_device_transfer: true
+  compile_model: true
+  compile_backend: eager
+  compile_dynamic: true
+
+optimizer:
+  name: muon
+  require_requested: true
+  weight_decay: 0.01
+  betas: [0.9, 0.95]
+  min_lr: 1.0e-6
+  muon_per_parameter_lr: true
+  muon_lr_scale_base: 0.2
+  muon_partition_non2d: true

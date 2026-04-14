@@ -33,18 +33,61 @@ def test_cls_workstation_sandwich_resolution() -> None:
     assert cfg.model.stage is None
     assert int(cfg.model.d_icl) == 60
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
+    assert bool(cfg.model.sandwich_packed_attention) is True
     assert int(cfg.model.head_hidden_dim) == 96
     assert int(cfg.model.sandwich_latents) == 24
     assert int(cfg.model.sandwich_layers) == 2
     assert int(cfg.model.sandwich_heads) == 4
-    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 4
+    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 3
     assert int(cfg.model.sandwich_self_attention_per_cross) == 4
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 16
+    assert str(cfg.data.surface_label) == "tf_rd_010_dagzoo_medium_control"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v5"
+    assert str(cfg.optimizer.name) == "muon"
+    assert bool(cfg.optimizer.require_requested) is True
+    assert str(cfg.runtime.device) == "cuda"
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert str(cfg.runtime.num_workers) == "auto"
+    assert bool(cfg.runtime.loader_pin_memory) is True
+    assert str(cfg.runtime.loader_prefetch_factor) == "auto"
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert bool(cfg.runtime.compile_model) is True
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 4
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_sandwich"
     assert bool(cfg.runtime.trace_activations) is False
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich"
+
+
+def test_cls_workstation_sandwich_legacy_resolution() -> None:
+    cfg = _compose("experiment=cls_workstation_sandwich_legacy_v1")
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert bool(cfg.model.sandwich_packed_attention) is False
+    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 4
+    assert str(cfg.runtime.device) == "auto"
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "off"
+    assert bool(cfg.runtime.compile_model) is False
+    assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_sandwich_legacy_v1"
+    assert str(cfg.logging.run_name) == "cls-workstation-sandwich-legacy-v1"
+
+
+def test_default_config_follows_packed_muon_surface() -> None:
+    cfg = _compose()
+
+    assert str(cfg.task) == "classification"
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "muon"
+    assert str(cfg.runtime.device) == "cuda"
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert bool(cfg.runtime.compile_model) is True
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
 
 
 def test_generic_sandwich_compose_accepts_pre_perceiver_override_without_plus() -> None:
@@ -72,7 +115,7 @@ def test_cls_smoke_optimizer_resolution() -> None:
 
 
 def test_runtime_smoke_override_resolution() -> None:
-    cfg = _compose("runtime=smoke")
+    cfg = _compose("experiment=cls_workstation_sandwich_legacy_v1", "runtime=smoke")
     assert str(cfg.runtime.mixed_precision) == "no"
     assert bool(cfg.runtime.loader_pin_memory) is False
     assert bool(cfg.runtime.loader_persistent_workers) is False
@@ -84,11 +127,14 @@ def test_runtime_smoke_override_resolution() -> None:
     assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 1
     assert bool(cfg.runtime.activation_checkpointing) is False
 
 
 def test_runtime_workstation_resolution() -> None:
-    cfg = _compose("runtime=workstation")
+    cfg = _compose("experiment=cls_workstation_sandwich_legacy_v1", "runtime=workstation")
     assert str(cfg.runtime.mixed_precision) == "bf16"
     assert int(cfg.runtime.num_workers) == 0
     assert bool(cfg.runtime.loader_pin_memory) is False
@@ -100,10 +146,13 @@ def test_runtime_workstation_resolution() -> None:
     assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 1
 
 
 def test_runtime_tf_rd_022_policy_resolution() -> None:
-    cfg = _compose("runtime=tf_rd_022_policy")
+    cfg = _compose("experiment=cls_workstation_sandwich_legacy_v1", "runtime=tf_rd_022_policy")
     assert str(cfg.runtime.mixed_precision) == "bf16"
     assert bool(cfg.runtime.loader_pin_memory) is False
     assert bool(cfg.runtime.loader_persistent_workers) is False
@@ -116,6 +165,9 @@ def test_runtime_tf_rd_022_policy_resolution() -> None:
     assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 1
     assert bool(cfg.runtime.trace_activations) is False
     assert bool(cfg.runtime.activation_checkpointing) is True
     assert int(cfg.runtime.max_steps) == 2500
@@ -131,12 +183,17 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_resolution() -> Non
     assert "legacy_prior" not in cfg
     assert str(cfg.runtime.device) == "cuda"
     assert str(cfg.runtime.mixed_precision) == "bf16"
-    assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert bool(cfg.runtime.compile_model) is True
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
     assert int(cfg.runtime.num_workers) == 2
     assert bool(cfg.runtime.loader_pin_memory) is True
     assert bool(cfg.runtime.loader_persistent_workers) is True
     assert int(cfg.runtime.loader_prefetch_factor) == 2
     assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
     assert str(cfg.runtime.output_dir) == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_v1"
     )
@@ -148,12 +205,13 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_resolution() -> Non
 def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_workers_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_workers_v1")
     assert str(cfg.runtime.device) == "cuda"
-    assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_model) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
     assert int(cfg.runtime.num_workers) == 2
-    assert bool(cfg.runtime.loader_pin_memory) is False
+    assert bool(cfg.runtime.loader_pin_memory) is True
     assert bool(cfg.runtime.loader_persistent_workers) is False
-    assert cfg.runtime.loader_prefetch_factor is None
-    assert bool(cfg.runtime.non_blocking_device_transfer) is False
+    assert str(cfg.runtime.loader_prefetch_factor) == "auto"
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
     assert str(cfg.runtime.output_dir) == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_workers_v1"
     )
@@ -167,12 +225,12 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_loader_overlap_reso
         "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_loader_overlap_v1"
     )
     assert str(cfg.runtime.device) == "cuda"
-    assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_model) is True
     assert int(cfg.runtime.num_workers) == 2
     assert bool(cfg.runtime.loader_pin_memory) is True
     assert bool(cfg.runtime.loader_persistent_workers) is True
     assert int(cfg.runtime.loader_prefetch_factor) == 2
-    assert bool(cfg.runtime.non_blocking_device_transfer) is False
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
     assert str(cfg.runtime.output_dir) == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_loader_overlap_v1"
     )
@@ -186,11 +244,11 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_train_speed_transfer_resolution
         "experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_transfer_v1"
     )
     assert str(cfg.runtime.device) == "cuda"
-    assert bool(cfg.runtime.compile_model) is False
+    assert bool(cfg.runtime.compile_model) is True
     assert int(cfg.runtime.num_workers) == 2
     assert bool(cfg.runtime.loader_pin_memory) is True
     assert bool(cfg.runtime.loader_persistent_workers) is False
-    assert cfg.runtime.loader_prefetch_factor is None
+    assert str(cfg.runtime.loader_prefetch_factor) == "auto"
     assert bool(cfg.runtime.non_blocking_device_transfer) is True
     assert str(cfg.runtime.output_dir) == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_train_speed_transfer_v1"
@@ -213,8 +271,23 @@ def test_cls_benchmark_sandwich_speedrun_cached_packed_resolution() -> None:
     assert bool(cfg.runtime.loader_persistent_workers) is False
     assert str(cfg.runtime.loader_prefetch_factor) == "auto"
     assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 4
     assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_speedrun_cached_packed_v1"
     assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-speedrun-cached-packed-v1"
+
+
+def test_cls_benchmark_sandwich_speedrun_default_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_speedrun_default_v1")
+
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "muon"
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.signature_family_run_length) == 4
+    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_speedrun_default_v1"
+    assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-speedrun-default-v1"
 
 
 def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:
@@ -232,12 +305,14 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_resolution() -> None:
     assert int(cfg.runtime.grad_accum_steps) == int(base_cfg.runtime.grad_accum_steps)
     assert bool(cfg.runtime.activation_checkpointing) is bool(base_cfg.runtime.activation_checkpointing)
     assert bool(cfg.runtime.trace_activations) is bool(base_cfg.runtime.trace_activations)
-    assert bool(base_cfg.runtime.compile_model) is False
+    assert bool(base_cfg.runtime.compile_model) is True
     assert bool(cfg.runtime.compile_model) is True
-    assert bool(base_cfg.runtime.compile_dynamic) is False
+    assert bool(base_cfg.runtime.compile_dynamic) is True
     assert bool(cfg.runtime.compile_dynamic) is False
     assert str(cfg.runtime.compile_backend) == "inductor"
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
+    assert str(base_cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
     assert int(cfg.runtime.max_steps) == int(base_cfg.runtime.max_steps)
     assert int(cfg.training.task_batch_size) == int(base_cfg.training.task_batch_size)
     assert str(cfg.runtime.output_dir) == (
@@ -269,12 +344,13 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_compile_eager_dynamic_resolutio
     assert int(cfg.runtime.grad_accum_steps) == int(base_cfg.runtime.grad_accum_steps)
     assert bool(cfg.runtime.activation_checkpointing) is bool(base_cfg.runtime.activation_checkpointing)
     assert bool(cfg.runtime.trace_activations) is bool(base_cfg.runtime.trace_activations)
-    assert bool(base_cfg.runtime.compile_model) is False
+    assert bool(base_cfg.runtime.compile_model) is True
     assert bool(cfg.runtime.compile_model) is True
-    assert bool(base_cfg.runtime.compile_dynamic) is False
+    assert bool(base_cfg.runtime.compile_dynamic) is True
     assert bool(cfg.runtime.compile_dynamic) is True
     assert str(cfg.runtime.compile_backend) == "eager"
     assert str(cfg.runtime.compile_mode) == str(base_cfg.runtime.compile_mode)
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
     assert int(cfg.runtime.max_steps) == int(base_cfg.runtime.max_steps)
     assert int(cfg.training.task_batch_size) == int(base_cfg.training.task_batch_size)
     assert str(cfg.runtime.output_dir) == (
@@ -434,15 +510,27 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert int(cfg.training.prior_dump_batch_size) == 64
     assert str(cfg.training.loss_surface) == "classification"
     assert bool(cfg.training.apply_schedule) is True
-    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
-    assert float(cfg.optimizer.weight_decay) == 0.0
-    assert list(cfg.optimizer.betas) == [0.9, 0.999]
+    assert float(cfg.optimizer.weight_decay) == 0.01
+    assert list(cfg.optimizer.betas) == [0.9, 0.95]
     assert str(cfg.runtime.mixed_precision) == "bf16"
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
     assert bool(cfg.runtime.trace_activations) is False
     assert bool(cfg.runtime.activation_checkpointing) is True
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert str(cfg.runtime.num_workers) == "auto"
+    assert bool(cfg.runtime.loader_pin_memory) is True
+    assert str(cfg.runtime.loader_prefetch_factor) == "auto"
+    assert bool(cfg.runtime.non_blocking_device_transfer) is True
+    assert bool(cfg.runtime.compile_model) is True
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert int(cfg.runtime.signature_family_run_length) == 4
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 2500
@@ -450,7 +538,7 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert str(stage["lr_schedule"]) == "linear"
     assert float(stage["warmup_ratio"]) == 0.10
     assert float(stage["lr_max"]) == 1.0e-3
-    assert float(cfg.optimizer.min_lr) == 1.0e-5
+    assert float(cfg.optimizer.min_lr) == 1.0e-6
     assert str(cfg.runtime.output_dir) == (
         "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1"
     )
@@ -719,7 +807,8 @@ def test_cls_benchmark_sandwich_tf_rd_022_policy_rational_resolution() -> None:
     assert str(cfg.model.sandwich_activation) == "rational"
     assert str(cfg.model.sandwich_block_norm) == "none"
     assert str(cfg.model.norm_type) == "layernorm"
-    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "muon"
     assert str(cfg.logging.run_name) == (
         "cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-rational-v1"
     )

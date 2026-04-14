@@ -382,6 +382,27 @@ def test_tabfoundry_sandwich_packed_attention_matches_default_attention() -> Non
     assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-5)
 
 
+def test_tabfoundry_sandwich_packed_attention_uses_native_attention_modules() -> None:
+    model = _model(sandwich_packed_attention=True)
+
+    assert isinstance(
+        model.pre_row_attention_blocks[0].attn,
+        sandwich_blocks._NativePackedSelfAttention,
+    )
+    assert isinstance(
+        model.pre_column_attention_blocks[0].inducing_self.attn,
+        sandwich_blocks._NativePackedSelfAttention,
+    )
+    assert isinstance(
+        model.pre_column_attention_blocks[0].rows_to_inducing.attn,
+        sandwich_blocks._NativePackedCrossAttention,
+    )
+    assert isinstance(
+        model.perceiver_stages[0].input_read.attn,
+        sandwich_blocks._NativePackedCrossAttention,
+    )
+
+
 def test_tabfoundry_sandwich_accepts_zero_self_attention_per_cross() -> None:
     model = _model(sandwich_self_attention_per_cross=0)
     output = model(_batch())

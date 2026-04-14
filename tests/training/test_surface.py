@@ -330,6 +330,10 @@ def test_build_training_surface_record_includes_compile_runtime_flags(
     assert record["runtime"]["compile_dynamic"] is True
     assert record["runtime"]["compile_backend"] == "inductor"
     assert record["runtime"]["compile_mode"] == "max-autotune-no-cudagraphs"
+    assert record["runtime"]["compile_shape_dispatch_mode"] == "off"
+    assert record["runtime"]["compile_shape_dispatch_max_families"] == 16
+    assert record["runtime"]["loader_task_batch_cache_mode"] == "off"
+    assert record["runtime"]["signature_family_run_length"] == 1
     assert record["runtime"]["trace_activations"] is False
     assert record["runtime"]["activation_checkpointing"] is True
     assert "device" not in record["runtime"]

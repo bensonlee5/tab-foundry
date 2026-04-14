@@ -1,7 +1,6 @@
 # @package _global_
 
 defaults:
-  - _shared/sandwich_cuda_packed_muon_default
   - _self_
 
 task: classification
@@ -36,7 +35,9 @@ training:
   loss_surface: classification
   prior_dump_batch_size: 64
 runtime:
-  output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1
+  output_dir: outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_legacy_v1
+  device: cuda
+  mixed_precision: bf16
   grad_clip: 0.0
   grad_accum_steps: 4
   trace_activations: false
@@ -45,9 +46,15 @@ runtime:
   checkpoint_every: 25
   val_batches: 0
   max_steps: 2500
-  compile_shape_dispatch_mode: signature_family
-  compile_shape_dispatch_max_families: 16
-  signature_family_run_length: 4
+optimizer:
+  name: schedulefree_adamw
+  require_requested: true
+  weight_decay: 0.0
+  betas: [0.9, 0.999]
+  min_lr: 1.0e-5
+  muon_per_parameter_lr: false
+  muon_lr_scale_base: 0.2
+  muon_partition_non2d: true
 schedule:
   stages:
     - name: prior_dump
@@ -56,5 +63,5 @@ schedule:
       lr_schedule: linear
       warmup_ratio: 0.10
 logging:
-  run_name: cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-v1
+  run_name: cls-benchmark-sandwich-classification-evolution-tf-rd-022-policy-legacy-v1
   history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

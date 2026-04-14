@@ -493,6 +493,9 @@ def test_build_runtime_summary_records_loader_wall_metadata() -> None:
         loader_effective_num_workers=8,
         loader_effective_prefetch_factor=4,
         loader_task_batch_cache_mode="bounded_streaming",
+        compile_shape_dispatch_mode="signature_family",
+        compile_shape_dispatch_max_families=16,
+        compile_shape_dispatch_summary={"compiled_family_count": 3, "family_switch_count": 7},
     )
 
     assert summary == {
@@ -506,4 +509,10 @@ def test_build_runtime_summary_records_loader_wall_metadata() -> None:
         "loader_effective_num_workers": 8,
         "loader_effective_prefetch_factor": 4,
         "loader_task_batch_cache_mode": "bounded_streaming",
+        "compile_shape_dispatch_mode": "signature_family",
+        "compile_shape_dispatch_max_families": 16,
+        "compile_shape_dispatch": {
+            "compiled_family_count": 3,
+            "family_switch_count": 7,
+        },
     }

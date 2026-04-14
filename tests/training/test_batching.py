@@ -345,6 +345,45 @@ def test_manifest_task_batch_sampler_keeps_regrouped_batches_when_shuffled() -> 
     assert len(sampler) == 2
 
 
+def test_manifest_task_batch_sampler_signature_family_runs_preserve_batch_multiset() -> None:
+    signatures = [
+        (2, 2, 3, 2),
+        (2, 2, 3, 5),
+        (2, 2, 3, 2),
+        (2, 2, 3, 5),
+        (4, 2, 3, 2),
+        (4, 2, 3, 5),
+        (4, 2, 3, 2),
+        (4, 2, 3, 5),
+    ]
+    default_sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(signatures=signatures),
+        task_batch_size=1,
+        shuffle=True,
+        seed=0,
+        signature_family_run_length=1,
+    )
+    family_sampler = _ManifestTaskBatchSampler(
+        _StubManifestTaskDataset(signatures=signatures),
+        task_batch_size=1,
+        shuffle=True,
+        seed=0,
+        signature_family_run_length=2,
+    )
+
+    default_batches = list(default_sampler)
+    family_batches = list(family_sampler)
+
+    assert sorted(sorted(batch) for batch in family_batches) == sorted(
+        sorted(batch) for batch in default_batches
+    )
+    family_sequence = [signatures[batch[0]][:3] for batch in family_batches]
+    assert any(
+        family_sequence[index] == family_sequence[index + 1]
+        for index in range(len(family_sequence) - 1)
+    )
+
+
 def test_manifest_task_batch_sampler_supports_accelerate_sharding_without_padding() -> None:
     sampler = _ManifestTaskBatchSampler(
         _StubManifestTaskDataset(size=5),

@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1
+  - cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_legacy_compile_eager_dynamic_v1
   - _self_
 
 model:

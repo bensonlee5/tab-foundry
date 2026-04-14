@@ -21,6 +21,7 @@ import tab_foundry.training.runtime as training_runtime_module
 import tab_foundry.training.trainer as trainer_module
 import tab_foundry.training.trainer_loop as trainer_loop_module
 import tab_foundry.training.trainer_metrics as trainer_metrics_module
+import tab_foundry.training.trainer_runtime_config as training_runtime_config_module
 from tab_foundry.config import compose_config
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.optimizer import OptimizerSelection
@@ -1715,11 +1716,13 @@ def test_train_rejects_auto_runtime_device_when_it_resolves_to_mps(
         (
             "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1",
             {
-                "num_workers": 0,
-                "loader_pin_memory": False,
+                "num_workers": 8,
+                "loader_pin_memory": True,
                 "loader_persistent_workers": False,
-                "loader_prefetch_factor": None,
-                "non_blocking_device_transfer": False,
+                "loader_prefetch_factor": 4,
+                "non_blocking_device_transfer": True,
+                "cache_mode": "bounded_streaming",
+                "max_batches": 10000,
             },
         ),
         (
@@ -1730,6 +1733,8 @@ def test_train_rejects_auto_runtime_device_when_it_resolves_to_mps(
                 "loader_persistent_workers": True,
                 "loader_prefetch_factor": 2,
                 "non_blocking_device_transfer": True,
+                "cache_mode": "bounded_streaming",
+                "max_batches": 10000,
             },
         ),
     ],
@@ -1767,6 +1772,7 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         cache_task_batches: bool = False,
         cache_mode: str | None = None,
         max_batches: int | None = None,
+        signature_family_run_length: int = 1,
     ) -> object:
         del shuffle, seed, task_batch_size
         captured["num_workers"] = num_workers
@@ -1776,11 +1782,13 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
         captured["cache_task_batches"] = cache_task_batches
         captured["cache_mode"] = cache_mode
         captured["max_batches"] = max_batches
+        captured["signature_family_run_length"] = signature_family_run_length
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
     monkeypatch.setattr(trainer_module, "validate_task_batching_support", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
+    monkeypatch.setattr(training_runtime_config_module.os, "cpu_count", lambda: 40)
 
     cfg = compose_config([f"experiment={experiment_name}", "logging.use_wandb=false"])
     cfg.runtime.output_dir = str(tmp_path / experiment_name)
@@ -1798,8 +1806,9 @@ def test_tf_rd_022_experiment_training_route_uses_manifest_surface(
     assert captured["persistent_workers"] is expected_runtime["loader_persistent_workers"]
     assert captured["prefetch_factor"] == expected_runtime["loader_prefetch_factor"]
     assert captured["cache_task_batches"] is False
-    assert captured["cache_mode"] == "off"
-    assert captured["max_batches"] is None
+    assert captured["cache_mode"] == expected_runtime["cache_mode"]
+    assert captured["max_batches"] == expected_runtime["max_batches"]
+    assert captured["signature_family_run_length"] == 4
 
 
 def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
@@ -1949,6 +1958,7 @@ def test_train_passes_loader_overlap_runtime_knobs(
         cache_task_batches: bool = False,
         cache_mode: str | None = None,
         max_batches: int | None = None,
+        signature_family_run_length: int = 1,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
@@ -1960,6 +1970,7 @@ def test_train_passes_loader_overlap_runtime_knobs(
         captured["cache_task_batches"] = cache_task_batches
         captured["cache_mode"] = cache_mode
         captured["max_batches"] = max_batches
+        captured["signature_family_run_length"] = signature_family_run_length
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(trainer_module, "build_task_loader", _capture_loader)
@@ -1985,6 +1996,7 @@ def test_train_passes_loader_overlap_runtime_knobs(
         "cache_task_batches": False,
         "cache_mode": "off",
         "max_batches": None,
+        "signature_family_run_length": 1,
     }
 
 
@@ -2051,9 +2063,10 @@ def test_train_resolves_auto_loader_overlap_runtime_knobs(
         cache_task_batches: bool = False,
         cache_mode: str | None = None,
         max_batches: int | None = None,
+        signature_family_run_length: int = 1,
     ) -> None:
         del shuffle, seed, task_batch_size, pin_memory, persistent_workers, cache_task_batches
-        del cache_mode, max_batches
+        del cache_mode, max_batches, signature_family_run_length
         captured["num_workers"] = num_workers
         captured["prefetch_factor"] = prefetch_factor
         raise RuntimeError("stop_after_loader")
@@ -2275,6 +2288,8 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
         "loader_effective_num_workers": 0,
         "loader_effective_prefetch_factor": None,
         "loader_task_batch_cache_mode": "off",
+        "compile_shape_dispatch_mode": "off",
+        "compile_shape_dispatch_max_families": 16,
     }
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"

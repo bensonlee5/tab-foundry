@@ -19,6 +19,8 @@ from .sources import build_source_dataset
 
 _T = TypeVar("_T")
 _VALID_TASK_BATCH_CACHE_MODES = frozenset({"off", "eager_full", "bounded_streaming"})
+_Signature = tuple[int, int, int, int | None]
+_SignatureFamily = tuple[int, int, int]
 
 
 class _ManifestTaskBatchSampler(Sampler[list[int]]):
@@ -32,6 +34,7 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         shuffle: bool,
         seed: int,
         max_batches: int | None = None,
+        signature_family_run_length: int = 1,
     ) -> None:
         self.dataset = dataset
         self.task_batch_size = int(task_batch_size)
@@ -45,6 +48,12 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         self.max_batches = None if max_batches is None else int(max_batches)
         if self.max_batches is not None and self.max_batches <= 0:
             raise ValueError(f"max_batches must be >= 1 when provided, got {self.max_batches}")
+        self.signature_family_run_length = int(signature_family_run_length)
+        if self.signature_family_run_length <= 0:
+            raise ValueError(
+                "signature_family_run_length must be >= 1, "
+                f"got {self.signature_family_run_length}"
+            )
         self._length_cache: int | None = None
 
     @staticmethod
@@ -60,15 +69,19 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
             return indices
         return [int(index) for index in self._shuffle_items(indices, generator=generator)]
 
-    def _signature_counts(self) -> OrderedDict[tuple[int, int, int, int | None], int]:
-        counts: OrderedDict[tuple[int, int, int, int | None], int] = OrderedDict()
+    @staticmethod
+    def _signature_family(signature: _Signature) -> _SignatureFamily:
+        return int(signature[0]), int(signature[1]), int(signature[2])
+
+    def _signature_counts(self) -> OrderedDict[_Signature, int]:
+        counts: OrderedDict[_Signature, int] = OrderedDict()
         for index in range(len(self.dataset)):
             signature = self.dataset.task_signature(index)
             counts[signature] = counts.get(signature, 0) + 1
         return counts
 
     def _iter_grouped_batches(self, *, ordered_indices: list[int]):
-        buckets: OrderedDict[tuple[int, int, int, int | None], list[int]] = OrderedDict()
+        buckets: OrderedDict[_Signature, list[int]] = OrderedDict()
         for index in ordered_indices:
             signature = self.dataset.task_signature(index)
             bucket = buckets.setdefault(signature, [])
@@ -80,8 +93,31 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
             if remainder:
                 yield list(remainder)
 
+    def _iter_family_grouped_batches(self, *, ordered_indices: list[int]):
+        family_runs: OrderedDict[_SignatureFamily, list[list[int]]] = OrderedDict()
+        signature_buckets: OrderedDict[_Signature, list[int]] = OrderedDict()
+        for index in ordered_indices:
+            signature = self.dataset.task_signature(index)
+            bucket = signature_buckets.setdefault(signature, [])
+            bucket.append(int(index))
+        for signature, indices in signature_buckets.items():
+            family = self._signature_family(signature)
+            family_batches = family_runs.setdefault(family, [])
+            for start in range(0, len(indices), self.task_batch_size):
+                family_batches.append(indices[start : start + self.task_batch_size])
+        while True:
+            emitted = False
+            for family_batches in family_runs.values():
+                run_length = 0
+                while family_batches and run_length < self.signature_family_run_length:
+                    yield family_batches.pop(0)
+                    run_length += 1
+                    emitted = True
+            if not emitted:
+                break
+
     def _iter_contiguous_batches(self, *, ordered_indices: list[int]):
-        current_signature: tuple[int, int, int, int | None] | None = None
+        current_signature: _Signature | None = None
         current_batch: list[int] = []
         for index in ordered_indices:
             signature = self.dataset.task_signature(index)
@@ -104,6 +140,9 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
         generator.manual_seed(int(epoch_seed))
         ordered_indices = self._ordered_indices(generator=generator)
         if self.shuffle:
+            if self.signature_family_run_length > 1:
+                yield from self._iter_family_grouped_batches(ordered_indices=ordered_indices)
+                return
             yield from self._iter_grouped_batches(ordered_indices=ordered_indices)
             return
         yield from self._iter_contiguous_batches(ordered_indices=ordered_indices)
@@ -116,7 +155,7 @@ class _ManifestTaskBatchSampler(Sampler[list[int]]):
 
     def _count_contiguous_batches(self) -> int:
         batch_count = 0
-        current_signature: tuple[int, int, int, int | None] | None = None
+        current_signature: _Signature | None = None
         current_run_length = 0
         for index in range(len(self.dataset)):
             signature = self.dataset.task_signature(index)
@@ -213,6 +252,7 @@ def _materialize_task_batch_cache(
             task_batch_size=requested_task_batch_size,
             shuffle=shuffle,
             seed=seed,
+            signature_family_run_length=1,
         )
         return _CachedTaskBatchDataset(
             [
@@ -275,6 +315,7 @@ def build_task_loader(
     cache_task_batches: bool = False,
     cache_mode: str | None = None,
     max_batches: int | None = None,
+    signature_family_run_length: int = 1,
 ) -> DataLoader[TaskBatch]:
     """Build a task loader with deterministic seeded shuffling."""
 
@@ -323,6 +364,7 @@ def build_task_loader(
             shuffle=shuffle,
             seed=seed,
             max_batches=max_batches,
+            signature_family_run_length=signature_family_run_length,
         )
         if resolved_num_workers > 0:
             if prefetch_factor is None:
@@ -377,6 +419,7 @@ def build_task_loader(
             task_batch_size=resolved_task_batch_size,
             shuffle=shuffle,
             seed=seed,
+            signature_family_run_length=signature_family_run_length,
         )
         if resolved_num_workers > 0:
             if prefetch_factor is None:

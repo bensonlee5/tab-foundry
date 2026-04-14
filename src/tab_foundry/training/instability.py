@@ -1166,6 +1166,9 @@ def build_runtime_summary(
     loader_effective_num_workers: int | None = None,
     loader_effective_prefetch_factor: int | None = None,
     loader_task_batch_cache_mode: str | None = None,
+    compile_shape_dispatch_mode: str | None = None,
+    compile_shape_dispatch_max_families: int | None = None,
+    compile_shape_dispatch_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build runtime telemetry derived from loop counters."""
 
@@ -1203,6 +1206,14 @@ def build_runtime_summary(
         )
     if loader_task_batch_cache_mode is not None:
         summary["loader_task_batch_cache_mode"] = str(loader_task_batch_cache_mode)
+    if compile_shape_dispatch_mode is not None:
+        summary["compile_shape_dispatch_mode"] = str(compile_shape_dispatch_mode)
+    if compile_shape_dispatch_max_families is not None:
+        summary["compile_shape_dispatch_max_families"] = int(
+            compile_shape_dispatch_max_families
+        )
+    if isinstance(compile_shape_dispatch_summary, Mapping):
+        summary["compile_shape_dispatch"] = dict(compile_shape_dispatch_summary)
     return summary
 
 

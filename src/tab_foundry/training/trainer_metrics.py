@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import Any, Callable
 
 from accelerate import Accelerator
 import torch
@@ -131,6 +132,7 @@ def _evaluate_loader(
     task: str,
     max_batches: int,
     non_blocking_device_transfer: bool = False,
+    model_forward: Callable[[TaskBatch], Any] | None = None,
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
@@ -159,7 +161,7 @@ def _evaluate_loader(
                 non_blocking=non_blocking_device_transfer,
             )
             with accelerator.autocast():
-                output = model(batch)
+                output = model(batch) if model_forward is None else model_forward(batch)
                 loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
             loss_sum += float(loss.detach().item()) * float(actual_task_count)
             for key, value in metrics.items():

@@ -46,6 +46,9 @@ def finalize_training_run(
     loader_effective_num_workers: int,
     loader_effective_prefetch_factor: int | None,
     loader_task_batch_cache_mode: str,
+    compile_shape_dispatch_mode: str,
+    compile_shape_dispatch_max_families: int,
+    compile_shape_dispatch_summary: Mapping[str, Any] | None,
     success: bool,
     error: Exception | None = None,
 ) -> tuple[TrainResult | None, float, Mapping[str, Any] | None]:
@@ -65,6 +68,9 @@ def finalize_training_run(
             loader_effective_num_workers=loader_effective_num_workers,
             loader_effective_prefetch_factor=loader_effective_prefetch_factor,
             loader_task_batch_cache_mode=loader_task_batch_cache_mode,
+            compile_shape_dispatch_mode=compile_shape_dispatch_mode,
+            compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
+            compile_shape_dispatch_summary=compile_shape_dispatch_summary,
         )
         hardware_summary = build_hardware_summary(accelerator.device)
         regime_budget = build_regime_budget_summary(

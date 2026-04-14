@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-04-14
+
+### Changed
+
+- User-facing note: the default sandwich training surface now promotes the
+  packed-attention + Muon CUDA lane. `cls_workstation_sandwich`, the TF-RD-022
+  sandwich benchmark base, and the root app default now inherit packed
+  attention, bounded-streaming task loading, Muon optimizer settings,
+  compile-eager-dynamic runtime defaults, and signature-family compile
+  dispatch, while explicit `*_legacy_v1` configs preserve the old non-packed
+  workstation and TF-RD-022 comparison baselines.
+- User-facing note: manifest-backed task batching now supports deterministic
+  signature-family run scheduling and training telemetry now records
+  compile-shape dispatch mode, family-cache statistics, loader setup wall time,
+  and end-to-end wall time for speed benchmarking.
+
 ## [0.16.16] - 2026-04-14
 
 ### Changed

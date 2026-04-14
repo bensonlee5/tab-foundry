@@ -28,6 +28,10 @@ from .trainer_runtime_config import (
     _resolve_compile_dynamic,
     _resolve_compile_mode,
     _resolve_compile_model,
+    _resolve_compile_shape_dispatch_max_families,
+    _resolve_compile_shape_dispatch_mode,
+    _resolve_loader_task_batch_cache_mode,
+    _resolve_signature_family_run_length,
     _resolve_trace_activations,
 )
 
@@ -61,8 +65,20 @@ def _normalize_runtime_surface_cfg(raw_runtime_cfg: Mapping[str, Any]) -> dict[s
     runtime_cfg["compile_dynamic"] = _resolve_compile_dynamic(resolved_runtime_cfg)
     runtime_cfg["compile_backend"] = _resolve_compile_backend(resolved_runtime_cfg)
     runtime_cfg["compile_mode"] = _resolve_compile_mode(resolved_runtime_cfg)
+    runtime_cfg["compile_shape_dispatch_mode"] = _resolve_compile_shape_dispatch_mode(
+        resolved_runtime_cfg
+    )
+    runtime_cfg["compile_shape_dispatch_max_families"] = (
+        _resolve_compile_shape_dispatch_max_families(resolved_runtime_cfg)
+    )
     runtime_cfg["trace_activations"] = _resolve_trace_activations(resolved_runtime_cfg)
     runtime_cfg["activation_checkpointing"] = _resolve_activation_checkpointing(
+        resolved_runtime_cfg
+    )
+    runtime_cfg["loader_task_batch_cache_mode"] = _resolve_loader_task_batch_cache_mode(
+        resolved_runtime_cfg
+    )
+    runtime_cfg["signature_family_run_length"] = _resolve_signature_family_run_length(
         resolved_runtime_cfg
     )
     return runtime_cfg

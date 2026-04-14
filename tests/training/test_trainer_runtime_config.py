@@ -5,7 +5,10 @@ import pytest
 
 import tab_foundry.training.trainer_runtime_config as runtime_config_module
 from tab_foundry.training.trainer_runtime_config import (
+    _resolve_compile_shape_dispatch_max_families,
+    _resolve_compile_shape_dispatch_mode,
     _resolve_loader_task_batch_cache_mode,
+    _resolve_signature_family_run_length,
     default_loader_num_workers,
     default_loader_prefetch_factor,
     resolve_loader_overlap_runtime_settings,
@@ -77,3 +80,17 @@ def test_resolve_loader_task_batch_cache_mode_preserves_legacy_precedence() -> N
         )
         == "off"
     )
+
+
+def test_resolve_compile_shape_dispatch_controls() -> None:
+    runtime_cfg = OmegaConf.create(
+        {
+            "compile_shape_dispatch_mode": "signature_family",
+            "compile_shape_dispatch_max_families": 8,
+            "signature_family_run_length": 4,
+        }
+    )
+
+    assert _resolve_compile_shape_dispatch_mode(runtime_cfg) == "signature_family"
+    assert _resolve_compile_shape_dispatch_max_families(runtime_cfg) == 8
+    assert _resolve_signature_family_run_length(runtime_cfg) == 4

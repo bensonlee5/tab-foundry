@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import math
 from pathlib import Path
 import time
-from typing import Any, Iterator, Mapping, cast
+from typing import Any, Callable, Iterator, Mapping, cast
 
 import torch
 from omegaconf import DictConfig
@@ -455,6 +455,7 @@ def run_training_loop(
     profiler: Any | None,
     run: Any,
     state: TrainingLoopState,
+    model_forward: Callable[[TaskBatch], Any] | None = None,
 ) -> None:
     train_iter: Iterator[TaskBatch] = iter(cast(tuple[TaskBatch, ...], ()))
     if train_loader is not None:
@@ -523,7 +524,7 @@ def run_training_loop(
                 timing_start = time.perf_counter()
                 with accelerator.accumulate(model):
                     with accelerator.autocast():
-                        output = model(batch)
+                        output = model(batch) if model_forward is None else model_forward(batch)
                         loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
                     accelerator.backward(
                         _task_weighted_microstep_loss(
@@ -782,6 +783,7 @@ def run_training_loop(
                     task=task,
                     max_batches=val_batches,
                     non_blocking_device_transfer=non_blocking_device_transfer,
+                    model_forward=model_forward,
                 )
                 log_wandb_metrics(
                     run,
