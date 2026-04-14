@@ -493,8 +493,20 @@ def build_dagzoo_provenance_summary(
             "invocation_fanout_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("invocation_fanout_elapsed_seconds")
             ),
+            "staged_compaction_elapsed_seconds": _optional_float(
+                top_level_materialization_timing.get("staged_compaction_elapsed_seconds")
+            ),
+            "staged_compaction_status": (
+                str(top_level_materialization_timing["staged_compaction_status"])
+                if isinstance(top_level_materialization_timing.get("staged_compaction_status"), str)
+                and str(top_level_materialization_timing["staged_compaction_status"]).strip()
+                else None
+            ),
             "manifest_build_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("manifest_build_elapsed_seconds")
+            ),
+            "manifest_workers": _optional_int(
+                top_level_materialization_timing.get("manifest_workers")
             ),
             "promotion_elapsed_seconds": _optional_float(
                 top_level_materialization_timing.get("promotion_elapsed_seconds")

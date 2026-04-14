@@ -118,6 +118,7 @@ def _manifest_compatibility(
             "has_train_rows": False,
             "has_test_rows": False,
             "contains_non_finite_rows": False,
+            "missing_values_unchecked": False,
             "class_contract": contract,
             "issues": [],
             "warnings": [],
@@ -149,11 +150,18 @@ def _manifest_compatibility(
         if isinstance(task_missing_value_counts, Mapping)
         else int(missing_value_status_counts.get("contains_nan_or_inf", 0)) > 0
     )
+    missing_values_unchecked = (
+        int(task_missing_value_counts.get("not_checked", 0)) > 0
+        if isinstance(task_missing_value_counts, Mapping)
+        else int(missing_value_status_counts.get("not_checked", 0)) > 0
+    )
 
     if not has_task_rows:
         issues.append(f"manifest has no rows for task={task!r}")
     if contains_non_finite_rows and not allow_missing_values:
         issues.append("manifest contains NaN or Inf rows while allow_missing_values=false")
+    if missing_values_unchecked and not allow_missing_values:
+        warnings.append("manifest missing-value status is unchecked while allow_missing_values=false")
 
     class_counts = manifest_payload.get("classification_n_classes")
     if task == "classification" and contract is not None:
@@ -189,6 +197,7 @@ def _manifest_compatibility(
         "has_train_rows": has_train_rows,
         "has_test_rows": has_test_rows,
         "contains_non_finite_rows": contains_non_finite_rows,
+        "missing_values_unchecked": missing_values_unchecked,
         "class_contract": contract,
         "issues": issues,
         "warnings": warnings,
@@ -259,6 +268,10 @@ def render_manifest_inspect_text(payload: Mapping[str, Any]) -> str:
         lines.append(f"compatibility.has_train_rows={compatibility['has_train_rows']}")
         lines.append(f"compatibility.has_test_rows={compatibility['has_test_rows']}")
         lines.append(f"compatibility.contains_non_finite_rows={compatibility['contains_non_finite_rows']}")
+        if "missing_values_unchecked" in compatibility:
+            lines.append(
+                f"compatibility.missing_values_unchecked={compatibility['missing_values_unchecked']}"
+            )
         if compatibility.get("class_contract") is not None:
             lines.append(f"compatibility.class_contract={_format_jsonable(compatibility['class_contract'])}")
     return "\n".join(lines)

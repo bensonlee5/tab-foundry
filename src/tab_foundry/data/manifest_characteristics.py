@@ -78,10 +78,10 @@ def _all_records_no_missing(status_counts: Mapping[str, int]) -> bool | None:
     non_missing_keys = {key for key in normalized if key != "missing"}
     if not non_missing_keys:
         return None
+    if "contains_nan_or_inf" in normalized:
+        return False
     if non_missing_keys == {"clean"}:
         return True
-    if any(key not in {"clean", "missing"} for key in normalized):
-        return False
     return None
 
 
