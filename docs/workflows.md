@@ -149,7 +149,12 @@ PYTHONPATH=src .venv/bin/python -m tab_foundry train profile \
 ```
 
 `cls_workstation_sandwich` is the default sandwich training surface for new
-development work. Regression remains intentionally removed in the current repo
+development work. The carried packed speed lane remains the Muon variant after
+the 1000-step, family-block-2 optimizer A/B on the TF-RD-010 v5 medium corpus;
+use `cls_benchmark_sandwich_speedrun_cached_packed_v1` as the
+`schedulefree_adamw` comparator and
+`cls_benchmark_sandwich_speedrun_cached_packed_muon_v1` as the kept packed
+benchmark surface. Regression remains intentionally removed in the current repo
 state.
 
 The prior-trained staged control surface is still available:

@@ -685,6 +685,18 @@ Legacy wording note:
     matched-budget result on the same host, so TF-RD-022 records compile-first
     eager-plus-dynamic-shape execution as the kept kernel-level
     training-acceleration outcome on the carried runtime surface
+  - the follow-up 1000-step, `signature_family_optimizer_step_block_length=2`
+    optimizer A/B on the packed TF-RD-010 v5 medium surface now keeps Muon as
+    the carried packed optimizer: `cached_packed` seeds 1 and 2 averaged
+    `end_to_end_wall_seconds=715.6769`,
+    `ma100_train_acc=0.3999542236`, and
+    `ma100_train_loss_ema=1.4393207842`, while
+    `cached_packed_muon` seeds 1 and 2 averaged
+    `end_to_end_wall_seconds=693.7159`,
+    `ma100_train_acc=0.5102392578`, and
+    `ma100_train_loss_ema=1.2215796496`; the broad packed defaults therefore
+    stay on `cached_packed_muon` and `cached_packed` remains the explicit
+    `schedulefree_adamw` comparator
   - issues [#240](https://github.com/bensonlee5/tab-foundry/issues/240) and
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241) remain useful
     operational evidence on benchmark and materialization speed, but they no
@@ -696,6 +708,9 @@ Legacy wording note:
   - the carried TF-RD-022 runtime policy remains the medium-rung winner:
     `mixed_precision=bf16`, `trace_activations=false`, and
     `activation_checkpointing=true`
+  - the carried packed optimizer remains Muon on the bounded-streaming packed
+    lane; `schedulefree_adamw` stays as the explicit comparator rather than a
+    new default
   - low-risk overlap and transfer tweaks remain closed negative evidence under
     issue [#239](https://github.com/bensonlee5/tab-foundry/issues/239)
   - compile-first kernel investigation now closes under issue
