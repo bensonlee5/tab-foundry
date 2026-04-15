@@ -245,6 +245,7 @@ def _relocate_corpus_record_paths(
             ("corpus_root", False),
             ("manifest_path", False),
             ("latest_pointer_path", False),
+            ("publish_inventory_path", True),
         ):
             relocated_value = _relocate_repo_anchored_path(
                 artifacts.get(key),
