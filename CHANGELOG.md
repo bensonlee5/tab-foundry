@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-04-15
+
+### Changed
+
+- User-facing note: TF-RD-009 Muon Phase 1 now carries a repo-encoded fresh
+  width-depth derivation on the landed Muon width screen plus the frozen RTX
+  8000 planning formulas. `tf_rd_009_muon_width_depth_medium_v1` is now
+  populated with the rederived `72x1 -> 112x3 -> 144x4 -> 192x5 -> 264x6`
+  queue, the Muon hardware-baseline placeholder now points at the real Muon
+  width-screen evidence and active Phase-1 sweep, and the TF-RD-009
+  derivation audit now supports both `historical` and `muon` family
+  verification.
+
 ## [0.17.1] - 2026-04-14
 
 ### Changed

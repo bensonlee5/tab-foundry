@@ -217,8 +217,8 @@ rows:
   entangled_legacy_stage: none
   expected_effect: If the sandwich target can trade one layer for more width while
     staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1`
-    should show whether the lower diagonal stays competitive against the carried `96x2`
-    baseline at matched regime budget.
+    should show whether the lower diagonal stays competitive against the active carried
+    in-family baseline at matched regime budget.
   adequacy_knobs:
   - fixed TF-RD-010 curated medium benchmark contract
   - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -227,10 +227,10 @@ rows:
     reopen
   parameter_adequacy_policy:
     default_plan:
-    - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried
-      width-only baseline for `#255`; this row is the empirical depth-aware parameter
-      bridge's lower anchor-equivalent probe.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Execute after the active width-only baseline is fixed for the current family;
+      this row is the empirical depth-aware parameter bridge's lower anchor-equivalent
+      probe.
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
       inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather
@@ -278,6 +278,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -345,7 +346,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -358,24 +359,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: d30304f18fb25fb27a4cbb6c2e6f3afb351496d06d9dadc475fadff325a72d1d
+  resolved_surface_fingerprint: d6f7fa190637c3822a7d882de7c559ae143c747bb9b9072fe13f28a72f1a9df2
 - order: 2
   delta_id: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
   status: ready
@@ -486,8 +494,8 @@ rows:
   entangled_legacy_stage: none
   expected_effect: If the sandwich target can trade one layer for more width while
     staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1`
-    should show whether the lower diagonal stays competitive against the carried `96x2`
-    baseline at matched regime budget.
+    should show whether the lower diagonal stays competitive against the active carried
+    in-family baseline at matched regime budget.
   adequacy_knobs:
   - fixed TF-RD-010 curated medium benchmark contract
   - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -496,10 +504,10 @@ rows:
     reopen
   parameter_adequacy_policy:
     default_plan:
-    - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried
-      width-only baseline for `#255`; this row is the empirical depth-aware parameter
-      bridge's lower anchor-equivalent probe.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Execute after the active width-only baseline is fixed for the current family;
+      this row is the empirical depth-aware parameter bridge's lower anchor-equivalent
+      probe.
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
       inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather
@@ -547,6 +555,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -614,7 +623,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -627,24 +636,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 8283f9296905253a2c4da57882afa962bb0a022d88451154ea127591669276c7
+  resolved_surface_fingerprint: e9c6de25641bcad102a36c7a4bc43e6d5a09aead07f0b283b5d0879afcf72d84
 - order: 3
   delta_id: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
   status: ready
@@ -755,8 +771,8 @@ rows:
   entangled_legacy_stage: none
   expected_effect: If the sandwich target can trade one layer for more width while
     staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1`
-    should show whether the lower diagonal stays competitive against the carried `96x2`
-    baseline at matched regime budget.
+    should show whether the lower diagonal stays competitive against the active carried
+    in-family baseline at matched regime budget.
   adequacy_knobs:
   - fixed TF-RD-010 curated medium benchmark contract
   - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -765,10 +781,10 @@ rows:
     reopen
   parameter_adequacy_policy:
     default_plan:
-    - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried
-      width-only baseline for `#255`; this row is the empirical depth-aware parameter
-      bridge's lower anchor-equivalent probe.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Execute after the active width-only baseline is fixed for the current family;
+      this row is the empirical depth-aware parameter bridge's lower anchor-equivalent
+      probe.
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
       inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather
@@ -816,6 +832,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -883,7 +900,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -896,24 +913,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 85fbe24baac2a01d5cb2a96cd778baf3ef17e769393946f07c60b8089d60eaee
+  resolved_surface_fingerprint: a87b9f2ac3d0bd528efa15e073c1463a7a9a47722788fcf636e8f56736294061
 - order: 4
   delta_id: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
   status: ready
@@ -1024,8 +1048,8 @@ rows:
   entangled_legacy_stage: none
   expected_effect: If the sandwich target can trade one layer for more width while
     staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1`
-    should show whether the lower diagonal stays competitive against the carried `96x2`
-    baseline at matched regime budget.
+    should show whether the lower diagonal stays competitive against the active carried
+    in-family baseline at matched regime budget.
   adequacy_knobs:
   - fixed TF-RD-010 curated medium benchmark contract
   - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -1034,10 +1058,10 @@ rows:
     reopen
   parameter_adequacy_policy:
     default_plan:
-    - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried
-      width-only baseline for `#255`; this row is the empirical depth-aware parameter
-      bridge's lower anchor-equivalent probe.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Execute after the active width-only baseline is fixed for the current family;
+      this row is the empirical depth-aware parameter bridge's lower anchor-equivalent
+      probe.
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row
       inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather
@@ -1085,6 +1109,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -1152,7 +1177,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -1165,24 +1190,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: c2db2077d31eef9ed5e4c163de006f217619df9180aa9f8c95ec2fae6d4f856b
+  resolved_surface_fingerprint: c12f097bfa7ebfeac0cb8772bb07626294b3c40990112b92e28f7fce024dd2e1
 - order: 5
   delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
   status: ready
@@ -1345,6 +1377,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -1412,7 +1445,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -1425,24 +1458,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 0aba9d35b388cb8408adfde56b2ba3a374ea84eb77815edc71fabbf9995546f2
+  resolved_surface_fingerprint: 218997816cdd1b0179bf8de737d4a75c5eecb9420e85e37e2a7685d7caa1d3e3
 - order: 6
   delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
   status: ready
@@ -1605,6 +1645,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -1672,7 +1713,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -1685,24 +1726,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: b0fef6399480f1df669cc4a3a823d3bc68974d276e6a21b7d9bb45c91d235b28
+  resolved_surface_fingerprint: 2e49a6bf95409d870afc17e4b1e219dd1dd45b79c99ee530303ee948013ccd78
 - order: 7
   delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
   status: ready
@@ -1865,6 +1913,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -1932,7 +1981,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -1945,24 +1994,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: ec895e683420e957f0402669d68a61c070426f313b94a26570308348142e1529
+  resolved_surface_fingerprint: 209233593c85eed6d83cdb858ef2ed8312f8da28999ec0955d91afa090b8606d
 - order: 8
   delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
   status: ready
@@ -2125,6 +2181,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -2192,7 +2249,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -2205,24 +2262,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 50d4794f333c9ae3a92750d3c4a330cb1d34467291f44589cd9dd5b3c780b069
+  resolved_surface_fingerprint: 7c813a52dd95e475aa04e34112231ec69bc6c4f6e165ee4f152ad7c61d687559
 - order: 9
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
@@ -2329,7 +2393,7 @@ rows:
     `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid
     search.
   entangled_legacy_stage: none
-  expected_effect: If the fixed-budget law continues above the carried `96x2` baseline,
+  expected_effect: If the fixed-budget law continues above the carried in-family baseline,
     `112x3` should improve the matched-regime-budget objective while staying within
     a cleaner stability envelope than the already-warned width-only `128x2` row.
   adequacy_knobs:
@@ -2343,7 +2407,7 @@ rows:
     - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family
       remains an ordered diagonal around the width-only `128x2` upper evidence target
       rather than a grid.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently
       replace it with a different upper geometry in the same branch.
@@ -2390,6 +2454,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -2457,7 +2522,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -2470,24 +2535,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 84ac6262a88bcf131f507cbb1bffac72de6bd1bb0a2b6c306bcabb7836ea0c8d
+  resolved_surface_fingerprint: 3afb7fb2c79820ff5225e4bf6389517c8099dc30b8ec8df5c208f868c6614b5b
 - order: 10
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
@@ -2594,7 +2666,7 @@ rows:
     `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid
     search.
   entangled_legacy_stage: none
-  expected_effect: If the fixed-budget law continues above the carried `96x2` baseline,
+  expected_effect: If the fixed-budget law continues above the carried in-family baseline,
     `112x3` should improve the matched-regime-budget objective while staying within
     a cleaner stability envelope than the already-warned width-only `128x2` row.
   adequacy_knobs:
@@ -2608,7 +2680,7 @@ rows:
     - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family
       remains an ordered diagonal around the width-only `128x2` upper evidence target
       rather than a grid.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently
       replace it with a different upper geometry in the same branch.
@@ -2655,6 +2727,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -2722,7 +2795,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -2735,24 +2808,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 01063f30e6d25604a9e77c222c72399803207f6dd70deb56ffa50f58706d6ca5
+  resolved_surface_fingerprint: 0e69e6abcad9085da4322c1293a924a30e7cbdea92b694da0d316342714371f7
 - order: 11
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
@@ -2859,7 +2939,7 @@ rows:
     `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid
     search.
   entangled_legacy_stage: none
-  expected_effect: If the fixed-budget law continues above the carried `96x2` baseline,
+  expected_effect: If the fixed-budget law continues above the carried in-family baseline,
     `112x3` should improve the matched-regime-budget objective while staying within
     a cleaner stability envelope than the already-warned width-only `128x2` row.
   adequacy_knobs:
@@ -2873,7 +2953,7 @@ rows:
     - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family
       remains an ordered diagonal around the width-only `128x2` upper evidence target
       rather than a grid.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently
       replace it with a different upper geometry in the same branch.
@@ -2920,6 +3000,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -2987,7 +3068,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -3000,24 +3081,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 2d04f14525545e5495b0526b0ab2d3db53946e86f56d23fa68bae07ef5dbebc1
+  resolved_surface_fingerprint: d9038978b041ece24dbd5b07d9fa6ae369fa401f4c7ab2f886793113195baf7b
 - order: 12
   delta_id: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
   status: ready
@@ -3124,7 +3212,7 @@ rows:
     `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid
     search.
   entangled_legacy_stage: none
-  expected_effect: If the fixed-budget law continues above the carried `96x2` baseline,
+  expected_effect: If the fixed-budget law continues above the carried in-family baseline,
     `112x3` should improve the matched-regime-budget objective while staying within
     a cleaner stability envelope than the already-warned width-only `128x2` row.
   adequacy_knobs:
@@ -3138,7 +3226,7 @@ rows:
     - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family
       remains an ordered diagonal around the width-only `128x2` upper evidence target
       rather than a grid.
-    - Compare directly against the carried `96x2` baseline at matched regime budget
+    - Compare directly against the carried in-family baseline at matched regime budget
       using `final_log_loss_at_matched_regime_budget` as the primary metric.
     - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently
       replace it with a different upper geometry in the same branch.
@@ -3185,6 +3273,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -3252,7 +3341,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -3265,24 +3354,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: f64aa8b3669dd9060c07b759d46fff80698fcc0ba4a49d3ba342b145c6bfd342
+  resolved_surface_fingerprint: 14b964070cfd4e8a258031aa0722ed6605966fe4c3a9b567e851c9569b620487
 - order: 13
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
   status: ready
@@ -3450,6 +3546,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -3517,7 +3614,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -3530,24 +3627,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 5cb52e3e1ebdbc86572480314e78e34024172c0b5594a9e3ae180350c73ea815
+  resolved_surface_fingerprint: a741415ddac6a81a803a23eb847c52bc7a7ed730a72c9e1555ad292c19da3279
 - order: 14
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
   status: ready
@@ -3715,6 +3819,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -3782,7 +3887,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -3795,24 +3900,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 9b5d5789348b291f3bdcebeebbe6d70df9087f1e3e807902630ddb7af40c4084
+  resolved_surface_fingerprint: 0835ba40e0be831a5b16e14c4aa2d7af953c9c115d6f154477e2649c5fed302f
 - order: 15
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
   status: ready
@@ -3980,6 +4092,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -4047,7 +4160,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -4060,24 +4173,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 2a3d8e8453a0aba8624a5238c3f4cd17a05431d2785db5100595d202acde6ec2
+  resolved_surface_fingerprint: 30dbc0bc1c22a5847515c4c06685752dbe6a23f4aef2b9c4cc87b558bad7df32
 - order: 16
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1
   status: ready
@@ -4245,6 +4365,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -4312,7 +4433,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -4325,24 +4446,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 307c30ce5f3b5e7408e4b965fc3199f1839e93e4a42016ab6d10bf523a51ab9f
+  resolved_surface_fingerprint: 87fd6923d4f99e5d4fe6428afcaeec4bc0aa4fe697e91e5f68ec3b487fd50e47
 - order: 17
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
   status: ready
@@ -4508,6 +4636,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -4575,7 +4704,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -4588,24 +4717,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 0839e9b092e77f60f3ce5e6b2256a25878cd84cf31bb92ed589d16c531904c9d
+  resolved_surface_fingerprint: e6d5f80d31e5f7cc5bd44e2c79f8bfbed28deb0ff65b066e9e3148ea93bc0fc6
 - order: 18
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
   status: ready
@@ -4771,6 +4907,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -4838,7 +4975,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -4851,24 +4988,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 6c5b10a94ec85b51aff008b350039a856630d47634d403a2ac544ed68d2f4737
+  resolved_surface_fingerprint: d6c520e46919eeffd1175967d7aa4c22bfd7b7bc4f3f1e261616f4dcf1b60f21
 - order: 19
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
   status: ready
@@ -5034,6 +5178,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -5101,7 +5246,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -5114,24 +5259,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 1ad9fdf8163375b44dff7939c3a98ceafe07b6f2c7f37fa42cb9cab6e2664cfa
+  resolved_surface_fingerprint: 28818e4eb25602719a266f7d0df1bd6900d0f6cd87cfd49d1e6e4bf5cd1e32d8
 - order: 20
   delta_id: delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1
   status: ready
@@ -5297,6 +5449,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -5364,7 +5517,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -5377,24 +5530,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: ac5a3bbff0af0a278d70555e361c9e5a95b636de32c36513b8c6935a7d6ec185
+  resolved_surface_fingerprint: eded91e547bb737f42255f461604fc9f5a7f8d1e1abd9df99db6a6366ee084be
 - order: 21
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
   status: ready
@@ -5563,6 +5723,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -5630,7 +5791,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -5643,24 +5804,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: d3aa7222994c175699041d38366e32330ce04c191466d48fb7f2086051a6197a
+  resolved_surface_fingerprint: 813c7501a90565442df43eedd5fac7fbf6ad4570e0416a5161a57a70e7fcb7ad
 - order: 22
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
   status: ready
@@ -5829,6 +5997,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -5896,7 +6065,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -5909,24 +6078,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 0ccafe33cd433a3d8ccb3367264b6b284ca88fea45b44dc68f24fe3b48b71dba
+  resolved_surface_fingerprint: 81c5705ea19cb936759719975df460f398811434b4e274309cac13faff519e0f
 - order: 23
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
   status: ready
@@ -6095,6 +6271,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -6162,7 +6339,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -6175,24 +6352,31 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 8afddaafb90480fb05b6ad986eda521156b5119e572d1f0e058923dd5e65c73b
+  resolved_surface_fingerprint: d82730ca47175159ad8980377abd5a714103b46723bfc7b223ea3023c79e6b7f
 - order: 24
   delta_id: delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1
   status: ready
@@ -6361,6 +6545,7 @@ rows:
         sandwich_pre_row_attention_layers: 1
         sandwich_pre_column_attention_layers: 1
         sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
         feature_type_conditioning: film
         floating_likelihood: single_gaussian
         integer_likelihood: hybrid_mixture
@@ -6428,7 +6613,7 @@ rows:
       loss_surface: classification
       apply_schedule: true
       task_batch_size: 16
-      optimizer_name: schedulefree_adamw
+      optimizer_name: muon
       optimizer_min_lr: 1.0e-05
       schedule_stages:
       - name: prior_dump
@@ -6441,23 +6626,30 @@ rows:
     runtime:
       seed: 1
       mixed_precision: bf16
-      num_workers: 0
-      loader_pin_memory: false
+      num_workers: auto
+      loader_pin_memory: true
       loader_persistent_workers: false
-      loader_prefetch_factor: null
-      non_blocking_device_transfer: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
       grad_clip: 0.0
       grad_accum_steps: 4
       compile_model: true
       compile_dynamic: true
       compile_backend: eager
       compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
       trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
       activation_checkpointing: true
       eval_every: 25
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 9843ecf2f145c2c2f046af1ecfa464308399c35c6335418d764e8a4116046030
+  resolved_surface_fingerprint: 621bb4e999d706fd96347c67375d06c393f5019cc1bd0bf82e455710e7c16722
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_ns_one_epoch_medium_v1/resolved_queue.yaml
-inputs_fingerprint: 56121bfe42d71a2347397825f640489692f6257aa6ecd3bc0d3a85622ee0a75b
+inputs_fingerprint: 487ef04f830b84607225e42d210ea8d94f13dd5f773ee494514023957f03630e

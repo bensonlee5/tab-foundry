@@ -104,7 +104,8 @@ operational rather than cosmetic.
   - experiment alias
     `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
   - completed width screen `tf_rd_009_muon_width_screen_medium_v1`
-  - diagonal scaffold `tf_rd_009_muon_width_depth_medium_v1`
+  - repo-encoded Phase-1 width-depth family
+    `tf_rd_009_muon_width_depth_medium_v1`
   - one-epoch Phase-2 scaffolds
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,
     `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, and
@@ -121,7 +122,8 @@ operational rather than cosmetic.
     runtime stack on `main`; the landed Muon width screen now records
     `60x2=0.4172`, `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`, with
     `60x2` retained as the formal external anchor and `128x2` carried forward
-    as the current in-family baseline for the diagonal derivation
+    as the current in-family baseline for the rederived Phase-1 family
+    `72x1/112x3/144x4/192x5/264x6`
 
 ## Executive Prescriptions
 
@@ -386,12 +388,11 @@ with study config
 `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
 scaffolds `tf_rd_009_muon_ns_one_epoch_medium_v1` and
 `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`. Those Muon ids stay empty
-until the fresh diagonal derivation lands under
-[#275](https://github.com/bensonlee5/tab-foundry/issues/275). The fresh Muon
-width screen has now landed on the v6 contract with `60x2=0.4172`,
-`48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`, so the immediate remaining
-Phase-1 work is to materialize `tf_rd_009_muon_width_depth_medium_v1` from the
-carried `128x2` baseline while keeping `60x2` as the formal external anchor.
+until benchmark-backed fresh-Muon Phase-1 rows are promoted into the Muon
+Phase-2 branch. [#275](https://github.com/bensonlee5/tab-foundry/issues/275)
+now lands the repo-encoded Muon width-depth family
+`72x1/112x3/144x4/192x5/264x6` from the carried `128x2` baseline while keeping
+`60x2` as the formal external anchor.
 
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row
@@ -749,18 +750,11 @@ timings directly.
 
 The reopened upper-family child under
 [#269](https://github.com/bensonlee5/tab-foundry/issues/269) keeps these
-frozen formulas as the design surface. The checked-in selector under
-`reference/system_delta_sweeps/tf_rd_009_width_depth_upper_extension_medium_v1/support/selection_summary.{json,md}`
-records three admissible corrected-bridge continuations under the `~40 GB`
-target:
-
-- `216x7 -> 272x8`
-- `200x7 -> 224x8 -> 256x9`
-- `192x7 -> 208x8 -> 224x9 -> 248x10`
-
-It chooses `192x7 -> 208x8 -> 224x9 -> 248x10` because that continuation
-maximizes D-optimal information gain on the current validation `L(N,S)` fit
-while also reducing projected `alpha_n` and `alpha_s` uncertainty the most.
+frozen formulas as the historical design surface and preserves the old
+selector artifact as schedulefree-branch context only. The active Muon reboot
+does not inherit that continuation in place; after Muon Phase 2 lands, rerun
+the upper-family selector on Muon-only evidence before choosing any fresh
+continuation under the retained `~40 GB` target.
 
 ### Capacity Table
 

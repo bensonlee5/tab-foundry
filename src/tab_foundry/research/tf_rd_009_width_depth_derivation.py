@@ -19,8 +19,10 @@ from tab_foundry.bench.width_depth_scaling import (
 )
 from tab_foundry.benchmark_registry import (
     default_benchmark_run_registry_path,
+    load_benchmark_run_registry,
     load_benchmark_run_entry,
 )
+from tab_foundry.hardware_architecture_registry import load_hardware_architecture_registry
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
@@ -42,6 +44,27 @@ CARRIED_BASELINE_RUN_ID = "sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_
 UPPER_WIDTH_EVIDENCE_RUN_ID = "sd_tf_rd_009_width_transfer_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
 PRACTICAL_WIDTH_RUNG = 8
 CEILING_RESERVED_VRAM_TARGET_GB = 32.5
+TF_RD_009_MUON_WIDTH_SCREEN_SWEEP_ID = "tf_rd_009_muon_width_screen_medium_v1"
+TF_RD_009_MUON_WIDTH_DEPTH_SWEEP_ID = "tf_rd_009_muon_width_depth_medium_v1"
+TF_RD_009_MUON_FORMAL_ANCHOR_ROW_LABEL = "60x2"
+TF_RD_009_MUON_CARRIED_BASELINE_ROW_LABEL = "128x2"
+TF_RD_009_MUON_FORMAL_ANCHOR_RUN_ID = (
+    "sd_tf_rd_009_muon_width_screen_medium_v1_01_"
+    "delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1"
+)
+TF_RD_009_MUON_CARRIED_BASELINE_RUN_ID = (
+    "sd_tf_rd_009_muon_width_screen_medium_v1_04_"
+    "delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+)
+TF_RD_009_MUON_REPORTED_FIT_ROW_LABELS = (
+    "72x1",
+    "112x3",
+    "128x2",
+    "144x4",
+    "192x5",
+    "264x6",
+)
+TF_RD_009_FROZEN_HARDWARE_BASELINE_ID = "tf_rd_009_rtx8000_44gb_classification_medium_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,13 +135,20 @@ class TfRd009WidthDepthDerivation:
 
     @property
     def in_family_row_labels(self) -> tuple[str, ...]:
-        return (
-            self.lower_seed.row_label,
-            self.carried_baseline.row_label,
-            self.upper_seed.row_label,
-            *(row.row_label for row in self.interpolated_rows),
-            self.ceiling_probe.row_label,
+        ordered_rows = sorted(
+            (
+                (self.lower_seed.row_label, float(self.lower_seed.predicted_total_params)),
+                (self.carried_baseline.row_label, float(self.carried_baseline.total_params)),
+                (self.upper_seed.row_label, float(self.upper_seed.predicted_total_params)),
+                *(
+                    (row.row_label, float(row.predicted_total_params))
+                    for row in self.interpolated_rows
+                ),
+                (self.ceiling_probe.row_label, float(self.ceiling_probe.predicted_total_params)),
+            ),
+            key=lambda item: item[1],
         )
+        return tuple(row_label for row_label, _ in ordered_rows)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -197,6 +227,172 @@ def historical_tf_rd_009_joint_draft_points() -> tuple[TfRd009ObservedPoint, ...
     )
 
 
+def _model_payload_value(model_payload: Mapping[str, Any], key: str) -> Any:
+    if key in model_payload:
+        return model_payload.get(key)
+    build_spec = model_payload.get("build_spec")
+    if isinstance(build_spec, Mapping):
+        return build_spec.get(key)
+    return None
+
+
+def _canonical_total_params_for_model_payload(
+    *,
+    model_payload: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> int:
+    registry = load_benchmark_run_registry(registry_path)
+    runs = registry.get("runs")
+    if not isinstance(runs, Mapping):
+        raise RuntimeError("benchmark run registry is missing runs payload")
+    observed_total_params: set[int] = set()
+    key_fields = tuple(str(key) for key in model_payload.keys())
+    for entry in runs.values():
+        if not isinstance(entry, Mapping):
+            continue
+        model = entry.get("model")
+        if not isinstance(model, Mapping):
+            continue
+        if any(
+            _model_payload_value(model, key) != model_payload.get(key)
+            for key in key_fields
+        ):
+            continue
+        model_size = entry.get("model_size")
+        if not isinstance(model_size, Mapping) or model_size.get("total_params") is None:
+            continue
+        observed_total_params.add(int(model_size["total_params"]))
+    if not observed_total_params:
+        raise RuntimeError(
+            "benchmark run registry is missing canonical parameter-count evidence for "
+            f"model payload {dict(model_payload)!r}"
+        )
+    if len(observed_total_params) != 1:
+        raise RuntimeError(
+            "benchmark run registry recorded inconsistent parameter counts for "
+            f"model payload {dict(model_payload)!r}: {sorted(observed_total_params)}"
+        )
+    return next(iter(observed_total_params))
+
+
+def load_tf_rd_009_muon_width_screen_evidence(
+    *,
+    registry_path: Path | None = None,
+    sweep_id: str = TF_RD_009_MUON_WIDTH_SCREEN_SWEEP_ID,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[TfRd009ObservedPoint, TfRd009ObservedPoint]:
+    resolved_registry_path = (registry_path or default_benchmark_run_registry_path()).expanduser().resolve()
+    queue = load_system_delta_queue(
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    required_labels = {
+        TF_RD_009_MUON_FORMAL_ANCHOR_ROW_LABEL,
+        TF_RD_009_MUON_CARRIED_BASELINE_ROW_LABEL,
+    }
+    observed_points: dict[str, TfRd009ObservedPoint] = {}
+    for row in _ordered_queue_rows(queue):
+        model_payload = row.get("model")
+        if not isinstance(model_payload, Mapping):
+            continue
+        row_label = _row_label_from_model_payload(model_payload)
+        if row_label not in required_labels:
+            continue
+        run_id = row.get("run_id")
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise RuntimeError(
+                "Muon width-screen evidence rows must record benchmark-backed run ids: "
+                f"row_label={row_label!r}"
+            )
+        observed_points[row_label] = TfRd009ObservedPoint(
+            row_label=row_label,
+            d_icl=int(model_payload["d_icl"]),
+            layers=int(model_payload["sandwich_layers"]),
+            total_params=_canonical_total_params_for_model_payload(
+                model_payload=model_payload,
+                registry_path=resolved_registry_path,
+            ),
+            run_id=str(run_id),
+        )
+    missing_labels = required_labels.difference(observed_points)
+    if missing_labels:
+        raise RuntimeError(
+            "Muon width-screen sweep is missing canonical evidence rows required for derivation: "
+            f"missing={sorted(missing_labels)}"
+        )
+    return (
+        observed_points[TF_RD_009_MUON_FORMAL_ANCHOR_ROW_LABEL],
+        observed_points[TF_RD_009_MUON_CARRIED_BASELINE_ROW_LABEL],
+    )
+
+
+def load_tf_rd_009_frozen_hardware_constraint_fits(
+    *,
+    registry_path: Path | None = None,
+    baseline_id: str = TF_RD_009_FROZEN_HARDWARE_BASELINE_ID,
+) -> tuple[AffineWidthDepthParameterFit, LinearFit, LinearFit]:
+    registry = load_hardware_architecture_registry(registry_path)
+    baselines = registry.get("baselines")
+    if not isinstance(baselines, Mapping):
+        raise RuntimeError("hardware architecture registry is missing baselines payload")
+    baseline = baselines.get(baseline_id)
+    if not isinstance(baseline, Mapping):
+        raise RuntimeError(f"hardware architecture baseline {baseline_id!r} is missing")
+    constraint_model = baseline.get("constraint_model")
+    if not isinstance(constraint_model, Mapping):
+        raise RuntimeError(
+            f"hardware architecture baseline {baseline_id!r} is missing constraint_model"
+        )
+    formulas = constraint_model.get("formulas")
+    if not isinstance(formulas, Mapping):
+        raise RuntimeError(
+            f"hardware architecture baseline {baseline_id!r} is missing constraint formulas"
+        )
+
+    def _require_formula(formula_name: str) -> Mapping[str, Any]:
+        formula = formulas.get(formula_name)
+        if not isinstance(formula, Mapping):
+            raise RuntimeError(
+                f"hardware architecture baseline {baseline_id!r} is missing formula {formula_name!r}"
+            )
+        coefficients = formula.get("coefficients")
+        if not isinstance(coefficients, Mapping):
+            raise RuntimeError(
+                f"hardware architecture baseline {baseline_id!r} formula {formula_name!r} "
+                "is missing coefficients"
+            )
+        return formula
+
+    parameter_formula = _require_formula("parameter_count")
+    parameter_coefficients = parameter_formula["coefficients"]
+    vram_formula = _require_formula("reserved_vram_gb")
+    vram_coefficients = vram_formula["coefficients"]
+    train_formula = _require_formula("train_wall_seconds")
+    train_coefficients = train_formula["coefficients"]
+
+    return (
+        AffineWidthDepthParameterFit(
+            intercept=float(parameter_coefficients["intercept"]),
+            d_squared_coefficient=float(parameter_coefficients["d_squared_coefficient"]),
+            layered_d_squared_coefficient=float(parameter_coefficients["layered_d_squared_coefficient"]),
+        ),
+        LinearFit(
+            intercept=float(vram_coefficients["intercept"]),
+            slope=float(vram_coefficients["slope"]),
+            fit_kind=str(vram_formula["fit_kind"]),
+        ),
+        LinearFit(
+            intercept=float(train_coefficients["intercept"]),
+            slope=float(train_coefficients["slope"]),
+            fit_kind=str(train_formula["fit_kind"]),
+        ),
+    )
+
+
 def _derive_row_from_target(
     *,
     parameter_bridge: AffineWidthDepthParameterFit,
@@ -224,41 +420,18 @@ def _derive_row_from_target(
     )
 
 
-def derive_tf_rd_009_width_depth_family(
+def _build_tf_rd_009_width_depth_derivation(
     *,
-    registry_path: Path | None = None,
-    width_rung: int = PRACTICAL_WIDTH_RUNG,
-    ceiling_reserved_vram_target_gb: float = CEILING_RESERVED_VRAM_TARGET_GB,
+    parameter_bridge: AffineWidthDepthParameterFit,
+    vram_fit: LinearFit,
+    train_fit: LinearFit,
+    formal_anchor: TfRd009ObservedPoint,
+    carried_baseline: TfRd009ObservedPoint,
+    upper_width_evidence: TfRd009ObservedPoint,
+    historical_joint_draft_points: tuple[TfRd009ObservedPoint, ...],
+    width_rung: int,
+    ceiling_reserved_vram_target_gb: float,
 ) -> TfRd009WidthDepthDerivation:
-    formal_anchor, carried_baseline, upper_width_evidence = load_tf_rd_009_registry_evidence(
-        registry_path=registry_path,
-    )
-    historical_joint_draft_points = historical_tf_rd_009_joint_draft_points()
-    parameter_bridge = fit_affine_width_depth_parameter_bridge(
-        tuple(
-            point.as_parameter_point()
-            for point in (
-                formal_anchor,
-                carried_baseline,
-                upper_width_evidence,
-                *historical_joint_draft_points,
-            )
-        )
-    )
-    vram_fit = fit_linear(
-        tuple(
-            (float(point.total_params), float(point.reserved_vram_gb))
-            for point in (formal_anchor, carried_baseline, upper_width_evidence)
-            if point.reserved_vram_gb is not None
-        )
-    )
-    train_fit = fit_linear(
-        tuple(
-            (float(point.total_params), float(point.train_wall_seconds))
-            for point in (formal_anchor, carried_baseline, upper_width_evidence)
-            if point.train_wall_seconds is not None
-        )
-    )
     lower_seed = _derive_row_from_target(
         parameter_bridge=parameter_bridge,
         vram_fit=vram_fit,
@@ -319,6 +492,88 @@ def derive_tf_rd_009_width_depth_family(
         upper_seed=upper_seed,
         interpolated_rows=interpolated_rows,
         ceiling_probe=ceiling_probe,
+    )
+
+
+def derive_tf_rd_009_width_depth_family(
+    *,
+    registry_path: Path | None = None,
+    width_rung: int = PRACTICAL_WIDTH_RUNG,
+    ceiling_reserved_vram_target_gb: float = CEILING_RESERVED_VRAM_TARGET_GB,
+) -> TfRd009WidthDepthDerivation:
+    formal_anchor, carried_baseline, upper_width_evidence = load_tf_rd_009_registry_evidence(
+        registry_path=registry_path,
+    )
+    historical_joint_draft_points = historical_tf_rd_009_joint_draft_points()
+    parameter_bridge = fit_affine_width_depth_parameter_bridge(
+        tuple(
+            point.as_parameter_point()
+            for point in (
+                formal_anchor,
+                carried_baseline,
+                upper_width_evidence,
+                *historical_joint_draft_points,
+            )
+        )
+    )
+    vram_fit = fit_linear(
+        tuple(
+            (float(point.total_params), float(point.reserved_vram_gb))
+            for point in (formal_anchor, carried_baseline, upper_width_evidence)
+            if point.reserved_vram_gb is not None
+        )
+    )
+    train_fit = fit_linear(
+        tuple(
+            (float(point.total_params), float(point.train_wall_seconds))
+            for point in (formal_anchor, carried_baseline, upper_width_evidence)
+            if point.train_wall_seconds is not None
+        )
+    )
+    return _build_tf_rd_009_width_depth_derivation(
+        parameter_bridge=parameter_bridge,
+        vram_fit=vram_fit,
+        train_fit=train_fit,
+        formal_anchor=formal_anchor,
+        carried_baseline=carried_baseline,
+        upper_width_evidence=upper_width_evidence,
+        historical_joint_draft_points=historical_joint_draft_points,
+        width_rung=width_rung,
+        ceiling_reserved_vram_target_gb=ceiling_reserved_vram_target_gb,
+    )
+
+
+def derive_tf_rd_009_muon_width_depth_family(
+    *,
+    registry_path: Path | None = None,
+    hardware_registry_path: Path | None = None,
+    width_rung: int = PRACTICAL_WIDTH_RUNG,
+    ceiling_reserved_vram_target_gb: float = CEILING_RESERVED_VRAM_TARGET_GB,
+    width_screen_sweep_id: str = TF_RD_009_MUON_WIDTH_SCREEN_SWEEP_ID,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> TfRd009WidthDepthDerivation:
+    formal_anchor, carried_baseline = load_tf_rd_009_muon_width_screen_evidence(
+        registry_path=registry_path,
+        sweep_id=width_screen_sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    parameter_bridge, vram_fit, train_fit = load_tf_rd_009_frozen_hardware_constraint_fits(
+        registry_path=hardware_registry_path,
+    )
+    return _build_tf_rd_009_width_depth_derivation(
+        parameter_bridge=parameter_bridge,
+        vram_fit=vram_fit,
+        train_fit=train_fit,
+        formal_anchor=formal_anchor,
+        carried_baseline=carried_baseline,
+        upper_width_evidence=carried_baseline,
+        historical_joint_draft_points=(),
+        width_rung=width_rung,
+        ceiling_reserved_vram_target_gb=ceiling_reserved_vram_target_gb,
     )
 
 
@@ -409,25 +664,27 @@ def _completed_queue_row_for_measured_fit(row: Mapping[str, Any]) -> bool:
     return benchmark_metrics.get("objective_metric") == TF_RD_009_REPORTED_FIT_OBJECTIVE_METRIC
 
 
-def collect_tf_rd_009_completed_measured_fit_points(
+def _collect_tf_rd_009_completed_measured_fit_points(
     *,
     queue: Mapping[str, Any],
     registry_path: Path | None = None,
+    reported_fit_row_labels: tuple[str, ...],
+    default_anchor_run_id: str,
 ) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
     points_by_label: dict[str, TfRd009MeasuredLawFitPoint] = {}
-    carried_baseline_run_id = str(queue.get("anchor_run_id") or CARRIED_BASELINE_RUN_ID)
+    carried_baseline_run_id = str(queue.get("anchor_run_id") or default_anchor_run_id)
     baseline_point = _measured_law_fit_point_from_registry_run(
         carried_baseline_run_id,
         registry_path=registry_path,
     )
-    if baseline_point.row_label == "96x2":
+    if baseline_point.row_label in reported_fit_row_labels:
         points_by_label[baseline_point.row_label] = baseline_point
     for row in _ordered_queue_rows(queue):
         model_payload = row.get("model")
         if not isinstance(model_payload, Mapping):
             continue
         row_label = _row_label_from_model_payload(model_payload)
-        if row_label not in TF_RD_009_REPORTED_FIT_ROW_LABELS:
+        if row_label not in reported_fit_row_labels:
             continue
         if not _completed_queue_row_for_measured_fit(row):
             continue
@@ -442,8 +699,60 @@ def collect_tf_rd_009_completed_measured_fit_points(
         points_by_label[row_label] = point
     return tuple(
         points_by_label[row_label]
-        for row_label in TF_RD_009_REPORTED_FIT_ROW_LABELS
+        for row_label in reported_fit_row_labels
         if row_label in points_by_label
+    )
+
+
+def collect_tf_rd_009_completed_measured_fit_points(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
+    return _collect_tf_rd_009_completed_measured_fit_points(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=CARRIED_BASELINE_RUN_ID,
+    )
+
+
+def collect_tf_rd_009_muon_completed_measured_fit_points(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
+    return _collect_tf_rd_009_completed_measured_fit_points(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_MUON_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=TF_RD_009_MUON_CARRIED_BASELINE_RUN_ID,
+    )
+
+
+def _load_tf_rd_009_completed_measured_fit_points(
+    *,
+    queue_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweep_id: str,
+    reported_fit_row_labels: tuple[str, ...],
+    default_anchor_run_id: str,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
+    queue = load_system_delta_queue(
+        queue_path,
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    return _collect_tf_rd_009_completed_measured_fit_points(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=reported_fit_row_labels,
+        default_anchor_run_id=default_anchor_run_id,
     )
 
 
@@ -456,27 +765,51 @@ def load_tf_rd_009_completed_measured_fit_points(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
-    queue = load_system_delta_queue(
-        queue_path,
+    return _load_tf_rd_009_completed_measured_fit_points(
+        queue_path=queue_path,
+        registry_path=registry_path,
         sweep_id=sweep_id,
+        reported_fit_row_labels=TF_RD_009_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=CARRIED_BASELINE_RUN_ID,
         index_path=index_path,
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
-    return collect_tf_rd_009_completed_measured_fit_points(
-        queue=queue,
+
+
+def load_tf_rd_009_muon_completed_measured_fit_points(
+    *,
+    queue_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweep_id: str = TF_RD_009_MUON_WIDTH_DEPTH_SWEEP_ID,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[TfRd009MeasuredLawFitPoint, ...]:
+    return _load_tf_rd_009_completed_measured_fit_points(
+        queue_path=queue_path,
         registry_path=registry_path,
+        sweep_id=sweep_id,
+        reported_fit_row_labels=TF_RD_009_MUON_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=TF_RD_009_MUON_CARRIED_BASELINE_RUN_ID,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
     )
 
 
-def fit_tf_rd_009_completed_measured_power_law(
+def _fit_tf_rd_009_completed_measured_power_law(
     *,
     queue: Mapping[str, Any],
     registry_path: Path | None = None,
+    reported_fit_row_labels: tuple[str, ...],
+    default_anchor_run_id: str,
 ) -> TfRd009MeasuredPowerLawFit:
-    points = collect_tf_rd_009_completed_measured_fit_points(
+    points = _collect_tf_rd_009_completed_measured_fit_points(
         queue=queue,
         registry_path=registry_path,
+        reported_fit_row_labels=reported_fit_row_labels,
+        default_anchor_run_id=default_anchor_run_id,
     )
     fit = fit_power_law(
         tuple((float(point.total_params), float(point.final_log_loss)) for point in points)
@@ -500,7 +833,59 @@ def load_tf_rd_009_completed_measured_power_law(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
-    return fit_tf_rd_009_completed_measured_power_law(
+    return _fit_tf_rd_009_completed_measured_power_law(
         queue=queue,
         registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=CARRIED_BASELINE_RUN_ID,
+    )
+
+
+def fit_tf_rd_009_completed_measured_power_law(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> TfRd009MeasuredPowerLawFit:
+    return _fit_tf_rd_009_completed_measured_power_law(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=CARRIED_BASELINE_RUN_ID,
+    )
+
+
+def fit_tf_rd_009_muon_completed_measured_power_law(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> TfRd009MeasuredPowerLawFit:
+    return _fit_tf_rd_009_completed_measured_power_law(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_MUON_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=TF_RD_009_MUON_CARRIED_BASELINE_RUN_ID,
+    )
+
+
+def load_tf_rd_009_muon_completed_measured_power_law(
+    *,
+    queue_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweep_id: str = TF_RD_009_MUON_WIDTH_DEPTH_SWEEP_ID,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> TfRd009MeasuredPowerLawFit:
+    queue = load_system_delta_queue(
+        queue_path,
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    return _fit_tf_rd_009_completed_measured_power_law(
+        queue=queue,
+        registry_path=registry_path,
+        reported_fit_row_labels=TF_RD_009_MUON_REPORTED_FIT_ROW_LABELS,
+        default_anchor_run_id=TF_RD_009_MUON_CARRIED_BASELINE_RUN_ID,
     )

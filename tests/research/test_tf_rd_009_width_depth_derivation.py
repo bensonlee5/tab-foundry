@@ -7,8 +7,11 @@ import pytest
 
 from tab_foundry.research.tf_rd_009_width_depth_derivation import (
     collect_tf_rd_009_completed_measured_fit_points,
+    collect_tf_rd_009_muon_completed_measured_fit_points,
+    derive_tf_rd_009_muon_width_depth_family,
     derive_tf_rd_009_width_depth_family,
     fit_tf_rd_009_completed_measured_power_law,
+    fit_tf_rd_009_muon_completed_measured_power_law,
 )
 
 
@@ -166,6 +169,30 @@ def _write_benchmark_registry(path: Path) -> None:
                 total_params=2798089,
                 final_log_loss=0.6290,
             ),
+            "muon_baseline_128x2": _run_entry(
+                "muon_baseline_128x2",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl128_v1",
+                d_icl=128,
+                layers=2,
+                total_params=2849422,
+                final_log_loss=0.6100,
+            ),
+            "muon_joint_72x1": _run_entry(
+                "muon_joint_72x1",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+                d_icl=72,
+                layers=1,
+                total_params=671184,
+                final_log_loss=0.6310,
+            ),
+            "muon_joint_144x4": _run_entry(
+                "muon_joint_144x4",
+                delta_id="delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+                d_icl=144,
+                layers=4,
+                total_params=5610697,
+                final_log_loss=0.5980,
+            ),
         },
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -211,6 +238,52 @@ def test_tf_rd_009_queue_derivation_matches_note_values() -> None:
     assert derivation.interpolated_rows[0].predicted_reserved_vram_gb == pytest.approx(16.93, abs=0.01)
     assert derivation.interpolated_rows[1].predicted_reserved_vram_gb == pytest.approx(23.82, abs=0.01)
     assert derivation.ceiling_probe.predicted_reserved_vram_gb == pytest.approx(33.25, abs=0.01)
+
+
+def test_tf_rd_009_muon_queue_derivation_matches_canonical_family() -> None:
+    derivation = derive_tf_rd_009_muon_width_depth_family()
+
+    assert derivation.formal_anchor.row_label == "60x2"
+    assert derivation.formal_anchor.total_params == 646970
+    assert derivation.carried_baseline.row_label == "128x2"
+    assert derivation.carried_baseline.total_params == 2849422
+    assert derivation.in_family_row_labels == (
+        "72x1",
+        "112x3",
+        "128x2",
+        "144x4",
+        "192x5",
+        "264x6",
+    )
+    assert [row.delta_id for row in derivation.queue_rows] == [
+        "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+        "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+        "delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+        "delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1",
+        "delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1",
+    ]
+
+
+def test_tf_rd_009_muon_queue_derivation_matches_note_values() -> None:
+    derivation = derive_tf_rd_009_muon_width_depth_family()
+
+    assert derivation.lower_seed.raw_d_icl == pytest.approx(70.65, abs=0.05)
+    assert derivation.upper_seed.raw_d_icl == pytest.approx(112.99, abs=0.05)
+    assert derivation.interpolated_rows[0].raw_d_icl == pytest.approx(147.01, abs=0.1)
+    assert derivation.interpolated_rows[1].raw_d_icl == pytest.approx(195.92, abs=0.1)
+    assert derivation.ceiling_probe.raw_d_icl == pytest.approx(264.94, abs=0.1)
+
+    assert derivation.lower_seed.predicted_total_params == pytest.approx(671184.20, abs=1.0)
+    assert derivation.upper_seed.predicted_total_params == pytest.approx(2800204.87, abs=1.0)
+    assert derivation.interpolated_rows[0].predicted_total_params == pytest.approx(5610696.53, abs=1.0)
+    assert derivation.interpolated_rows[1].predicted_total_params == pytest.approx(11727112.47, abs=1.0)
+    assert derivation.ceiling_probe.predicted_total_params == pytest.approx(25495777.49, abs=1.0)
+
+    assert derivation.lower_seed.predicted_reserved_vram_gb == pytest.approx(9.32, abs=0.01)
+    assert derivation.upper_seed.predicted_reserved_vram_gb == pytest.approx(11.29, abs=0.01)
+    assert derivation.interpolated_rows[0].predicted_reserved_vram_gb == pytest.approx(13.89, abs=0.01)
+    assert derivation.interpolated_rows[1].predicted_reserved_vram_gb == pytest.approx(19.57, abs=0.01)
+    assert derivation.ceiling_probe.predicted_reserved_vram_gb == pytest.approx(32.33, abs=0.01)
 
 
 def test_collect_tf_rd_009_measured_fit_points_uses_completed_in_family_rows_only(
@@ -301,3 +374,90 @@ def test_fit_tf_rd_009_completed_measured_power_law_uses_registry_params_and_pow
     assert [point.row_label for point in result.points] == ["72x1", "96x2"]
     assert result.fit.predict(671809.0) == pytest.approx(0.6410, rel=1.0e-9)
     assert result.fit.predict(1618286.0) == pytest.approx(0.6331, rel=1.0e-9)
+
+
+def test_collect_tf_rd_009_muon_measured_fit_points_use_baseline_and_completed_rows_only(
+    tmp_path: Path,
+) -> None:
+    registry_path = tmp_path / "benchmark_run_registry_v1.json"
+    _write_benchmark_registry(registry_path)
+    queue = {
+        "anchor_run_id": "muon_baseline_128x2",
+        "rows": [
+            {
+                "order": 1,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+                "model": {"d_icl": 72, "sandwich_layers": 1},
+                "run_id": "muon_joint_72x1",
+                "interpretation_status": "completed",
+                "benchmark_metrics": {
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    "final_log_loss": 0.6310,
+                },
+            },
+            {
+                "order": 2,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+                "model": {"d_icl": 112, "sandwich_layers": 3},
+                "run_id": "pending_112x3",
+                "interpretation_status": "pending",
+                "benchmark_metrics": {
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    "final_log_loss": 0.6290,
+                },
+            },
+            {
+                "order": 3,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+                "model": {"d_icl": 144, "sandwich_layers": 4},
+                "run_id": "muon_joint_144x4",
+                "interpretation_status": "completed",
+                "benchmark_metrics": {
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    "final_log_loss": 0.5980,
+                },
+            },
+        ],
+    }
+
+    points = collect_tf_rd_009_muon_completed_measured_fit_points(
+        queue=queue,
+        registry_path=registry_path,
+    )
+
+    assert [point.row_label for point in points] == ["72x1", "128x2", "144x4"]
+    assert [point.total_params for point in points] == [671184, 2849422, 5610697]
+    assert [point.final_log_loss for point in points] == pytest.approx([0.6310, 0.6100, 0.5980])
+
+
+def test_fit_tf_rd_009_muon_completed_measured_power_law_uses_muon_fit_order(
+    tmp_path: Path,
+) -> None:
+    registry_path = tmp_path / "benchmark_run_registry_v1.json"
+    _write_benchmark_registry(registry_path)
+    queue = {
+        "anchor_run_id": "muon_baseline_128x2",
+        "rows": [
+            {
+                "order": 1,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+                "model": {"d_icl": 72, "sandwich_layers": 1},
+                "run_id": "muon_joint_72x1",
+                "interpretation_status": "completed",
+                "benchmark_metrics": {
+                    "objective_metric": "final_log_loss_at_matched_regime_budget",
+                    "final_log_loss": 0.6310,
+                },
+            }
+        ],
+    }
+
+    result = fit_tf_rd_009_muon_completed_measured_power_law(
+        queue=queue,
+        registry_path=registry_path,
+    )
+
+    assert result.fit.fit_kind == "power_law"
+    assert [point.row_label for point in result.points] == ["72x1", "128x2"]
+    assert result.fit.predict(671184.0) == pytest.approx(0.6310, rel=1.0e-9)
+    assert result.fit.predict(2849422.0) == pytest.approx(0.6100, rel=1.0e-9)

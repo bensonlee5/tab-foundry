@@ -1735,7 +1735,7 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.17.1"
+version = "0.17.2"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },

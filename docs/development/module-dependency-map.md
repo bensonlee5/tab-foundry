@@ -63,7 +63,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.external_benchmarks`,
-  `tab_foundry.hashing`, `tab_foundry.model`,
+  `tab_foundry.hardware_architecture_registry`, `tab_foundry.hashing`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, `tab_foundry.training`, and
   `tab_foundry.types`.
 - `tab_foundry.task_batching` depends on `tab_foundry.feature_types`
