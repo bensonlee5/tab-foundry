@@ -30,6 +30,8 @@ from .trainer_runtime_config import (
     _resolve_compile_model,
     _resolve_compile_shape_dispatch_max_families,
     _resolve_compile_shape_dispatch_mode,
+    _resolve_cuda_graph_capture_mode,
+    _resolve_cuda_graph_max_families,
     _resolve_loader_task_batch_cache_mode,
     _resolve_signature_family_optimizer_step_block_length,
     _resolve_signature_family_run_length,
@@ -71,6 +73,10 @@ def _normalize_runtime_surface_cfg(raw_runtime_cfg: Mapping[str, Any]) -> dict[s
     )
     runtime_cfg["compile_shape_dispatch_max_families"] = (
         _resolve_compile_shape_dispatch_max_families(resolved_runtime_cfg)
+    )
+    runtime_cfg["cuda_graph_capture_mode"] = _resolve_cuda_graph_capture_mode(resolved_runtime_cfg)
+    runtime_cfg["cuda_graph_max_families"] = _resolve_cuda_graph_max_families(
+        resolved_runtime_cfg
     )
     runtime_cfg["trace_activations"] = _resolve_trace_activations(resolved_runtime_cfg)
     runtime_cfg["activation_checkpointing"] = _resolve_activation_checkpointing(

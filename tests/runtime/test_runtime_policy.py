@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
+
 from omegaconf import OmegaConf
 import pytest
 
@@ -9,6 +11,7 @@ from tab_foundry.training.runtime import (
     resolve_compile_model,
     resolve_compile_shape_dispatch_policy,
     resolve_cpu_mode,
+    resolve_cuda_graph_capture_policy,
     resolve_grad_accum_steps,
     resolve_mixed_precision,
 )
@@ -213,3 +216,69 @@ def test_runtime_compile_shape_dispatch_resolution() -> None:
     )
 
     assert resolve_compile_shape_dispatch_policy(cfg) == ("signature_family", 12)
+
+
+def test_runtime_cuda_graph_capture_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "cuda")
+    monkeypatch.setattr(training_runtime_module.torch, "compile", lambda model, **_kwargs: model)
+    monkeypatch.setattr(training_runtime_module.torch.cuda, "CUDAGraph", object, raising=False)
+    monkeypatch.setattr(
+        training_runtime_module.torch.cuda,
+        "graph",
+        lambda *_args, **_kwargs: nullcontext(),
+        raising=False,
+    )
+    cfg = OmegaConf.create(
+        {
+            "device": "cuda",
+            "mixed_precision": "bf16",
+            "compile_model": True,
+            "compile_backend": "eager",
+            "compile_dynamic": True,
+            "compile_shape_dispatch_mode": "signature_family",
+            "compile_shape_dispatch_max_families": 12,
+            "cuda_graph_capture_mode": "signature_family",
+            "cuda_graph_max_families": 5,
+            "trace_activations": False,
+        }
+    )
+
+    policy = resolve_cuda_graph_capture_policy(cfg)
+
+    assert policy.enabled is True
+    assert policy.mode == "signature_family"
+    assert policy.max_families == 5
+
+
+def test_runtime_cuda_graph_capture_requires_signature_family_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(training_runtime_module, "resolve_device", lambda _device: "cuda")
+    monkeypatch.setattr(training_runtime_module.torch, "compile", lambda model, **_kwargs: model)
+    monkeypatch.setattr(training_runtime_module.torch.cuda, "CUDAGraph", object, raising=False)
+    monkeypatch.setattr(
+        training_runtime_module.torch.cuda,
+        "graph",
+        lambda *_args, **_kwargs: nullcontext(),
+        raising=False,
+    )
+    cfg = OmegaConf.create(
+        {
+            "device": "cuda",
+            "mixed_precision": "bf16",
+            "compile_model": True,
+            "compile_backend": "eager",
+            "compile_dynamic": True,
+            "compile_shape_dispatch_mode": "off",
+            "cuda_graph_capture_mode": "signature_family",
+            "trace_activations": False,
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="runtime.compile_shape_dispatch_mode='signature_family'",
+    ):
+        _ = resolve_cuda_graph_capture_policy(cfg)

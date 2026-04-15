@@ -1282,6 +1282,8 @@ def build_runtime_summary(
     loader_task_batch_cache_mode: str | None = None,
     compile_shape_dispatch_mode: str | None = None,
     compile_shape_dispatch_max_families: int | None = None,
+    cuda_graph_capture_mode: str | None = None,
+    cuda_graph_max_families: int | None = None,
     compile_shape_dispatch_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build runtime telemetry derived from loop counters."""
@@ -1326,6 +1328,10 @@ def build_runtime_summary(
         summary["compile_shape_dispatch_max_families"] = int(
             compile_shape_dispatch_max_families
         )
+    if cuda_graph_capture_mode is not None:
+        summary["cuda_graph_capture_mode"] = str(cuda_graph_capture_mode)
+    if cuda_graph_max_families is not None:
+        summary["cuda_graph_max_families"] = int(cuda_graph_max_families)
     if isinstance(compile_shape_dispatch_summary, Mapping):
         summary["compile_shape_dispatch"] = dict(compile_shape_dispatch_summary)
     return summary

@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_v1
+  - _self_
+
+model:
+  sandwich_packed_attention: true
+
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_v1
+
+logging:
+  run_name: cls-benchmark-sandwich-tf-rd-009-heads1-benchmark-safe-packed-v1

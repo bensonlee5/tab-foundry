@@ -132,6 +132,7 @@ def runtime_and_regime_metrics(
             "loader_effective_num_workers",
             "loader_effective_prefetch_factor",
             "compile_shape_dispatch_max_families",
+            "cuda_graph_max_families",
         ):
             integer_value = optional_int(runtime_summary, key)
             if integer_value is not None:
@@ -139,6 +140,7 @@ def runtime_and_regime_metrics(
         for key in (
             "loader_task_batch_cache_mode",
             "compile_shape_dispatch_mode",
+            "cuda_graph_capture_mode",
         ):
             text_value = optional_text(runtime_summary, key)
             if text_value is not None:
@@ -148,6 +150,8 @@ def runtime_and_regime_metrics(
             for source_key, metric_key in (
                 ("compiled_family_count", "compile_dispatch_compiled_family_count"),
                 ("family_switch_count", "compile_dispatch_family_switch_count"),
+                ("cuda_graph_captured_family_count", "cuda_graph_captured_family_count"),
+                ("cuda_graph_capture_failure_count", "cuda_graph_capture_failure_count"),
             ):
                 integer_value = optional_int(
                     cast(Mapping[str, Any], compile_shape_dispatch),

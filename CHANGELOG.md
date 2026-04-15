@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-04-14
+
+### Changed
+
+- User-facing note: the training runtime now exposes
+  `runtime.cuda_graph_capture_mode` and `runtime.cuda_graph_max_families`,
+  records those settings in training-surface and runtime telemetry artifacts,
+  and the signature-family compile dispatcher now reports CUDA-graph capture,
+  reuse, cap, and fallback statistics alongside the existing compile-family
+  cache summary.
+- User-facing note: tab-foundry now ships an explicit benchmark-safe TF-RD-009
+  heads-1 replay comparison lane:
+  `cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_v1`,
+  `cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_v1`, and
+  `cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_cuda_graph_v1`.
+  These configs keep the heads-1 + compile-eager-dynamic replay surface fixed,
+  preserve checkpoint cadence, enable per-step timing, and isolate packed
+  attention plus the optional signature-family CUDA-graph training lane from
+  the broader cached-loader speedrun surfaces.
+- User-facing note: the TF-RD-022 runtime and sandwich benchmark profiles now
+  default `module_grad_norm_every=25` so benchmark and scaling telemetry retain
+  gradient diagnostics without spending per-step wall time on module-norm
+  logging.
+
 ## [0.17.1] - 2026-04-14
 
 ### Changed

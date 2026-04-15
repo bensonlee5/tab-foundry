@@ -129,6 +129,8 @@ def test_runtime_smoke_override_resolution() -> None:
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
     assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert int(cfg.runtime.cuda_graph_max_families) == 16
     assert int(cfg.runtime.signature_family_run_length) == 1
     assert bool(cfg.runtime.activation_checkpointing) is False
 
@@ -148,6 +150,8 @@ def test_runtime_workstation_resolution() -> None:
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
     assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert int(cfg.runtime.cuda_graph_max_families) == 16
     assert int(cfg.runtime.signature_family_run_length) == 1
 
 
@@ -167,7 +171,10 @@ def test_runtime_tf_rd_022_policy_resolution() -> None:
     assert str(cfg.runtime.compile_mode) == "max-autotune-no-cudagraphs"
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
     assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert int(cfg.runtime.cuda_graph_max_families) == 16
     assert int(cfg.runtime.signature_family_run_length) == 1
+    assert int(cfg.runtime.module_grad_norm_every) == 25
     assert bool(cfg.runtime.trace_activations) is False
     assert bool(cfg.runtime.activation_checkpointing) is True
     assert int(cfg.runtime.max_steps) == 2500
@@ -560,7 +567,10 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert str(cfg.runtime.compile_backend) == "eager"
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
     assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert int(cfg.runtime.cuda_graph_max_families) == 16
     assert int(cfg.runtime.signature_family_run_length) == 4
+    assert int(cfg.runtime.module_grad_norm_every) == 25
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 2500
@@ -575,6 +585,53 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert (
         str(cfg.logging.history_jsonl_path)
         == "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1/train_history.jsonl"
+    )
+
+
+def test_cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_v1")
+
+    assert int(cfg.model.d_icl) == 96
+    assert int(cfg.model.sandwich_heads) == 1
+    assert bool(cfg.model.sandwich_packed_attention) is False
+    assert bool(cfg.runtime.compile_model) is True
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert bool(cfg.runtime.profile_step_timing) is True
+    assert int(cfg.runtime.module_grad_norm_every) == 25
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_v1"
+    )
+
+
+def test_cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_v1")
+
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "off"
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "off"
+    assert bool(cfg.runtime.profile_step_timing) is True
+    assert int(cfg.runtime.module_grad_norm_every) == 25
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_v1"
+    )
+
+
+def test_cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_cuda_graph_resolution() -> None:
+    cfg = _compose(
+        "experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_cuda_graph_v1"
+    )
+
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.compile_shape_dispatch_max_families) == 16
+    assert str(cfg.runtime.cuda_graph_capture_mode) == "signature_family"
+    assert int(cfg.runtime.cuda_graph_max_families) == 16
+    assert bool(cfg.runtime.profile_step_timing) is True
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_cuda_graph_v1"
     )
 
 

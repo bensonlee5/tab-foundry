@@ -7,6 +7,8 @@ import tab_foundry.training.trainer_runtime_config as runtime_config_module
 from tab_foundry.training.trainer_runtime_config import (
     _resolve_compile_shape_dispatch_max_families,
     _resolve_compile_shape_dispatch_mode,
+    _resolve_cuda_graph_capture_mode,
+    _resolve_cuda_graph_max_families,
     _resolve_loader_task_batch_cache_mode,
     _resolve_signature_family_optimizer_step_block_length,
     _resolve_signature_family_run_length,
@@ -88,6 +90,8 @@ def test_resolve_compile_shape_dispatch_controls() -> None:
         {
             "compile_shape_dispatch_mode": "signature_family",
             "compile_shape_dispatch_max_families": 8,
+            "cuda_graph_capture_mode": "signature_family",
+            "cuda_graph_max_families": 6,
             "signature_family_run_length": 4,
             "signature_family_optimizer_step_block_length": 2,
         }
@@ -95,5 +99,7 @@ def test_resolve_compile_shape_dispatch_controls() -> None:
 
     assert _resolve_compile_shape_dispatch_mode(runtime_cfg) == "signature_family"
     assert _resolve_compile_shape_dispatch_max_families(runtime_cfg) == 8
+    assert _resolve_cuda_graph_capture_mode(runtime_cfg) == "signature_family"
+    assert _resolve_cuda_graph_max_families(runtime_cfg) == 6
     assert _resolve_signature_family_run_length(runtime_cfg) == 4
     assert _resolve_signature_family_optimizer_step_block_length(runtime_cfg) == 2

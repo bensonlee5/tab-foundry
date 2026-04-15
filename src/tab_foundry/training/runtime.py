@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
+from typing import Any
 
 from accelerate import Accelerator
 from accelerate.utils import DataLoaderConfiguration
@@ -18,6 +20,8 @@ from .trainer_runtime_config import (
     _resolve_compile_model,
     _resolve_compile_shape_dispatch_max_families,
     _resolve_compile_shape_dispatch_mode,
+    _resolve_cuda_graph_capture_mode,
+    _resolve_cuda_graph_max_families,
     _resolve_trace_activations,
 )
 
@@ -42,6 +46,15 @@ class CompilePolicy:
         if self.dynamic:
             kwargs["dynamic"] = True
         return kwargs
+
+
+@dataclass(frozen=True, slots=True)
+class CudaGraphCapturePolicy:
+    """Resolved CUDA graph policy layered on top of compile dispatch."""
+
+    enabled: bool
+    mode: str
+    max_families: int
 
 
 def resolve_training_device_name(runtime_cfg: DictConfig) -> str:
@@ -134,6 +147,74 @@ def resolve_compile_shape_dispatch_policy(runtime_cfg: DictConfig) -> tuple[str,
     return (
         _resolve_compile_shape_dispatch_mode(runtime_cfg),
         _resolve_compile_shape_dispatch_max_families(runtime_cfg),
+    )
+
+
+def resolve_cuda_graph_capture_policy(runtime_cfg: DictConfig) -> CudaGraphCapturePolicy:
+    """Resolve and validate CUDA-graph capture controls."""
+
+    mode = _resolve_cuda_graph_capture_mode(runtime_cfg)
+    max_families = _resolve_cuda_graph_max_families(runtime_cfg)
+    if mode == "off":
+        return CudaGraphCapturePolicy(enabled=False, mode=mode, max_families=max_families)
+    compile_policy = resolve_compile_policy(runtime_cfg)
+    if not compile_policy.enabled:
+        raise ValueError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires runtime.compile_model=true"
+        )
+    if compile_policy.backend != "eager":
+        raise ValueError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires "
+            "runtime.compile_backend='eager'"
+        )
+    if not compile_policy.dynamic:
+        raise ValueError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires "
+            "runtime.compile_dynamic=true"
+        )
+    compile_shape_dispatch_mode = _resolve_compile_shape_dispatch_mode(runtime_cfg)
+    if compile_shape_dispatch_mode != "signature_family":
+        raise ValueError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires "
+            "runtime.compile_shape_dispatch_mode='signature_family'"
+        )
+    if _resolve_trace_activations(runtime_cfg):
+        raise ValueError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires "
+            "runtime.trace_activations=false"
+        )
+    cuda_graph_cls = getattr(torch.cuda, "CUDAGraph", None)
+    graph_context = getattr(torch.cuda, "graph", None)
+    if cuda_graph_cls is None or not callable(graph_context):
+        raise RuntimeError(
+            "runtime.cuda_graph_capture_mode='signature_family' requires torch.cuda graph support"
+        )
+    return CudaGraphCapturePolicy(enabled=True, mode=mode, max_families=max_families)
+
+
+def build_cuda_graph_autocast_context_factory(
+    runtime_cfg: DictConfig,
+) -> Any:
+    """Return an autocast context factory that is safe to use during CUDA graph capture."""
+
+    mixed_precision = resolve_mixed_precision(runtime_cfg)
+    if mixed_precision == "no":
+        return nullcontext
+    if mixed_precision == "bf16":
+        return lambda: torch.amp.autocast(
+            device_type="cuda",
+            dtype=torch.bfloat16,
+            cache_enabled=False,
+        )
+    if mixed_precision == "fp16":
+        return lambda: torch.amp.autocast(
+            device_type="cuda",
+            dtype=torch.float16,
+            cache_enabled=False,
+        )
+    raise ValueError(
+        "runtime.cuda_graph_capture_mode='signature_family' supports mixed_precision "
+        f"'no', 'bf16', or 'fp16', got {mixed_precision!r}"
     )
 
 

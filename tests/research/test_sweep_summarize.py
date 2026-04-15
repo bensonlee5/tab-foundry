@@ -127,8 +127,12 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
                     "loader_task_batch_cache_mode": "bounded_streaming",
                     "compile_shape_dispatch_mode": "signature_family",
                     "compile_shape_dispatch_max_families": 16,
+                    "cuda_graph_capture_mode": "signature_family",
+                    "cuda_graph_max_families": 8,
                     "compile_dispatch_compiled_family_count": 16,
                     "compile_dispatch_family_switch_count": 63,
+                    "cuda_graph_captured_family_count": 8,
+                    "cuda_graph_capture_failure_count": 1,
                     "one_family_step_count": 112,
                     "mixed_family_step_count": 16,
                     "consecutive_repeated_family_step_count": 48,
@@ -166,6 +170,8 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
     assert row["loader_setup_seconds"] == 8.7
     assert row["compile_dispatch_compiled_family_count"] == 16
     assert row["compile_dispatch_family_switch_count"] == 63
+    assert row["cuda_graph_captured_family_count"] == 8
+    assert row["cuda_graph_capture_failure_count"] == 1
     assert row["one_family_step_count"] == 112
     assert row["mixed_family_step_count"] == 16
     assert row["consecutive_repeated_family_step_count"] == 48
@@ -185,8 +191,12 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
         "loader_task_batch_cache_mode": "bounded_streaming",
         "compile_shape_dispatch_mode": "signature_family",
         "compile_shape_dispatch_max_families": 16,
+        "cuda_graph_capture_mode": "signature_family",
+        "cuda_graph_max_families": 8,
         "compile_dispatch_compiled_family_count": 16,
         "compile_dispatch_family_switch_count": 63,
+        "cuda_graph_captured_family_count": 8,
+        "cuda_graph_capture_failure_count": 1,
     }
     assert row["regime_budget"] == {
         "tokens_per_step": 512.0,

@@ -27,7 +27,9 @@ from .loss_surface import configure_model_loss_surface, resolve_training_loss_su
 from .optimizer import build_optimizer
 from .runtime import (
     build_accelerator_from_runtime,
+    build_cuda_graph_autocast_context_factory,
     resolve_compile_policy,
+    resolve_cuda_graph_capture_policy,
     resolve_compile_shape_dispatch_policy,
 )
 from .schedule import build_stage_configs
@@ -115,6 +117,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     compile_shape_dispatch_mode, compile_shape_dispatch_max_families = (
         resolve_compile_shape_dispatch_policy(cfg.runtime)
     )
+    cuda_graph_capture_policy = resolve_cuda_graph_capture_policy(cfg.runtime)
     if loader_task_batch_cache_mode == "bounded_streaming" and max_steps is None:
         raise ValueError(
             "runtime.loader_task_batch_cache_mode='bounded_streaming' requires runtime.max_steps"
@@ -237,6 +240,14 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             model,
             compile_policy=compile_policy,
             max_families=compile_shape_dispatch_max_families,
+            task=task,
+            grad_accum_steps=grad_accum_steps,
+            cuda_graph_policy=cuda_graph_capture_policy,
+            cuda_graph_autocast_context_factory=(
+                build_cuda_graph_autocast_context_factory(cfg.runtime)
+                if cuda_graph_capture_policy.enabled
+                else None
+            ),
         )
     trace_activations = _resolve_trace_activations(cfg.runtime)
     enable_activation_trace = getattr(base_model, "enable_activation_trace", None)
@@ -439,6 +450,8 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             loader_task_batch_cache_mode=loader_task_batch_cache_mode,
             compile_shape_dispatch_mode=compile_shape_dispatch_mode,
             compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
+            cuda_graph_capture_mode=cuda_graph_capture_policy.mode,
+            cuda_graph_max_families=cuda_graph_capture_policy.max_families,
             compile_shape_dispatch_summary=(
                 None if compile_dispatcher is None else compile_dispatcher.summary()
             ),
@@ -470,6 +483,8 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             loader_task_batch_cache_mode=loader_task_batch_cache_mode,
             compile_shape_dispatch_mode=compile_shape_dispatch_mode,
             compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
+            cuda_graph_capture_mode=cuda_graph_capture_policy.mode,
+            cuda_graph_max_families=cuda_graph_capture_policy.max_families,
             compile_shape_dispatch_summary=(
                 None if compile_dispatcher is None else compile_dispatcher.summary()
             ),

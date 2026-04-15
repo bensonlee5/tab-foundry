@@ -523,16 +523,25 @@ def run_training_loop(
                 _accumulate_step_timing(step_timing_sums, "h2d_transfer", timing_start)
                 timing_start = time.perf_counter()
                 with accelerator.accumulate(model):
-                    with accelerator.autocast():
-                        output = model(batch) if model_forward is None else model_forward(batch)
-                        loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                    accelerator.backward(
-                        _task_weighted_microstep_loss(
-                            loss,
+                    training_step = getattr(model_forward, "training_step", None)
+                    if callable(training_step):
+                        loss, metrics = training_step(
+                            batch=batch,
+                            task=task,
                             actual_task_count=actual_task_count,
                             accelerator=accelerator,
                         )
-                    )
+                    else:
+                        with accelerator.autocast():
+                            output = model(batch) if model_forward is None else model_forward(batch)
+                            loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                        accelerator.backward(
+                            _task_weighted_microstep_loss(
+                                loss,
+                                actual_task_count=actual_task_count,
+                                accelerator=accelerator,
+                            )
+                        )
                 _accumulate_step_timing(step_timing_sums, "forward_backward", timing_start)
                 train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
                 train_loss_count += actual_task_count

@@ -1853,9 +1853,13 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
             'loader_task_batch_cache_mode': 'bounded_streaming',
             'compile_shape_dispatch_mode': 'signature_family',
             'compile_shape_dispatch_max_families': 16,
+            'cuda_graph_capture_mode': 'signature_family',
+            'cuda_graph_max_families': 8,
             'compile_shape_dispatch': {
                 'compiled_family_count': 16,
                 'family_switch_count': 63,
+                'cuda_graph_captured_family_count': 8,
+                'cuda_graph_capture_failure_count': 1,
             },
         },
         'regime_budget': {
@@ -1902,8 +1906,12 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['loader_task_batch_cache_mode'] == 'bounded_streaming'
     assert queue_metrics['compile_shape_dispatch_mode'] == 'signature_family'
     assert queue_metrics['compile_shape_dispatch_max_families'] == 16
+    assert queue_metrics['cuda_graph_capture_mode'] == 'signature_family'
+    assert queue_metrics['cuda_graph_max_families'] == 8
     assert queue_metrics['compile_dispatch_compiled_family_count'] == 16
     assert queue_metrics['compile_dispatch_family_switch_count'] == 63
+    assert queue_metrics['cuda_graph_captured_family_count'] == 8
+    assert queue_metrics['cuda_graph_capture_failure_count'] == 1
     assert queue_metrics['tokens_per_step'] == pytest.approx(512.0)
     assert queue_metrics['token_budget'] == 38400
     assert queue_metrics['unique_task_budget'] == 96

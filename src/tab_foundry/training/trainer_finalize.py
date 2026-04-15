@@ -49,6 +49,8 @@ def finalize_training_run(
     loader_task_batch_cache_mode: str,
     compile_shape_dispatch_mode: str,
     compile_shape_dispatch_max_families: int,
+    cuda_graph_capture_mode: str,
+    cuda_graph_max_families: int,
     compile_shape_dispatch_summary: Mapping[str, Any] | None,
     success: bool,
     error: Exception | None = None,
@@ -77,6 +79,8 @@ def finalize_training_run(
             loader_task_batch_cache_mode=loader_task_batch_cache_mode,
             compile_shape_dispatch_mode=compile_shape_dispatch_mode,
             compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
+            cuda_graph_capture_mode=cuda_graph_capture_mode,
+            cuda_graph_max_families=cuda_graph_max_families,
             compile_shape_dispatch_summary=compile_shape_dispatch_summary,
         )
         hardware_summary = build_hardware_summary(accelerator.device)

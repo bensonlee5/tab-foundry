@@ -157,6 +157,24 @@ use `cls_benchmark_sandwich_speedrun_cached_packed_v1` as the
 benchmark surface. Regression remains intentionally removed in the current repo
 state.
 
+For the benchmark-safe TF-RD-009 heads-1 replay lane, use the explicit
+comparison configs instead of the cached speedrun surfaces:
+
+```bash
+tab-foundry train run \
+  experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_baseline_v1
+tab-foundry train run \
+  experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_v1
+tab-foundry train run \
+  experiment=cls_benchmark_sandwich_tf_rd_009_heads1_benchmark_safe_packed_cuda_graph_v1
+```
+
+Those three configs keep the heads-1 + compile-eager-dynamic replay surface
+fixed and differ only in packed attention and the optional signature-family
+CUDA-graph lane. They also keep `profile_step_timing=true` and
+`module_grad_norm_every=25` so the dominant `forward_backward` bucket can be
+compared directly from per-step telemetry without changing checkpoint density.
+
 The prior-trained staged control surface is still available:
 
 ```bash

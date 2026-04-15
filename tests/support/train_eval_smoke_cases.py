@@ -2322,6 +2322,8 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
         "loader_task_batch_cache_mode": "off",
         "compile_shape_dispatch_mode": "off",
         "compile_shape_dispatch_max_families": 16,
+        "cuda_graph_capture_mode": "off",
+        "cuda_graph_max_families": 16,
     }
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"

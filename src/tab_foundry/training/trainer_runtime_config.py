@@ -12,6 +12,7 @@ _VALID_COMPILE_MODES = frozenset(
     {"max-autotune-no-cudagraphs", "default", "reduce-overhead"}
 )
 _VALID_COMPILE_SHAPE_DISPATCH_MODES = frozenset({"off", "signature_family"})
+_VALID_CUDA_GRAPH_CAPTURE_MODES = frozenset({"off", "signature_family"})
 _AUTO_SENTINEL = "auto"
 _VALID_TASK_BATCH_CACHE_MODES = frozenset({"off", "eager_full", "bounded_streaming"})
 _RESERVED_CPU_LARGE_HOST_THRESHOLD = 8
@@ -129,6 +130,26 @@ def _resolve_compile_shape_dispatch_max_families(runtime_cfg: DictConfig) -> int
             "runtime.compile_shape_dispatch_max_families must be >= 1, "
             f"got {value}"
         )
+    return value
+
+
+def _resolve_cuda_graph_capture_mode(runtime_cfg: DictConfig) -> str:
+    raw_value = getattr(runtime_cfg, "cuda_graph_capture_mode", "off")
+    if isinstance(raw_value, bool):
+        return "signature_family" if raw_value else "off"
+    return _coerce_runtime_choice(
+        raw_value=raw_value,
+        name="runtime.cuda_graph_capture_mode",
+        default="off",
+        valid_values=_VALID_CUDA_GRAPH_CAPTURE_MODES,
+    )
+
+
+def _resolve_cuda_graph_max_families(runtime_cfg: DictConfig) -> int:
+    raw_value = getattr(runtime_cfg, "cuda_graph_max_families", 16)
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(f"runtime.cuda_graph_max_families must be >= 1, got {value}")
     return value
 
 

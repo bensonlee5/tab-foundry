@@ -86,11 +86,19 @@ def _runtime_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | Non
         "compile_shape_dispatch_max_families": _optional_int(
             metrics.get("compile_shape_dispatch_max_families")
         ),
+        "cuda_graph_capture_mode": _optional_text(metrics.get("cuda_graph_capture_mode")),
+        "cuda_graph_max_families": _optional_int(metrics.get("cuda_graph_max_families")),
         "compile_dispatch_compiled_family_count": _optional_int(
             metrics.get("compile_dispatch_compiled_family_count")
         ),
         "compile_dispatch_family_switch_count": _optional_int(
             metrics.get("compile_dispatch_family_switch_count")
+        ),
+        "cuda_graph_captured_family_count": _optional_int(
+            metrics.get("cuda_graph_captured_family_count")
+        ),
+        "cuda_graph_capture_failure_count": _optional_int(
+            metrics.get("cuda_graph_capture_failure_count")
         ),
     }
     return payload if any(value is not None for value in payload.values()) else None
@@ -171,6 +179,12 @@ def summarize_sweep(
                 ),
                 "compile_dispatch_family_switch_count": _optional_int(
                     metrics.get("compile_dispatch_family_switch_count")
+                ),
+                "cuda_graph_captured_family_count": _optional_int(
+                    metrics.get("cuda_graph_captured_family_count")
+                ),
+                "cuda_graph_capture_failure_count": _optional_int(
+                    metrics.get("cuda_graph_capture_failure_count")
                 ),
                 "one_family_step_count": _optional_int(metrics.get("one_family_step_count")),
                 "mixed_family_step_count": _optional_int(metrics.get("mixed_family_step_count")),
