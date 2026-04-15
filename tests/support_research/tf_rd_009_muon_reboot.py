@@ -26,6 +26,19 @@ PHASE2_STUDY = "tf_rd_009_muon_phase2_one_epoch_v1"
 UPPER_STUDY = "tf_rd_009_muon_phase2_upper_extension_one_epoch_v1"
 CORPUS_V6 = "tf_rd_010_dagzoo_medium_control_curated_v6"
 MUON_BASELINE_ID = "tf_rd_009_rtx8000_44gb_classification_medium_muon_v1"
+WIDTH_DEPTH_EXPECTED_ROWS = [
+    "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
+    "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
+    "delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+    "delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1",
+    "delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1",
+]
+WIDTH_SCREEN_RUN_IDS = {
+    "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
+    "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1",
+    "sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+    "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1",
+}
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -136,9 +149,83 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
     assert [row["model"]["sandwich_layers"] for row in materialized["rows"]] == [2, 2, 2, 2]
 
 
-def test_tf_rd_009_muon_phase1_and_phase2_scaffolds_stay_empty_until_muon_rows_land() -> None:
+def test_tf_rd_009_muon_phase1_queue_is_materialized_while_phase2_and_upper_scaffolds_stay_empty() -> None:
+    width_depth_sweep = _load_yaml(
+        REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "sweep.yaml"
+    )
+    width_depth_queue = _queue(WIDTH_DEPTH)
+
+    assert_training_surface_semantics(
+        width_depth_sweep,
+        training_experiment=MUON_EXPERIMENT,
+        training_config_profile=MUON_EXPERIMENT,
+        surface_role="classification_scaling_law",
+        comparison_policy="anchor_only",
+        external_benchmarks=[],
+    )
+    assert (
+        width_depth_sweep["anchor_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    )
+    assert "72x1" in width_depth_sweep["anchor_surface"]["notes"][1]
+    assert "264x6" in width_depth_sweep["anchor_surface"]["notes"][1]
+
+    rows = width_depth_queue["rows"]
+    assert [row["delta_ref"] for row in rows] == WIDTH_DEPTH_EXPECTED_ROWS
+    assert Counter(f"{row['model']['d_icl']}x{row['model']['sandwich_layers']}" for row in rows) == {
+        "72x1": 1,
+        "112x3": 1,
+        "144x4": 1,
+        "192x5": 1,
+        "264x6": 1,
+    }
+    assert {row["status"] for row in rows} == {"ready"}
+    assert {row["interpretation_status"] for row in rows} == {"pending"}
+    assert {row.get("run_id") for row in rows} == {None}
+    assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
+    assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
+    assert {row["training"]["overrides"]["optimizer"]["weight_decay"] for row in rows} == {0.01}
+    assert {tuple(row["training"]["overrides"]["optimizer"]["betas"]) for row in rows} == {(0.9, 0.95)}
+    assert {row["training"]["overrides"]["runtime"]["compile_dynamic"] for row in rows} == {True}
+    assert {row["training"]["overrides"]["runtime"]["loader_task_batch_cache_mode"] for row in rows} == {
+        "bounded_streaming"
+    }
+    assert {row["training"]["overrides"]["runtime"]["max_steps"] for row in rows} == {2500}
+    assert {row["training"]["one_epoch_contract"]["corpus_ref"] for row in rows} == {CORPUS_V6}
+    assert "historical schedulefree rows remain context only" in rows[0]["next_action"]
+    assert "264x6" in rows[-1]["next_action"]
+
+    materialized = load_system_delta_queue(
+        sweep_id=WIDTH_DEPTH,
+        index_path=INDEX_PATH,
+        catalog_path=CATALOG_PATH,
+    )
+    assert_training_surface_semantics(
+        materialized,
+        training_experiment=MUON_EXPERIMENT,
+        training_config_profile=MUON_EXPERIMENT,
+        surface_role="classification_scaling_law",
+        comparison_policy="anchor_only",
+        external_benchmarks=[],
+    )
+    assert [row["delta_id"] for row in materialized["rows"]] == WIDTH_DEPTH_EXPECTED_ROWS
+    assert [row["model"]["d_icl"] for row in materialized["rows"]] == [72, 112, 144, 192, 264]
+    assert [row["model"]["sandwich_layers"] for row in materialized["rows"]] == [1, 3, 4, 5, 6]
+
+    resolved = _load_yaml(
+        REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "resolved_queue.yaml"
+    )
+    assert [row["delta_id"] for row in resolved["rows"]] == WIDTH_DEPTH_EXPECTED_ROWS
+
+    matrix = (REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "matrix.md").read_text(
+        encoding="utf-8"
+    )
+    assert "delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1" in matrix
+    assert "delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1" in matrix
+    assert "delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1" in matrix
+    assert "historical schedulefree rows remain context only" in matrix
+
     for sweep_id, expected_role in (
-        (WIDTH_DEPTH, "classification_scaling_law"),
         (NS_SWEEP, "classification_scaling_law_phase2_ns"),
         (BCRIT_SWEEP, "classification_scaling_law_phase2_batch"),
         (UPPER_GATE, "classification_scaling_law"),
@@ -155,13 +242,6 @@ def test_tf_rd_009_muon_phase1_and_phase2_scaffolds_stay_empty_until_muon_rows_l
             external_benchmarks=[],
         )
         assert queue["rows"] == []
-    width_depth_sweep = _load_yaml(
-        REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "sweep.yaml"
-    )
-    assert (
-        width_depth_sweep["anchor_run_id"]
-        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
-    )
 
 
 def test_tf_rd_009_muon_scaling_studies_reference_only_muon_sweeps() -> None:
@@ -189,13 +269,27 @@ def test_tf_rd_009_muon_hardware_baseline_placeholder_is_separate_from_historica
     historical = registry["baselines"]["tf_rd_009_rtx8000_44gb_classification_medium_v1"]
 
     assert planned["decision"] == "planned"
-    assert planned["sweep_id"] == WIDTH_SCREEN
+    assert planned["sweep_id"] == WIDTH_DEPTH
     assert planned["runtime_profile"] == MUON_EXPERIMENT
     assert planned["config_profile"] == MUON_EXPERIMENT
-    assert planned["formal_anchor_run_id"] == "pending_tf_rd_009_muon_width_screen_60x2"
-    assert planned["preferred_run_id"] == "pending_tf_rd_009_muon_width_screen_60x2"
-    assert planned["preferred_architecture"]["d_icl"] == 60
+    assert (
+        planned["formal_anchor_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1"
+    )
+    assert (
+        planned["baseline_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    )
+    assert (
+        planned["preferred_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    )
+    assert set(planned["evidence_run_ids"]) == WIDTH_SCREEN_RUN_IDS
+    assert planned["preferred_delta_ref"] == "delta_tf_rd_009_cls_sandwich_dicl128_v1"
+    assert planned["preferred_architecture"]["d_icl"] == 128
     assert planned["preferred_architecture"]["sandwich_layers"] == 2
     assert planned["preferred_architecture"]["sandwich_heads"] == 1
+    assert planned["selection_rule"] == "planned_muon_phase1_materialized_pending_benchmark_freeze"
+    assert "Phase-1 diagonal is now rederived" in planned["rationale"]
     assert historical["decision"] == "keep"
     assert historical["sweep_id"] == "tf_rd_009_width_depth_medium_v1"

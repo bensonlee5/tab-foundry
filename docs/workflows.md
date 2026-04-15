@@ -501,9 +501,10 @@ tab-foundry research scaling inspect \
 screen on the full 2500-step `v6` contract, with `60x2=0.4172`,
 `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951` final matched-budget log
 loss. Keep `60x2` as the formal external Muon anchor, but carry `128x2`
-forward as the current in-family baseline for the pending diagonal
-derivation. The Muon width-depth and Phase-2 study ids remain scaffolded until
-that diagonal lands.
+forward as the current in-family baseline for the rederived Phase-1 family
+`72x1/112x3/144x4/192x5/264x6`. The Muon width-depth queue is now populated;
+the Muon Phase-2 study ids remain scaffolded until those fresh Phase-1 rows are
+benchmark-backed and promoted into later Muon scaling-law work.
 
 For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than

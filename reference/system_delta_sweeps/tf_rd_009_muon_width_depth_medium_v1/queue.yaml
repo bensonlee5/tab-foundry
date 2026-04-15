@@ -1,3 +1,547 @@
 schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_009_muon_width_depth_medium_v1
-rows: []
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
+  status: ready
+  rationale: Materialize the lower fresh-Muon diagonal seed at `72x1`, solving the
+    formal `60x2` parameter target on the frozen RTX 8000 bridge after the measured
+    width screen chose `128x2` as the in-family baseline.
+  hypothesis: ''
+  anchor_delta: Fresh Muon diagonal row `72x1`, benchmarked relative to the carried
+    `128x2` width-screen baseline while keeping `60x2` as the formal external anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 72
+    sandwich_layers: 1
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Treat the historical schedulefree `72x1 -> 176x6` diagonal as context only; this
+    Muon family is rederived from the landed `48x2/60x2/96x2/128x2` width screen plus
+    the frozen RTX 8000 planning formulas.
+  - Use the formal external Muon anchor `60x2` only to set the lower parameter target,
+    then solve that target at `L=1` and round to width rung `8`, which yields `72x1`.
+  - Compare this row against the carried `128x2` Muon width-screen baseline at matched
+    regime budget before promoting any later Phase-2 or upper-family work.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark `72x1` as the lower fresh-Muon diagonal seed against the
+    carried `128x2` width-screen baseline; historical schedulefree rows remain context
+    only.
+  notes:
+  - Rederived from the fresh Muon width screen with target `646970` params and solved
+    width `70.65` before rung rounding.
+  - Predicted local parameter count `671184` and reserved VRAM `9.32 GB` come from
+    the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
+  status: ready
+  rationale: Materialize the upper fresh-Muon diagonal seed at `112x3`, solving the
+    carried `128x2` parameter target at `L=3` on the frozen RTX 8000 bridge instead
+    of inheriting the historical schedulefree diagonal.
+  hypothesis: ''
+  anchor_delta: Fresh Muon diagonal row `112x3`, benchmarked relative to the carried
+    `128x2` width-screen baseline after solving its parameter target at `L=3`.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 112
+    sandwich_layers: 3
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Treat `128x2` as the carried in-family Muon baseline from the landed width screen
+    and solve its observed parameter target at `L=3`, rounded to width rung `8`, to
+    produce `112x3`.
+  - Keep the post-#271 packed Muon runtime surface and the closed v6 one-epoch contract
+    fixed; this row changes width and depth only.
+  - Use this row as the upper seed for the fresh Muon diagonal before any interpolated
+    `L=4` / `L=5` rows or upper-family selector rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark `112x3` after `72x1`; if it lands cleanly, keep it as the
+    carried upper seed for the fresh Muon diagonal.
+  notes:
+  - Rederived from the fresh Muon width screen with target `2849422` params and solved
+    width `112.99` before rung rounding.
+  - Predicted local parameter count `2800205` and reserved VRAM `11.29 GB` come from
+    the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Materialize the first interpolated fresh-Muon diagonal row at `144x4`,
+    taking the log-space midpoint between the `112x3` upper seed and the retained
+    `32.5 GB` Phase-1 ceiling probe.
+  hypothesis: ''
+  anchor_delta: Fresh Muon diagonal row `144x4`, benchmarked relative to the carried
+    `128x2` width-screen baseline as the first interior interpolated Phase-1 point.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Interpolate fresh Muon parameter targets in log space between the derived `112x3`
+    upper seed and the retained `32.5 GB` reserved-VRAM Phase-1 ceiling, then solve
+    the `L=4` target on the frozen RTX 8000 bridge.
+  - Keep historical schedulefree interpolation rows out of the active family; this
+    row exists only because the fresh Muon diagonal was rederived from the landed
+    width screen.
+  - Use `144x4` as the first interior Phase-1 Muon row before any one-epoch NS or
+    batch-critical expansion under `#274`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark `144x4` only after the lower and upper fresh-Muon seeds are
+    in place, then carry it into Muon Phase 2 if the matched-budget evidence is usable.
+  notes:
+  - Rederived from the fresh Muon width screen with target `5847218` params and solved
+    width `147.01` before rung rounding.
+  - Predicted local parameter count `5610697` and reserved VRAM `13.89 GB` come from
+    the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1
+  status: ready
+  rationale: Materialize the second interpolated fresh-Muon diagonal row at `192x5`,
+    taking the higher log-space interior target between `112x3` and the retained `32.5
+    GB` Phase-1 ceiling probe.
+  hypothesis: ''
+  anchor_delta: Fresh Muon diagonal row `192x5`, benchmarked relative to the carried
+    `128x2` width-screen baseline as the higher interior interpolated Phase-1 point.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 192
+    sandwich_layers: 5
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the same fresh-Muon log-space interpolation policy as `144x4`, but solve the
+    `L=5` interior target so the Phase-1 family spans the pre-ceiling region cleanly.
+  - Interpret this row inside the fresh Muon family `{72x1, 112x3, 128x2, 144x4, 192x5,
+    264x6}` ordered by measured parameter count, not by the historical schedulefree
+    queue.
+  - Keep `#269` as a later upper-family selector rerun after Muon Phase 2; this row
+    remains part of the base fresh-Muon Phase-1 diagonal only.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark `192x5` as the higher interior fresh-Muon row before any
+    upper-extension selector rerun; do not treat it as the reopened `#269` branch.
+  notes:
+  - Rederived from the fresh Muon width screen with target `12209806` params and solved
+    width `195.92` before rung rounding.
+  - Predicted local parameter count `11727112` and reserved VRAM `19.57 GB` come from
+    the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Materialize the retained fresh-Muon Phase-1 ceiling probe at `264x6`,
+    solving the frozen RTX 8000 reserved-VRAM target of `32.5 GB` at `L=6` and rounding
+    to width rung `8`.
+  hypothesis: ''
+  anchor_delta: Fresh Muon diagonal row `264x6`, benchmarked relative to the carried
+    `128x2` width-screen baseline as the retained Phase-1 ceiling probe.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Keep the fresh Muon Phase-1 family below the reopened upper-extension branch by
+    retaining the historical RTX 8000 reserved-VRAM target of `32.5 GB` as the local
+    ceiling probe.
+  - Solve the ceiling target at `L=6` on the frozen RTX 8000 bridge and round to width
+    rung `8`, yielding `264x6` with predicted reserved memory around `32.33 GB`.
+  - Use this row as the largest retained Phase-1 Muon geometry; rerun `#269` only
+    after Muon Phase 2 lands and the upper-family selector is recomputed on Muon-only
+    evidence.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark `264x6` as the largest retained fresh-Muon Phase-1 row; if
+    it lands, use it as ceiling evidence rather than silently extending into the upper-family
+    branch.
+  notes:
+  - Rederived from the fresh Muon width screen with target `25678017` params and solved
+    width `264.94` before rung rounding.
+  - Predicted local parameter count `25495777` and reserved VRAM `32.33 GB` come from
+    the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.

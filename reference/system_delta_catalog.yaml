@@ -3358,7 +3358,7 @@ deltas:
     binary_applicable: false
     description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
     upstream_delta: TF-RD-009 uses the literature-backed rule that width and depth must be co-designed once depth moves, then picks the concrete lower row from the empirical sandwich bridge `P_local(d, L) ≈ 29966.47 + 75.38 * d^2 + 48.43 * L * d^2` on the frozen medium surface. That bridge chooses the queue row only; the reported law fit is deferred to measured benchmark-registry `model_size.total_params`.
-    expected_effect: If the sandwich target can trade one layer for more width while staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1` should show whether the lower diagonal stays competitive against the carried `96x2` baseline at matched regime budget.
+    expected_effect: If the sandwich target can trade one layer for more width while staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1` should show whether the lower diagonal stays competitive against the active carried in-family baseline at matched regime budget.
     adequacy_knobs:
       - fixed TF-RD-010 curated medium benchmark contract
       - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -3366,8 +3366,8 @@ deltas:
       - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
     parameter_adequacy_policy:
       default_plan:
-        - Execute after `d_icl=96`, `sandwich_layers=2` is established as the carried width-only baseline for `#255`; this row is the empirical depth-aware parameter bridge's lower anchor-equivalent probe.
-        - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Execute after the active width-only baseline is fixed for the current family; this row is the empirical depth-aware parameter bridge's lower anchor-equivalent probe.
+        - Compare directly against the carried in-family baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
         - Report relative to the formal `60x2` TF-RD-009 anchor, but interpret this row inside the diagonal family `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` rather than as a standalone keep/reject claim.
       default_negative_decision: defer
       reject_requires:
@@ -3428,7 +3428,7 @@ deltas:
                 lr_max: 0.001
                 lr_schedule: linear
                 warmup_ratio: 0.10
-    default_next_action: Execute as order 1 in `tf_rd_009_width_depth_medium_v1` against the carried `96x2` baseline.
+    default_next_action: Execute as order 1 in the active TF-RD-009 width-depth family against the carried in-family baseline.
     applicability_guards: []
 
   delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1:
@@ -3437,7 +3437,7 @@ deltas:
     binary_applicable: false
     description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
     upstream_delta: TF-RD-009 treats this as the paper-constrained upper seed for the broadened medium-rung family, after which the ladder extends toward the retained `rtx8000_44gb` ceiling using the same row-construction bridge instead of a grid search.
-    expected_effect: If the fixed-budget law continues above the carried `96x2` baseline, `112x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
+    expected_effect: If the fixed-budget law continues above the carried in-family baseline, `112x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
     adequacy_knobs:
       - fixed TF-RD-010 curated medium benchmark contract
       - inherited TF-RD-022 compile-eager-dynamic runtime and optimizer surface
@@ -3446,7 +3446,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Execute after the lower diagonal `72x1` row so the first TF-RD-009 joint family remains an ordered diagonal around the width-only `128x2` upper evidence target rather than a grid.
-        - Compare directly against the carried `96x2` baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Compare directly against the carried in-family baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
         - If benchmark-backed but health=`warn`, keep the row as evidence and do not silently replace it with a different upper geometry in the same branch.
       default_negative_decision: defer
       reject_requires:
@@ -3507,7 +3507,7 @@ deltas:
                 lr_max: 0.001
                 lr_schedule: linear
                 warmup_ratio: 0.10
-    default_next_action: Execute as order 2 in `tf_rd_009_width_depth_medium_v1` after the lower diagonal row is benchmark-backed.
+    default_next_action: Execute as order 2 in the active TF-RD-009 width-depth family after the lower diagonal row is benchmark-backed.
     applicability_guards: []
 
   delta_tf_rd_009_cls_sandwich_dicl128_layers4_v1:
@@ -3587,6 +3587,33 @@ deltas:
                 lr_schedule: linear
                 warmup_ratio: 0.10
     default_next_action: Execute as order 3 in `tf_rd_009_width_depth_medium_v1` after `112x3` is benchmark-backed.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the first fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
+    upstream_delta: TF-RD-009 rederives the Muon Phase-1 diagonal from the landed width screen plus the frozen RTX 8000 planning formulas, then uses log-space parameter interpolation instead of inheriting the historical schedulefree ladder.
+    expected_effect: If the fresh Muon fixed-budget law stays smooth beyond the upper seed, `144x4` should provide the first interior Phase-1 measurement between the carried `128x2` baseline and the retained ceiling probe.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - carried post-#271 packed Muon runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after the `72x1` and `112x3` fresh-Muon seed rows so the rederived family stays an ordered diagonal around the landed width screen.
+        - Compare directly against the carried `128x2` Muon baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Treat this row as interior fresh-Muon Phase-1 evidence rather than as an upper-family reopen selector output.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_next_action: Execute as order 3 in `tf_rd_009_muon_width_depth_medium_v1` after the fresh-Muon seed rows are benchmark-backed.
     applicability_guards: []
 
   delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1:
@@ -3745,6 +3772,60 @@ deltas:
                 lr_schedule: linear
                 warmup_ratio: 0.10
     default_next_action: Execute as order 5 in `tf_rd_009_width_depth_medium_v1` after `152x5` is benchmark-backed; treat failure as ceiling evidence.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the second fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=192`, `sandwich_layers=5`, using the higher rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
+    upstream_delta: TF-RD-009 keeps the fresh Muon Phase-1 family below the reopened upper-extension branch by interpolating interior rows on the frozen RTX 8000 bridge rather than by reviving the historical schedulefree ladder or running a grid search.
+    expected_effect: If the fresh Muon fixed-budget law remains smooth in the pre-ceiling region, `192x5` should extend the interior Phase-1 evidence without collapsing directly into the later upper-family reopen.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - carried post-#271 packed Muon runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute after `144x4` so the fresh Muon Phase-1 family spans the interior pre-ceiling region in order.
+        - Compare directly against the carried `128x2` Muon baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - Keep this row in the base Muon Phase-1 family; rerun the reopened upper-family selector only after Muon Phase 2 lands.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_next_action: Execute as order 4 in `tf_rd_009_muon_width_depth_medium_v1` after `144x4` is benchmark-backed.
+    applicability_guards: []
+
+  delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Execute the retained fresh-Muon TF-RD-009 ceiling probe at `d_icl=264`, `sandwich_layers=6`, chosen to land near the carried `32.5 GB` RTX 8000 reserved-memory target while staying in the base Phase-1 family.
+    upstream_delta: TF-RD-009 treats this as an intentional Muon Phase-1 ceiling probe derived from the frozen RTX 8000 planning formulas and the landed width screen, rather than as a reopened upper-family row.
+    expected_effect: If the rederived Muon Phase-1 family can reach the retained local ceiling cleanly, `264x6` should either extend the matched-budget law into the near-saturation regime or provide explicit ceiling evidence without needing the later upper-family selector.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - carried post-#271 packed Muon runtime and optimizer surface
+      - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+      - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute last as the retained fresh-Muon Phase-1 ceiling probe under the carried `32.5 GB` reserved-memory target.
+        - Compare directly against the carried `128x2` Muon baseline at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+        - If this row fails before benchmark registration, keep that failure as valid Phase-1 ceiling evidence and rerun the upper-family selector only after Muon Phase 2 lands.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_next_action: Execute as order 5 in `tf_rd_009_muon_width_depth_medium_v1` after `192x5` is benchmark-backed; treat failure as fresh-Muon ceiling evidence.
     applicability_guards: []
 
   delta_tf_rd_009_cls_sandwich_dicl192_layers7_upper_v1:

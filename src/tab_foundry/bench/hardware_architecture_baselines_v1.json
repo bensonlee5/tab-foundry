@@ -530,19 +530,19 @@
     },
     "tf_rd_009_rtx8000_44gb_classification_medium_muon_v1": {
       "baseline_id": "tf_rd_009_rtx8000_44gb_classification_medium_muon_v1",
-      "baseline_run_id": "pending_tf_rd_009_muon_width_screen_60x2",
+      "baseline_run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1",
       "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
       "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
       "constraint_model": null,
       "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
       "decision": "planned",
       "evidence_run_ids": [
-        "pending_tf_rd_009_muon_width_screen_48x2",
-        "pending_tf_rd_009_muon_width_screen_60x2",
-        "pending_tf_rd_009_muon_width_screen_96x2",
-        "pending_tf_rd_009_muon_width_screen_128x2"
+        "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
       ],
-      "formal_anchor_run_id": "pending_tf_rd_009_muon_width_screen_60x2",
+      "formal_anchor_run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
       "gpu_class": "rtx8000",
       "hardware_profile_id": "rtx8000_44gb",
       "objective_metric": "final_log_loss_at_matched_regime_budget",
@@ -565,7 +565,7 @@
         "build_spec": {
           "arch": "tabfoundry_sandwich",
           "d_col": 128,
-          "d_icl": 60,
+          "d_icl": 128,
           "feature_group_size": 1,
           "feature_type_conditioning": "film",
           "floating_likelihood": "single_gaussian",
@@ -590,7 +590,7 @@
           "sandwich_summary_tokens_per_axis": 3,
           "task": "classification"
         },
-        "d_icl": 60,
+        "d_icl": 128,
         "head_hidden_dim": 96,
         "sandwich_heads": 1,
         "sandwich_layers": 2,
@@ -598,13 +598,13 @@
         "tficl_n_layers": 12
       },
       "preferred_benchmark_timing": null,
-      "preferred_delta_ref": "delta_tf_rd_024_followup_cls_sandwich_heads1_v1",
+      "preferred_delta_ref": "delta_tf_rd_009_cls_sandwich_dicl128_v1",
       "preferred_inference_timing": null,
-      "preferred_run_id": "pending_tf_rd_009_muon_width_screen_60x2",
+      "preferred_run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1",
       "preferred_runtime_summary": null,
-      "rationale": "Planned placeholder for the fresh Muon TF-RD-009 family. Replace after the 2500-step Muon width screen and Phase-1 diagonal freeze land on benchmark-backed RTX 8000 evidence.",
+      "rationale": "Planned placeholder for the fresh Muon TF-RD-009 family. The 2500-step Muon width screen has landed and the Phase-1 diagonal is now rederived in repo state under `tf_rd_009_muon_width_depth_medium_v1`, but the baseline freeze still waits for benchmark-backed Phase-1 winner selection plus a later large-rung validation on the Muon family.",
       "runtime_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
-      "selection_rule": "planned_muon_width_screen_then_phase1_freeze",
+      "selection_rule": "planned_muon_phase1_materialized_pending_benchmark_freeze",
       "surface_labels": {
         "data": "tf_rd_010_dagzoo_medium_control",
         "model": "tabfoundry_sandwich",
@@ -612,7 +612,7 @@
         "training": "prior_cosine_warmup"
       },
       "surface_role": "classification_scaling_law",
-      "sweep_id": "tf_rd_009_muon_width_screen_medium_v1",
+      "sweep_id": "tf_rd_009_muon_width_depth_medium_v1",
       "track": "system_delta_classification_medium_v1",
       "vram_class_gb": 44
     }

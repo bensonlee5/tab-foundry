@@ -145,14 +145,23 @@ def test_docs_consistency_audit_passes_on_repo_docs() -> None:
     assert errors == []
 
 
+@pytest.mark.parametrize(
+    ("family", "expected_heading"),
+    [
+        ("historical", "TF-RD-009 historical width-depth derivation"),
+        ("muon", "TF-RD-009 muon width-depth derivation"),
+    ],
+)
 def test_tf_rd_009_width_depth_derivation_script_verifies_canonical_queue(
+    family: str,
+    expected_heading: str,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    exit_code = tf_rd_009_width_depth_derivation.main(["--verify"])
+    exit_code = tf_rd_009_width_depth_derivation.main(["--family", family, "--verify"])
 
     assert exit_code == 0
     captured = capsys.readouterr().out
-    assert "TF-RD-009 width-depth derivation" in captured
+    assert expected_heading in captured
     assert "verification passed:" in captured
 
 

@@ -14,18 +14,34 @@ import yaml
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.tf_rd_009_width_depth_derivation import (
     derive_tf_rd_009_width_depth_family,
+    derive_tf_rd_009_muon_width_depth_family,
 )
 from tab_foundry.repo_paths import repo_root
 
 
 REPO_ROOT = repo_root()
-DEFAULT_QUEUE_PATH = (
+DEFAULT_HISTORICAL_QUEUE_PATH = (
     REPO_ROOT
     / "reference"
     / "system_delta_sweeps"
     / "tf_rd_009_width_depth_medium_v1"
     / "queue.yaml"
 )
+DEFAULT_MUON_QUEUE_PATH = (
+    REPO_ROOT
+    / "reference"
+    / "system_delta_sweeps"
+    / "tf_rd_009_muon_width_depth_medium_v1"
+    / "queue.yaml"
+)
+
+
+def _derivation_for_family(*, family: str, registry_path: Path | None = None):
+    if family == "historical":
+        return derive_tf_rd_009_width_depth_family(registry_path=registry_path)
+    if family == "muon":
+        return derive_tf_rd_009_muon_width_depth_family(registry_path=registry_path)
+    raise RuntimeError(f"unsupported TF-RD-009 derivation family: {family!r}")
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -37,10 +53,11 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 def verify_canonical_queue(
     *,
-    queue_path: Path = DEFAULT_QUEUE_PATH,
+    family: str,
+    queue_path: Path,
     registry_path: Path | None = None,
 ) -> tuple[bool, list[str]]:
-    derivation = derive_tf_rd_009_width_depth_family(registry_path=registry_path)
+    derivation = _derivation_for_family(family=family, registry_path=registry_path)
     queue = _load_yaml(queue_path)
     rows = queue.get("rows")
     if not isinstance(rows, list):
@@ -65,17 +82,17 @@ def verify_canonical_queue(
     return (
         False,
         [
-            "TF-RD-009 queue rows do not match the derived family:",
+            f"TF-RD-009 {family} queue rows do not match the derived family:",
             f"expected={expected_rows}",
             f"observed={observed_rows}",
         ],
     )
 
 
-def _text_report(registry_path: Path | None = None) -> str:
-    derivation = derive_tf_rd_009_width_depth_family(registry_path=registry_path)
+def _text_report(*, family: str, registry_path: Path | None = None) -> str:
+    derivation = _derivation_for_family(family=family, registry_path=registry_path)
     lines = [
-        "TF-RD-009 width-depth derivation",
+        f"TF-RD-009 {family} width-depth derivation",
         f"queue_parameter_bridge: {derivation.parameter_bridge.expression()}",
         (
             "reported_fit_policy: fit the law only on measured "
@@ -108,6 +125,12 @@ def _text_report(registry_path: Path | None = None) -> str:
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--family",
+        choices=("historical", "muon"),
+        default="historical",
+        help="Select the TF-RD-009 width-depth family to report or verify.",
+    )
+    parser.add_argument(
         "--registry-path",
         type=Path,
         default=default_benchmark_run_registry_path(),
@@ -116,8 +139,8 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument(
         "--queue-path",
         type=Path,
-        default=DEFAULT_QUEUE_PATH,
-        help="Path to the canonical TF-RD-009 queue to verify.",
+        default=None,
+        help="Path to the canonical TF-RD-009 queue to verify. Defaults to the selected family queue.",
     )
     parser.add_argument(
         "--json",
@@ -135,17 +158,24 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     registry_path = Path(args.registry_path).expanduser().resolve()
-    queue_path = Path(args.queue_path).expanduser().resolve()
-    derivation = derive_tf_rd_009_width_depth_family(registry_path=registry_path)
+    queue_path = Path(
+        args.queue_path
+        or (DEFAULT_HISTORICAL_QUEUE_PATH if args.family == "historical" else DEFAULT_MUON_QUEUE_PATH)
+    ).expanduser().resolve()
+    derivation = _derivation_for_family(family=args.family, registry_path=registry_path)
 
     if args.json:
         print(json.dumps(derivation.as_dict(), indent=2, sort_keys=True))
     else:
-        print(_text_report(registry_path))
+        print(_text_report(family=args.family, registry_path=registry_path))
 
     if not args.verify:
         return 0
-    ok, messages = verify_canonical_queue(queue_path=queue_path, registry_path=registry_path)
+    ok, messages = verify_canonical_queue(
+        family=args.family,
+        queue_path=queue_path,
+        registry_path=registry_path,
+    )
     if ok:
         print(f"verification passed: {queue_path}")
         return 0
