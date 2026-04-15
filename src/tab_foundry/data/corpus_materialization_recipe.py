@@ -32,6 +32,7 @@ from .corpus_loading import (
     load_corpus_recipe,
 )
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
+from .corpus_publish import ensure_corpus_publish_inventory
 from .corpus_materialization_shared import (
     _STAGED_VERIFY_MODES,
     _drop_none_values,
@@ -788,7 +789,7 @@ def _promote_materialized_recipe(
     )
     record["artifacts"]["latest_pointer_path"] = str(latest_path.resolve())
     record_path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return record
+    return ensure_corpus_publish_inventory(record, repo_root=resolved_repo_root)
 
 
 def _finalize_materialized_recipe(
@@ -1078,7 +1079,7 @@ def materialize_corpus_recipe(
         sweeps_root=sweeps_root,
     )
     if isinstance(prepared, dict):
-        return prepared
+        return ensure_corpus_publish_inventory(prepared, repo_root=resolved_repo_root)
 
     try:
         invocation_fanout_start_time = time.perf_counter()

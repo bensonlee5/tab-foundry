@@ -1,0 +1,8 @@
+{
+  "notes": [
+    "Placeholder overlay for the fresh Muon TF-RD-009 upper-extension study; populate after Muon upper-family rows land."
+  ],
+  "rows": [],
+  "schema": "tab-foundry-scaling-validation-overlay-v1",
+  "study_id": "tf_rd_009_muon_phase2_upper_extension_one_epoch_v1"
+}

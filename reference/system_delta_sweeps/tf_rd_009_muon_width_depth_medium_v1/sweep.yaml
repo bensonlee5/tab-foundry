@@ -1,0 +1,37 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_009_muon_width_depth_medium_v1
+parent_sweep_id: tf_rd_009_muon_width_screen_medium_v1
+status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+surface_role: classification_scaling_law
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+    - The fresh Muon width screen has landed under [#275](https://github.com/bensonlee5/tab-foundry/issues/275); keep `60x2` as the formal external anchor, but carry `128x2` into this sweep as the current in-family baseline after the measured `48x2/60x2/96x2/128x2` results of `0.4147/0.4172/0.4128/0.3951`.
+    - Derive the new diagonal from the measured Muon width evidence plus the existing μP and spectral width-depth priors; do not reuse the historical `72x1 -> 176x6` schedulefree diagonal in place.
+    - Keep the post-#271 packed Muon runtime surface and the v6 no-repeat contract fixed when the fresh diagonal is materialized.
+  dimension_table: []
+anchor_context:
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

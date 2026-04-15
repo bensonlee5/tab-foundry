@@ -578,6 +578,44 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     )
 
 
+def test_cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1")
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert str(cfg.data.source) == "manifest"
+    assert str(cfg.data.surface_label) == "tf_rd_010_dagzoo_medium_control"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.model.d_icl) == 60
+    assert int(cfg.model.sandwich_layers) == 2
+    assert int(cfg.model.sandwich_heads) == 1
+    assert bool(cfg.model.sandwich_packed_attention) is True
+    assert str(cfg.optimizer.name) == "muon"
+    assert bool(cfg.optimizer.require_requested) is True
+    assert float(cfg.optimizer.weight_decay) == 0.01
+    assert list(cfg.optimizer.betas) == [0.9, 0.95]
+    assert float(cfg.optimizer.min_lr) == 1.0e-6
+    assert bool(cfg.optimizer.muon_per_parameter_lr) is True
+    assert bool(cfg.optimizer.muon_partition_non2d) is True
+    assert str(cfg.runtime.mixed_precision) == "bf16"
+    assert bool(cfg.runtime.compile_model) is True
+    assert str(cfg.runtime.compile_backend) == "eager"
+    assert bool(cfg.runtime.compile_dynamic) is True
+    assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
+    assert int(cfg.runtime.grad_accum_steps) == 4
+    assert int(cfg.runtime.max_steps) == 2500
+    assert str(cfg.runtime.output_dir) == (
+        "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1"
+    )
+    assert str(cfg.logging.run_name) == (
+        "cls-benchmark-sandwich-classification-evolution-tf-rd-009-muon-medium-v1"
+    )
+    assert (
+        str(cfg.logging.history_jsonl_path)
+        == "outputs/cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1/train_history.jsonl"
+    )
+
+
 def test_cls_benchmark_staged_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_staged")
     assert str(cfg.task) == "classification"

@@ -156,6 +156,9 @@ class _RuntimeSummaryPayload(_RegistryPayloadModel):
     loader_effective_num_workers: StrictInt | None = None
     loader_effective_prefetch_factor: StrictInt | None = None
     loader_task_batch_cache_mode: StrictStr | None = None
+    compile_shape_dispatch_mode: StrictStr | None = None
+    compile_shape_dispatch_max_families: StrictInt | None = None
+    compile_shape_dispatch: dict[StrictStr, Any] | None = None
 
 
 class _BenchmarkTimingPayload(_RegistryPayloadModel):

@@ -1,0 +1,43 @@
+schema: tab-foundry-scaling-study-v1
+study_id: tf_rd_009_muon_phase2_one_epoch_v1
+phase: 2
+output_root: outputs/research_scaling/tf_rd_009_muon_phase2_one_epoch_v1
+validation_overlay_path: reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1_validation_backfill_v1.json
+phase1_reference_sweep_id: tf_rd_009_muon_width_depth_medium_v1
+sweeps:
+  - name: ns_core
+    sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    family: ns_core
+  - name: batch_critical
+    sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
+    family: batch_critical
+geometry_row_labels: []
+step_ladder: [625, 1250, 2500, 5000]
+batch_grad_accum_ladder: [1, 2, 4, 8, 16]
+canonical_loss_axes:
+  benchmark: benchmark_log_loss
+  validation: validation_loss
+canonical_variables:
+  "N": parameter_accounting.canonical_non_embedding_params
+  D: regime_budget.tokens_seen
+  S: tab_foundry_metrics.final_step
+  B_eff: regime_budget.tokens_per_step
+  C: compute_accounting.total_train_flops
+slice_selection:
+  l_n: highest_completed_s
+  l_d: highest_completed_n
+  l_c: all_completed_runs
+  l_nd: full_ns_matrix
+  l_ns: full_ns_matrix
+  l_cmin: lower_envelope_from_bcrit
+  bcrit: batch_envelope
+primary_fit:
+  law: L(N,S)
+  target: validation_loss
+historical_context_studies:
+  - tf_rd_009_phase2
+  - tf_rd_009_phase2_one_epoch_v1
+frozen_contract:
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  optimizer: muon

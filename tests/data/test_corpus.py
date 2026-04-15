@@ -1170,11 +1170,23 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     assert record["corpus_ref"] == f"current_recipe/{expected_corpus_id}"
     assert Path(str(record["manifest"]["manifest_path"])).exists()
     assert Path(str(record["corpus_record_path"])).exists()
+    publish_inventory_path = Path(str(record["artifacts"]["publish_inventory_path"]))
+    assert publish_inventory_path.exists()
     latest_pointer_path = repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "latest.json"
     latest_payload = json.loads(latest_pointer_path.read_text(encoding="utf-8"))
     assert latest_payload["corpus_ref"] == record["corpus_ref"]
+    publish_inventory = json.loads(publish_inventory_path.read_text(encoding="utf-8"))
+    assert publish_inventory["corpus_ref"] == record["corpus_ref"]
+    assert publish_inventory["inventory_cache_relative_path"].endswith(
+        "/publish_inventory.json"
+    )
+    assert any(
+        entry["cache_relative_path"] == f"current_recipe/{latest_pointer_path.name}"
+        for entry in publish_inventory["entries"]
+    )
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
+    assert Path(str(loaded["artifacts"]["publish_inventory_path"])).exists()
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
     invocation = loaded["dagzoo_provenance"]["invocations"][0]
     materialization_summary_path = (
@@ -1223,6 +1235,43 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     assert timing_summary["invocation_fanout_elapsed_seconds"] >= 0.0
     assert timing_summary["manifest_build_elapsed_seconds"] >= 0.0
     assert timing_summary["promotion_elapsed_seconds"] >= 0.0
+
+
+def test_materialize_corpus_recipe_backfills_missing_publish_inventory_for_reused_record(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    _patch_dagzoo_generate(monkeypatch, _fake_run_dagzoo_generate)
+
+    first_record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    publish_inventory_path = Path(str(first_record["artifacts"]["publish_inventory_path"]))
+    publish_inventory_path.unlink()
+    record_path = Path(str(first_record["corpus_record_path"]))
+    mutated_record = json.loads(record_path.read_text(encoding="utf-8"))
+    artifacts = mutated_record["artifacts"]
+    del artifacts["publish_inventory_path"]
+    mutated_record.pop("publish_inventory", None)
+    record_path.write_text(
+        json.dumps(mutated_record, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    reused_record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    rebuilt_inventory_path = Path(str(reused_record["artifacts"]["publish_inventory_path"]))
+    assert rebuilt_inventory_path.exists()
+    rebuilt_inventory = json.loads(rebuilt_inventory_path.read_text(encoding="utf-8"))
+    assert rebuilt_inventory["corpus_ref"] == reused_record["corpus_ref"]
 
 
 def test_materialize_corpus_recipe_delegates_multi_invocation_runs_to_subprocess_fanout(
