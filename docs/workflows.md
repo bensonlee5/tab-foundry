@@ -481,7 +481,29 @@ accounting, so legacy fallback FLOP estimates do not silently enter the C axis.
 Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
 lower envelope has only two points.
 
-For the corrected one-epoch TF-RD-009 rerun, materialize
+The April 12 to April 13 schedulefree TF-RD-009 studies above are historical
+diagnostics only. The active reboot path is now the fresh Muon family on the
+same benchmark slice but a different frozen training surface:
+
+```bash
+tab-foundry dev resolve-config \
+  experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+tab-foundry research sweep inspect \
+  --sweep-id tf_rd_009_muon_width_screen_medium_v1 \
+  --order 2 \
+  --json
+tab-foundry research scaling inspect \
+  --study tf_rd_009_muon_phase2_one_epoch_v1 \
+  --json
+```
+
+`tf_rd_009_muon_width_screen_medium_v1` is the first executable Muon family and
+replays `{48x2,60x2,96x2,128x2}` at the full 2500-step budget on
+`tf_rd_010_dagzoo_medium_control_curated_v6`. The Muon width-depth and Phase-2
+study ids are intentionally scaffolded with zero completed points until the
+width screen and diagonal derivation land.
+
+For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than
 generating it locally. A Vast `research sweep materialize-corpora` job syncs
 `outputs/corpora` and `data/manifests` to the launch artifacts and uploads the

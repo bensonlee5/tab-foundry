@@ -949,17 +949,21 @@ Legacy wording note:
   completed sweep-program design child
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active fixed-budget
   family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
-  completed width-transfer child
+  historical schedulefree width-transfer child
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254), completed
-  joint width-depth child
+  historical schedulefree joint width-depth child
   [#255](https://github.com/bensonlee5/tab-foundry/issues/255), completed
-  Kaplan-exact Phase-2 fit/report child
+  historical schedulefree Kaplan-exact Phase-2 fit/report child
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
-  large-rung validation / hardware-freeze child
+  historical large-rung validation / hardware-freeze child
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  active Muon Phase-1 child
+  [#275](https://github.com/bensonlee5/tab-foundry/issues/275),
+  active Muon Phase-2 child
+  [#274](https://github.com/bensonlee5/tab-foundry/issues/274),
   post-fit frontier and robustness umbrella
   [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
-  fixed-budget upper-family reopen child
+  later Muon upper-family reopen child
   [#269](https://github.com/bensonlee5/tab-foundry/issues/269),
   compute-frontier child
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259), and
@@ -1102,111 +1106,86 @@ Legacy wording note:
     `tf_rd_009_phase2_upper_extension_one_epoch_v1` remain scaffolded until
     `tf_rd_009_phase2_one_epoch_v1` lands and the D-optimal row selection is
     rerun on corrected validation `L(N,S)`
+  - as of April 14, 2026 PT, the schedulefree/v5 branch plus the corrected
+    schedulefree one-epoch rerun under [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) is preserved
+    as historical TF-RD-009 context only; keep [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
+    closed and unchanged
+  - the active reboot is now the fresh Muon family under
+    [#275](https://github.com/bensonlee5/tab-foundry/issues/275) then
+    [#274](https://github.com/bensonlee5/tab-foundry/issues/274), frozen to
+    `tf_rd_010_dagzoo_medium_control_curated_v6`, the post-PR
+    [#271](https://github.com/bensonlee5/tab-foundry/pull/271) packed/runtime
+    stack on `main`, and the explicit Muon experiment alias
+    `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
+  - no benchmark-backed Muon anchor above 2500 steps exists yet; the first
+    executable fresh-family sweep is
+    `tf_rd_009_muon_width_screen_medium_v1`, which replays
+    `{48x2, 60x2, 96x2, 128x2}` with `60x2` as the formal external Muon anchor
+    candidate
+  - `tf_rd_009_muon_width_depth_medium_v1`,
+    `tf_rd_009_muon_ns_one_epoch_medium_v1`,
+    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`,
+    `tf_rd_009_muon_phase2_one_epoch_v1`,
+    `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
+    `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
+    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1` are now scaffolded and
+    intentionally empty until the Muon width screen and diagonal derivation
+    land
+  - `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now also
+    carries the planned placeholder
+    `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1`; treat it as a
+    tracking slot only until benchmark-backed Muon runs replace the pending ids
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
-    authoritative fixed-budget family epic
-  - treat [#255](https://github.com/bensonlee5/tab-foundry/issues/255) as the
-    completed Phase-1 fixed-budget family, using the theory-constrained dense diagonal
-    `72x1 -> 96x2 -> 112x3 -> 128x4 -> 152x5 -> 176x6`, with `60x2`
-    retained as the formal external anchor and `96x2` retained as the carried
-    in-family baseline
-  - keep the TF-RD-009 reporting split explicit:
-    `tf_rd_009_width_depth_medium_v1` remains the Phase-1 fixed-budget
-    width-depth queue where the repo-local mixed-depth bridge is used only for
-    integer row construction, while [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
-    is the authoritative Kaplan-exact Phase-2 study for this branch and runs
-    on `tf_rd_009_ns_medium_v1`, `tf_rd_009_batch_critical_medium_v1`, and
-    `reference/scaling_studies/tf_rd_009_phase2.yaml`
-  - document the paper-vs-repo derivation explicitly for [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
-    use Kaplan to justify a smooth effective-size axis, keep Chinchilla-style
-    parameter-token coupling out of this fixed-budget branch, use μP to justify
-    carrying the width winner `96x2`, use the spectral μP paper to require
-    joint width-depth movement once `sandwich_layers` changes, and record the
-    repo-local bridge through `S(d, L) = L * d^2`, the frozen mixed-depth
-    parameter fit `P_local(d, L) ≈ 18638.80 + 77.94 * d^2 + 47.93 * L * d^2`,
-    the frozen RTX 8000 reserved-memory fit
-    `reserved_vram_gb ≈ 8.69 + 9.271e-07 * params`, and the frozen train-wall
-    fit `train_wall_seconds ≈ 8298.45 + 2.275e-04 * params`; use those formulas
-    as repo-local hardware-planning aids, then fit the first reported law on
-    measured benchmark-registry `model_size.total_params` from completed
-    in-family rows `{72x1, 96x2, 112x3, 128x4, 152x5, 176x6}` only, starting
-    with a Kaplan-style power-law family and treating the exponent/intercept as
-    repo-specific empirical quantities rather than paper constants
-  - carry Phase 2 on inspected run metadata rather than code-derived estimates:
-    persist strict-versus-expanded parameter accounting, define canonical
-    paper-style `N` as strict non-embedding params, derive `D = B_eff * S`
-    from measured telemetry, derive training-only `C` from inspected analytic
-    FLOPs, and report the complete validation-backed Phase-2 fit family
-    `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, `L(N,S)`, `Bcrit(L)`, and `L(Cmin)`,
-    with explicit caveats on the weak two-point `Bcrit(L)` envelope
-  - before using the Phase-2 fit as a compute-optimal law, run the fit-audit
-    command and keep validation loss as the primary law-fitting target while
-    treating benchmark log loss as external transfer validation and
-    repo-facing ranking evidence
-  - run [#269](https://github.com/bensonlee5/tab-foundry/issues/269) first as
-    the `#258` upper-family reopen child: gate the selected continuation
-    `192x7 -> 208x8 -> 224x9 -> 248x10` at the carried fixed-budget row, then
-    expand only health=`ok` survivors into the full
-    `{625,1250,2500,5000}` NS ladder under
-    `tf_rd_009_ns_upper_extension_medium_v1`
-  - redesign the batch-critical branch before deriving `Cmin`: run the
-    TF-RD-009 medium `96x2`, `152x5`, and `176x6` batch sweep over
-    `grad_accum_steps={1,2,4,8}` to `5000` steps with validation checkpoints at
-    `{625,1250,2500,5000}`, then estimate `Bcrit(L)` from equal-validation-loss
-    contours rather than the final-only lower envelope
-  - use [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the
-    medium compute-frontier sweep: choose `S` from measured
-    `train_flops_per_step(N)` across `{72x1,96x2,112x3,128x4,152x5,176x6}`,
-    bound `S` to `625..10000`, and compare a fitted Chinchilla-style
-    `L(N,D)=E+A/N^alpha+B/D^beta` against the Kaplan-style `L(N,S)` surface
-  - keep [#260](https://github.com/bensonlee5/tab-foundry/issues/260) as a
-    separate repetition/curriculum slice with fixed architecture and explicit
-    `unique_task_budget` / `curriculum_id`; do not merge those rows into the
-    base `N,S,C` law
-  - maintain the preferred architecture statefully in
-    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`, keyed by
-    hardware profile plus sweep surface rather than by GitHub issue state; the
-    first TF-RD-009 entry is now the frozen `rtx8000_44gb` medium
-    classification surface selected from the healthy benchmark-backed medium
-    evidence after the completed dense diagonal and the corrected #257
-    large-rung validation gate froze a real constraint model and preferred row
-  - use [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as the
-    completed Kaplan-exact fit-and-report issue for the current Phase-2
-    evidence payload; [#257](https://github.com/bensonlee5/tab-foundry/issues/257)
-    is now complete and records the corrected one-row `152x5` large-rung
-    transfer passing on the terminal `latest.pt` rerun, so the hardware
-    baseline is frozen and any further large-rung diagnosis remains separate
-    follow-on work; if [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
-    surfaces a new medium winner candidate, require a fresh one-row large-rung
+    authoritative umbrella for TF-RD-009, but treat the historical
+    schedulefree family under [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) as completed
+    context only
+  - execute [#275](https://github.com/bensonlee5/tab-foundry/issues/275) as the
+    fresh Muon Phase-1 branch: run the full 2500-step single-seed width screen
+    on `tf_rd_009_muon_width_screen_medium_v1`, keep `60x2` as the formal
+    external anchor, choose the carried in-family baseline from measured Muon
+    results, rewrite the diagonal derivation with μP plus spectral priors, and
+    then populate `tf_rd_009_muon_width_depth_medium_v1`
+  - execute [#274](https://github.com/bensonlee5/tab-foundry/issues/274) as the
+    fresh Muon Phase-2 branch: populate
+    `tf_rd_009_muon_ns_one_epoch_medium_v1`,
+    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, and
+    `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml`; fit
+    Kaplan-style laws on Muon-family points only and keep `L(N,S)` on
+    validation loss as the primary kept law, with benchmark loss as external
+    ranking evidence
+  - keep `Bcrit` and derived `Cmin` diagnostic-only in the fresh Muon base
+    family until the redesigned multi-geometry batch lane exists; do not make
+    Chinchilla-like claims from the base Muon Phase-2 study alone
+  - run [#269](https://github.com/bensonlee5/tab-foundry/issues/269) only after
+    `tf_rd_009_muon_phase2_one_epoch_v1` lands, using the Muon upper-extension
+    ids `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
+    `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
+    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`
+  - after the Muon upper-family and redesigned batch lane land, return to
+    [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the later
+    compute-frontier / Chinchilla-style branch, and keep
+    [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate as a
+    repetition or curriculum slice
+  - maintain hardware baselines statefully in
+    `src/tab_foundry/bench/hardware_architecture_baselines_v1.json`: the
+    historical frozen schedulefree entry remains
+    `tf_rd_009_rtx8000_44gb_classification_medium_v1`, while the new
+    `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1` entry stays
+    `planned` until benchmark-backed Muon evidence replaces the pending ids; if
+    a later Muon medium winner emerges, require a fresh one-row large-rung
     validation before replacing the frozen preferred baseline
-  - after [#269](https://github.com/bensonlee5/tab-foundry/issues/269)
-    completes, resume the deferred `#258` stabilization child for seed or
-    noise follow-up plus the redesigned multi-geometry `Bcrit` study, then
-    return to [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for
-    the principled compute-frontier branch
-  - keep [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and
-    [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate from
-    the first fixed-budget law family
-  - keep the bounded non-dynamics sandwich knob sweep in TF-RD-024 rather than
-    reopening those dimensions inside TF-RD-009
-  - treat matched token budget as necessary but not sufficient; compare by
-    matched regime budget using token budget, unique-task budget, fixed
-    curriculum or SCM-mixture slice, and fixed task-complexity band
-  - reuse the closed TF-RD-010 benchmark contract and the kept TF-RD-022
-    runtime surface; do not reopen either gate inside TF-RD-009
-  - keep the other sandwich knobs frozen at the retained compact hybrid anchor
-    values while fitting the first width-depth classification laws, except for
-    the TF-RD-024 carry-forward winner `sandwich_heads=1`
-  - keep one human-readable constraint budget table in the TF-RD-009 evidence
-    note, sourced from the same formulas and evidence that will later populate
-    the hardware baseline registry entry, so the repo records headroom to VRAM
-    and timing constraints rather than leaving that analysis in issue comments
-  - use `final_log_loss_at_matched_regime_budget` as the primary ranking
-    objective on the carried multiclass slice, with calibration, stability,
-    and runtime as explicit guardrails rather than BPC-era stand-ins
-  - keep the eventual `sandwich_scale` interface internal-only until the law is
-    validated on the carried multiclass slice and later follow-on robustness
-    lanes
+  - keep the closed TF-RD-010 benchmark contract, the kept post-#271 packed
+    runtime surface, and the retained compact non-scaling sandwich knobs fixed
+    across the fresh Muon family; compare by matched regime budget with
+    `final_log_loss_at_matched_regime_budget` as the ranking objective and
+    calibration, stability, and runtime as explicit guardrails
 - Exit criteria:
   - the repo can fit width-depth classification laws on the simplified sandwich
     architecture under the closed TF-RD-010 classification benchmark contract

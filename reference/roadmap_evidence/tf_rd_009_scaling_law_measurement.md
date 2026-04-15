@@ -21,12 +21,18 @@ handoff into the sweep-program design issue
   completed sweep-program design child
   [#140](https://github.com/bensonlee5/tab-foundry/issues/140), active
   fixed-budget family epic [#253](https://github.com/bensonlee5/tab-foundry/issues/253),
-  completed width-transfer child
+  historical schedulefree width-transfer child
   [#254](https://github.com/bensonlee5/tab-foundry/issues/254), completed
-  joint width-depth child [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
-  completed Kaplan-exact Phase-2 fit/report child
+  historical schedulefree joint width-depth child
+  [#255](https://github.com/bensonlee5/tab-foundry/issues/255), completed
+  historical schedulefree Kaplan-exact Phase-2 fit/report child
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
-  large-rung validation / hardware-freeze child [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
+  historical large-rung validation / hardware-freeze child
+  [#257](https://github.com/bensonlee5/tab-foundry/issues/257), active Muon
+  Phase-1 child [#275](https://github.com/bensonlee5/tab-foundry/issues/275),
+  active Muon Phase-2 child
+  [#274](https://github.com/bensonlee5/tab-foundry/issues/274), later
+  upper-family child [#269](https://github.com/bensonlee5/tab-foundry/issues/269),
   compute-frontier child [#259](https://github.com/bensonlee5/tab-foundry/issues/259),
   and curriculum/repetition slice child
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
@@ -77,6 +83,43 @@ sweeps must respect unless a follow-on issue explicitly reopens them.
 - Regression, missingness expansion, and public interface work remain out of
   scope for the first law-design branch.
 
+## Historical Schedulefree Family Vs Fresh Muon Family
+
+TF-RD-009 now has two distinct branches in repo state, and the distinction is
+operational rather than cosmetic.
+
+- Historical schedulefree family:
+  - `tf_rd_009_width_transfer_medium_v1`
+  - `tf_rd_009_width_depth_medium_v1`
+  - `tf_rd_009_ns_medium_v1`
+  - `tf_rd_009_batch_critical_medium_v1`
+  - corrected one-epoch rerun
+    `tf_rd_009_ns_one_epoch_medium_v1`,
+    `tf_rd_009_batch_critical_one_epoch_medium_v1`, and
+    `tf_rd_009_phase2_one_epoch_v1`
+  - interpretation: preserved diagnostic history only; keep
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256) closed and do
+    not reuse those ids in place
+- Fresh Muon family:
+  - experiment alias
+    `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
+  - width screen `tf_rd_009_muon_width_screen_medium_v1`
+  - diagonal scaffold `tf_rd_009_muon_width_depth_medium_v1`
+  - one-epoch Phase-2 scaffolds
+    `tf_rd_009_muon_ns_one_epoch_medium_v1`,
+    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, and
+    `tf_rd_009_muon_phase2_one_epoch_v1`
+  - upper-extension scaffolds
+    `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
+    `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
+    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`
+  - interpretation: active reboot branch under
+    [#275](https://github.com/bensonlee5/tab-foundry/issues/275) then
+    [#274](https://github.com/bensonlee5/tab-foundry/issues/274), frozen to
+    `tf_rd_010_dagzoo_medium_control_curated_v6` plus the post-PR
+    [#271](https://github.com/bensonlee5/tab-foundry/pull/271) packed Muon
+    runtime stack on `main`
+
 ## Executive Prescriptions
 
 The literature does not imply one monolithic sweep. It implies three core
@@ -106,18 +149,35 @@ conflate them.
 
 ### Dimensions That Stay Frozen For The First Law Family
 
-- Benchmark slice:
+Historical schedulefree TF-RD-009 and the active Muon reboot do not freeze the
+same starting contract. Keep the two families separate when reading or writing
+later sweep ids.
+
+- Historical schedulefree family:
   - `data.surface_label=tf_rd_010_dagzoo_medium_control`
   - `data.corpus_ref=tf_rd_010_dagzoo_medium_control_curated_v5`
   - `regime_budget.objective_metric=final_log_loss_at_matched_regime_budget`
-- Runtime policy:
   - `runtime.mixed_precision=bf16`
   - `runtime.activation_checkpointing=true`
   - `runtime.compile_model=true`
   - `runtime.compile_backend=eager`
   - `runtime.compile_dynamic=true`
-- Inherited optimizer family:
   - `optimizer.name=schedulefree_adamw`
+- Fresh Muon reboot:
+  - `data.surface_label=tf_rd_010_dagzoo_medium_control`
+  - `data.corpus_ref=tf_rd_010_dagzoo_medium_control_curated_v6`
+  - `regime_budget.objective_metric=final_log_loss_at_matched_regime_budget`
+  - `runtime.mixed_precision=bf16`
+  - `runtime.activation_checkpointing=true`
+  - `runtime.compile_model=true`
+  - `runtime.compile_backend=eager`
+  - `runtime.compile_dynamic=true`
+  - `runtime.loader_task_batch_cache_mode=bounded_streaming`
+  - `model.sandwich_packed_attention=true`
+  - `optimizer.name=muon`
+  - `optimizer.weight_decay=0.01`
+  - `optimizer.betas=[0.9,0.95]`
+  - `optimizer.min_lr=1.0e-6`
 - Non-scaling architecture knobs:
   - `model.sandwich_heads=1`
   - `model.head_hidden_dim=96`
@@ -290,7 +350,7 @@ The literature-backed Phase-2 study uses the paper family as the default fit
 hypothesis, while treating every fitted scale and exponent as repo-specific
 empirical quantities rather than imported constants.
 
-The branch tracks this Kaplan-exact Phase-2 study in
+The historical schedulefree branch tracked its Kaplan-exact Phase-2 study in
 [#256](https://github.com/bensonlee5/tab-foundry/issues/256), with the
 canonical study config in `reference/scaling_studies/tf_rd_009_phase2.yaml`
 and executable sweep surfaces `tf_rd_009_ns_medium_v1` and
@@ -316,6 +376,15 @@ and `{1,2,4,8,16}` ladders on
 `tf_rd_009_batch_critical_one_epoch_medium_v1`, and
 `tf_rd_009_phase2_one_epoch_v1`. The original artifacts remain preserved as
 diagnostic history and must not be mixed into the corrected one-epoch fit.
+
+Muon reboot note, April 14, 2026 PT: the active Phase-2 branch is now the fresh
+Muon family under [#274](https://github.com/bensonlee5/tab-foundry/issues/274),
+with study config
+`reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
+scaffolds `tf_rd_009_muon_ns_one_epoch_medium_v1` and
+`tf_rd_009_muon_batch_critical_one_epoch_medium_v1`. Those Muon ids stay empty
+until the fresh width screen and diagonal derivation land under
+[#275](https://github.com/bensonlee5/tab-foundry/issues/275).
 
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row

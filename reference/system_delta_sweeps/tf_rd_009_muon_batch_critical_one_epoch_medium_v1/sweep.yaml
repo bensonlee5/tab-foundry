@@ -1,0 +1,37 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
+parent_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+status: draft
+complexity_level: classification_md
+anchor_run_id: null
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+surface_role: classification_scaling_law_phase2_batch
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+    - This scaffold stays empty until the fresh Muon Phase-1 diagonal is benchmark-backed and the Muon NS study has executable rows.
+    - Keep `Bcrit` and derived `Cmin` as diagnostic-only in the fresh Muon base Phase-2 family until the redesigned multi-geometry batch lane exists.
+    - The Muon batch-critical study must never mix historical schedulefree points into the new `L(N,S)` family.
+  dimension_table: []
+anchor_context:
+  run_id: null
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
