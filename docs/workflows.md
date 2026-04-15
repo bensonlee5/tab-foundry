@@ -490,7 +490,7 @@ tab-foundry dev resolve-config \
   experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 tab-foundry research sweep inspect \
   --sweep-id tf_rd_009_muon_width_screen_medium_v1 \
-  --order 2 \
+  --order 1 \
   --json
 tab-foundry research scaling inspect \
   --study tf_rd_009_muon_phase2_one_epoch_v1 \

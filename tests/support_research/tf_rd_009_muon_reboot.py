@@ -73,11 +73,15 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
 
     rows = queue["rows"]
     assert [row["delta_ref"] for row in rows] == [
-        "delta_tf_rd_009_cls_sandwich_dicl48_v1",
         "delta_tf_rd_024_followup_cls_sandwich_heads1_v1",
+        "delta_tf_rd_009_cls_sandwich_dicl48_v1",
         "delta_tf_rd_009_cls_sandwich_dicl96_v1",
         "delta_tf_rd_009_cls_sandwich_dicl128_v1",
     ]
+    assert rows[0]["model"]["d_icl"] == 60
+    assert rows[0]["next_action"] == (
+        "Execute order 1 in `tf_rd_009_muon_width_screen_medium_v1` and keep it as the external Muon anchor candidate."
+    )
     assert Counter(f"{row['model']['d_icl']}x{row['model']['sandwich_layers']}" for row in rows) == {
         "48x2": 1,
         "60x2": 1,
@@ -110,7 +114,7 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
         comparison_policy="anchor_only",
         external_benchmarks=[],
     )
-    assert [row["model"]["d_icl"] for row in materialized["rows"]] == [48, 60, 96, 128]
+    assert [row["model"]["d_icl"] for row in materialized["rows"]] == [60, 48, 96, 128]
     assert [row["model"]["sandwich_layers"] for row in materialized["rows"]] == [2, 2, 2, 2]
 
 
