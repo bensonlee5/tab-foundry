@@ -429,6 +429,14 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
                 "throughput_examples_per_second": 12.5,
                 "throughput_tokens_per_second": 6400.0,
                 "non_train_overhead_seconds": 0.8,
+                "compile_shape_dispatch_mode": "signature_family",
+                "compile_shape_dispatch_max_families": 16,
+                "compile_shape_dispatch": {
+                    "compiled_family_count": 3,
+                    "family_switch_count": 7,
+                    "family_call_count": 11,
+                    "compiled_families": ["96x32x6x2", "192x64x10x4", "384x128x20x8"],
+                },
             },
             "hardware_summary": {
                 "device_type": "cuda",
@@ -470,6 +478,14 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
     assert record["model"]["architecture"]["latents"] == 20
     assert record["runtime_summary"]["peak_vram_allocated"] == 1024
     assert record["runtime_summary"]["throughput_tokens_per_second"] == pytest.approx(6400.0)
+    assert record["runtime_summary"]["compile_shape_dispatch_mode"] == "signature_family"
+    assert record["runtime_summary"]["compile_shape_dispatch_max_families"] == 16
+    assert record["runtime_summary"]["compile_shape_dispatch"] == {
+        "compiled_family_count": 3,
+        "family_switch_count": 7,
+        "family_call_count": 11,
+        "compiled_families": ["96x32x6x2", "192x64x10x4", "384x128x20x8"],
+    }
     assert record["hardware_summary"] == {
         "device_type": "cuda",
         "raw_device_name": "NVIDIA A100-SXM4-80GB",
