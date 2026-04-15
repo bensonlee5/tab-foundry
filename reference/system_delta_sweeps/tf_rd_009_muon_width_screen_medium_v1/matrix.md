@@ -5,15 +5,15 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_muon_width_s
 ## Sweep
 
 - Sweep id: `tf_rd_009_muon_width_screen_medium_v1`
-- Sweep status: `draft`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_024_classification_heads_prerow_followup_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_muon_width_screen_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `308b63173a618c5b8ff712653a5879246f9d4a66dedc32c162f8a5c0ed9fb19b`
+- Resolved queue inputs fingerprint: `6aff188ecf0f026f9f201b59e7693cc7f77669353bfafb84df649964e837b636`
 
 ## Locked Surface
 
-- Anchor run id: `null`
+- Anchor run id: `sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1`
 - Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
 - External benchmarks: `none`
@@ -21,13 +21,11 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_muon_width_s
 - Training config profile: `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
 - Surface role: `classification_scaling_law`
 - Comparison policy: `anchor_only`
-- Anchor metrics: `pending trusted rerun`
+- Anchor metrics: final BPC `2.1729`, final BPF `2.1729`, final log loss `0.4172`, final Brier score `0.2748`, best ROC AUC `0.7235`, final ROC AUC `0.7506`, final training time `1890.0s`
 
 ## Anchor Comparison
 
 Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI-g`.
-
-Pending trusted rerun: no anchor is registered yet, so this matrix records the locked benchmark surface and queue state before the first anchor promotion.
 
 | Dimension | Upstream PerceiverIO | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
@@ -36,17 +34,17 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | ready | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Execute order 1 in `tf_rd_009_muon_width_screen_medium_v1` and keep it as the external Muon anchor candidate. |
-| 2 | `delta_tf_rd_009_cls_sandwich_dicl48_v1` | classification_scaling_law | no | ready | none | Reduce TF-RD-009 classification sandwich width from `d_icl=60` to `48` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 2 in `tf_rd_009_muon_width_screen_medium_v1` after the `60x2` anchor lands, before freezing the Muon diagonal derivation. |
-| 3 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 3 in `tf_rd_009_muon_width_screen_medium_v1` before deriving the fresh Muon diagonal. |
-| 4 | `delta_tf_rd_009_cls_sandwich_dicl128_v1` | classification_scaling_law | no | ready | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `128` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Execute order 4 in `tf_rd_009_muon_width_screen_medium_v1` before deriving the fresh Muon diagonal. |
+| 1 | `delta_tf_rd_024_followup_cls_sandwich_heads1_v1` | architecture_followup | no | completed | none | Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface. | Keep `60x2` as the formal external Muon anchor, but do not carry it forward as the in-family diagonal baseline now that `128x2` has won the measured width screen. |
+| 2 | `delta_tf_rd_009_cls_sandwich_dicl48_v1` | classification_scaling_law | no | completed | none | Reduce TF-RD-009 classification sandwich width from `d_icl=60` to `48` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Keep `48x2` as lower-width evidence only; use it to constrain the Muon diagonal derivation, but do not carry it forward as the baseline geometry. |
+| 3 | `delta_tf_rd_009_cls_sandwich_dicl96_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Keep `96x2` as mid-width evidence for the fresh Muon diagonal, but do not carry it forward over the stronger `128x2` result. |
+| 4 | `delta_tf_rd_009_cls_sandwich_dicl128_v1` | classification_scaling_law | no | completed | none | Increase TF-RD-009 classification sandwich width from `d_icl=60` to `128` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed. | Carry `128x2` into `tf_rd_009_muon_width_depth_medium_v1` as the current in-family Muon baseline for the diagonal derivation. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_024_followup_cls_sandwich_heads1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Extend the TF-RD-024 head-partition follow-up by reducing `sandwich_heads` from `4` to `1` on the inherited multiclass benchmark surface.
@@ -69,19 +67,22 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - attention partitioning only; no width, depth, batching, or optimizer reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Fresh Muon anchor replay of the carried `sandwich_heads=1` surface on the corrected v6 medium contract.
   - This row replaces no historical TF-RD-009 id in place; it starts a new Muon family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - This row remains the formal external Muon anchor even though `128x2` emerged as the carried in-family width winner.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_024_followup_cls_sandwich_heads1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1` with final log loss `0.4172`, delta final log loss `+0.0000`, final Brier score `0.2748`, delta final brier score `+0.0000`, final ROC AUC `0.7506`, delta final roc auc `+0.0000`, final BPC (legacy feature-cell diagnostic) `2.1729`, delta final bpc (legacy feature-cell diagnostic) `+0.0000`, final BPF (legacy feature-cell diagnostic) `2.1729`, delta final bpf (legacy feature-cell diagnostic) `+0.0000`, best ROC AUC `0.7235`, delta final training time `+0.0s`
 
 ### 2. `delta_tf_rd_009_cls_sandwich_dicl48_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Reduce TF-RD-009 classification sandwich width from `d_icl=60` to `48` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -105,19 +106,21 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 artifacts remain preserved and must not be mixed into this family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl48_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1` with final log loss `0.4147`, delta final log loss `-0.0026`, final Brier score `0.2713`, delta final brier score `-0.0035`, final ROC AUC `0.7608`, delta final roc auc `+0.0102`, final BPC (legacy feature-cell diagnostic) `2.7336`, delta final bpc (legacy feature-cell diagnostic) `+0.5607`, final BPF (legacy feature-cell diagnostic) `2.7336`, delta final bpf (legacy feature-cell diagnostic) `+0.5607`, best ROC AUC `0.6588`, delta final training time `-26.8s`
 
 ### 3. `delta_tf_rd_009_cls_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `96` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -141,19 +144,21 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1` with final log loss `0.4128`, delta final log loss `-0.0044`, final Brier score `0.2710`, delta final brier score `-0.0037`, final ROC AUC `0.7573`, delta final roc auc `+0.0067`, final BPC (legacy feature-cell diagnostic) `2.2405`, delta final bpc (legacy feature-cell diagnostic) `+0.0676`, final BPF (legacy feature-cell diagnostic) `2.2405`, delta final bpf (legacy feature-cell diagnostic) `+0.0676`, best ROC AUC `0.7035`, delta final training time `-37.6s`
 
 ### 4. `delta_tf_rd_009_cls_sandwich_dicl128_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Increase TF-RD-009 classification sandwich width from `d_icl=60` to `128` while keeping the carried `sandwich_heads=1` architecture and the TF-RD-022 runtime bundle fixed.
@@ -177,11 +182,14 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - width only; no layers, optimizer retune, curriculum, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `keep`
 - Notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - This is the measured in-family width winner and the current carried baseline for the fresh Muon diagonal derivation.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1` with final log loss `0.3951`, delta final log loss `-0.0222`, final Brier score `0.2585`, delta final brier score `-0.0163`, final ROC AUC `0.7583`, delta final roc auc `+0.0077`, final BPC (legacy feature-cell diagnostic) `2.1383`, delta final bpc (legacy feature-cell diagnostic) `-0.0346`, final BPF (legacy feature-cell diagnostic) `2.1383`, delta final bpf (legacy feature-cell diagnostic) `-0.0346`, best ROC AUC `0.7563`, delta final training time `-64.6s`

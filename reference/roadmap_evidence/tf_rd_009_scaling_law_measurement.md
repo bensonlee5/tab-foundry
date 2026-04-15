@@ -103,7 +103,7 @@ operational rather than cosmetic.
 - Fresh Muon family:
   - experiment alias
     `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
-  - width screen `tf_rd_009_muon_width_screen_medium_v1`
+  - completed width screen `tf_rd_009_muon_width_screen_medium_v1`
   - diagonal scaffold `tf_rd_009_muon_width_depth_medium_v1`
   - one-epoch Phase-2 scaffolds
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,
@@ -118,7 +118,10 @@ operational rather than cosmetic.
     [#274](https://github.com/bensonlee5/tab-foundry/issues/274), frozen to
     `tf_rd_010_dagzoo_medium_control_curated_v6` plus the post-PR
     [#271](https://github.com/bensonlee5/tab-foundry/pull/271) packed Muon
-    runtime stack on `main`
+    runtime stack on `main`; the landed Muon width screen now records
+    `60x2=0.4172`, `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`, with
+    `60x2` retained as the formal external anchor and `128x2` carried forward
+    as the current in-family baseline for the diagonal derivation
 
 ## Executive Prescriptions
 
@@ -383,8 +386,12 @@ with study config
 `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
 scaffolds `tf_rd_009_muon_ns_one_epoch_medium_v1` and
 `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`. Those Muon ids stay empty
-until the fresh width screen and diagonal derivation land under
-[#275](https://github.com/bensonlee5/tab-foundry/issues/275).
+until the fresh diagonal derivation lands under
+[#275](https://github.com/bensonlee5/tab-foundry/issues/275). The fresh Muon
+width screen has now landed on the v6 contract with `60x2=0.4172`,
+`48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`, so the immediate remaining
+Phase-1 work is to materialize `tf_rd_009_muon_width_depth_medium_v1` from the
+carried `128x2` baseline while keeping `60x2` as the formal external anchor.
 
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row

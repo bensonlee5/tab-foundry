@@ -497,11 +497,13 @@ tab-foundry research scaling inspect \
   --json
 ```
 
-`tf_rd_009_muon_width_screen_medium_v1` is the first executable Muon family and
-replays `{48x2,60x2,96x2,128x2}` at the full 2500-step budget on
-`tf_rd_010_dagzoo_medium_control_curated_v6`. The Muon width-depth and Phase-2
-study ids are intentionally scaffolded with zero completed points until the
-width screen and diagonal derivation land.
+`tf_rd_009_muon_width_screen_medium_v1` has now completed the fresh Muon width
+screen on the full 2500-step `v6` contract, with `60x2=0.4172`,
+`48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951` final matched-budget log
+loss. Keep `60x2` as the formal external Muon anchor, but carry `128x2`
+forward as the current in-family baseline for the pending diagonal
+derivation. The Muon width-depth and Phase-2 study ids remain scaffolded until
+that diagonal lands.
 
 For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than

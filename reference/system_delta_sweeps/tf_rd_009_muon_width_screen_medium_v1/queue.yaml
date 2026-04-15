@@ -1,419 +1,563 @@
 schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_009_muon_width_screen_medium_v1
 rows:
-  - order: 1
-    delta_ref: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
-    status: ready
-    rationale: Establish the fresh Muon `60x2` external anchor candidate at the full 2500-step budget on the v6 no-repeat contract.
-    hypothesis: ""
-    anchor_delta: Fresh Muon width-screen row `60x2`; treat this as the formal external anchor candidate for the rebooted family.
-    model:
-      arch: tabfoundry_sandwich
-      d_icl: 60
-      input_normalization: train_zscore_clip
-      many_class_base: 10
-      head_hidden_dim: 96
-      sandwich_latents: 24
-      sandwich_layers: 2
-      sandwich_heads: 1
-      sandwich_ff_expansion: 2
-      sandwich_summary_tokens_per_axis: 3
-      sandwich_self_attention_per_cross: 4
-      sandwich_pre_row_attention_layers: 1
-      sandwich_pre_column_attention_layers: 1
-      sandwich_pre_column_inducing_tokens: 16
-      feature_type_conditioning: film
-      floating_likelihood: single_gaussian
-      integer_likelihood: hybrid_mixture
-    data:
-      surface_label: tf_rd_010_dagzoo_medium_control
+- order: 1
+  delta_ref: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
+  status: completed
+  rationale: Establish the fresh Muon `60x2` external anchor candidate at the full
+    2500-step budget on the v6 no-repeat contract.
+  hypothesis: ''
+  anchor_delta: Fresh Muon width-screen row `60x2`; treat this as the formal external
+    anchor candidate for the rebooted family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      surface_overrides:
-        source: manifest
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_cosine_warmup
-      task_batch_size: 16
-      prior_dump_batch_size: 64
-      overrides:
-        optimizer:
-          name: muon
-          require_requested: true
-          weight_decay: 0.01
-          betas: [0.9, 0.95]
-          min_lr: 1.0e-6
-          muon_per_parameter_lr: true
-          muon_lr_scale_base: 0.2
-          muon_partition_non2d: true
-        runtime:
-          mixed_precision: bf16
-          grad_clip: 0.0
-          grad_accum_steps: 4
-          trace_activations: false
-          activation_checkpointing: true
-          eval_every: 25
-          checkpoint_every: 25
-          val_batches: 0
-          max_steps: 2500
-          loader_task_batch_cache: false
-          loader_task_batch_cache_mode: bounded_streaming
-          num_workers: auto
-          loader_pin_memory: true
-          loader_persistent_workers: false
-          loader_prefetch_factor: auto
-          non_blocking_device_transfer: true
-          compile_model: true
-          compile_backend: eager
-          compile_dynamic: true
-          compile_shape_dispatch_mode: signature_family
-          compile_shape_dispatch_max_families: 16
-          signature_family_run_length: 4
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 2500
-              lr_max: 0.001
-              lr_schedule: linear
-              warmup_ratio: 0.1
-      one_epoch_contract:
-        enabled: true
-        scope: train_manifest_unique_tasks
-        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-        largest_required_train_tasks: 160000
-        expected_train_records_available: 1344081
-    parameter_adequacy_plan:
-      - Establish the formal external Muon anchor at `60x2` before any fresh width-depth diagonal is derived.
-      - Do not inherit carried-baseline status from historical schedulefree TF-RD-009; choose the in-family baseline only from measured Muon results.
-      - Use the benchmark-backed `60x2` result as the reference row for the Muon width screen and the later planned hardware-freeze replacement.
-    execution_policy: benchmark_full
-    benchmark_checkpoint_selection: all
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Execute order 1 in `tf_rd_009_muon_width_screen_medium_v1` and keep it as the external Muon anchor candidate.
-    notes:
-      - Fresh Muon anchor replay of the carried `sandwich_heads=1` surface on the corrected v6 medium contract.
-      - This row replaces no historical TF-RD-009 id in place; it starts a new Muon family.
-    dynamic_model_overrides: null
-    reuse_train_artifact: null
-    screen_metrics: null
-    benchmark_metrics: null
-    parent_delta_ref: null
-  - order: 2
-    delta_ref: delta_tf_rd_009_cls_sandwich_dicl48_v1
-    status: ready
-    rationale: Execute the fresh Muon lower-width bracket at `48x2` under the fixed packed-runtime plus v6 no-repeat contract.
-    hypothesis: ""
-    anchor_delta: Fresh Muon width-screen row `48x2`; interpret this row only inside the bounded family once the `60x2` anchor is benchmark-backed.
-    model:
-      arch: tabfoundry_sandwich
-      d_icl: 48
-      input_normalization: train_zscore_clip
-      many_class_base: 10
-      head_hidden_dim: 96
-      sandwich_latents: 24
-      sandwich_layers: 2
-      sandwich_heads: 1
-      sandwich_ff_expansion: 2
-      sandwich_summary_tokens_per_axis: 3
-      sandwich_self_attention_per_cross: 4
-      sandwich_pre_row_attention_layers: 1
-      sandwich_pre_column_attention_layers: 1
-      sandwich_pre_column_inducing_tokens: 16
-      feature_type_conditioning: film
-      floating_likelihood: single_gaussian
-      integer_likelihood: hybrid_mixture
-    data:
-      surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Establish the formal external Muon anchor at `60x2` before any fresh width-depth
+    diagonal is derived.
+  - Do not inherit carried-baseline status from historical schedulefree TF-RD-009;
+    choose the in-family baseline only from measured Muon results.
+  - Use the benchmark-backed `60x2` result as the reference row for the Muon width
+    screen and the later planned hardware-freeze replacement.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep `60x2` as the formal external Muon anchor, but do not carry
+    it forward as the in-family diagonal baseline now that `128x2` has won the
+    measured width screen.
+  notes:
+  - Fresh Muon anchor replay of the carried `sandwich_heads=1` surface on the corrected
+    v6 medium contract.
+  - This row replaces no historical TF-RD-009 id in place; it starts a new Muon family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - This row remains the formal external Muon anchor even though `128x2` emerged as
+    the carried in-family width winner.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 1325.0
+    max_grad_norm: 2.523316327927787
+    best_bpc: 2.0836443490760272
+    best_bpf: 2.083644361274187
+    best_roc_auc: 0.7234860282351037
+    best_log_loss: 0.4658386767203811
+    best_brier_score: 0.30857788636314887
+    final_bpc: 2.172896886426349
+    final_bpf: 2.1728968476140222
+    final_roc_auc: 0.7505614107350337
+    final_log_loss: 0.41722910992213513
+    final_brier_score: 0.2747580519691645
+    final_minus_best_bpc: 0.08925253735032168
+    final_minus_best_bpf: 0.08925248633983518
+    final_minus_best_roc_auc: 0.027075382499930023
+    final_minus_best_log_loss: -0.04860956679824596
+    final_minus_best_brier_score: -0.033819834393984394
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.04860956679824596
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl48_v1
+  status: completed
+  rationale: Execute the fresh Muon lower-width bracket at `48x2` under the fixed
+    packed-runtime plus v6 no-repeat contract.
+  hypothesis: ''
+  anchor_delta: Fresh Muon width-screen row `48x2`; interpret this row only inside
+    the bounded family once the `60x2` anchor is benchmark-backed.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 48
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      surface_overrides:
-        source: manifest
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_cosine_warmup
-      task_batch_size: 16
-      prior_dump_batch_size: 64
-      overrides:
-        optimizer:
-          name: muon
-          require_requested: true
-          weight_decay: 0.01
-          betas: [0.9, 0.95]
-          min_lr: 1.0e-6
-          muon_per_parameter_lr: true
-          muon_lr_scale_base: 0.2
-          muon_partition_non2d: true
-        runtime:
-          mixed_precision: bf16
-          grad_clip: 0.0
-          grad_accum_steps: 4
-          trace_activations: false
-          activation_checkpointing: true
-          eval_every: 25
-          checkpoint_every: 25
-          val_batches: 0
-          max_steps: 2500
-          loader_task_batch_cache: false
-          loader_task_batch_cache_mode: bounded_streaming
-          num_workers: auto
-          loader_pin_memory: true
-          loader_persistent_workers: false
-          loader_prefetch_factor: auto
-          non_blocking_device_transfer: true
-          compile_model: true
-          compile_backend: eager
-          compile_dynamic: true
-          compile_shape_dispatch_mode: signature_family
-          compile_shape_dispatch_max_families: 16
-          signature_family_run_length: 4
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 2500
-              lr_max: 0.001
-              lr_schedule: linear
-              warmup_ratio: 0.1
-      one_epoch_contract:
-        enabled: true
-        scope: train_manifest_unique_tasks
-        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-        largest_required_train_tasks: 160000
-        expected_train_records_available: 1344081
-    parameter_adequacy_plan:
-      - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside the bounded family `{48x2, 60x2, 96x2, 128x2}`.
-      - Compare directly against the measured Muon `60x2` anchor candidate at matched regime budget after order 1 lands.
-      - Use this row only as lower-width evidence for the fresh Muon family; do not inherit any decision from the historical schedulefree branch.
-    execution_policy: benchmark_full
-    benchmark_checkpoint_selection: all
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Execute order 2 in `tf_rd_009_muon_width_screen_medium_v1` after the `60x2` anchor lands, before freezing the Muon diagonal derivation.
-    notes:
-      - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
-      - Historical schedulefree TF-RD-009 artifacts remain preserved and must not be mixed into this family.
-    dynamic_model_overrides: null
-    reuse_train_artifact: null
-    screen_metrics: null
-    benchmark_metrics: null
-    parent_delta_ref: null
-  - order: 3
-    delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
-    status: ready
-    rationale: Execute the fresh Muon upper-width bracket at `96x2` under the fixed packed-runtime plus v6 no-repeat contract.
-    hypothesis: ""
-    anchor_delta: Fresh Muon width-screen row `96x2`; interpret this row only inside the bounded Muon width family.
-    model:
-      arch: tabfoundry_sandwich
-      d_icl: 96
-      input_normalization: train_zscore_clip
-      many_class_base: 10
-      head_hidden_dim: 96
-      sandwich_latents: 24
-      sandwich_layers: 2
-      sandwich_heads: 1
-      sandwich_ff_expansion: 2
-      sandwich_summary_tokens_per_axis: 3
-      sandwich_self_attention_per_cross: 4
-      sandwich_pre_row_attention_layers: 1
-      sandwich_pre_column_attention_layers: 1
-      sandwich_pre_column_inducing_tokens: 16
-      feature_type_conditioning: film
-      floating_likelihood: single_gaussian
-      integer_likelihood: hybrid_mixture
-    data:
-      surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside
+    the bounded family `{48x2, 60x2, 96x2, 128x2}`.
+  - Compare directly against the measured Muon `60x2` anchor candidate at matched
+    regime budget after order 1 lands.
+  - Use this row only as lower-width evidence for the fresh Muon family; do not inherit
+    any decision from the historical schedulefree branch.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep `48x2` as lower-width evidence only; use it to constrain the
+    Muon diagonal derivation, but do not carry it forward as the baseline geometry.
+  notes:
+  - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  - Historical schedulefree TF-RD-009 artifacts remain preserved and must not be mixed
+    into this family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 575.0
+    max_grad_norm: 3.0949909081281906
+    best_bpc: 2.3199040989543116
+    best_bpf: 2.319904074557992
+    best_roc_auc: 0.6588097757372451
+    best_log_loss: 0.5381290863574353
+    best_brier_score: 0.3629984339345996
+    final_bpc: 2.733642670165661
+    final_bpf: 2.7336426912352096
+    final_roc_auc: 0.7608079039352357
+    final_log_loss: 0.4146652127137755
+    final_brier_score: 0.2712528245598932
+    final_minus_best_bpc: 0.41373857121134927
+    final_minus_best_bpf: 0.4137386166772177
+    final_minus_best_roc_auc: 0.10199812819799059
+    final_minus_best_log_loss: -0.1234638736436598
+    final_minus_best_brier_score: -0.09174560937470638
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.1234638736436598
+    delta_final_bpc: 0.5607457837393119
+    delta_final_bpf: 0.5607458436211874
+    delta_final_log_loss: -0.0025638972083596445
+    delta_final_brier_score: -0.003505227409271283
+    delta_final_roc_auc: 0.01024649320020199
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl96_v1
+  status: completed
+  rationale: Execute the fresh Muon upper-width bracket at `96x2` under the fixed
+    packed-runtime plus v6 no-repeat contract.
+  hypothesis: ''
+  anchor_delta: Fresh Muon width-screen row `96x2`; interpret this row only inside
+    the bounded Muon width family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      surface_overrides:
-        source: manifest
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_cosine_warmup
-      task_batch_size: 16
-      prior_dump_batch_size: 64
-      overrides:
-        optimizer:
-          name: muon
-          require_requested: true
-          weight_decay: 0.01
-          betas: [0.9, 0.95]
-          min_lr: 1.0e-6
-          muon_per_parameter_lr: true
-          muon_lr_scale_base: 0.2
-          muon_partition_non2d: true
-        runtime:
-          mixed_precision: bf16
-          grad_clip: 0.0
-          grad_accum_steps: 4
-          trace_activations: false
-          activation_checkpointing: true
-          eval_every: 25
-          checkpoint_every: 25
-          val_batches: 0
-          max_steps: 2500
-          loader_task_batch_cache: false
-          loader_task_batch_cache_mode: bounded_streaming
-          num_workers: auto
-          loader_pin_memory: true
-          loader_persistent_workers: false
-          loader_prefetch_factor: auto
-          non_blocking_device_transfer: true
-          compile_model: true
-          compile_backend: eager
-          compile_dynamic: true
-          compile_shape_dispatch_mode: signature_family
-          compile_shape_dispatch_max_families: 16
-          signature_family_run_length: 4
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 2500
-              lr_max: 0.001
-              lr_schedule: linear
-              warmup_ratio: 0.1
-      one_epoch_contract:
-        enabled: true
-        scope: train_manifest_unique_tasks
-        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-        largest_required_train_tasks: 160000
-        expected_train_records_available: 1344081
-    parameter_adequacy_plan:
-      - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside the bounded family `{48x2, 60x2, 96x2, 128x2}`.
-      - Compare directly against the measured Muon `60x2` anchor candidate at matched regime budget after order 1 lands.
-      - Allow this row to become the carried in-family baseline only if the measured Muon result is healthy and clearly better than the rest of the Muon width family.
-    execution_policy: benchmark_full
-    benchmark_checkpoint_selection: all
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Execute order 3 in `tf_rd_009_muon_width_screen_medium_v1` before deriving the fresh Muon diagonal.
-    notes:
-      - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
-      - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline status to this row.
-    dynamic_model_overrides: null
-    reuse_train_artifact: null
-    screen_metrics: null
-    benchmark_metrics: null
-    parent_delta_ref: null
-  - order: 4
-    delta_ref: delta_tf_rd_009_cls_sandwich_dicl128_v1
-    status: ready
-    rationale: Execute the fresh Muon upper-width bracket at `128x2` under the fixed packed-runtime plus v6 no-repeat contract.
-    hypothesis: ""
-    anchor_delta: Fresh Muon width-screen row `128x2`; interpret this row only inside the bounded Muon width family.
-    model:
-      arch: tabfoundry_sandwich
-      d_icl: 128
-      input_normalization: train_zscore_clip
-      many_class_base: 10
-      head_hidden_dim: 96
-      sandwich_latents: 24
-      sandwich_layers: 2
-      sandwich_heads: 1
-      sandwich_ff_expansion: 2
-      sandwich_summary_tokens_per_axis: 3
-      sandwich_self_attention_per_cross: 4
-      sandwich_pre_row_attention_layers: 1
-      sandwich_pre_column_attention_layers: 1
-      sandwich_pre_column_inducing_tokens: 16
-      feature_type_conditioning: film
-      floating_likelihood: single_gaussian
-      integer_likelihood: hybrid_mixture
-    data:
-      surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside
+    the bounded family `{48x2, 60x2, 96x2, 128x2}`.
+  - Compare directly against the measured Muon `60x2` anchor candidate at matched
+    regime budget after order 1 lands.
+  - Allow this row to become the carried in-family baseline only if the measured Muon
+    result is healthy and clearly better than the rest of the Muon width family.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep `96x2` as mid-width evidence for the fresh Muon diagonal, but
+    do not carry it forward over the stronger `128x2` result.
+  notes:
+  - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline
+    status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 575.0
+    max_grad_norm: 2.755733423147971
+    best_bpc: 2.175311745044797
+    best_bpf: 2.1753117594608042
+    best_roc_auc: 0.7035107493414393
+    best_log_loss: 0.5088216374417037
+    best_brier_score: 0.3390916185345914
+    final_bpc: 2.2405215241188228
+    final_bpf: 2.2405214886332665
+    final_roc_auc: 0.7572619878796143
+    final_log_loss: 0.41282803315648675
+    final_brier_score: 0.2710465779329443
+    final_minus_best_bpc: 0.06520977907402559
+    final_minus_best_bpf: 0.06520972917246226
+    final_minus_best_roc_auc: 0.053751238538174984
+    final_minus_best_log_loss: -0.09599360428521697
+    final_minus_best_brier_score: -0.06804504060164712
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.09599360428521697
+    delta_final_bpc: 0.06762463769247384
+    delta_final_bpf: 0.06762464101924426
+    delta_final_log_loss: -0.004401076765648382
+    delta_final_brier_score: -0.003711474036220186
+    delta_final_roc_auc: 0.006700577144580611
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl128_v1
+  status: completed
+  rationale: Execute the fresh Muon upper-width bracket at `128x2` under the fixed
+    packed-runtime plus v6 no-repeat contract.
+  hypothesis: ''
+  anchor_delta: Fresh Muon width-screen row `128x2`; interpret this row only inside
+    the bounded Muon width family.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 128
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
       source: manifest
       corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      surface_overrides:
-        source: manifest
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_cosine_warmup
-      task_batch_size: 16
-      prior_dump_batch_size: 64
-      overrides:
-        optimizer:
-          name: muon
-          require_requested: true
-          weight_decay: 0.01
-          betas: [0.9, 0.95]
-          min_lr: 1.0e-6
-          muon_per_parameter_lr: true
-          muon_lr_scale_base: 0.2
-          muon_partition_non2d: true
-        runtime:
-          mixed_precision: bf16
-          grad_clip: 0.0
-          grad_accum_steps: 4
-          trace_activations: false
-          activation_checkpointing: true
-          eval_every: 25
-          checkpoint_every: 25
-          val_batches: 0
-          max_steps: 2500
-          loader_task_batch_cache: false
-          loader_task_batch_cache_mode: bounded_streaming
-          num_workers: auto
-          loader_pin_memory: true
-          loader_persistent_workers: false
-          loader_prefetch_factor: auto
-          non_blocking_device_transfer: true
-          compile_model: true
-          compile_backend: eager
-          compile_dynamic: true
-          compile_shape_dispatch_mode: signature_family
-          compile_shape_dispatch_max_families: 16
-          signature_family_run_length: 4
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 2500
-              lr_max: 0.001
-              lr_schedule: linear
-              warmup_ratio: 0.1
-      one_epoch_contract:
-        enabled: true
-        scope: train_manifest_unique_tasks
-        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
-        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-        largest_required_train_tasks: 160000
-        expected_train_records_available: 1344081
-    parameter_adequacy_plan:
-      - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside the bounded family `{48x2, 60x2, 96x2, 128x2}`.
-      - Compare directly against the measured Muon `60x2` anchor candidate at matched regime budget after order 1 lands.
-      - Carry this row forward only if it remains healthy and materially informative for the fresh Muon diagonal derivation.
-    execution_policy: benchmark_full
-    benchmark_checkpoint_selection: all
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Execute order 4 in `tf_rd_009_muon_width_screen_medium_v1` before deriving the fresh Muon diagonal.
-    notes:
-      - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
-      - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline status to this row.
-    dynamic_model_overrides: null
-    reuse_train_artifact: null
-    screen_metrics: null
-    benchmark_metrics: null
-    parent_delta_ref: null
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Keep the post-#271 packed Muon runtime surface fixed and vary width only inside
+    the bounded family `{48x2, 60x2, 96x2, 128x2}`.
+  - Compare directly against the measured Muon `60x2` anchor candidate at matched
+    regime budget after order 1 lands.
+  - Carry this row forward only if it remains healthy and materially informative for
+    the fresh Muon diagonal derivation.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Carry `128x2` into `tf_rd_009_muon_width_depth_medium_v1` as the
+    current in-family Muon baseline for the diagonal derivation.
+  notes:
+  - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline
+    status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - This is the measured in-family width winner and the current carried baseline for
+    the fresh Muon diagonal derivation.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 1750.0
+    max_grad_norm: 2.6592280647552573
+    best_bpc: 2.124410019364468
+    best_bpf: 2.1244099921958393
+    best_roc_auc: 0.7562573296057853
+    best_log_loss: 0.40691625006652804
+    best_brier_score: 0.2665095267071411
+    final_bpc: 2.1382621194041054
+    final_bpf: 2.1382621188496436
+    final_roc_auc: 0.7582954414976246
+    final_log_loss: 0.3950714842398618
+    final_brier_score: 0.25850390817011154
+    final_minus_best_bpc: 0.013852100039637438
+    final_minus_best_bpf: 0.013852126653804309
+    final_minus_best_roc_auc: 0.0020381118918393337
+    final_minus_best_log_loss: -0.011844765826666215
+    final_minus_best_brier_score: -0.00800561853702958
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.011844765826666215
+    delta_final_bpc: -0.03463476702224355
+    delta_final_bpf: -0.034634728764378675
+    delta_final_log_loss: -0.022157625682273308
+    delta_final_brier_score: -0.016254143799052934
+    delta_final_roc_auc: 0.007734030762590938
+  parent_delta_ref: null

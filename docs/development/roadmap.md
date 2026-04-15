@@ -1120,20 +1120,22 @@ Legacy wording note:
     [#271](https://github.com/bensonlee5/tab-foundry/pull/271) packed/runtime
     stack on `main`, and the explicit Muon experiment alias
     `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
-  - no benchmark-backed Muon anchor above 2500 steps exists yet; the first
-    executable fresh-family sweep is
-    `tf_rd_009_muon_width_screen_medium_v1`, which replays
-    `{48x2, 60x2, 96x2, 128x2}` with `60x2` as the formal external Muon anchor
-    candidate
-  - `tf_rd_009_muon_width_depth_medium_v1`,
+  - the fresh Muon width screen `tf_rd_009_muon_width_screen_medium_v1` has now
+    landed on the fixed v6 contract at the full 2500-step budget:
+    `60x2=0.4172`, `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951` final
+    matched-regime-budget log loss; keep `60x2` as the formal external Muon
+    anchor, but carry `128x2` forward as the current in-family baseline for the
+    diagonal derivation
+  - `tf_rd_009_muon_width_depth_medium_v1` now records the carried `128x2`
+    in-family baseline and remains otherwise empty until the fresh diagonal is
+    materialized;
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,
     `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`,
     `tf_rd_009_muon_phase2_one_epoch_v1`,
     `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
     `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
     `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1` are now scaffolded and
-    intentionally empty until the Muon width screen and diagonal derivation
-    land
+    intentionally empty until the fresh Muon diagonal derivation lands
   - `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now also
     carries the planned placeholder
     `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1`; treat it as a
@@ -1146,12 +1148,11 @@ Legacy wording note:
     [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) as completed
     context only
-  - execute [#275](https://github.com/bensonlee5/tab-foundry/issues/275) as the
-    fresh Muon Phase-1 branch: run the full 2500-step single-seed width screen
-    on `tf_rd_009_muon_width_screen_medium_v1`, keep `60x2` as the formal
-    external anchor, choose the carried in-family baseline from measured Muon
-    results, rewrite the diagonal derivation with μP plus spectral priors, and
-    then populate `tf_rd_009_muon_width_depth_medium_v1`
+  - finish [#275](https://github.com/bensonlee5/tab-foundry/issues/275) by
+    rewriting the fresh Muon width-depth derivation around the landed width
+    screen, keeping `60x2` as the formal external anchor while carrying
+    `128x2` as the measured in-family baseline, and then populate
+    `tf_rd_009_muon_width_depth_medium_v1`
   - execute [#274](https://github.com/bensonlee5/tab-foundry/issues/274) as the
     fresh Muon Phase-2 branch: populate
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,

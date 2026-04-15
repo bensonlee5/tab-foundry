@@ -6,9 +6,9 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_width_screen_
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_009_muon_width_screen_medium_v1/matrix.md
 sweep_id: tf_rd_009_muon_width_screen_medium_v1
 parent_sweep_id: tf_rd_024_classification_heads_prerow_followup_v1
-sweep_status: draft
+sweep_status: completed
 complexity_level: classification_md
-anchor_run_id: null
+anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
@@ -21,18 +21,19 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - No benchmark-backed Muon anchor above 2500 steps exists yet on the closed TF-RD-010
-    medium contract.
-  - This sweep is the fresh Muon re-anchor for TF-RD-009 and replays the bounded width
-    family `{48x2, 60x2, 96x2, 128x2}` on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  - The fresh Muon width screen landed on the closed TF-RD-010 medium contract with
+    benchmark-backed results at `60x2=0.4172`, `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`
+    final matched-regime-budget log loss.
+  - This sweep re-anchored TF-RD-009 on the bounded Muon width family `{48x2, 60x2,
+    96x2, 128x2}` over `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Keep the post-#271 packed-attention plus runtime surface on `main` fixed; only
     width changes in this family.
-  - Treat `60x2` as the formal external Muon anchor candidate, but choose the carried
-    in-family baseline from measured Muon results rather than from historical schedulefree
-    evidence.
+  - Keep `60x2` as the formal external Muon anchor, but carry `128x2` forward as the
+    current in-family baseline for the fresh diagonal derivation rather than inheriting
+    the historical schedulefree `96x2` winner.
   dimension_table: []
 anchor_context:
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
   experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
   model:
@@ -49,7 +50,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_024_followup_cls_sandwich_heads1_v1
-  status: ready
+  status: completed
   rationale: Establish the fresh Muon `60x2` external anchor candidate at the full
     2500-step budget on the v6 no-repeat contract.
   hypothesis: ''
@@ -144,21 +145,46 @@ rows:
     screen and the later planned hardware-freeze replacement.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute order 1 in `tf_rd_009_muon_width_screen_medium_v1` and keep
-    it as the external Muon anchor candidate.
+  next_action: Keep `60x2` as the formal external Muon anchor, but do not carry it
+    forward as the in-family diagonal baseline now that `128x2` has won the measured
+    width screen.
   notes:
   - Fresh Muon anchor replay of the carried `sandwich_heads=1` surface on the corrected
     v6 medium contract.
   - This row replaces no historical TF-RD-009 id in place; it starts a new Muon family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - This row remains the formal external Muon anchor even though `128x2` emerged as
+    the carried in-family width winner.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1325.0
+    max_grad_norm: 2.523316327927787
+    best_bpc: 2.0836443490760272
+    best_bpf: 2.083644361274187
+    best_roc_auc: 0.7234860282351037
+    best_log_loss: 0.4658386767203811
+    best_brier_score: 0.30857788636314887
+    final_bpc: 2.172896886426349
+    final_bpf: 2.1728968476140222
+    final_roc_auc: 0.7505614107350337
+    final_log_loss: 0.41722910992213513
+    final_brier_score: 0.2747580519691645
+    final_minus_best_bpc: 0.08925253735032168
+    final_minus_best_bpf: 0.08925248633983518
+    final_minus_best_roc_auc: 0.027075382499930023
+    final_minus_best_log_loss: -0.04860956679824596
+    final_minus_best_brier_score: -0.033819834393984394
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.04860956679824596
   parent_delta_ref: null
   dimension_family: model
   family: architecture_followup
@@ -332,7 +358,7 @@ rows:
   resolved_surface_fingerprint: 2467cd80ac43b33bba690c39f7647013f04db7921194e86dda92a6279ea29b03
 - order: 2
   delta_id: delta_tf_rd_009_cls_sandwich_dicl48_v1
-  status: ready
+  status: completed
   rationale: Execute the fresh Muon lower-width bracket at `48x2` under the fixed
     packed-runtime plus v6 no-repeat contract.
   hypothesis: ''
@@ -427,21 +453,48 @@ rows:
     any decision from the historical schedulefree branch.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute order 2 in `tf_rd_009_muon_width_screen_medium_v1` after the
-    `60x2` anchor lands, before freezing the Muon diagonal derivation.
+  next_action: Keep `48x2` as lower-width evidence only; use it to constrain the Muon
+    diagonal derivation, but do not carry it forward as the baseline geometry.
   notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 artifacts remain preserved and must not be mixed
     into this family.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 575.0
+    max_grad_norm: 3.0949909081281906
+    best_bpc: 2.3199040989543116
+    best_bpf: 2.319904074557992
+    best_roc_auc: 0.6588097757372451
+    best_log_loss: 0.5381290863574353
+    best_brier_score: 0.3629984339345996
+    final_bpc: 2.733642670165661
+    final_bpf: 2.7336426912352096
+    final_roc_auc: 0.7608079039352357
+    final_log_loss: 0.4146652127137755
+    final_brier_score: 0.2712528245598932
+    final_minus_best_bpc: 0.41373857121134927
+    final_minus_best_bpf: 0.4137386166772177
+    final_minus_best_roc_auc: 0.10199812819799059
+    final_minus_best_log_loss: -0.1234638736436598
+    final_minus_best_brier_score: -0.09174560937470638
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.1234638736436598
+    delta_final_bpc: 0.5607457837393119
+    delta_final_bpf: 0.5607458436211874
+    delta_final_log_loss: -0.0025638972083596445
+    delta_final_brier_score: -0.003505227409271283
+    delta_final_roc_auc: 0.01024649320020199
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -618,7 +671,7 @@ rows:
   resolved_surface_fingerprint: 2fe49d94269f4bb92aab7f2345f2e52d12d04876ca2b0d2cd9b1489f6ad5130d
 - order: 3
   delta_id: delta_tf_rd_009_cls_sandwich_dicl96_v1
-  status: ready
+  status: completed
   rationale: Execute the fresh Muon upper-width bracket at `96x2` under the fixed
     packed-runtime plus v6 no-repeat contract.
   hypothesis: ''
@@ -713,21 +766,48 @@ rows:
     result is healthy and clearly better than the rest of the Muon width family.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute order 3 in `tf_rd_009_muon_width_screen_medium_v1` before deriving
-    the fresh Muon diagonal.
+  next_action: Keep `96x2` as mid-width evidence for the fresh Muon diagonal, but
+    do not carry it forward over the stronger `128x2` result.
   notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline
     status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 575.0
+    max_grad_norm: 2.755733423147971
+    best_bpc: 2.175311745044797
+    best_bpf: 2.1753117594608042
+    best_roc_auc: 0.7035107493414393
+    best_log_loss: 0.5088216374417037
+    best_brier_score: 0.3390916185345914
+    final_bpc: 2.2405215241188228
+    final_bpf: 2.2405214886332665
+    final_roc_auc: 0.7572619878796143
+    final_log_loss: 0.41282803315648675
+    final_brier_score: 0.2710465779329443
+    final_minus_best_bpc: 0.06520977907402559
+    final_minus_best_bpf: 0.06520972917246226
+    final_minus_best_roc_auc: 0.053751238538174984
+    final_minus_best_log_loss: -0.09599360428521697
+    final_minus_best_brier_score: -0.06804504060164712
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.09599360428521697
+    delta_final_bpc: 0.06762463769247384
+    delta_final_bpf: 0.06762464101924426
+    delta_final_log_loss: -0.004401076765648382
+    delta_final_brier_score: -0.003711474036220186
+    delta_final_roc_auc: 0.006700577144580611
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -904,7 +984,7 @@ rows:
   resolved_surface_fingerprint: b282813d27fa9d26e717f468ce0fe9fdef0e73537306d700c5658528159b6e70
 - order: 4
   delta_id: delta_tf_rd_009_cls_sandwich_dicl128_v1
-  status: ready
+  status: completed
   rationale: Execute the fresh Muon upper-width bracket at `128x2` under the fixed
     packed-runtime plus v6 no-repeat contract.
   hypothesis: ''
@@ -999,21 +1079,50 @@ rows:
     the fresh Muon diagonal derivation.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Execute order 4 in `tf_rd_009_muon_width_screen_medium_v1` before deriving
-    the fresh Muon diagonal.
+  next_action: Carry `128x2` into `tf_rd_009_muon_width_depth_medium_v1` as the current
+    in-family Muon baseline for the diagonal derivation.
   notes:
   - Fresh Muon TF-RD-009 width-screen row on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   - Historical schedulefree TF-RD-009 evidence must not be used to pre-assign baseline
     status to this row.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - This is the measured in-family width winner and the current carried baseline for
+    the fresh Muon diagonal derivation.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1750.0
+    max_grad_norm: 2.6592280647552573
+    best_bpc: 2.124410019364468
+    best_bpf: 2.1244099921958393
+    best_roc_auc: 0.7562573296057853
+    best_log_loss: 0.40691625006652804
+    best_brier_score: 0.2665095267071411
+    final_bpc: 2.1382621194041054
+    final_bpf: 2.1382621188496436
+    final_roc_auc: 0.7582954414976246
+    final_log_loss: 0.3950714842398618
+    final_brier_score: 0.25850390817011154
+    final_minus_best_bpc: 0.013852100039637438
+    final_minus_best_bpf: 0.013852126653804309
+    final_minus_best_roc_auc: 0.0020381118918393337
+    final_minus_best_log_loss: -0.011844765826666215
+    final_minus_best_brier_score: -0.00800561853702958
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.011844765826666215
+    delta_final_bpc: -0.03463476702224355
+    delta_final_bpf: -0.034634728764378675
+    delta_final_log_loss: -0.022157625682273308
+    delta_final_brier_score: -0.016254143799052934
+    delta_final_roc_auc: 0.007734030762590938
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1189,4 +1298,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 21499a9506ea43ef2c15417c36825517dca0010aedd37c3eb55492d42a2d76e3
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_width_screen_medium_v1/resolved_queue.yaml
-inputs_fingerprint: 308b63173a618c5b8ff712653a5879246f9d4a66dedc32c162f8a5c0ed9fb19b
+inputs_fingerprint: 6aff188ecf0f026f9f201b59e7693cc7f77669353bfafb84df649964e837b636

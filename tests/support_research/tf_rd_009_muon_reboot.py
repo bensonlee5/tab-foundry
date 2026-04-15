@@ -43,14 +43,18 @@ def test_tf_rd_009_muon_width_screen_is_registered_as_a_fresh_family() -> None:
 
     assert index["sweeps"][WIDTH_SCREEN] == {
         "parent_sweep_id": "tf_rd_024_classification_heads_prerow_followup_v1",
-        "status": "draft",
-        "anchor_run_id": None,
+        "status": "completed",
+        "anchor_run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
         "external_benchmarks": [],
     }
     assert index["sweeps"][WIDTH_DEPTH]["parent_sweep_id"] == WIDTH_SCREEN
+    assert (
+        index["sweeps"][WIDTH_DEPTH]["anchor_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    )
     assert index["sweeps"][NS_SWEEP]["parent_sweep_id"] == WIDTH_DEPTH
     assert index["sweeps"][BCRIT_SWEEP]["parent_sweep_id"] == NS_SWEEP
     assert index["sweeps"][UPPER_GATE]["parent_sweep_id"] == WIDTH_DEPTH
@@ -61,7 +65,10 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
     sweep = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_SCREEN / "sweep.yaml")
     queue = _queue(WIDTH_SCREEN)
 
-    assert sweep["anchor_run_id"] is None
+    assert (
+        sweep["anchor_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1"
+    )
     assert_training_surface_semantics(
         sweep,
         training_experiment=MUON_EXPERIMENT,
@@ -80,7 +87,11 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
     ]
     assert rows[0]["model"]["d_icl"] == 60
     assert rows[0]["next_action"] == (
-        "Execute order 1 in `tf_rd_009_muon_width_screen_medium_v1` and keep it as the external Muon anchor candidate."
+        "Keep `60x2` as the formal external Muon anchor, but do not carry it forward as the in-family diagonal baseline now that `128x2` has won the measured width screen."
+    )
+    assert rows[3]["decision"] == "keep"
+    assert rows[3]["next_action"] == (
+        "Carry `128x2` into `tf_rd_009_muon_width_depth_medium_v1` as the current in-family Muon baseline for the diagonal derivation."
     )
     assert Counter(f"{row['model']['d_icl']}x{row['model']['sandwich_layers']}" for row in rows) == {
         "48x2": 1,
@@ -88,8 +99,15 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
         "96x2": 1,
         "128x2": 1,
     }
-    assert {row["status"] for row in rows} == {"ready"}
-    assert {row["run_id"] for row in rows} == {None}
+    assert {row["status"] for row in rows} == {"completed"}
+    assert {
+        row["run_id"] for row in rows
+    } == {
+        "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+        "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1",
+    }
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
     assert {row["training"]["overrides"]["optimizer"]["weight_decay"] for row in rows} == {0.01}
@@ -137,6 +155,13 @@ def test_tf_rd_009_muon_phase1_and_phase2_scaffolds_stay_empty_until_muon_rows_l
             external_benchmarks=[],
         )
         assert queue["rows"] == []
+    width_depth_sweep = _load_yaml(
+        REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "sweep.yaml"
+    )
+    assert (
+        width_depth_sweep["anchor_run_id"]
+        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    )
 
 
 def test_tf_rd_009_muon_scaling_studies_reference_only_muon_sweeps() -> None:
