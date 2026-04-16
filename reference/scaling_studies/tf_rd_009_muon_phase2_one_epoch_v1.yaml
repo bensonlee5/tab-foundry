@@ -11,7 +11,7 @@ sweeps:
   - name: batch_critical
     sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
     family: batch_critical
-geometry_row_labels: []
+geometry_row_labels: ["72x1", "112x3", "144x4", "192x5", "264x6"]
 step_ladder: [625, 1250, 2500, 5000]
 batch_grad_accum_ladder: [1, 2, 4, 8, 16]
 canonical_loss_axes:

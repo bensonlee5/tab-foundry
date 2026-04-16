@@ -26,6 +26,8 @@ PHASE2_STUDY = "tf_rd_009_muon_phase2_one_epoch_v1"
 UPPER_STUDY = "tf_rd_009_muon_phase2_upper_extension_one_epoch_v1"
 CORPUS_V6 = "tf_rd_010_dagzoo_medium_control_curated_v6"
 MUON_BASELINE_ID = "tf_rd_009_rtx8000_44gb_classification_medium_muon_v1"
+PHASE2_ANCHOR_RUN_ID = "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+PHASE2_GEOMETRIES = ["72x1", "112x3", "144x4", "192x5", "264x6"]
 WIDTH_DEPTH_EXPECTED_ROWS = [
     "delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1",
     "delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1",
@@ -76,7 +78,9 @@ def test_tf_rd_009_muon_width_screen_is_registered_as_a_fresh_family() -> None:
         == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
     )
     assert index["sweeps"][NS_SWEEP]["parent_sweep_id"] == WIDTH_DEPTH
+    assert index["sweeps"][NS_SWEEP]["anchor_run_id"] == PHASE2_ANCHOR_RUN_ID
     assert index["sweeps"][BCRIT_SWEEP]["parent_sweep_id"] == NS_SWEEP
+    assert index["sweeps"][BCRIT_SWEEP]["anchor_run_id"] == PHASE2_ANCHOR_RUN_ID
     assert index["sweeps"][UPPER_GATE]["parent_sweep_id"] == WIDTH_DEPTH
     assert index["sweeps"][UPPER_NS]["parent_sweep_id"] == UPPER_GATE
 
@@ -156,7 +160,7 @@ def test_tf_rd_009_muon_width_screen_tracks_the_bounded_48_60_96_128_family() ->
     assert [row["model"]["sandwich_layers"] for row in materialized["rows"]] == [2, 2, 2, 2]
 
 
-def test_tf_rd_009_muon_phase1_queue_is_materialized_while_phase2_and_upper_scaffolds_stay_empty() -> None:
+def test_tf_rd_009_muon_phase1_queue_is_materialized_while_muon_phase2_is_populated_and_upper_scaffolds_stay_empty() -> None:
     width_depth_sweep = _load_yaml(
         REPO_ROOT / "reference" / "system_delta_sweeps" / WIDTH_DEPTH / "sweep.yaml"
     )
@@ -243,6 +247,24 @@ def test_tf_rd_009_muon_phase1_queue_is_materialized_while_phase2_and_upper_scaf
     for sweep_id, expected_role in (
         (NS_SWEEP, "classification_scaling_law_phase2_ns"),
         (BCRIT_SWEEP, "classification_scaling_law_phase2_batch"),
+    ):
+        sweep = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / sweep_id / "sweep.yaml")
+        queue = _queue(sweep_id)
+        assert_training_surface_semantics(
+            sweep,
+            training_experiment=MUON_EXPERIMENT,
+            training_config_profile=MUON_EXPERIMENT,
+            surface_role=expected_role,
+            comparison_policy="anchor_only",
+            external_benchmarks=[],
+        )
+        assert sweep["anchor_run_id"] == PHASE2_ANCHOR_RUN_ID
+        assert queue["rows"] != []
+
+    assert len(_queue(NS_SWEEP)["rows"]) == 20
+    assert len(_queue(BCRIT_SWEEP)["rows"]) == 20
+
+    for sweep_id, expected_role in (
         (UPPER_GATE, "classification_scaling_law"),
         (UPPER_NS, "classification_scaling_law_phase2_ns"),
     ):
@@ -268,7 +290,8 @@ def test_tf_rd_009_muon_scaling_studies_reference_only_muon_sweeps() -> None:
         {"name": "ns_core", "sweep_id": NS_SWEEP, "family": "ns_core"},
         {"name": "batch_critical", "sweep_id": BCRIT_SWEEP, "family": "batch_critical"},
     ]
-    assert phase2["geometry_row_labels"] == []
+    assert phase2["geometry_row_labels"] == PHASE2_GEOMETRIES
+    assert phase2["batch_grad_accum_ladder"] == [1, 2, 4, 8, 16]
     assert phase2["primary_fit"] == {"law": "L(N,S)", "target": "validation_loss"}
     assert phase2["historical_context_studies"] == ["tf_rd_009_phase2", "tf_rd_009_phase2_one_epoch_v1"]
 

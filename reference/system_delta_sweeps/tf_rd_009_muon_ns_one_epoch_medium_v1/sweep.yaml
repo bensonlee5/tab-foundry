@@ -3,7 +3,7 @@ sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
 parent_sweep_id: tf_rd_009_muon_width_depth_medium_v1
 status: draft
 complexity_level: classification_md
-anchor_run_id: null
+anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
 control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
@@ -16,12 +16,13 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-    - This scaffold stays empty until the fresh Muon Phase-1 diagonal is benchmark-backed and frozen under [#275](https://github.com/bensonlee5/tab-foundry/issues/275).
-    - The Phase-2 Muon law study is a one-epoch no-repeat rerun on `tf_rd_010_dagzoo_medium_control_curated_v6`; do not reuse the historical schedulefree one-epoch ids in place.
-    - Keep `L(N,S)` on validation loss as the primary kept law once rows are materialized under [#274](https://github.com/bensonlee5/tab-foundry/issues/274).
+    - The fresh Muon Phase-1 diagonal has landed under [#275](https://github.com/bensonlee5/tab-foundry/issues/275) with `72x1/112x3/144x4/192x5/264x6` final matched-budget log loss `0.4135/0.4137/0.4116/0.4146/0.4009`.
+    - Keep `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1` as the locked Muon comparison anchor because `128x2` remains the lowest-loss pre-Phase-2 Muon benchmark at `0.3951`.
+    - This Phase-2 Muon law study is a one-epoch no-repeat rerun on `tf_rd_010_dagzoo_medium_control_curated_v6`; do not reuse the historical schedulefree one-epoch ids in place.
+    - Keep `L(N,S)` on validation loss as the primary kept law under [#274](https://github.com/bensonlee5/tab-foundry/issues/274), with benchmark log loss treated as repo-facing ranking evidence.
   dimension_table: []
 anchor_context:
-  run_id: null
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
   experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
   model:

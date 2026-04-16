@@ -1,3 +1,2403 @@
 schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
-rows: []
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
+    and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 1
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=625 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=10000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 1 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=625 and grad_accum_steps=1.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
+    and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 1
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=1250 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=20000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 2 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=1250 and grad_accum_steps=1.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
+    and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 1
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=2500 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 3 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=2500 and grad_accum_steps=1.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
+    and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 1
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=1 and max_steps=5000 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 4 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=5000 and grad_accum_steps=1.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
+    and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 2
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=625 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=20000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 5 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=625 and grad_accum_steps=2.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
+    and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 2
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=1250 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 6 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=1250 and grad_accum_steps=2.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 7
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
+    and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 2
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=2500 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 7 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=2500 and grad_accum_steps=2.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 8
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
+    and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 2
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=2 and max_steps=5000 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 8 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=5000 and grad_accum_steps=2.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 9
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
+    and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=625 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=40000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 9 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=625 and grad_accum_steps=4.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 10
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
+    and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=1250 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 10 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=1250 and grad_accum_steps=4.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 11
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
+    and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=2500 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 11 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=2500 and grad_accum_steps=4.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 12
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
+    and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=4 and max_steps=5000 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 12 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=5000 and grad_accum_steps=4.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 13
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
+    and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=625 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=80000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 13 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=625 and grad_accum_steps=8.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 14
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
+    and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=1250 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 14 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=1250 and grad_accum_steps=8.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 15
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
+    and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=2500 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 15 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=2500 and grad_accum_steps=8.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 16
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
+    and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=8 and max_steps=5000 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=640000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 16 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=5000 and grad_accum_steps=8.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 17
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
+    and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=625 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=160000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 17 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=625 and grad_accum_steps=16.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 18
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
+    and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=1250 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=320000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 18 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=1250 and grad_accum_steps=16.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 19
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
+    and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=2500 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=640000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 19 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=2500 and grad_accum_steps=16.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 20
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
+  status: ready
+  rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
+    and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
+  hypothesis: ''
+  anchor_delta: Phase-two Muon batch-critical row `264x6` keeps the `264x6` family
+    fixed while the sweep remains benchmarked against the locked `128x2` width-screen
+    anchor.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 1280000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Hold geometry `264x6` at the completed fresh Muon Phase-1 winner while varying
+    only effective batch through grad_accum_steps.
+  - Use grad_accum_steps=16 and max_steps=5000 for the fresh Muon batch ladder; keep
+    `Bcrit` and derived `Cmin` diagnostic-only in later reporting.
+  - Keep the post-#271 packed Muon runtime surface and the v6 one-epoch contract fixed;
+    this row changes only effective batch or step budget.
+  - 'Corrected one-epoch contract: required_train_tasks=1280000 must fit within the
+    `tf_rd_010_dagzoo_medium_control_curated_v6` train split before execution.'
+  - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
+    enter the fresh Muon fit.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute order 20 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
+    treat `Bcrit` and `Cmin` as diagnostic-only.
+  notes:
+  - Fresh Muon one-epoch batch-critical row for phase-one winner `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
+    at max_steps=5000 and grad_accum_steps=16.
+  - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
+    post-#271 packed/runtime stack.
+  - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
