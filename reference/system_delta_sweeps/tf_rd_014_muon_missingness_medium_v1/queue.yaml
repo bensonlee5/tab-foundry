@@ -1,0 +1,396 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_014_muon_missingness_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
+  status: ready
+  rationale: Establish the clean TF-RD-014 Muon control row on the carried `264x6` surface before reading any missingness effect on the refreshed multiclass medium benchmark rung.
+  hypothesis: The carried Muon `264x6` control should provide the strongest exploratory baseline on the refreshed medium manifest, and it is the only valid direct comparison point for the missingness rows.
+  anchor_delta: Keep the carried Muon `264x6` model and runtime surface fixed and train on `tf_rd_010_dagzoo_medium_control_curated_v6` against the refreshed hub-owned medium classification manifest.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      largest_required_train_tasks: 160000
+  parameter_adequacy_plan:
+  - Keep the exact Muon runtime and optimizer bundle from `sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`; TF-RD-014 changes only the training corpus.
+  - Use the refreshed hub-owned medium manifest and verify its multiclass allow-missing contract before execution.
+  - If a compatible local `264x6` training artifact is restored into the workspace later, benchmark that artifact instead of retraining; otherwise retrain row `01` on the same surface and use it as the exploratory control anchor for rows `02` through `04`.
+  benchmark_checkpoint_selection: best_and_final
+  execution_policy: benchmark_full
+  next_action: Execute first and use row `01` as the exploratory TF-RD-014 control anchor for direct comparison against rows `02` through `04`; do not promote beyond TF-RD-014.
+  notes:
+  - '`tab-realdata-hub` owns the validation manifest; `dagzoo` owns the synthetic training fronts.'
+  - The refreshed medium manifest now comes from the hub-owned `openml_classification_medium_v1.json` bundle and carries multiclass allow-missing tasks.
+  - This package is exploratory robustness evidence only and does not change the carried Muon baseline for TF-RD-009 Phase 2.
+  - No compatible reusable `264x6` training artifact is pinned in this checkout today, so row `01` should retrain unless that artifact is restored before execution.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  reuse_train_artifact: null
+- order: 2
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
+  status: ready
+  rationale: Read whether MCAR exposure changes the carried Muon `264x6` behavior on the refreshed multiclass medium benchmark before structured missingness is considered.
+  hypothesis: MCAR may modestly improve robustness relative to the clean control without the stronger structure of MAR or MNAR, but it should still be judged only against the clean Muon control row.
+  anchor_delta: Keep the carried Muon `264x6` model and runtime surface fixed and replace the clean control corpus with `tf_rd_010_missingness_mcar_v3`.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_missingness_mcar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mcar_v3
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_missingness_mcar_v3
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row `01`; do not interpret this row against the older `128x2` screen or the TF-RD-010 sandwich anchor.
+  - Keep the refreshed multiclass medium manifest fixed and use `best_and_final` checkpoints only.
+  - Treat any quality change as exploratory only because the missingness front remains `include_all` `v3` while the control front is curated `accepted_only` `v6`, and because the legacy `v3` front is smaller than the strict no-repeat `160000`-task contract.
+  benchmark_checkpoint_selection: best_and_final
+  execution_policy: benchmark_full
+  next_action: Execute only after row `01` is recorded, then compare directly against the clean Muon control row; keep the result exploratory and non-promotable.
+  notes:
+  - '`tab-realdata-hub` owns the validation manifest; `dagzoo` owns the synthetic training fronts.'
+  - The medium validation rung now uses the refreshed hub-owned multiclass allow-missing manifest.
+  - This missingness row remains exploratory and non-promotable until curated missingness fronts exist.
+  - '`tf_rd_010_missingness_mcar_v3` does not meet the strict no-repeat `160000`-task one-epoch contract at `2500 x 16 x 4`, so this row keeps the same runtime bundle and step budget but remains a repeated-task exploratory read.'
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  reuse_train_artifact: null
+- order: 3
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
+  status: ready
+  rationale: Read whether MAR exposure changes the carried Muon `264x6` behavior on the refreshed multiclass medium benchmark after the clean control and MCAR rows are defined.
+  hypothesis: MAR may provide a harder but more interpretable missingness mechanism than MNAR, but it should still be read strictly as exploratory robustness evidence versus the clean Muon control row.
+  anchor_delta: Keep the carried Muon `264x6` model and runtime surface fixed and replace the clean control corpus with `tf_rd_010_missingness_mar_v3`.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_missingness_mar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mar_v3
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_missingness_mar_v3
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and secondarily against row `02`; do not mix this row into TF-RD-009 scaling-law fitting.
+  - Keep the refreshed multiclass medium manifest fixed and use `best_and_final` checkpoints only.
+  - Treat any quality change as exploratory only because the missingness front remains `include_all` `v3` while the control front is curated `accepted_only` `v6`, and because the legacy `v3` front is smaller than the strict no-repeat `160000`-task contract.
+  benchmark_checkpoint_selection: best_and_final
+  execution_policy: benchmark_full
+  next_action: Execute only after rows `01` and `02` are recorded, then compare directly against the clean Muon control row; keep the result exploratory and non-promotable.
+  notes:
+  - '`tab-realdata-hub` owns the validation manifest; `dagzoo` owns the synthetic training fronts.'
+  - The medium validation rung now uses the refreshed hub-owned multiclass allow-missing manifest.
+  - This missingness row remains exploratory and non-promotable until curated missingness fronts exist.
+  - '`tf_rd_010_missingness_mar_v3` does not meet the strict no-repeat `160000`-task one-epoch contract at `2500 x 16 x 4`, so this row keeps the same runtime bundle and step budget but remains a repeated-task exploratory read.'
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  reuse_train_artifact: null
+- order: 4
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
+  status: ready
+  rationale: Read whether MNAR exposure changes the carried Muon `264x6` behavior on the refreshed multiclass medium benchmark after the clean control, MCAR, and MAR rows are defined.
+  hypothesis: MNAR may be the hardest synthetic missingness front, but it should still be interpreted only as exploratory robustness evidence versus the clean Muon control row.
+  anchor_delta: Keep the carried Muon `264x6` model and runtime surface fixed and replace the clean control corpus with `tf_rd_010_missingness_mnar_v3`.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 264
+    sandwich_layers: 6
+  data:
+    surface_label: tf_rd_010_missingness_mnar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mnar_v3
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_missingness_mnar_v3
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 2500
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and secondarily against rows `02` and `03`; do not mix this row into TF-RD-009 scaling-law fitting.
+  - Keep the refreshed multiclass medium manifest fixed and use `best_and_final` checkpoints only.
+  - Treat any quality change as exploratory only because the missingness front remains `include_all` `v3` while the control front is curated `accepted_only` `v6`, and because the legacy `v3` front is smaller than the strict no-repeat `160000`-task contract.
+  benchmark_checkpoint_selection: best_and_final
+  execution_policy: benchmark_full
+  next_action: Execute only after rows `01` through `03` are recorded, then compare directly against the clean Muon control row; keep the result exploratory and non-promotable.
+  notes:
+  - '`tab-realdata-hub` owns the validation manifest; `dagzoo` owns the synthetic training fronts.'
+  - The medium validation rung now uses the refreshed hub-owned multiclass allow-missing manifest.
+  - This missingness row remains exploratory and non-promotable until curated missingness fronts exist.
+  - '`tf_rd_010_missingness_mnar_v3` does not meet the strict no-repeat `160000`-task one-epoch contract at `2500 x 16 x 4`, so this row keeps the same runtime bundle and step budget but remains a repeated-task exploratory read.'
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  reuse_train_artifact: null

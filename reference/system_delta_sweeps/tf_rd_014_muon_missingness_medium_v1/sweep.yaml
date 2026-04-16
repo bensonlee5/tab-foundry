@@ -1,0 +1,51 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_014_muon_missingness_medium_v1
+parent_sweep_id: tf_rd_009_muon_width_depth_medium_v1
+status: ready
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+surface_role: classification_scaling_law
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+    - Carry the completed Muon `264x6` row from `tf_rd_009_muon_width_depth_medium_v1` as the exploratory TF-RD-014 robustness reference surface; keep the carried model and post-#271 Muon runtime bundle fixed while only the synthetic training front changes.
+    - The medium benchmark manifest at `data/manifests/bench/openml_classification_medium_v1/manifest.parquet` has been refreshed from the hub-owned `openml_classification_medium_v1.json` bundle and now resolves to the intended multiclass allow-missing validation rung (`min_classes=2`, `max_classes=10`, `max_missing_pct=20.0`).
+    - This package is exploratory TF-RD-014 evidence only because the clean control front is curated `accepted_only` `tf_rd_010_dagzoo_medium_control_curated_v6` while the missingness fronts remain exploratory `include_all` `v3`.
+    - The legacy missingness `v3` fronts do not meet the strict no-repeat `160000`-task one-epoch contract at `2500 x 16 x 4`; keep the same Muon runtime and step budget for rows `02` through `04`, but record them as exploratory repeated-task reads rather than no-repeat contract rows.
+    - Rank rows by `final_log_loss_at_matched_regime_budget`, interpreted explicitly as label-target log loss per test cell, then inspect Brier score, ROC AUC, gradient health, and runtime as guardrails.
+  dimension_table:
+  - dimension: benchmark surface
+    upstream: Not applicable.
+    anchor: Hub-owned medium classification manifest materialized from `openml_classification_medium_v1.json`.
+    interpretation: Keep the refreshed multiclass allow-missing validation rung fixed while TF-RD-014 changes only the synthetic training-front missingness regime.
+  - dimension: model family
+    upstream: Not applicable.
+    anchor: Carried Muon sandwich `264x6` with `sandwich_heads=1`, `sandwich_latents=24`, `sandwich_summary_tokens_per_axis=3`, and `head_hidden_dim=96`.
+    interpretation: TF-RD-014 measures robustness on the carried Muon family rather than reopening TF-RD-009 architecture search.
+  - dimension: runtime policy
+    upstream: Not applicable.
+    anchor: Post-#271 Muon runtime and optimizer bundle with the fixed one-epoch `2500`-step medium contract.
+    interpretation: Keep runtime, optimizer, compile, and checkpoint policy fixed so TF-RD-014 isolates only training-front missingness.
+anchor_context:
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
