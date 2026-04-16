@@ -28,7 +28,7 @@ handoff into the sweep-program design issue
   historical schedulefree Kaplan-exact Phase-2 fit/report child
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
   historical large-rung validation / hardware-freeze child
-  [#257](https://github.com/bensonlee5/tab-foundry/issues/257), active Muon
+  [#257](https://github.com/bensonlee5/tab-foundry/issues/257), completed Muon
   Phase-1 child [#275](https://github.com/bensonlee5/tab-foundry/issues/275),
   active Muon Phase-2 child
   [#274](https://github.com/bensonlee5/tab-foundry/issues/274), later
@@ -114,7 +114,7 @@ operational rather than cosmetic.
     `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
     `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
     `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`
-  - interpretation: active reboot branch under
+  - interpretation: active reboot branch under completed Muon Phase-1 child
     [#275](https://github.com/bensonlee5/tab-foundry/issues/275) then
     [#274](https://github.com/bensonlee5/tab-foundry/issues/274), frozen to
     `tf_rd_010_dagzoo_medium_control_curated_v6` plus the post-PR
@@ -123,7 +123,10 @@ operational rather than cosmetic.
     `60x2=0.4172`, `48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951`, with
     `60x2` retained as the formal external anchor and `128x2` carried forward
     as the current in-family baseline for the rederived Phase-1 family
-    `72x1/112x3/144x4/192x5/264x6`
+    `72x1/112x3/144x4/192x5/264x6`; as of April 15, 2026 PT, that Muon
+    Phase-1 family is now benchmark-backed at matched-budget final log loss
+    `72x1=0.4135`, `112x3=0.4137`, `144x4=0.4116`, `192x5=0.4146`, and
+    `264x6=0.4009`, with `264x6` as the current preferred Muon candidate
 
 ## Executive Prescriptions
 
@@ -382,17 +385,22 @@ and `{1,2,4,8,16}` ladders on
 `tf_rd_009_phase2_one_epoch_v1`. The original artifacts remain preserved as
 diagnostic history and must not be mixed into the corrected one-epoch fit.
 
-Muon reboot note, April 14, 2026 PT: the active Phase-2 branch is now the fresh
-Muon family under [#274](https://github.com/bensonlee5/tab-foundry/issues/274),
-with study config
+Muon reboot note, April 15, 2026 PT: the fresh Muon Phase-1 family is now
+benchmark-backed under completed child
+[#275](https://github.com/bensonlee5/tab-foundry/issues/275). The study config
 `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
 scaffolds `tf_rd_009_muon_ns_one_epoch_medium_v1` and
-`tf_rd_009_muon_batch_critical_one_epoch_medium_v1`. Those Muon ids stay empty
-until benchmark-backed fresh-Muon Phase-1 rows are promoted into the Muon
-Phase-2 branch. [#275](https://github.com/bensonlee5/tab-foundry/issues/275)
-now lands the repo-encoded Muon width-depth family
-`72x1/112x3/144x4/192x5/264x6` from the carried `128x2` baseline while keeping
-`60x2` as the formal external anchor.
+`tf_rd_009_muon_batch_critical_one_epoch_medium_v1` remain intentionally empty
+until [#274](https://github.com/bensonlee5/tab-foundry/issues/274) starts the
+Muon Phase-2 branch on the completed Phase-1 family. The Muon width-depth
+family finished as `72x1=0.4135`, `112x3=0.4137`, `144x4=0.4116`,
+`192x5=0.4146`, and `264x6=0.4009`, with `60x2` still retained as the formal
+external anchor and `128x2` still carried as the in-family baseline. W&B
+system-memory evidence on the live A6000 host recorded peak allocated memory
+`4.28 GB` at `72x1`, `5.48 GB` at `112x3`, and `8.11 GB` at `144x4`, while the
+winning `264x6` row still fit comfortably at `peak_vram_reserved=17.20 GB`.
+Keep that headroom evidence for later planning, but do not reopen a larger-
+model Muon Phase-1 extension before Phase 2.
 
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row

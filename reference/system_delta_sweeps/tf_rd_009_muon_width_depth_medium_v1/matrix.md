@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_muon_width_d
 - Parent sweep id: `tf_rd_009_muon_width_screen_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_muon_width_depth_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `9b8c712509a5dfde46e6e70c24698acf8c43ddf5b2de5a25874243c841111bef`
+- Resolved queue inputs fingerprint: `bfc2e4de72800640769fdb2026c894fb6581897bbd4ac4ee70acf737a9b6b588`
 
 ## Locked Surface
 
@@ -21,7 +21,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_muon_width_d
 - Training config profile: `cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1`
 - Surface role: `classification_scaling_law`
 - Comparison policy: `anchor_only`
-- Anchor metrics: final BPC `2.1383`, final BPF `2.1383`, final log loss `0.3951`, final Brier score `0.2585`, best ROC AUC `0.7563`, final ROC AUC `0.7583`
+- Anchor metrics: final BPC `2.1383`, final BPF `2.1383`, final log loss `0.3951`, final Brier score `0.2585`, best ROC AUC `0.7563`, final ROC AUC `0.7583`, final training time `8686.8s`
 
 ## Anchor Comparison
 
@@ -34,18 +34,18 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | ready | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Benchmark `72x1` as the lower fresh-Muon diagonal seed against the carried `128x2` width-screen baseline; historical schedulefree rows remain context only. |
-| 2 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | ready | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Benchmark `112x3` after `72x1`; if it lands cleanly, keep it as the carried upper seed for the fresh Muon diagonal. |
-| 3 | `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1` | classification_scaling_law | no | ready | none | Execute the first fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe. | Benchmark `144x4` only after the lower and upper fresh-Muon seeds are in place, then carry it into Muon Phase 2 if the matched-budget evidence is usable. |
-| 4 | `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1` | classification_scaling_law | no | ready | none | Execute the second fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=192`, `sandwich_layers=5`, using the higher rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe. | Benchmark `192x5` as the higher interior fresh-Muon row before any upper-extension selector rerun; do not treat it as the reopened `#269` branch. |
-| 5 | `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1` | classification_scaling_law | no | ready | none | Execute the retained fresh-Muon TF-RD-009 ceiling probe at `d_icl=264`, `sandwich_layers=6`, chosen to land near the carried `32.5 GB` RTX 8000 reserved-memory target while staying in the base Phase-1 family. | Benchmark `264x6` as the largest retained fresh-Muon Phase-1 row; if it lands, use it as ceiling evidence rather than silently extending into the upper-family branch. |
+| 1 | `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1` | classification_scaling_law | no | completed | none | Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy. | Benchmark `72x1` as the lower fresh-Muon diagonal seed against the carried `128x2` width-screen baseline; historical schedulefree rows remain context only. |
+| 2 | `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1` | classification_scaling_law | no | completed | none | Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge. | Benchmark `112x3` after `72x1`; if it lands cleanly, keep it as the carried upper seed for the fresh Muon diagonal. |
+| 3 | `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1` | classification_scaling_law | no | completed | none | Execute the first fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe. | Benchmark `144x4` only after the lower and upper fresh-Muon seeds are in place, then carry it into Muon Phase 2 if the matched-budget evidence is usable. |
+| 4 | `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1` | classification_scaling_law | no | completed | none | Execute the second fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=192`, `sandwich_layers=5`, using the higher rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe. | Benchmark `192x5` as the higher interior fresh-Muon row before any upper-extension selector rerun; do not treat it as the reopened `#269` branch. |
+| 5 | `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1` | classification_scaling_law | no | completed | none | Execute the retained fresh-Muon TF-RD-009 ceiling probe at `d_icl=264`, `sandwich_layers=6`, chosen to land near the carried `32.5 GB` RTX 8000 reserved-memory target while staying in the base Phase-1 family. | Benchmark `264x6` as the largest retained fresh-Muon Phase-1 row; if it lands, use it as ceiling evidence rather than silently extending into the upper-family branch. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the lower diagonal TF-RD-009 joint width-depth row at `d_icl=72`, `sandwich_layers=1`, derived by matching the formal `60x2` anchor against the empirical depth-aware sandwich parameter bridge rather than the older `L * d^2` proxy.
@@ -55,7 +55,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Fresh Muon diagonal row `72x1`, benchmarked relative to the carried `128x2` width-screen baseline while keeping `60x2` as the formal external anchor.
 - Expected effect: If the sandwich target can trade one layer for more width while staying genuinely close to the formal `60x2` anchor in parameter scale, `72x1` should show whether the lower diagonal stays competitive against the active carried in-family baseline at matched regime budget.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `11a9899045fd44740fde0f7f7265eb9a975e0e66524421326da56910864cc285`
+- Resolved surface fingerprint: `ecd9e950c96d7c7f76e800787de8a969d27544175e2d6536c0d14102a0a54b94`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 72, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 1, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
@@ -69,19 +69,21 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Rederived from the fresh Muon width screen with target `646970` params and solved width `70.65` before rung rounding.
   - Predicted local parameter count `671184` and reserved VRAM `9.32 GB` come from the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.4135`, delta final log loss `+0.0184`, final Brier score `0.2693`, delta final brier score `+0.0108`, final ROC AUC `0.7653`, delta final roc auc `+0.0070`, final BPC (legacy feature-cell diagnostic) `2.1449`, delta final bpc (legacy feature-cell diagnostic) `+0.0066`, final BPF (legacy feature-cell diagnostic) `2.1449`, delta final bpf (legacy feature-cell diagnostic) `+0.0066`, best ROC AUC `0.6325`, delta final training time `-6305.8s`
 
 ### 2. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the upper diagonal TF-RD-009 joint width-depth row at `d_icl=112`, `sandwich_layers=3`, derived by matching the width-only upper evidence row `128x2` against the empirical depth-aware sandwich parameter bridge.
@@ -91,7 +93,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Fresh Muon diagonal row `112x3`, benchmarked relative to the carried `128x2` width-screen baseline after solving its parameter target at `L=3`.
 - Expected effect: If the fixed-budget law continues above the carried in-family baseline, `112x3` should improve the matched-regime-budget objective while staying within a cleaner stability envelope than the already-warned width-only `128x2` row.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `85814ddf829eacaa8e9c2669efea325c087993e60bdbfd609e9f40154d65a615`
+- Resolved surface fingerprint: `d8ad7100f0869a335eb4b1a82905808ad8195112876ed9cfd23f41c9e82062f0`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 112, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_layers': 3, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture'}`
 - Parameter adequacy plan:
@@ -105,19 +107,21 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Rederived from the fresh Muon width screen with target `2849422` params and solved width `112.99` before rung rounding.
   - Predicted local parameter count `2800205` and reserved VRAM `11.29 GB` come from the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.4137`, delta final log loss `+0.0186`, final Brier score `0.2709`, delta final brier score `+0.0124`, final ROC AUC `0.7496`, delta final roc auc `-0.0087`, final BPC (legacy feature-cell diagnostic) `2.3480`, delta final bpc (legacy feature-cell diagnostic) `+0.2098`, final BPF (legacy feature-cell diagnostic) `2.3480`, delta final bpf (legacy feature-cell diagnostic) `+0.2098`, best ROC AUC `0.6668`, delta final training time `-6162.5s`
 
 ### 3. `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the first fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
@@ -127,7 +131,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Fresh Muon diagonal row `144x4`, benchmarked relative to the carried `128x2` width-screen baseline as the first interior interpolated Phase-1 point.
 - Expected effect: If the fresh Muon fixed-budget law stays smooth beyond the upper seed, `144x4` should provide the first interior Phase-1 measurement between the carried `128x2` baseline and the retained ceiling probe.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `e30f9244fd24579ca5ba343e6f70aee431b39702c986760815536c21f2d96d12`
+- Resolved surface fingerprint: `a4c7d3c6553c38115717e1178045a9b795c21c50d5104cbea7c9e02b3125eb6f`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture', 'd_icl': 144, 'sandwich_layers': 4}`
 - Parameter adequacy plan:
@@ -141,19 +145,21 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Rederived from the fresh Muon width screen with target `5847218` params and solved width `147.01` before rung rounding.
   - Predicted local parameter count `5610697` and reserved VRAM `13.89 GB` come from the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.4116`, delta final log loss `+0.0166`, final Brier score `0.2692`, delta final brier score `+0.0107`, final ROC AUC `0.7568`, delta final roc auc `-0.0015`, final BPC (legacy feature-cell diagnostic) `2.2604`, delta final bpc (legacy feature-cell diagnostic) `+0.1222`, final BPF (legacy feature-cell diagnostic) `2.2604`, delta final bpf (legacy feature-cell diagnostic) `+0.1222`, best ROC AUC `0.7240`, delta final training time `-5808.8s`
 
 ### 4. `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the second fresh-Muon interpolated TF-RD-009 width-depth row at `d_icl=192`, `sandwich_layers=5`, using the higher rederived log-space interior target between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
@@ -163,7 +169,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Fresh Muon diagonal row `192x5`, benchmarked relative to the carried `128x2` width-screen baseline as the higher interior interpolated Phase-1 point.
 - Expected effect: If the fresh Muon fixed-budget law remains smooth in the pre-ceiling region, `192x5` should extend the interior Phase-1 evidence without collapsing directly into the later upper-family reopen.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `a677177127d418cf5bcc004ada3e268d95d8047b69f20227e79277ae7d283488`
+- Resolved surface fingerprint: `361d639f57f338ee430d40cfa5eeb3a263e1679918bb03b071b322a43224c933`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture', 'd_icl': 192, 'sandwich_layers': 5}`
 - Parameter adequacy plan:
@@ -177,19 +183,21 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Rederived from the fresh Muon width screen with target `12209806` params and solved width `195.92` before rung rounding.
   - Predicted local parameter count `11727112` and reserved VRAM `19.57 GB` come from the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4146`, delta final log loss `+0.0195`, final Brier score `0.2724`, delta final brier score `+0.0139`, final ROC AUC `0.7453`, delta final roc auc `-0.0130`, final BPC (legacy feature-cell diagnostic) `2.1763`, delta final bpc (legacy feature-cell diagnostic) `+0.0381`, final BPF (legacy feature-cell diagnostic) `2.1763`, delta final bpf (legacy feature-cell diagnostic) `+0.0381`, best ROC AUC `0.6755`, delta final training time `-5440.2s`
 
 ### 5. `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Execute the retained fresh-Muon TF-RD-009 ceiling probe at `d_icl=264`, `sandwich_layers=6`, chosen to land near the carried `32.5 GB` RTX 8000 reserved-memory target while staying in the base Phase-1 family.
@@ -199,7 +207,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Anchor delta: Fresh Muon diagonal row `264x6`, benchmarked relative to the carried `128x2` width-screen baseline as the retained Phase-1 ceiling probe.
 - Expected effect: If the rederived Muon Phase-1 family can reach the retained local ceiling cleanly, `264x6` should either extend the matched-budget law into the near-saturation regime or provide explicit ceiling evidence without needing the later upper-family selector.
 - Effective labels: model=`tabfoundry_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `65da367784e87491aa576cccb3457df140819cc49c8244e749915e549d9891b6`
+- Resolved surface fingerprint: `c3bb44390f194c0ebe7c79bbd152d7cb7569533370182cf968fa9f17929312a2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_latents': 24, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 3, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'feature_type_conditioning': 'film', 'floating_likelihood': 'single_gaussian', 'integer_likelihood': 'hybrid_mixture', 'd_icl': 264, 'sandwich_layers': 6}`
 - Parameter adequacy plan:
@@ -213,11 +221,13 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Rederived from the fresh Muon width screen with target `25678017` params and solved width `264.94` before rung rounding.
   - Predicted local parameter count `25495777` and reserved VRAM `32.33 GB` come from the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4009`, delta final log loss `+0.0058`, final Brier score `0.2635`, delta final brier score `+0.0050`, final ROC AUC `0.7607`, delta final roc auc `+0.0024`, final BPC (legacy feature-cell diagnostic) `2.3114`, delta final bpc (legacy feature-cell diagnostic) `+0.1732`, final BPF (legacy feature-cell diagnostic) `2.3114`, delta final bpf (legacy feature-cell diagnostic) `+0.1732`, best ROC AUC `0.6468`, delta final training time `-4656.8s`

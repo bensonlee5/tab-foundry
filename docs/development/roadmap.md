@@ -957,7 +957,7 @@ Legacy wording note:
   [#256](https://github.com/bensonlee5/tab-foundry/issues/256), follow-on
   historical large-rung validation / hardware-freeze child
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
-  active Muon Phase-1 child
+  completed Muon Phase-1 child
   [#275](https://github.com/bensonlee5/tab-foundry/issues/275),
   active Muon Phase-2 child
   [#274](https://github.com/bensonlee5/tab-foundry/issues/274),
@@ -1109,8 +1109,9 @@ Legacy wording note:
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) is preserved
     as historical TF-RD-009 context only; keep [#256](https://github.com/bensonlee5/tab-foundry/issues/256)
     closed and unchanged
-  - the active reboot is now the fresh Muon family under
-    [#275](https://github.com/bensonlee5/tab-foundry/issues/275) then
+  - the active reboot is now the fresh Muon family under completed Muon
+    Phase-1 child [#275](https://github.com/bensonlee5/tab-foundry/issues/275)
+    then
     [#274](https://github.com/bensonlee5/tab-foundry/issues/274), frozen to
     `tf_rd_010_dagzoo_medium_control_curated_v6`, the post-PR
     [#271](https://github.com/bensonlee5/tab-foundry/pull/271) packed/runtime
@@ -1122,23 +1123,31 @@ Legacy wording note:
     matched-regime-budget log loss; keep `60x2` as the formal external Muon
     anchor, but carry `128x2` forward as the current in-family baseline for the
     diagonal derivation
-  - `tf_rd_009_muon_width_depth_medium_v1` is now populated with the rederived
-    fresh-Muon Phase-1 family `72x1`, `112x3`, `144x4`, `192x5`, and `264x6`,
-    ordered with the carried width-screen baseline as
+  - as of April 15, 2026 PT, `tf_rd_009_muon_width_depth_medium_v1` is complete
+    on the rederived fresh-Muon Phase-1 family `72x1`, `112x3`, `144x4`,
+    `192x5`, and `264x6`, ordered with the carried width-screen baseline as
     `{72x1, 112x3, 128x2, 144x4, 192x5, 264x6}` by measured parameter count;
-    `tf_rd_009_muon_ns_one_epoch_medium_v1`,
+    matched-budget final log loss landed at `0.4135`, `0.4137`, `0.4116`,
+    `0.4146`, and `0.4009` respectively, so `264x6` is the current benchmark-
+    backed Muon Phase-1 winner
+  - April 15, 2026 A6000 W&B system-memory evidence recorded peak allocated
+    memory `4.28 GB` at `72x1`, `5.48 GB` at `112x3`, `8.11 GB` at `144x4`, and
+    the winning `264x6` row still fit comfortably with `peak_vram_reserved`
+    `17.20 GB`; keep that as headroom evidence, but do not reopen a larger-
+    model Muon Phase-1 extension before Phase 2
+  - `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now keeps
+    the Muon placeholder
+    `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1` in `planned` state
+    while carrying `264x6` as the current preferred candidate; the freeze still
+    waits for a later large-rung Muon validation on the candidate architecture
+  - `tf_rd_009_muon_ns_one_epoch_medium_v1`,
     `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`,
     `tf_rd_009_muon_phase2_one_epoch_v1`,
     `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
     `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
     `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1` remain scaffolded and
-    intentionally empty until the fresh Muon Phase-1 family earns benchmark-backed
-    promotion into later Phase-2 and upper-family work
-  - `src/tab_foundry/bench/hardware_architecture_baselines_v1.json` now also
-    carries the planned placeholder
-    `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1`; treat it as a
-    tracking slot only until the benchmark-backed fresh-Muon Phase-1 winner plus
-    later large-rung validation freeze the preferred baseline
+    intentionally empty until the completed fresh-Muon Phase-1 family is
+    promoted into later Phase-2 and upper-family work
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative umbrella for TF-RD-009, but treat the historical
@@ -1148,10 +1157,10 @@ Legacy wording note:
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) as completed
     context only
   - treat [#275](https://github.com/bensonlee5/tab-foundry/issues/275) as the
-    landed repo-encoding step for the fresh Muon width-depth derivation: keep
-    `60x2` as the formal external anchor, carry `128x2` as the measured
-    in-family baseline, and benchmark the populated Phase-1 family
-    `72x1/112x3/144x4/192x5/264x6` rather than reopening queue construction
+    completed fresh-Muon Phase-1 closeout: keep `60x2` as the formal external
+    anchor, keep `128x2` as the carried in-family baseline, and carry the now-
+    benchmark-backed `264x6` winner into later Muon planning without reopening
+    a larger-model Phase-1 extension first
   - execute [#274](https://github.com/bensonlee5/tab-foundry/issues/274) as the
     fresh Muon Phase-2 branch: populate
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,
@@ -1167,7 +1176,9 @@ Legacy wording note:
     `tf_rd_009_muon_phase2_one_epoch_v1` lands, using the Muon upper-extension
     ids `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
     `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
-    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`
+    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`; if a later larger-
+    model Muon probe is still needed, treat it as post-Phase-2 work instead of
+    as a blocker on the current reboot path
   - after the Muon upper-family and redesigned batch lane land, return to
     [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the later
     compute-frontier / Chinchilla-style branch, and keep

@@ -38703,6 +38703,384 @@
       },
       "wandb": null
     },
+    "sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.006643417824146347,
+          "final_bpf_delta": 0.006643451646316745,
+          "final_brier_score_delta": 0.01079072338707393,
+          "final_log_loss_delta": 0.01842253974141178,
+          "final_roc_auc_delta": 0.007046156293636252
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T23:00:59Z",
+      "run_id": "sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.0866247964459794,
+        "best_bpf": 2.086624750980111,
+        "best_brier_score": 0.4048856840317693,
+        "best_log_loss": 0.5883923108926183,
+        "best_roc_auc": 0.6324797934569608,
+        "best_step": 400.0,
+        "best_training_time": 579.7177422530949,
+        "final_bpc": 2.1449055372282517,
+        "final_bpf": 2.1449055704959603,
+        "final_brier_score": 0.26929463155718547,
+        "final_log_loss": 0.4134940239812736,
+        "final_roc_auc": 0.7653415977912609,
+        "final_step": 2500.0,
+        "final_training_time": 2380.9927219282836
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.6949582241501187
+      }
+    },
+    "sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.2097526744354603,
+          "final_bpf_delta": 0.20975271823794328,
+          "final_brier_score_delta": 0.012374941381460502,
+          "final_log_loss_delta": 0.0186166362418394,
+          "final_roc_auc_delta": -0.008655561823585178
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T23:48:00Z",
+      "run_id": "sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.2368090019669644,
+        "best_bpf": 2.2368089786795684,
+        "best_brier_score": 0.3517447593826863,
+        "best_log_loss": 0.527007094286174,
+        "best_roc_auc": 0.6667586870212164,
+        "best_step": 425.0,
+        "best_training_time": 579.8025341071188,
+        "final_bpc": 2.3480147938395657,
+        "final_bpf": 2.348014837087587,
+        "final_brier_score": 0.27087884955157204,
+        "final_log_loss": 0.4136881204817012,
+        "final_roc_auc": 0.7496398796740394,
+        "final_step": 2500.0,
+        "final_training_time": 2524.3611648920923
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.7645664563139802
+      }
+    },
+    "sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.12216444514518532,
+          "final_bpf_delta": 0.12216444680857075,
+          "final_brier_score_delta": 0.010715758212514359,
+          "final_log_loss_delta": 0.016577510813612195,
+          "final_roc_auc_delta": -0.0014546898321614599
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-16T00:41:39Z",
+      "run_id": "sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.109009597467822,
+        "best_bpf": 2.109009600240131,
+        "best_brier_score": 0.29605284367712353,
+        "best_log_loss": 0.4543684430181976,
+        "best_roc_auc": 0.723968060461836,
+        "best_step": 600.0,
+        "best_training_time": 817.3676712848246,
+        "final_bpc": 2.2604265645492907,
+        "final_bpf": 2.2604265656582143,
+        "final_brier_score": 0.2692196663826259,
+        "final_log_loss": 0.411648995053474,
+        "final_roc_auc": 0.7568407516654632,
+        "final_step": 2500.0,
+        "final_training_time": 2878.068855056539
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.690615477612081
+      }
+    },
+    "sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.03806227584217847,
+          "final_bpf_delta": 0.03806227306986942,
+          "final_brier_score_delta": 0.013900170068843087,
+          "final_log_loss_delta": 0.019509992670290244,
+          "final_roc_auc_delta": -0.01301800278169496
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-16T01:43:03Z",
+      "run_id": "sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.115965349729671,
+        "best_bpf": 2.1159653652546018,
+        "best_brier_score": 0.3608511924333665,
+        "best_log_loss": 0.5352398793284092,
+        "best_roc_auc": 0.6755076995540149,
+        "best_step": 375.0,
+        "best_training_time": 626.1159091945738,
+        "final_bpc": 2.176324395246284,
+        "final_bpf": 2.176324391919513,
+        "final_brier_score": 0.27240407823895463,
+        "final_log_loss": 0.41458147691015207,
+        "final_roc_auc": 0.7452774387159297,
+        "final_step": 2500.0,
+        "final_training_time": 3246.6643025334924
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 4.881490348672965
+      }
+    },
+    "sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_depth_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.1731640954350313,
+          "final_bpf_delta": 0.17316411705904233,
+          "final_brier_score_delta": 0.004988941722853912,
+          "final_log_loss_delta": 0.005827743403318819,
+          "final_roc_auc_delta": 0.0024465070340922157
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-16T03:01:29Z",
+      "run_id": "sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.139980405984923,
+        "best_bpf": 2.1399803993313813,
+        "best_brier_score": 0.367943437243238,
+        "best_log_loss": 0.5424184399920187,
+        "best_roc_auc": 0.6468326885671749,
+        "best_step": 275.0,
+        "best_training_time": 597.2589662112296,
+        "final_bpc": 2.3114262148391367,
+        "final_bpf": 2.311426235908686,
+        "final_brier_score": 0.26349284989296545,
+        "final_log_loss": 0.40089922764318064,
+        "final_roc_auc": 0.7607419485317168,
+        "final_step": 2500.0,
+        "final_training_time": 4030.078723732382
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 4.572691402817106
+      }
+    },
+    "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_024_followup_cls_sandwich_heads1_v1/sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1/train/training_surface_record.json"
+      },
+      "conclusion": "Fresh Muon width-screen formal anchor recorded as the benchmark-backed 60x2 reference for the rederived family.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T22:15:00Z",
+      "run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.0836443490760272,
+        "best_bpf": 2.083644361274187,
+        "best_brier_score": 0.30857788636314887,
+        "best_log_loss": 0.4658386767203811,
+        "best_roc_auc": 0.7234860282351037,
+        "best_step": 1325.0,
+        "best_training_time": 4058.153760060668,
+        "final_bpc": 2.172896886426349,
+        "final_bpf": 2.1728968476140222,
+        "final_brier_score": 0.2747580519691645,
+        "final_log_loss": 0.41722910992213513,
+        "final_roc_auc": 0.7505614107350337,
+        "final_step": 2500.0,
+        "final_training_time": 8466.595883101225
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.523316327927787
+      }
+    },
+    "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl48_v1/sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": -0.07806696329627805,
+          "final_bpf_delta": -0.07804607254551765,
+          "final_brier_score_delta": 0.01982714726329532,
+          "final_log_loss_delta": 0.03182364048967656,
+          "final_roc_auc_delta": -0.0405579658584001
+        }
+      },
+      "conclusion": "Fresh Muon width-screen 48x2 probe recorded against the carried 60x2 formal anchor.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T22:15:00Z",
+      "run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.3199040989543116,
+        "best_bpf": 2.319904074557992,
+        "best_brier_score": 0.3629984339345996,
+        "best_log_loss": 0.5381290863574353,
+        "best_roc_auc": 0.6588097757372451,
+        "best_step": 575.0,
+        "best_training_time": 117.7859188169241,
+        "final_bpc": 2.733642670165661,
+        "final_bpf": 2.7336426912352096,
+        "final_brier_score": 0.2712528245598932,
+        "final_log_loss": 0.4146652127137755,
+        "final_roc_auc": 0.7608079039352357,
+        "final_step": 2500.0,
+        "final_training_time": 8412.488370064646
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 3.0949909081281906
+      }
+    },
+    "sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl96_v1/sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 0.15613909751073773,
+          "final_bpf_delta": 0.15613057248227236,
+          "final_brier_score_delta": -0.02156653103496936,
+          "final_log_loss_delta": -0.028879764384703077,
+          "final_roc_auc_delta": 0.03686955666921077
+        }
+      },
+      "conclusion": "Fresh Muon width-screen 96x2 probe recorded against the carried 60x2 formal anchor.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T22:15:00Z",
+      "run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.175311745044797,
+        "best_bpf": 2.1753117594608042,
+        "best_brier_score": 0.3390916185345914,
+        "best_log_loss": 0.5088216374417037,
+        "best_roc_auc": 0.7035107493414393,
+        "best_step": 575.0,
+        "best_training_time": 3381.9450873993337,
+        "final_bpc": 2.2405215241188228,
+        "final_bpf": 2.2405214886332665,
+        "final_brier_score": 0.2710465779329443,
+        "final_log_loss": 0.41282803315648675,
+        "final_roc_auc": 0.7572619878796143,
+        "final_step": 2500.0,
+        "final_training_time": 8529.771452456713
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.755733423147971
+      }
+    },
+    "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1": {
+      "artifacts": {
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_v1/sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1/train/training_surface_record.json"
+      },
+      "comparisons": {
+        "vs_anchor": {
+          "final_bpc_delta": 3.495372654318115,
+          "final_bpf_delta": 3.4951239082272982,
+          "final_brier_score_delta": -0.02823119839467192,
+          "final_log_loss_delta": -0.039545444321186674,
+          "final_roc_auc_delta": 0.037178179893046726
+        }
+      },
+      "conclusion": "Carry 128x2 forward as the in-family Muon baseline for the rederived Phase-1 width-depth family.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "decision": "keep",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+      "regime_budget": {
+        "objective_metric": "final_log_loss_at_matched_regime_budget"
+      },
+      "registered_at_utc": "2026-04-15T22:15:00Z",
+      "run_id": "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1",
+      "tab_foundry_metrics": {
+        "best_bpc": 2.124410019364468,
+        "best_bpf": 2.1244099921958393,
+        "best_brier_score": 0.2665095267071411,
+        "best_log_loss": 0.40691625006652804,
+        "best_roc_auc": 0.7562573296057853,
+        "best_step": 1750.0,
+        "best_training_time": 2518.8702951334417,
+        "final_bpc": 2.1382621194041054,
+        "final_bpf": 2.1382621188496436,
+        "final_brier_score": 0.25850390817011154,
+        "final_log_loss": 0.3950714842398618,
+        "final_roc_auc": 0.7582954414976246,
+        "final_step": 2500.0,
+        "final_training_time": 8686.832574728876
+      },
+      "track": "system_delta_classification_medium_v1",
+      "training_diagnostics": {
+        "max_grad_norm": 2.6592280647552573
+      }
+    },
     "sd_tf_rd_009_ns_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1": {
       "artifacts": {
         "accounting_artifact_path": "outputs/staged_ladder/research/tf_rd_009_ns_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/sd_tf_rd_009_ns_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1/benchmark/model_accounting.json",
