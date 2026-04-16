@@ -315,14 +315,6 @@ sweeps:
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
-  tf_rd_014_muon_missingness_medium_v1:
-    parent_sweep_id: tf_rd_009_muon_width_depth_medium_v1
-    status: ready
-    anchor_run_id: sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
-    complexity_level: classification_md
-    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
-    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
-    external_benchmarks: []
   tf_rd_022_runtime_policy_medium_v1:
     parent_sweep_id: tf_rd_010_classification_evolution_medium_v4
     status: completed
