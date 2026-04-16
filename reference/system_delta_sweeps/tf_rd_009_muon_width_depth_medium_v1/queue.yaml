@@ -3,7 +3,7 @@ sweep_id: tf_rd_009_muon_width_depth_medium_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1
-  status: ready
+  status: completed
   rationale: Materialize the lower fresh-Muon diagonal seed at `72x1`, solving the
     formal `60x2` parameter target on the frozen RTX 8000 bridge after the measured
     width screen chose `128x2` as the in-family baseline.
@@ -100,7 +100,7 @@ rows:
     regime budget before promoting any later Phase-2 or upper-family work.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  interpretation_status: pending
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark `72x1` as the lower fresh-Muon diagonal seed against the
     carried `128x2` width-screen baseline; historical schedulefree rows remain context
@@ -110,9 +110,41 @@ rows:
     width `70.65` before rung rounding.
   - Predicted local parameter count `671184` and reserved VRAM `9.32 GB` come from
     the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 400.0
+    max_grad_norm: 2.6949582241501187
+    best_bpc: 2.0866247964459794
+    best_bpf: 2.086624750980111
+    best_roc_auc: 0.6324797934569608
+    best_log_loss: 0.5883923108926183
+    best_brier_score: 0.4048856840317693
+    final_bpc: 2.1449055372282517
+    final_bpf: 2.1449055704959603
+    final_roc_auc: 0.7653415977912609
+    final_log_loss: 0.4134940239812736
+    final_brier_score: 0.26929463155718547
+    final_minus_best_bpc: 0.0582807407822723
+    final_minus_best_bpf: 0.05828081951584929
+    final_minus_best_roc_auc: 0.13286180433430006
+    final_minus_best_log_loss: -0.17489828691134474
+    final_minus_best_brier_score: -0.1355910524745838
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.17489828691134474
+    delta_final_bpc: 0.006643417824146347
+    delta_final_bpf: 0.006643451646316745
+    delta_final_log_loss: 0.01842253974141178
+    delta_final_brier_score: 0.01079072338707393
+    delta_final_roc_auc: 0.007046156293636252
 - order: 2
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1
-  status: ready
+  status: completed
   rationale: Materialize the upper fresh-Muon diagonal seed at `112x3`, solving the
     carried `128x2` parameter target at `L=3` on the frozen RTX 8000 bridge instead
     of inheriting the historical schedulefree diagonal.
@@ -209,7 +241,7 @@ rows:
     `L=4` / `L=5` rows or upper-family selector rerun.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  interpretation_status: pending
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark `112x3` after `72x1`; if it lands cleanly, keep it as the
     carried upper seed for the fresh Muon diagonal.
@@ -218,9 +250,41 @@ rows:
     width `112.99` before rung rounding.
   - Predicted local parameter count `2800205` and reserved VRAM `11.29 GB` come from
     the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
+  followup_run_ids: []
+  decision: defer
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 425.0
+    max_grad_norm: 2.7645664563139802
+    best_bpc: 2.2368090019669644
+    best_bpf: 2.2368089786795684
+    best_roc_auc: 0.6667586870212164
+    best_log_loss: 0.527007094286174
+    best_brier_score: 0.3517447593826863
+    final_bpc: 2.3480147938395657
+    final_bpf: 2.348014837087587
+    final_roc_auc: 0.7496398796740394
+    final_log_loss: 0.4136881204817012
+    final_brier_score: 0.27087884955157204
+    final_minus_best_bpc: 0.11120579187260127
+    final_minus_best_bpf: 0.11120585840801844
+    final_minus_best_roc_auc: 0.08288119265282301
+    final_minus_best_log_loss: -0.11331897380447276
+    final_minus_best_brier_score: -0.08086590983111425
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.11331897380447276
+    delta_final_bpc: 0.2097526744354603
+    delta_final_bpf: 0.20975271823794328
+    delta_final_log_loss: 0.0186166362418394
+    delta_final_brier_score: 0.012374941381460502
+    delta_final_roc_auc: -0.008655561823585178
 - order: 3
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
-  status: ready
+  status: completed
   rationale: Materialize the first interpolated fresh-Muon diagonal row at `144x4`,
     taking the log-space midpoint between the `112x3` upper seed and the retained
     `32.5 GB` Phase-1 ceiling probe.
@@ -318,7 +382,7 @@ rows:
     batch-critical expansion under `#274`.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  interpretation_status: pending
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark `144x4` only after the lower and upper fresh-Muon seeds are
     in place, then carry it into Muon Phase 2 if the matched-budget evidence is usable.
@@ -327,9 +391,41 @@ rows:
     width `147.01` before rung rounding.
   - Predicted local parameter count `5610697` and reserved VRAM `13.89 GB` come from
     the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+  followup_run_ids: []
+  decision: defer
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 600.0
+    max_grad_norm: 2.690615477612081
+    best_bpc: 2.109009597467822
+    best_bpf: 2.109009600240131
+    best_roc_auc: 0.723968060461836
+    best_log_loss: 0.4543684430181976
+    best_brier_score: 0.29605284367712353
+    final_bpc: 2.2604265645492907
+    final_bpf: 2.2604265656582143
+    final_roc_auc: 0.7568407516654632
+    final_log_loss: 0.411648995053474
+    final_brier_score: 0.2692196663826259
+    final_minus_best_bpc: 0.1514169670814689
+    final_minus_best_bpf: 0.15141696541808347
+    final_minus_best_roc_auc: 0.032872691203627125
+    final_minus_best_log_loss: -0.0427194479647236
+    final_minus_best_brier_score: -0.026833177294497634
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.0427194479647236
+    delta_final_bpc: 0.12216444514518532
+    delta_final_bpf: 0.12216444680857075
+    delta_final_log_loss: 0.016577510813612195
+    delta_final_brier_score: 0.010715758212514359
+    delta_final_roc_auc: -0.0014546898321614599
 - order: 4
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1
-  status: ready
+  status: completed
   rationale: Materialize the second interpolated fresh-Muon diagonal row at `192x5`,
     taking the higher log-space interior target between `112x3` and the retained `32.5
     GB` Phase-1 ceiling probe.
@@ -426,7 +522,7 @@ rows:
     remains part of the base fresh-Muon Phase-1 diagonal only.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  interpretation_status: pending
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark `192x5` as the higher interior fresh-Muon row before any
     upper-extension selector rerun; do not treat it as the reopened `#269` branch.
@@ -435,9 +531,41 @@ rows:
     width `195.92` before rung rounding.
   - Predicted local parameter count `11727112` and reserved VRAM `19.57 GB` come from
     the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1
+  followup_run_ids: []
+  decision: defer
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 375.0
+    max_grad_norm: 4.881490348672965
+    best_bpc: 2.115965349729671
+    best_bpf: 2.1159653652546018
+    best_roc_auc: 0.6755076995540149
+    best_log_loss: 0.5352398793284092
+    best_brier_score: 0.3608511924333665
+    final_bpc: 2.176324395246284
+    final_bpf: 2.176324391919513
+    final_roc_auc: 0.7452774387159297
+    final_log_loss: 0.41458147691015207
+    final_brier_score: 0.27240407823895463
+    final_minus_best_bpc: 0.06035904551661275
+    final_minus_best_bpf: 0.06035902666491122
+    final_minus_best_roc_auc: 0.06976973916191476
+    final_minus_best_log_loss: -0.12065840241825715
+    final_minus_best_brier_score: -0.08844711419441187
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.12065840241825715
+    delta_final_bpc: 0.03806227584217847
+    delta_final_bpf: 0.03806227306986942
+    delta_final_log_loss: 0.019509992670290244
+    delta_final_brier_score: 0.013900170068843087
+    delta_final_roc_auc: -0.01301800278169496
 - order: 5
   delta_ref: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Materialize the retained fresh-Muon Phase-1 ceiling probe at `264x6`,
     solving the frozen RTX 8000 reserved-VRAM target of `32.5 GB` at `L=6` and rounding
     to width rung `8`.
@@ -535,7 +663,7 @@ rows:
     evidence.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  interpretation_status: pending
+  interpretation_status: completed
   confounders: []
   next_action: Benchmark `264x6` as the largest retained fresh-Muon Phase-1 row; if
     it lands, use it as ceiling evidence rather than silently extending into the upper-family
@@ -545,3 +673,35 @@ rows:
     width `264.94` before rung rounding.
   - Predicted local parameter count `25495777` and reserved VRAM `32.33 GB` come from
     the frozen RTX 8000 planning formulas, not from the historical schedulefree diagonal.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  run_id: sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
+  followup_run_ids: []
+  decision: defer
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 275.0
+    max_grad_norm: 4.572691402817106
+    best_bpc: 2.139980405984923
+    best_bpf: 2.1399803993313813
+    best_roc_auc: 0.6468326885671749
+    best_log_loss: 0.5424184399920187
+    best_brier_score: 0.367943437243238
+    final_bpc: 2.3114262148391367
+    final_bpf: 2.311426235908686
+    final_roc_auc: 0.7607419485317168
+    final_log_loss: 0.40089922764318064
+    final_brier_score: 0.26349284989296545
+    final_minus_best_bpc: 0.17144580885421368
+    final_minus_best_bpf: 0.1714458365773046
+    final_minus_best_roc_auc: 0.11390925996454193
+    final_minus_best_log_loss: -0.14151921234883802
+    final_minus_best_brier_score: -0.10445058735027257
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: -0.14151921234883802
+    delta_final_bpc: 0.1731640954350313
+    delta_final_bpf: 0.17316411705904233
+    delta_final_log_loss: 0.005827743403318819
+    delta_final_brier_score: 0.004988941722853912
+    delta_final_roc_auc: 0.0024465070340922157

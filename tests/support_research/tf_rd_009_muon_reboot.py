@@ -33,6 +33,13 @@ WIDTH_DEPTH_EXPECTED_ROWS = [
     "delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1",
     "delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1",
 ]
+WIDTH_DEPTH_RUN_IDS = {
+    "sd_tf_rd_009_muon_width_depth_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+    "sd_tf_rd_009_muon_width_depth_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+    "sd_tf_rd_009_muon_width_depth_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+    "sd_tf_rd_009_muon_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+    "sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+}
 WIDTH_SCREEN_RUN_IDS = {
     "sd_tf_rd_009_muon_width_screen_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v1",
     "sd_tf_rd_009_muon_width_screen_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl48_v1_v1",
@@ -179,9 +186,17 @@ def test_tf_rd_009_muon_phase1_queue_is_materialized_while_phase2_and_upper_scaf
         "192x5": 1,
         "264x6": 1,
     }
-    assert {row["status"] for row in rows} == {"ready"}
-    assert {row["interpretation_status"] for row in rows} == {"pending"}
-    assert {row.get("run_id") for row in rows} == {None}
+    assert {row["status"] for row in rows} == {"completed"}
+    assert {row["interpretation_status"] for row in rows} == {"completed"}
+    assert {row["run_id"] for row in rows} == WIDTH_DEPTH_RUN_IDS
+    assert {row["decision"] for row in rows} == {"defer"}
+    assert [row["benchmark_metrics"]["final_log_loss"] for row in rows] == [
+        0.4134940239812736,
+        0.4136881204817012,
+        0.411648995053474,
+        0.41458147691015207,
+        0.40089922764318064,
+    ]
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
     assert {row["training"]["overrides"]["optimizer"]["weight_decay"] for row in rows} == {0.01}
@@ -282,14 +297,15 @@ def test_tf_rd_009_muon_hardware_baseline_placeholder_is_separate_from_historica
     )
     assert (
         planned["preferred_run_id"]
-        == "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+        == "sd_tf_rd_009_muon_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1"
     )
-    assert set(planned["evidence_run_ids"]) == WIDTH_SCREEN_RUN_IDS
-    assert planned["preferred_delta_ref"] == "delta_tf_rd_009_cls_sandwich_dicl128_v1"
-    assert planned["preferred_architecture"]["d_icl"] == 128
-    assert planned["preferred_architecture"]["sandwich_layers"] == 2
+    assert set(planned["evidence_run_ids"]) == WIDTH_SCREEN_RUN_IDS | WIDTH_DEPTH_RUN_IDS
+    assert planned["preferred_delta_ref"] == "delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1"
+    assert planned["preferred_architecture"]["d_icl"] == 264
+    assert planned["preferred_architecture"]["sandwich_layers"] == 6
     assert planned["preferred_architecture"]["sandwich_heads"] == 1
     assert planned["selection_rule"] == "planned_muon_phase1_materialized_pending_benchmark_freeze"
-    assert "Phase-1 diagonal is now rederived" in planned["rationale"]
+    assert "264x6" in planned["rationale"]
+    assert "large-rung Muon validation" in planned["rationale"]
     assert historical["decision"] == "keep"
     assert historical["sweep_id"] == "tf_rd_009_width_depth_medium_v1"
