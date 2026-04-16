@@ -1,0 +1,439 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_muon_arch_isolation_medium_v1
+rows:
+  - order: 1
+    delta_ref: delta_tf_rd_009_muon_cls_sandwich_last_full_refresh_v1
+    status: ready
+    rationale: Execute the final-stage full-cell refresh idea in isolation on top of the current Muon `128x2` leader while keeping the measured runtime bundle and v6 corpus contract fixed.
+    hypothesis: If the current sandwich loses detail because only stage 0 gets a high-bandwidth full-cell read, reintroducing that read at the final Perceiver stage should improve benchmark quality without reopening width or optimizer tuning.
+    anchor_delta: Isolated `128x2` Muon architecture row with only `sandwich_last_stage_full_cell_refresh=true` relative to the carried leader.
+    model:
+      arch: tabfoundry_sandwich
+      d_icl: 128
+      input_normalization: train_zscore_clip
+      many_class_base: 10
+      head_hidden_dim: 96
+      sandwich_latents: 24
+      sandwich_layers: 2
+      sandwich_heads: 1
+      sandwich_ff_expansion: 2
+      sandwich_summary_tokens_per_axis: 3
+      sandwich_self_attention_per_cross: 4
+      sandwich_pre_row_attention_layers: 1
+      sandwich_pre_column_attention_layers: 1
+      sandwich_pre_column_inducing_tokens: 16
+      sandwich_packed_attention: true
+      sandwich_last_stage_full_cell_refresh: true
+      sandwich_column_summary_mode: shared_unconditioned
+      sandwich_feature_encoder_kind: linear
+      sandwich_use_class_memory: false
+      feature_type_conditioning: film
+      floating_likelihood: single_gaussian
+      integer_likelihood: hybrid_mixture
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      surface_overrides:
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_cosine_warmup
+      task_batch_size: 16
+      prior_dump_batch_size: 64
+      overrides:
+        optimizer:
+          name: muon
+          require_requested: true
+          weight_decay: 0.01
+          betas:
+            - 0.9
+            - 0.95
+          min_lr: 1.0e-06
+          muon_per_parameter_lr: true
+          muon_lr_scale_base: 0.2
+          muon_partition_non2d: true
+        runtime:
+          mixed_precision: bf16
+          grad_clip: 0.0
+          grad_accum_steps: 4
+          trace_activations: false
+          activation_checkpointing: true
+          eval_every: 25
+          checkpoint_every: 25
+          val_batches: 0
+          max_steps: 2500
+          loader_task_batch_cache: false
+          loader_task_batch_cache_mode: bounded_streaming
+          num_workers: auto
+          loader_pin_memory: true
+          loader_persistent_workers: false
+          loader_prefetch_factor: auto
+          non_blocking_device_transfer: true
+          compile_model: true
+          compile_backend: eager
+          compile_dynamic: true
+          compile_shape_dispatch_mode: signature_family
+          compile_shape_dispatch_max_families: 16
+          signature_family_run_length: 4
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+      one_epoch_contract:
+        enabled: true
+        scope: train_manifest_unique_tasks
+        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        largest_required_train_tasks: 160000
+        expected_train_records_available: 1344081
+    parameter_adequacy_plan:
+      - Keep the current Muon `128x2` width winner and the full v6 runtime bundle fixed; this row changes only whether the final Perceiver stage rereads the full-cell stream.
+      - Compare directly against the carried `128x2` Muon leader at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+      - Do not combine this delta with any other architecture change unless it first lands as a clean standalone winner.
+    execution_policy: benchmark_full
+    benchmark_checkpoint_selection: all
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Benchmark the final-stage full-cell refresh in isolation against the carried `128x2` Muon leader; only combine it later if it wins cleanly.
+    notes: []
+    dynamic_model_overrides: null
+    reuse_train_artifact: null
+    screen_metrics: null
+    benchmark_metrics: null
+    parent_delta_ref: null
+  - order: 2
+    delta_ref: delta_tf_rd_009_muon_cls_sandwich_split_column_summary_v1
+    status: ready
+    rationale: Execute the split train/test column-summary routing idea in isolation on top of the current Muon `128x2` leader while keeping the measured runtime bundle and v6 corpus contract fixed.
+    hypothesis: If the current summary-only refinement stages are limited by generic column summaries, splitting them into train-conditioned and test-conditioned branches should preserve more task structure without reopening width or optimizer tuning.
+    anchor_delta: Isolated `128x2` Muon architecture row with only `sandwich_column_summary_mode=split_role_conditioned` relative to the carried leader.
+    model:
+      arch: tabfoundry_sandwich
+      d_icl: 128
+      input_normalization: train_zscore_clip
+      many_class_base: 10
+      head_hidden_dim: 96
+      sandwich_latents: 24
+      sandwich_layers: 2
+      sandwich_heads: 1
+      sandwich_ff_expansion: 2
+      sandwich_summary_tokens_per_axis: 3
+      sandwich_self_attention_per_cross: 4
+      sandwich_pre_row_attention_layers: 1
+      sandwich_pre_column_attention_layers: 1
+      sandwich_pre_column_inducing_tokens: 16
+      sandwich_packed_attention: true
+      sandwich_last_stage_full_cell_refresh: false
+      sandwich_column_summary_mode: split_role_conditioned
+      sandwich_feature_encoder_kind: linear
+      sandwich_use_class_memory: false
+      feature_type_conditioning: film
+      floating_likelihood: single_gaussian
+      integer_likelihood: hybrid_mixture
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      surface_overrides:
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_cosine_warmup
+      task_batch_size: 16
+      prior_dump_batch_size: 64
+      overrides:
+        optimizer:
+          name: muon
+          require_requested: true
+          weight_decay: 0.01
+          betas:
+            - 0.9
+            - 0.95
+          min_lr: 1.0e-06
+          muon_per_parameter_lr: true
+          muon_lr_scale_base: 0.2
+          muon_partition_non2d: true
+        runtime:
+          mixed_precision: bf16
+          grad_clip: 0.0
+          grad_accum_steps: 4
+          trace_activations: false
+          activation_checkpointing: true
+          eval_every: 25
+          checkpoint_every: 25
+          val_batches: 0
+          max_steps: 2500
+          loader_task_batch_cache: false
+          loader_task_batch_cache_mode: bounded_streaming
+          num_workers: auto
+          loader_pin_memory: true
+          loader_persistent_workers: false
+          loader_prefetch_factor: auto
+          non_blocking_device_transfer: true
+          compile_model: true
+          compile_backend: eager
+          compile_dynamic: true
+          compile_shape_dispatch_mode: signature_family
+          compile_shape_dispatch_max_families: 16
+          signature_family_run_length: 4
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+      one_epoch_contract:
+        enabled: true
+        scope: train_manifest_unique_tasks
+        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        largest_required_train_tasks: 160000
+        expected_train_records_available: 1344081
+    parameter_adequacy_plan:
+      - Keep the current Muon `128x2` width winner and the full v6 runtime bundle fixed; this row changes only how column summaries are built and routed.
+      - Compare directly against the carried `128x2` Muon leader at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+      - Do not combine this delta with any other architecture change unless it first lands as a clean standalone winner.
+    execution_policy: benchmark_full
+    benchmark_checkpoint_selection: all
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Benchmark split role-conditioned column summaries in isolation against the carried `128x2` Muon leader; only combine them later if they win cleanly.
+    notes: []
+    dynamic_model_overrides: null
+    reuse_train_artifact: null
+    screen_metrics: null
+    benchmark_metrics: null
+    parent_delta_ref: null
+  - order: 3
+    delta_ref: delta_tf_rd_009_muon_cls_sandwich_feature_encoder_mlp2_v1
+    status: ready
+    rationale: Execute the stronger shared `mlp2` feature-encoder idea in isolation on top of the current Muon `128x2` leader while keeping the measured runtime bundle and v6 corpus contract fixed.
+    hypothesis: If the current sandwich is compensating for a shallow per-cell encoder with excess global attention work, replacing the shared linear encoder with a small MLP should improve token quality without reopening width or optimizer tuning.
+    anchor_delta: Isolated `128x2` Muon architecture row with only `sandwich_feature_encoder_kind=mlp2` relative to the carried leader.
+    model:
+      arch: tabfoundry_sandwich
+      d_icl: 128
+      input_normalization: train_zscore_clip
+      many_class_base: 10
+      head_hidden_dim: 96
+      sandwich_latents: 24
+      sandwich_layers: 2
+      sandwich_heads: 1
+      sandwich_ff_expansion: 2
+      sandwich_summary_tokens_per_axis: 3
+      sandwich_self_attention_per_cross: 4
+      sandwich_pre_row_attention_layers: 1
+      sandwich_pre_column_attention_layers: 1
+      sandwich_pre_column_inducing_tokens: 16
+      sandwich_packed_attention: true
+      sandwich_last_stage_full_cell_refresh: false
+      sandwich_column_summary_mode: shared_unconditioned
+      sandwich_feature_encoder_kind: mlp2
+      sandwich_use_class_memory: false
+      feature_type_conditioning: film
+      floating_likelihood: single_gaussian
+      integer_likelihood: hybrid_mixture
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      surface_overrides:
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_cosine_warmup
+      task_batch_size: 16
+      prior_dump_batch_size: 64
+      overrides:
+        optimizer:
+          name: muon
+          require_requested: true
+          weight_decay: 0.01
+          betas:
+            - 0.9
+            - 0.95
+          min_lr: 1.0e-06
+          muon_per_parameter_lr: true
+          muon_lr_scale_base: 0.2
+          muon_partition_non2d: true
+        runtime:
+          mixed_precision: bf16
+          grad_clip: 0.0
+          grad_accum_steps: 4
+          trace_activations: false
+          activation_checkpointing: true
+          eval_every: 25
+          checkpoint_every: 25
+          val_batches: 0
+          max_steps: 2500
+          loader_task_batch_cache: false
+          loader_task_batch_cache_mode: bounded_streaming
+          num_workers: auto
+          loader_pin_memory: true
+          loader_persistent_workers: false
+          loader_prefetch_factor: auto
+          non_blocking_device_transfer: true
+          compile_model: true
+          compile_backend: eager
+          compile_dynamic: true
+          compile_shape_dispatch_mode: signature_family
+          compile_shape_dispatch_max_families: 16
+          signature_family_run_length: 4
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+      one_epoch_contract:
+        enabled: true
+        scope: train_manifest_unique_tasks
+        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        largest_required_train_tasks: 160000
+        expected_train_records_available: 1344081
+    parameter_adequacy_plan:
+      - Keep the current Muon `128x2` width winner and the full v6 runtime bundle fixed; this row changes only the shared per-cell encoder.
+      - Compare directly against the carried `128x2` Muon leader at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+      - Do not combine this delta with any other architecture change unless it first lands as a clean standalone winner.
+    execution_policy: benchmark_full
+    benchmark_checkpoint_selection: all
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Benchmark the shared `mlp2` feature encoder in isolation against the carried `128x2` Muon leader; only combine it later if it wins cleanly.
+    notes: []
+    dynamic_model_overrides: null
+    reuse_train_artifact: null
+    screen_metrics: null
+    benchmark_metrics: null
+    parent_delta_ref: null
+  - order: 4
+    delta_ref: delta_tf_rd_009_muon_cls_sandwich_class_memory_v1
+    status: ready
+    rationale: Execute the explicit train-only class-memory idea in isolation on top of the current Muon `128x2` leader while keeping the measured runtime bundle and v6 corpus contract fixed.
+    hypothesis: If the current direct head is under-structured for small-class classification, augmenting pooled test rows with train-only class-memory slots should improve class evidence routing without reopening width or optimizer tuning.
+    anchor_delta: Isolated `128x2` Muon architecture row with only `sandwich_use_class_memory=true` relative to the carried leader.
+    model:
+      arch: tabfoundry_sandwich
+      d_icl: 128
+      input_normalization: train_zscore_clip
+      many_class_base: 10
+      head_hidden_dim: 96
+      sandwich_latents: 24
+      sandwich_layers: 2
+      sandwich_heads: 1
+      sandwich_ff_expansion: 2
+      sandwich_summary_tokens_per_axis: 3
+      sandwich_self_attention_per_cross: 4
+      sandwich_pre_row_attention_layers: 1
+      sandwich_pre_column_attention_layers: 1
+      sandwich_pre_column_inducing_tokens: 16
+      sandwich_packed_attention: true
+      sandwich_last_stage_full_cell_refresh: false
+      sandwich_column_summary_mode: shared_unconditioned
+      sandwich_feature_encoder_kind: linear
+      sandwich_use_class_memory: true
+      feature_type_conditioning: film
+      floating_likelihood: single_gaussian
+      integer_likelihood: hybrid_mixture
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      surface_overrides:
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_cosine_warmup
+      task_batch_size: 16
+      prior_dump_batch_size: 64
+      overrides:
+        optimizer:
+          name: muon
+          require_requested: true
+          weight_decay: 0.01
+          betas:
+            - 0.9
+            - 0.95
+          min_lr: 1.0e-06
+          muon_per_parameter_lr: true
+          muon_lr_scale_base: 0.2
+          muon_partition_non2d: true
+        runtime:
+          mixed_precision: bf16
+          grad_clip: 0.0
+          grad_accum_steps: 4
+          trace_activations: false
+          activation_checkpointing: true
+          eval_every: 25
+          checkpoint_every: 25
+          val_batches: 0
+          max_steps: 2500
+          loader_task_batch_cache: false
+          loader_task_batch_cache_mode: bounded_streaming
+          num_workers: auto
+          loader_pin_memory: true
+          loader_persistent_workers: false
+          loader_prefetch_factor: auto
+          non_blocking_device_transfer: true
+          compile_model: true
+          compile_backend: eager
+          compile_dynamic: true
+          compile_shape_dispatch_mode: signature_family
+          compile_shape_dispatch_max_families: 16
+          signature_family_run_length: 4
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+      one_epoch_contract:
+        enabled: true
+        scope: train_manifest_unique_tasks
+        required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        largest_required_train_tasks: 160000
+        expected_train_records_available: 1344081
+    parameter_adequacy_plan:
+      - Keep the current Muon `128x2` width winner and the full v6 runtime bundle fixed; this row changes only whether pooled test rows can read from train-only class-memory slots.
+      - Compare directly against the carried `128x2` Muon leader at matched regime budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+      - Do not combine this delta with any other architecture change unless it first lands as a clean standalone winner.
+    execution_policy: benchmark_full
+    benchmark_checkpoint_selection: all
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Benchmark train-only class memory in isolation against the carried `128x2` Muon leader; only combine it later if it wins cleanly.
+    notes: []
+    dynamic_model_overrides: null
+    reuse_train_artifact: null
+    screen_metrics: null
+    benchmark_metrics: null
+    parent_delta_ref: null

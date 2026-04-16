@@ -53,7 +53,9 @@ def _sandwich_spec() -> object:
 
 
 def test_synthetic_forward_batch_binary_surface_returns_logits() -> None:
-    batch = synthetic_forward_batch(_staged_spec(stage="row_cls_pool", stage_label="row_cls_pool_test"))
+    batch = synthetic_forward_batch(
+        _staged_spec(stage="row_cls_pool", stage_label="row_cls_pool_test")
+    )
 
     assert batch.expected_output_kind == "logits"
     assert batch.expected_num_classes == 4
@@ -107,15 +109,19 @@ def test_parameter_counts_and_surface_payload_include_sandwich_metadata() -> Non
         "pre_column_inducing_tokens": 16,
         "label_injection": "fused_into_row_summaries_and_feature_cells",
         "summary_builder": "summary_query_attention",
+        "column_summary_mode": "shared_unconditioned",
         "position_encoding": "shared_fourier_row_col",
         "feature_type_encoding": "film",
+        "feature_encoder_kind": "linear",
         "floating_likelihood": "single_gaussian",
         "integer_likelihood": "hybrid_mixture",
         "sandwich_activation": "gelu",
         "sandwich_block_norm": "layernorm",
         "sandwich_packed_attention": False,
+        "last_stage_full_cell_refresh": False,
         "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
         "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+        "class_memory": False,
         "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
         "latents": 12,
         "layers": 2,
@@ -132,10 +138,21 @@ def test_parameter_accounting_uses_strict_non_embedding_params_as_canonical_n() 
 
     accounting = parameter_accounting_from_model_spec(spec)
 
-    assert accounting["total_params"] == accounting["strict"]["embedding_params"] + accounting["strict"]["non_embedding_params"]
-    assert accounting["total_params"] == accounting["expanded"]["embedding_like_params"] + accounting["expanded"]["non_embedding_params"]
-    assert accounting["canonical_non_embedding_params"] == accounting["strict"]["non_embedding_params"]
-    assert accounting["expanded"]["embedding_like_params"] >= accounting["strict"]["embedding_params"]
+    assert (
+        accounting["total_params"]
+        == accounting["strict"]["embedding_params"] + accounting["strict"]["non_embedding_params"]
+    )
+    assert (
+        accounting["total_params"]
+        == accounting["expanded"]["embedding_like_params"]
+        + accounting["expanded"]["non_embedding_params"]
+    )
+    assert (
+        accounting["canonical_non_embedding_params"] == accounting["strict"]["non_embedding_params"]
+    )
+    assert (
+        accounting["expanded"]["embedding_like_params"] >= accounting["strict"]["embedding_params"]
+    )
     assert any(
         entry["expanded_partition"] == "embedding_like"
         and entry["expanded_reason"] == "learned_test_token"
@@ -167,4 +184,6 @@ def test_compute_accounting_reports_training_flops_from_inspected_shapes() -> No
     assert compute["total_train_flops"] == pytest.approx(
         compute["train_flops_per_token"] * compute["tokens_seen"]
     )
-    assert all("Embedding" not in entry["module_op"] for entry in compute["module_forward_flop_totals"])
+    assert all(
+        "Embedding" not in entry["module_op"] for entry in compute["module_forward_flop_totals"]
+    )

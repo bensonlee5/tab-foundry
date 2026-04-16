@@ -94,11 +94,26 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
     }
     if spec.arch != "tabfoundry_staged":
         if spec.arch == SANDWICH_MODEL_ARCH:
+            uses_split_column_summaries = (
+                str(spec.sandwich_column_summary_mode).strip().lower() == "split_role_conditioned"
+            )
+            uses_last_stage_refresh = bool(spec.sandwich_last_stage_full_cell_refresh)
+            uses_class_memory = bool(spec.sandwich_use_class_memory)
             payload["architecture"] = {
                 "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
-                "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
-                "repeated_input_tokens": "row_col_summary_stream",
-                "repeated_input_token_count": "K_times_(R_plus_C)",
+                "initial_input_token_count": (
+                    "R_times_C_plus_K_times_(R_plus_2C)"
+                    if uses_split_column_summaries
+                    else "R_times_C_plus_K_times_(R_plus_C)"
+                ),
+                "repeated_input_tokens": (
+                    "row_train_col_plus_test_col_summary_stream"
+                    if uses_split_column_summaries
+                    else "row_col_summary_stream"
+                ),
+                "repeated_input_token_count": (
+                    "K_times_(R_plus_2C)" if uses_split_column_summaries else "K_times_(R_plus_C)"
+                ),
                 "summary_tokens_per_axis": int(spec.sandwich_summary_tokens_per_axis),
                 "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
                 "pre_row_attention_layers": int(spec.sandwich_pre_row_attention_layers),
@@ -106,16 +121,34 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "pre_column_inducing_tokens": int(spec.sandwich_pre_column_inducing_tokens),
                 "label_injection": "fused_into_row_summaries_and_feature_cells",
                 "summary_builder": "summary_query_attention",
+                "column_summary_mode": str(spec.sandwich_column_summary_mode),
                 "position_encoding": "shared_fourier_row_col",
                 "feature_type_encoding": str(spec.feature_type_conditioning),
+                "feature_encoder_kind": str(spec.sandwich_feature_encoder_kind),
                 "floating_likelihood": str(spec.floating_likelihood),
                 "integer_likelihood": str(spec.integer_likelihood),
                 "sandwich_activation": str(spec.sandwich_activation),
                 "sandwich_block_norm": str(spec.sandwich_block_norm),
                 "sandwich_packed_attention": bool(spec.sandwich_packed_attention),
-                "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
-                "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
-                "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+                "last_stage_full_cell_refresh": uses_last_stage_refresh,
+                "latent_core": (
+                    "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages_"
+                    "with_final_full_cell_refresh"
+                    if uses_last_stage_refresh
+                    else "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages"
+                ),
+                "layer_semantics": (
+                    "stage0_hybrid_then_summary_repeated_stages_with_final_full_cell_refresh"
+                    if uses_last_stage_refresh
+                    else "stage0_hybrid_then_summary_repeated_stages"
+                ),
+                "class_memory": uses_class_memory,
+                "readout": (
+                    "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool_"
+                    "then_class_memory_augmented_head"
+                    if uses_class_memory
+                    else "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool"
+                ),
                 "latents": int(spec.sandwich_latents),
                 "layers": int(spec.sandwich_layers),
                 "heads": int(spec.sandwich_heads),
@@ -143,7 +176,9 @@ def synthetic_forward_batch(spec: ModelBuildSpec) -> SyntheticForwardBatch:
     test_rows = 2
     feature_count = 4
     total_rows = train_rows + test_rows
-    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(total_rows, feature_count)
+    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(
+        total_rows, feature_count
+    )
     x_all = (x_all / float(feature_count)) - 1.0
     num_classes, output_kind = _resolved_forward_shape(spec)
     y_all = torch.arange(total_rows, dtype=torch.int64).remainder(num_classes)
@@ -186,7 +221,9 @@ def synthetic_reference_arrays(
     feature_count = 3
     total_rows = train_rows + test_rows
 
-    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(total_rows, feature_count)
+    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(
+        total_rows, feature_count
+    )
     x_all = (x_all / float(feature_count)) + 1.0
     x_train = x_all[:train_rows].clone()
     x_test = x_all[train_rows:].clone()
@@ -218,7 +255,9 @@ def _resolved_forward_shape(spec: ModelBuildSpec) -> tuple[int, str]:
 
     surface = resolve_staged_surface(spec)
     if surface.head == "many_class":
-        return max(int(spec.many_class_base) + 1, int(surface.task_contract.min_classes)), "class_probs"
+        return max(
+            int(spec.many_class_base) + 1, int(surface.task_contract.min_classes)
+        ), "class_probs"
     if surface.head == "small_class":
         return int(spec.many_class_base), "logits"
 

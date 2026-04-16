@@ -37,6 +37,19 @@ class SharedLinearFeatureEncoder(nn.Module):
         return self.linear(tokenized_x)
 
 
+class SharedMlpFeatureEncoder(nn.Module):
+    """Two-layer shared feature encoder for pre-tokenized feature vectors."""
+
+    def __init__(self, token_dim: int, embedding_size: int) -> None:
+        super().__init__()
+        self.input_linear = nn.Linear(token_dim, embedding_size, bias=False)
+        self.activation = nn.GELU()
+        self.output_linear = nn.Linear(embedding_size, embedding_size, bias=False)
+
+    def forward(self, tokenized_x: torch.Tensor) -> torch.Tensor:
+        return self.output_linear(self.activation(self.input_linear(tokenized_x)))
+
+
 class FeatureTypeFiLM(nn.Module):
     """Feature-type FiLM modulation applied after the shared feature encoder."""
 
@@ -96,6 +109,7 @@ __all__ = [
     "DirectMulticlassHead",
     "FeatureTypeFiLM",
     "LabelTokenTargetConditioner",
+    "SharedMlpFeatureEncoder",
     "ScalarPerFeatureMissingnessTokenizer",
     "ScalarPerFeatureTokenizer",
     "SharedLinearFeatureEncoder",

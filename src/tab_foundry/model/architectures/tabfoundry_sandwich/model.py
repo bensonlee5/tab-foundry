@@ -14,6 +14,7 @@ from tab_foundry.model.components.tabular_primitives import (
     LabelTokenTargetConditioner,
     ScalarPerFeatureMissingnessTokenizer,
     SharedLinearFeatureEncoder,
+    SharedMlpFeatureEncoder,
 )
 from tab_foundry.model.outputs import CellLikelihoodOutput, ClassificationOutput
 from tab_foundry.model.spec import SANDWICH_DEFAULTS as _D, ModelBuildSpec
@@ -62,6 +63,10 @@ class TabFoundrySandwichClassifier(nn.Module):
         sandwich_pre_column_attention_layers: int = _D["sandwich_pre_column_attention_layers"],
         sandwich_pre_column_inducing_tokens: int = _D["sandwich_pre_column_inducing_tokens"],
         sandwich_packed_attention: bool = _D["sandwich_packed_attention"],
+        sandwich_last_stage_full_cell_refresh: bool = _D["sandwich_last_stage_full_cell_refresh"],
+        sandwich_column_summary_mode: str = _D["sandwich_column_summary_mode"],
+        sandwich_feature_encoder_kind: str = _D["sandwich_feature_encoder_kind"],
+        sandwich_use_class_memory: bool = _D["sandwich_use_class_memory"],
         feature_type_conditioning: str = _D["feature_type_conditioning"],
         floating_likelihood: str = _D["floating_likelihood"],
         integer_likelihood: str = _D["integer_likelihood"],
@@ -88,6 +93,10 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
             sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
             sandwich_packed_attention=sandwich_packed_attention,
+            sandwich_last_stage_full_cell_refresh=sandwich_last_stage_full_cell_refresh,
+            sandwich_column_summary_mode=sandwich_column_summary_mode,
+            sandwich_feature_encoder_kind=sandwich_feature_encoder_kind,
+            sandwich_use_class_memory=sandwich_use_class_memory,
             feature_type_conditioning=feature_type_conditioning,
             floating_likelihood=floating_likelihood,
             integer_likelihood=integer_likelihood,
@@ -112,6 +121,16 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.pre_column_attention_layers = int(self.model_spec.sandwich_pre_column_attention_layers)
         self.pre_column_inducing_tokens = int(self.model_spec.sandwich_pre_column_inducing_tokens)
         self.sandwich_packed_attention = bool(self.model_spec.sandwich_packed_attention)
+        self.sandwich_last_stage_full_cell_refresh = bool(
+            self.model_spec.sandwich_last_stage_full_cell_refresh
+        )
+        self.sandwich_column_summary_mode = (
+            str(self.model_spec.sandwich_column_summary_mode).strip().lower()
+        )
+        self.sandwich_feature_encoder_kind = (
+            str(self.model_spec.sandwich_feature_encoder_kind).strip().lower()
+        )
+        self.sandwich_use_class_memory = bool(self.model_spec.sandwich_use_class_memory)
         self.feature_type_conditioning = (
             str(self.model_spec.feature_type_conditioning).strip().lower()
         )
@@ -123,10 +142,17 @@ class TabFoundrySandwichClassifier(nn.Module):
                 f"got {self.norm_type!r}"
             )
         self.tokenizer = ScalarPerFeatureMissingnessTokenizer()
-        self.feature_encoder = SharedLinearFeatureEncoder(
-            token_dim=int(self.tokenizer.token_dim),
-            embedding_size=self.d_icl,
-        )
+        self.feature_encoder: nn.Module
+        if self.sandwich_feature_encoder_kind == "linear":
+            self.feature_encoder = SharedLinearFeatureEncoder(
+                token_dim=int(self.tokenizer.token_dim),
+                embedding_size=self.d_icl,
+            )
+        else:
+            self.feature_encoder = SharedMlpFeatureEncoder(
+                token_dim=int(self.tokenizer.token_dim),
+                embedding_size=self.d_icl,
+            )
         self.feature_type_film: FeatureTypeFiLM | None
         self.feature_type_embedding: nn.Embedding | None
         if self.feature_type_conditioning == "film":
@@ -228,6 +254,33 @@ class TabFoundrySandwichClassifier(nn.Module):
             block_norm=self.sandwich_block_norm,
             packed_attention=self.sandwich_packed_attention,
         )
+        self.class_memory_query: nn.Parameter | None
+        self.class_memory_builder: _CrossAttentionBlock | None
+        self.class_memory_readout: _CrossAttentionBlock | None
+        if self.sandwich_use_class_memory:
+            self.class_memory_query = nn.Parameter(
+                torch.randn(1, self.many_class_base, self.d_icl) * 0.02
+            )
+            self.class_memory_builder = _CrossAttentionBlock(
+                embedding_size=self.d_icl,
+                n_heads=self.sandwich_heads,
+                ff_expansion=self.sandwich_ff_expansion,
+                activation=self.sandwich_activation,
+                block_norm=self.sandwich_block_norm,
+                packed_attention=self.sandwich_packed_attention,
+            )
+            self.class_memory_readout = _CrossAttentionBlock(
+                embedding_size=self.d_icl,
+                n_heads=self.sandwich_heads,
+                ff_expansion=self.sandwich_ff_expansion,
+                activation=self.sandwich_activation,
+                block_norm=self.sandwich_block_norm,
+                packed_attention=self.sandwich_packed_attention,
+            )
+        else:
+            self.class_memory_query = None
+            self.class_memory_builder = None
+            self.class_memory_readout = None
         self.direct_head = DirectMulticlassHead(
             self.d_icl,
             self.head_hidden_dim,
@@ -702,6 +755,11 @@ class TabFoundrySandwichClassifier(nn.Module):
         resolved_num_classes = int(num_classes) if num_classes is not None else 2
         if num_classes is None:
             resolved_num_classes = max(2, int(y_train.max().item()) + 1)
+            if self.sandwich_use_class_memory:
+                # forward_batched() does not carry batch.num_classes, so keep the
+                # class-memory width aligned with the fixed direct-head surface
+                # unless the caller explicitly provides a task class count.
+                resolved_num_classes = max(resolved_num_classes, self.many_class_base)
         self._validate_num_classes(resolved_num_classes)
         raw_state = self._build_raw_input_state(
             x_all=x_all,

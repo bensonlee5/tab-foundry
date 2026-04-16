@@ -5,10 +5,17 @@ import torch
 
 from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_sandwich import blocks as sandwich_blocks
-from tab_foundry.model.architectures.tabfoundry_sandwich import cell_likelihood as sandwich_cell_likelihood
-from tab_foundry.model.architectures.tabfoundry_sandwich import classification_flow as sandwich_classification_flow
-from tab_foundry.model.architectures.tabfoundry_sandwich import feature_flow as sandwich_feature_flow
+from tab_foundry.model.architectures.tabfoundry_sandwich import (
+    cell_likelihood as sandwich_cell_likelihood,
+)
+from tab_foundry.model.architectures.tabfoundry_sandwich import (
+    classification_flow as sandwich_classification_flow,
+)
+from tab_foundry.model.architectures.tabfoundry_sandwich import (
+    feature_flow as sandwich_feature_flow,
+)
 from tab_foundry.model.architectures.tabfoundry_sandwich import model as sandwich_model
+from tab_foundry.model.components.tabular_primitives import SharedMlpFeatureEncoder
 from tab_foundry.model.components.rational import RationalActivation
 from tab_foundry.model.outputs import (
     CellLikelihoodOutput,
@@ -129,6 +136,10 @@ def _model(
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
     sandwich_packed_attention: bool = False,
+    sandwich_last_stage_full_cell_refresh: bool = False,
+    sandwich_column_summary_mode: str = "shared_unconditioned",
+    sandwich_feature_encoder_kind: str = "linear",
+    sandwich_use_class_memory: bool = False,
     feature_type_conditioning: str = "film",
     input_normalization: str = "train_zscore_clip",
 ) -> TabFoundrySandwichClassifier:
@@ -149,6 +160,10 @@ def _model(
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
         sandwich_packed_attention=sandwich_packed_attention,
+        sandwich_last_stage_full_cell_refresh=sandwich_last_stage_full_cell_refresh,
+        sandwich_column_summary_mode=sandwich_column_summary_mode,
+        sandwich_feature_encoder_kind=sandwich_feature_encoder_kind,
+        sandwich_use_class_memory=sandwich_use_class_memory,
         feature_type_conditioning=feature_type_conditioning,
     )
 
@@ -369,6 +384,31 @@ def test_tabfoundry_sandwich_forward_batched_shapes() -> None:
     assert torch.isfinite(logits).all()
 
 
+def test_tabfoundry_sandwich_explicit_default_new_flags_match_implicit_defaults() -> None:
+    torch.manual_seed(17)
+    implicit = _model().eval()
+    torch.manual_seed(17)
+    explicit = _model(
+        sandwich_last_stage_full_cell_refresh=False,
+        sandwich_column_summary_mode="shared_unconditioned",
+        sandwich_feature_encoder_kind="linear",
+        sandwich_use_class_memory=False,
+    ).eval()
+
+    implicit_state = implicit.state_dict()
+    explicit_state = explicit.state_dict()
+
+    assert sorted(implicit_state) == sorted(explicit_state)
+    for key in implicit_state:
+        torch.testing.assert_close(implicit_state[key], explicit_state[key])
+
+    with torch.no_grad():
+        expected = implicit(_finite_batch()).logits
+        observed = explicit(_finite_batch()).logits
+
+    torch.testing.assert_close(observed, expected)
+
+
 def test_tabfoundry_sandwich_packed_attention_matches_default_attention() -> None:
     torch.manual_seed(101)
     reference = _model().eval()
@@ -431,6 +471,25 @@ def test_tabfoundry_sandwich_uses_hybrid_full_cell_and_summary_inputs() -> None:
     assert tuple(model.latent_seed.shape) == (1, 12, 32)
     assert tuple(raw_state.y_train.shape) == (1, 3)
     assert torch.allclose(
+        classification_state.summary_input[:, :20, :],
+        classification_state.row_tokens,
+    )
+
+
+def test_tabfoundry_sandwich_split_role_conditioned_column_summaries_expand_summary_stream() -> (
+    None
+):
+    model = _model(sandwich_column_summary_mode="split_role_conditioned")
+    raw_state = _raw_state(model, _batch())
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
+    classification_state = sandwich_classification_flow.build_classification_state(
+        model,
+        feature_state,
+    )
+
+    assert tuple(classification_state.row_tokens.shape) == (1, 20, 32)
+    assert tuple(classification_state.summary_input.shape) == (1, 52, 32)
+    torch.testing.assert_close(
         classification_state.summary_input[:, :20, :],
         classification_state.row_tokens,
     )
@@ -651,7 +710,9 @@ def test_tabfoundry_sandwich_rational_norm_free_wiring_and_state_dict_keys() -> 
 
     assert isinstance(model.pre_row_attention_blocks[0].ff[1], RationalActivation)
     assert isinstance(model.row_summary_builder.query_norm, torch.nn.Identity)
-    assert isinstance(model.pre_column_attention_blocks[0].inducing_self.attn_norm, torch.nn.Identity)
+    assert isinstance(
+        model.pre_column_attention_blocks[0].inducing_self.attn_norm, torch.nn.Identity
+    )
     assert sorted(model.state_dict().keys()) == _expected_sandwich_state_dict_keys(
         activation="rational",
         block_norm="none",
@@ -739,6 +800,105 @@ def test_tabfoundry_sandwich_uses_full_cell_context_only_on_stage_zero() -> None
     _ = model(_batch())
 
     assert observed_context_lengths[:2] == [56, 36]
+
+
+def test_tabfoundry_sandwich_last_stage_full_cell_refresh_reuses_hybrid_context() -> None:
+    model = _model(sandwich_last_stage_full_cell_refresh=True)
+    observed_context_lengths: list[int] = []
+    original_cross_block = model._cross_block
+    stage_reads = {
+        id(stage.input_read): index for index, stage in enumerate(model.perceiver_stages)
+    }
+
+    def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
+        stage_index = stage_reads.get(id(block))
+        if stage_index is not None:
+            observed_context_lengths.append(int(key_value.shape[1]))
+        return original_cross_block(block, query, key_value)
+
+    model._cross_block = _recording_cross_block  # type: ignore[method-assign]
+
+    _ = model(_batch())
+
+    assert observed_context_lengths[:2] == [56, 56]
+
+
+def test_tabfoundry_sandwich_mlp_feature_encoder_uses_two_layer_shared_encoder() -> None:
+    model = _model(sandwich_feature_encoder_kind="mlp2")
+    output = model(_batch())
+
+    assert isinstance(model.feature_encoder, SharedMlpFeatureEncoder)
+    assert tuple(output.logits.shape) == (2, 4)
+    assert torch.isfinite(output.logits).all()
+
+
+def test_tabfoundry_sandwich_class_memory_train_tokens_ignore_test_rows() -> None:
+    model = _model(sandwich_use_class_memory=True)
+    baseline_batch = _batch()
+    altered_batch = TaskBatch(
+        x_train=baseline_batch.x_train.clone(),
+        y_train=baseline_batch.y_train.clone(),
+        x_test=baseline_batch.x_test.clone() + 123.0,
+        y_test=baseline_batch.y_test.clone(),
+        metadata=dict(baseline_batch.metadata),
+        num_classes=baseline_batch.num_classes,
+    )
+
+    baseline_state = sandwich_classification_flow.build_classification_state(
+        model,
+        sandwich_feature_flow.build_feature_state(model, _raw_state(model, baseline_batch)),
+    )
+    altered_state = sandwich_classification_flow.build_classification_state(
+        model,
+        sandwich_feature_flow.build_feature_state(model, _raw_state(model, altered_batch)),
+    )
+
+    assert baseline_state.train_row_tokens_for_class_memory is not None
+    assert altered_state.train_row_tokens_for_class_memory is not None
+    torch.testing.assert_close(
+        baseline_state.train_row_tokens_for_class_memory,
+        altered_state.train_row_tokens_for_class_memory,
+    )
+
+
+def test_tabfoundry_sandwich_class_memory_slices_queries_to_task_num_classes() -> None:
+    model = _model(many_class_base=6, sandwich_use_class_memory=True)
+    observed_query_lengths: list[int] = []
+    observed_key_value_lengths: list[int] = []
+    original_cross_block = model._cross_block
+
+    def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
+        if block is model.class_memory_builder:
+            observed_query_lengths.append(int(query.shape[1]))
+            observed_key_value_lengths.append(int(key_value.shape[1]))
+        return original_cross_block(block, query, key_value)
+
+    model._cross_block = _recording_cross_block  # type: ignore[method-assign]
+
+    output = model(_batch(num_classes=5))
+
+    assert observed_query_lengths == [5]
+    assert observed_key_value_lengths == [12]
+    assert tuple(output.logits.shape) == (2, 6)
+    assert torch.isfinite(output.logits).all()
+
+
+def test_tabfoundry_sandwich_class_memory_forward_batched_matches_forward() -> None:
+    model = _model(many_class_base=6, sandwich_use_class_memory=True).eval()
+    batch = _batch(num_classes=6)
+    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+
+    with torch.no_grad():
+        output = model(batch)
+        logits = model.forward_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+            feature_types=list(_DEFAULT_FEATURE_TYPES),
+        )
+
+    assert output.logits is not None
+    torch.testing.assert_close(logits.squeeze(0), output.logits, atol=1.0e-6, rtol=1.0e-5)
 
 
 def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
@@ -882,7 +1042,9 @@ def test_tabfoundry_sandwich_forward_batched_matches_forward_with_feature_types(
     assert torch.allclose(logits.squeeze(0), output.logits, atol=1.0e-6, rtol=1.0e-5)
 
 
-def test_tabfoundry_sandwich_forward_classification_passes_task_num_classes_to_batched_logits() -> None:
+def test_tabfoundry_sandwich_forward_classification_passes_task_num_classes_to_batched_logits() -> (
+    None
+):
     model = _model()
     batch = _batch(num_classes=3)
     captured: dict[str, int | None] = {}
@@ -913,7 +1075,9 @@ def test_tabfoundry_sandwich_forward_classification_passes_task_num_classes_to_b
     assert output.num_classes == 3
 
 
-def test_tabfoundry_sandwich_forward_logits_batched_explicit_num_classes_matches_inferred_path() -> None:
+def test_tabfoundry_sandwich_forward_logits_batched_explicit_num_classes_matches_inferred_path() -> (
+    None
+):
     model = _model()
     batch = _batch(num_classes=3)
     x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
@@ -1126,7 +1290,9 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_all_non_finite_targ
         _ = model.forward_cell_likelihood(batch)
 
 
-def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_num_classes_above_many_class_base() -> None:
+def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_num_classes_above_many_class_base() -> (
+    None
+):
     model = _model(many_class_base=2)
 
     with pytest.raises(RuntimeError, match="num_classes <= many_class_base=2"):

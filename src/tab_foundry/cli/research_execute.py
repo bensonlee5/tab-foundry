@@ -7,6 +7,8 @@ from pathlib import Path
 
 import click
 
+from tab_foundry.cli.click_utils import run_click_command, sweep_path_options
+from tab_foundry.research.sweep.artifacts import ExecutionPaths
 from tab_foundry.research.sweep.execute import execute_sweep
 from tab_foundry.research.sweep.row_execution import (
     ALLOWED_DECISIONS,
@@ -18,7 +20,6 @@ from tab_foundry.research.sweep.runtime_env import absolute_path_without_resolvi
 from tab_foundry.research.sweep.selection import parse_order_overrides
 
 from tab_foundry.research.sweep.paths_io import repo_root as _repo_root
-from tab_foundry.cli.click_utils import run_click_command
 
 
 def _execute_command(
@@ -38,6 +39,10 @@ def _execute_command(
     conclusion_default: str,
     decision_override: tuple[str, ...],
     conclusion_override: tuple[str, ...],
+    catalog_path: Path,
+    index_path: Path,
+    sweeps_root: Path,
+    registry_path: Path,
 ) -> int:
     prior_dump = (
         None if nanotabpfn_prior_dump is None else nanotabpfn_prior_dump.expanduser().resolve()
@@ -46,6 +51,16 @@ def _execute_command(
         None if nanotabpfn_root is None else nanotabpfn_root.expanduser().resolve()
     )
     fallback_python = absolute_path_without_resolving_symlinks(tab_foundry_python)
+    default_paths = ExecutionPaths.default()
+    paths = ExecutionPaths(
+        repo_root=default_paths.repo_root,
+        index_path=index_path.expanduser().resolve(),
+        catalog_path=catalog_path.expanduser().resolve(),
+        sweeps_root=sweeps_root.expanduser().resolve(),
+        registry_path=registry_path.expanduser().resolve(),
+        program_path=default_paths.program_path,
+        control_baseline_registry_path=default_paths.control_baseline_registry_path,
+    )
     if prior_dump is not None and not prior_dump.exists():
         raise RuntimeError(f"prior dump does not exist: {prior_dump}")
     if not fallback_python.exists():
@@ -61,7 +76,9 @@ def _execute_command(
     )
     for decision in decision_overrides.values():
         if decision not in ALLOWED_DECISIONS:
-            raise RuntimeError(f"decision must be one of {sorted(ALLOWED_DECISIONS)}, got {decision!r}")
+            raise RuntimeError(
+                f"decision must be one of {sorted(ALLOWED_DECISIONS)}, got {decision!r}"
+            )
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -79,6 +96,7 @@ def _execute_command(
         decision_overrides=decision_overrides,
         conclusion_overrides=conclusion_overrides,
         promote_first_executed_row_to_anchor=promote_first_executed_row_to_anchor,
+        paths=paths,
     )
     print(
         "Queue execution complete.",
@@ -91,16 +109,37 @@ def _execute_command(
 
 @click.command(name="execute", help="Execute selected system-delta sweep rows")
 @click.option("--sweep-id", required=True, help="Sweep id to execute")
-@click.option("--order", multiple=True, type=int, help="Explicit queue order to execute; repeatable")
-@click.option("--start-order", default=None, type=int, help="Optional starting queue order for a contiguous range")
-@click.option("--stop-after-order", default=None, type=int, help="Optional inclusive last queue order for a contiguous range")
-@click.option("--include-completed", is_flag=True, help="Allow explicitly selected completed rows to run again")
+@click.option(
+    "--order", multiple=True, type=int, help="Explicit queue order to execute; repeatable"
+)
+@click.option(
+    "--start-order",
+    default=None,
+    type=int,
+    help="Optional starting queue order for a contiguous range",
+)
+@click.option(
+    "--stop-after-order",
+    default=None,
+    type=int,
+    help="Optional inclusive last queue order for a contiguous range",
+)
+@click.option(
+    "--include-completed",
+    is_flag=True,
+    help="Allow explicitly selected completed rows to run again",
+)
 @click.option(
     "--promote-first-executed-row-to-anchor",
     is_flag=True,
     help="Promote the first executed row to the sweep anchor after it completes",
 )
-@click.option("--nanotabpfn-prior-dump", default=None, type=click.Path(path_type=Path), help="Optional path to the nanoTabPFN prior dump")
+@click.option(
+    "--nanotabpfn-prior-dump",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional path to the nanoTabPFN prior dump",
+)
 @click.option(
     "--nanotabpfn-root",
     type=click.Path(path_type=Path),
@@ -124,10 +163,23 @@ def _execute_command(
     type=click.Path(path_type=Path),
     help="Interpreter to expose under nanoTabPFN/.venv/bin/python",
 )
-@click.option("--decision-default", default=DEFAULT_DECISION, show_default=True, type=click.Choice(sorted(ALLOWED_DECISIONS)))
-@click.option("--conclusion-default", default=DEFAULT_CONCLUSION, show_default=True, help="Default conclusion recorded for executed rows")
+@click.option(
+    "--decision-default",
+    default=DEFAULT_DECISION,
+    show_default=True,
+    type=click.Choice(sorted(ALLOWED_DECISIONS)),
+)
+@click.option(
+    "--conclusion-default",
+    default=DEFAULT_CONCLUSION,
+    show_default=True,
+    help="Default conclusion recorded for executed rows",
+)
 @click.option("--decision-override", multiple=True, help="Per-order override like 7=keep")
-@click.option("--conclusion-override", multiple=True, help="Per-order override like 7=Promote this surface.")
+@click.option(
+    "--conclusion-override", multiple=True, help="Per-order override like 7=Promote this surface."
+)
+@sweep_path_options(include_registry=True, include_sweeps_root=True)
 def COMMAND(
     sweep_id: str,
     order: tuple[int, ...],
@@ -144,6 +196,10 @@ def COMMAND(
     conclusion_default: str,
     decision_override: tuple[str, ...],
     conclusion_override: tuple[str, ...],
+    catalog_path: Path,
+    index_path: Path,
+    sweeps_root: Path,
+    registry_path: Path,
 ) -> int:
     return _execute_command(
         sweep_id=sweep_id,
@@ -161,6 +217,10 @@ def COMMAND(
         conclusion_default=conclusion_default,
         decision_override=decision_override,
         conclusion_override=conclusion_override,
+        catalog_path=catalog_path,
+        index_path=index_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
     )
 
 

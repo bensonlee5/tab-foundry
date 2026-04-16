@@ -18,6 +18,7 @@ from tests.support_research.system_delta_execute import (
     test_execute_sweep_uses_completed_parent_delta_ref,
     test_execute_sweep_uses_same_invocation_parent_delta_ref,
     test_main_allows_omitting_prior_dump,
+    test_main_passes_custom_sweep_paths,
     test_main_passes_reuse_nanotabpfn_only,
     test_main_preserves_tab_foundry_python_symlink_path,
     test_main_rejects_explicit_missing_prior_dump,

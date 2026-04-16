@@ -36,6 +36,10 @@ sandwich_pre_row_attention_layers: 1
 sandwich_pre_column_attention_layers: 1
 sandwich_pre_column_inducing_tokens: 16
 sandwich_packed_attention: false
+sandwich_last_stage_full_cell_refresh: false
+sandwich_column_summary_mode: shared_unconditioned
+sandwich_feature_encoder_kind: linear
+sandwich_use_class_memory: false
 feature_type_conditioning: film
 floating_likelihood: single_gaussian
 integer_likelihood: hybrid_mixture

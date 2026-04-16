@@ -81,11 +81,15 @@ The live design combines:
 - two context surfaces built from the same encoded cell table:
   - a high-bandwidth full-cell stream over all observed cells
   - a compact repeated summary stream with $K$ learned summaries per row and
-    per column
+    per column, with an optional split train/test column-summary mode
 - a fixed latent bank where stage `0` reads the full cell stream plus
-  summaries, and later stages refine against the summary stream only
+  summaries, and later stages refine against the summary stream only unless an
+  explicit final-stage full-cell refresh is enabled
 - a dual-source readout where $K$ test-row queries read final latents first
-  and then the full cell stream before the direct classifier head
+  and then the full cell stream before the direct classifier head, with an
+  optional train-only class-memory augmentation ahead of the head
+- a shared per-cell encoder that defaults to a linear projection and can be
+  upgraded to a small shared `mlp2` encoder for architecture follow-ups
 
 Mental model:
 
@@ -248,6 +252,10 @@ Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
 | `sandwich_activation` | `gelu` | sandwich core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
 | `sandwich_block_norm` | `layernorm` | sandwich core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
 | `sandwich_packed_attention` | `false` | opt-in packed-projection SDPA path for speedrun experiments; default preserves the prior attention path |
+| `sandwich_last_stage_full_cell_refresh` | `false` | optionally let the final Perceiver stage reread the full-cell stream instead of summaries only |
+| `sandwich_column_summary_mode` | `shared_unconditioned` | default shared column summaries, or split train/test role-conditioned column-summary branches |
+| `sandwich_feature_encoder_kind` | `linear` | shared per-cell encoder kind; `mlp2` adds a GELU two-layer MLP before FiLM and positions |
+| `sandwich_use_class_memory` | `false` | optionally build train-only class-memory slots and let pooled test rows attend to them before the direct head |
 | `sandwich_summary_tokens_per_axis` | `4` | learned row summaries per row and column summaries per column |
 | `sandwich_self_attention_per_cross` | `4` | latent self-attention blocks after each cross-read |
 | `sandwich_pre_row_attention_layers` | `1` | pre-Perceiver row-wise feature self-attention blocks |

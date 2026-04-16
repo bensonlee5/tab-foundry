@@ -104,6 +104,10 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.sandwich_pre_column_inducing_tokens == 16
     assert spec.sandwich_activation == "gelu"
     assert spec.sandwich_block_norm == "layernorm"
+    assert spec.sandwich_last_stage_full_cell_refresh is False
+    assert spec.sandwich_column_summary_mode == "shared_unconditioned"
+    assert spec.sandwich_feature_encoder_kind == "linear"
+    assert spec.sandwich_use_class_memory is False
     assert spec.feature_type_conditioning == "film"
     assert spec.floating_likelihood == "single_gaussian"
     assert spec.integer_likelihood == "hybrid_mixture"
@@ -119,6 +123,10 @@ def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
             "sandwich_heads": 4,
             "sandwich_activation": "rational",
             "sandwich_block_norm": "none",
+            "sandwich_last_stage_full_cell_refresh": True,
+            "sandwich_column_summary_mode": "split_role_conditioned",
+            "sandwich_feature_encoder_kind": "mlp2",
+            "sandwich_use_class_memory": True,
         },
         fallback={
             "tficl_n_heads": 4,
@@ -136,6 +144,10 @@ def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
     assert payload["sandwich_heads"] == 4
     assert payload["sandwich_activation"] == "rational"
     assert payload["sandwich_block_norm"] == "none"
+    assert payload["sandwich_last_stage_full_cell_refresh"] is True
+    assert payload["sandwich_column_summary_mode"] == "split_role_conditioned"
+    assert payload["sandwich_feature_encoder_kind"] == "mlp2"
+    assert payload["sandwich_use_class_memory"] is True
     for unsupported_key in (
         "stage",
         "stage_label",
@@ -250,6 +262,8 @@ def test_sandwich_model_spec_rejects_legacy_dual_bank_fields() -> None:
     (
         ("sandwich_activation", "swish"),
         ("sandwich_block_norm", "rmsnorm"),
+        ("sandwich_column_summary_mode", "shared"),
+        ("sandwich_feature_encoder_kind", "linear_plus"),
     ),
 )
 def test_sandwich_model_spec_rejects_unsupported_activation_and_block_norm_fields(

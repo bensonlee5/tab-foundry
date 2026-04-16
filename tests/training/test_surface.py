@@ -267,14 +267,18 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
         "pre_column_inducing_tokens": 16,
         "label_injection": "fused_into_row_summaries_and_feature_cells",
         "summary_builder": "summary_query_attention",
+        "column_summary_mode": "shared_unconditioned",
         "position_encoding": "shared_fourier_row_col",
         "feature_type_encoding": "film",
+        "feature_encoder_kind": "linear",
         "floating_likelihood": "single_gaussian",
         "integer_likelihood": "hybrid_mixture",
         "sandwich_activation": "gelu",
         "sandwich_block_norm": "layernorm",
+        "last_stage_full_cell_refresh": False,
         "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
         "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+        "class_memory": False,
         "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
         "latents": 24,
         "layers": 2,
@@ -538,7 +542,9 @@ def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_
     }
 
 
-def test_build_training_surface_record_captures_post_stack_norm_and_residual_scale(tmp_path: Path) -> None:
+def test_build_training_surface_record_captures_post_stack_norm_and_residual_scale(
+    tmp_path: Path,
+) -> None:
     manifest_path = _write_manifest(tmp_path / "manifest_post_stack_norm.parquet")
 
     record = build_training_surface_record(
@@ -575,7 +581,9 @@ def test_build_training_surface_record_captures_post_stack_norm_and_residual_sca
         "name": "rmsnorm",
         "norm_type": "rmsnorm",
     }
-    assert record["model"]["module_hyperparameters"]["table_block"]["residual_scale"] == "depth_scaled"
+    assert (
+        record["model"]["module_hyperparameters"]["table_block"]["residual_scale"] == "depth_scaled"
+    )
     assert record["model"]["module_hyperparameters"]["table_block"]["residual_branch_gain"] > 0.0
 
 
@@ -818,7 +826,7 @@ def test_build_training_surface_record_captures_legacy_prior_batch_scaling_metad
                 "batch_size": 64,
                 "lr_scale_rule": "sqrt",
                 "batch_reference_size": 32,
-                "effective_lr_scale_factor": 2 ** 0.5,
+                "effective_lr_scale_factor": 2**0.5,
             },
             "optimizer": {
                 "name": "schedulefree_adamw",
@@ -845,7 +853,7 @@ def test_build_training_surface_record_captures_legacy_prior_batch_scaling_metad
         "batch_size": 64,
         "lr_scale_rule": "sqrt",
         "batch_reference_size": 32,
-        "effective_lr_scale_factor": 2 ** 0.5,
+        "effective_lr_scale_factor": 2**0.5,
     }
     assert record["training"]["optimizer_min_lr"] == 5.656854249492381e-4
     assert record["training"]["schedule_stages"][0]["lr_max"] == 5.656854249492381e-3
@@ -865,7 +873,7 @@ def test_build_training_surface_record_preserves_flat_legacy_prior_overrides(
                 "prior_dump_batch_size": 64,
                 "prior_dump_lr_scale_rule": "sqrt",
                 "prior_dump_batch_reference_size": 32,
-                "effective_lr_scale_factor": 2 ** 0.5,
+                "effective_lr_scale_factor": 2**0.5,
             },
             "legacy_prior": {
                 "non_finite_policy": "error",
@@ -883,5 +891,5 @@ def test_build_training_surface_record_preserves_flat_legacy_prior_overrides(
         "batch_size": 64,
         "lr_scale_rule": "sqrt",
         "batch_reference_size": 32,
-        "effective_lr_scale_factor": 2 ** 0.5,
+        "effective_lr_scale_factor": 2**0.5,
     }

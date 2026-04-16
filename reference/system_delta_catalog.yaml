@@ -3352,6 +3352,426 @@ deltas:
     default_next_action: Execute as the largest width bracket in `tf_rd_009_width_transfer_medium_v1` after the replayed heads1 anchor is promoted.
     applicability_guards: []
 
+  delta_tf_rd_009_muon_cls_sandwich_last_full_refresh_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Add a final-stage full-cell refresh to the current TF-RD-009 Muon `128x2` sandwich leader while keeping the closed medium benchmark contract fixed.
+    upstream_delta: This is an architecture-isolation follow-up on the current Muon width winner `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+    expected_effect: If the current `128x2` sandwich is bottlenecked by only reading the full-cell stream once at stage 0, a final full-cell refresh should recover missed detailed evidence without reopening width, depth, or optimizer tuning.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - fixed Muon optimizer, runtime, compile, and one-epoch contract bundle from the measured `128x2` width winner
+      - final-stage full-cell refresh only; width, depth, summaries-per-axis, and head geometry remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as one isolated follow-up against the current `128x2` Muon leader rather than stacking with any other architecture delta.
+        - Keep this row only if it improves matched-regime-budget benchmark quality without introducing health regressions.
+        - Do not combine this delta with the other architecture ideas unless it first lands as a clean standalone winner.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        sandwich_last_stage_full_cell_refresh: true
+        sandwich_column_summary_mode: shared_unconditioned
+        sandwich_feature_encoder_kind: linear
+        sandwich_use_class_memory: false
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            name: muon
+            require_requested: true
+            weight_decay: 0.01
+            betas:
+              - 0.9
+              - 0.95
+            min_lr: 1.0e-06
+            muon_per_parameter_lr: true
+            muon_lr_scale_base: 0.2
+            muon_partition_non2d: true
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+            loader_task_batch_cache: false
+            loader_task_batch_cache_mode: bounded_streaming
+            num_workers: auto
+            loader_pin_memory: true
+            loader_persistent_workers: false
+            loader_prefetch_factor: auto
+            non_blocking_device_transfer: true
+            compile_model: true
+            compile_backend: eager
+            compile_dynamic: true
+            compile_shape_dispatch_mode: signature_family
+            compile_shape_dispatch_max_families: 16
+            signature_family_run_length: 4
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as an isolated architecture follow-up against the current `128x2` Muon anchor and combine only if it wins cleanly.
+    applicability_guards: []
+
+  delta_tf_rd_009_muon_cls_sandwich_split_column_summary_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Split the column summary stream into train-conditioned and test-conditioned branches on top of the current TF-RD-009 Muon `128x2` sandwich leader.
+    upstream_delta: This is an architecture-isolation follow-up on the current Muon width winner `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+    expected_effect: If the current summary-only refinement stages are under-informed by generic column summaries, separate train/test role-conditioned column summaries should preserve more structure without reopening the main runtime surface.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - fixed Muon optimizer, runtime, compile, and one-epoch contract bundle from the measured `128x2` width winner
+      - column summary routing only; width, depth, latent count, and direct head remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as one isolated follow-up against the current `128x2` Muon leader rather than stacking with any other architecture delta.
+        - Keep this row only if the extra summary routing earns a clear benchmark gain without offsetting health regressions.
+        - Do not combine this delta with the other architecture ideas unless it first lands as a clean standalone winner.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        sandwich_last_stage_full_cell_refresh: false
+        sandwich_column_summary_mode: split_role_conditioned
+        sandwich_feature_encoder_kind: linear
+        sandwich_use_class_memory: false
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            name: muon
+            require_requested: true
+            weight_decay: 0.01
+            betas:
+              - 0.9
+              - 0.95
+            min_lr: 1.0e-06
+            muon_per_parameter_lr: true
+            muon_lr_scale_base: 0.2
+            muon_partition_non2d: true
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+            loader_task_batch_cache: false
+            loader_task_batch_cache_mode: bounded_streaming
+            num_workers: auto
+            loader_pin_memory: true
+            loader_persistent_workers: false
+            loader_prefetch_factor: auto
+            non_blocking_device_transfer: true
+            compile_model: true
+            compile_backend: eager
+            compile_dynamic: true
+            compile_shape_dispatch_mode: signature_family
+            compile_shape_dispatch_max_families: 16
+            signature_family_run_length: 4
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as an isolated architecture follow-up against the current `128x2` Muon anchor and combine only if it wins cleanly.
+    applicability_guards: []
+
+  delta_tf_rd_009_muon_cls_sandwich_feature_encoder_mlp2_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Replace the linear per-cell encoder with a shared two-layer MLP on top of the current TF-RD-009 Muon `128x2` sandwich leader.
+    upstream_delta: This is an architecture-isolation follow-up on the current Muon width winner `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+    expected_effect: If the current sandwich is spending too much global capacity compensating for a shallow local cell encoder, a shared `mlp2` feature encoder should improve token quality without reopening the broader Muon runtime surface.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - fixed Muon optimizer, runtime, compile, and one-epoch contract bundle from the measured `128x2` width winner
+      - feature encoder only; width, depth, latent count, and summary routing remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as one isolated follow-up against the current `128x2` Muon leader rather than stacking with any other architecture delta.
+        - Keep this row only if the stronger local encoder earns a clear benchmark gain without offsetting health regressions.
+        - Do not combine this delta with the other architecture ideas unless it first lands as a clean standalone winner.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        sandwich_last_stage_full_cell_refresh: false
+        sandwich_column_summary_mode: shared_unconditioned
+        sandwich_feature_encoder_kind: mlp2
+        sandwich_use_class_memory: false
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            name: muon
+            require_requested: true
+            weight_decay: 0.01
+            betas:
+              - 0.9
+              - 0.95
+            min_lr: 1.0e-06
+            muon_per_parameter_lr: true
+            muon_lr_scale_base: 0.2
+            muon_partition_non2d: true
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+            loader_task_batch_cache: false
+            loader_task_batch_cache_mode: bounded_streaming
+            num_workers: auto
+            loader_pin_memory: true
+            loader_persistent_workers: false
+            loader_prefetch_factor: auto
+            non_blocking_device_transfer: true
+            compile_model: true
+            compile_backend: eager
+            compile_dynamic: true
+            compile_shape_dispatch_mode: signature_family
+            compile_shape_dispatch_max_families: 16
+            signature_family_run_length: 4
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as an isolated architecture follow-up against the current `128x2` Muon anchor and combine only if it wins cleanly.
+    applicability_guards: []
+
+  delta_tf_rd_009_muon_cls_sandwich_class_memory_v1:
+    dimension_family: model
+    family: classification_scaling_law
+    binary_applicable: false
+    description: Add train-only class-memory slots ahead of the direct multiclass head on top of the current TF-RD-009 Muon `128x2` sandwich leader.
+    upstream_delta: This is an architecture-isolation follow-up on the current Muon width winner `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`.
+    expected_effect: If the current direct head is under-structured for small-class classification, explicit class-memory slots built only from train rows should provide a cleaner class-evidence path without reopening the fixed Muon runtime surface.
+    adequacy_knobs:
+      - fixed TF-RD-010 curated medium benchmark contract
+      - fixed Muon optimizer, runtime, compile, and one-epoch contract bundle from the measured `128x2` width winner
+      - class-memory augmentation only; width, depth, tokenization, and summary routing remain frozen
+    parameter_adequacy_policy:
+      default_plan:
+        - Execute as one isolated follow-up against the current `128x2` Muon leader rather than stacking with any other architecture delta.
+        - Keep this row only if the explicit class memory improves benchmark quality without offsetting health regressions.
+        - Do not combine this delta with the other architecture ideas unless it first lands as a clean standalone winner.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 10
+        head_hidden_dim: 96
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        sandwich_last_stage_full_cell_refresh: false
+        sandwich_column_summary_mode: shared_unconditioned
+        sandwich_feature_encoder_kind: linear
+        sandwich_use_class_memory: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        source: manifest
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 16
+        prior_dump_batch_size: 64
+        overrides:
+          optimizer:
+            name: muon
+            require_requested: true
+            weight_decay: 0.01
+            betas:
+              - 0.9
+              - 0.95
+            min_lr: 1.0e-06
+            muon_per_parameter_lr: true
+            muon_lr_scale_base: 0.2
+            muon_partition_non2d: true
+          runtime:
+            mixed_precision: bf16
+            grad_clip: 0.0
+            grad_accum_steps: 4
+            trace_activations: false
+            activation_checkpointing: true
+            eval_every: 25
+            checkpoint_every: 25
+            val_batches: 0
+            max_steps: 2500
+            loader_task_batch_cache: false
+            loader_task_batch_cache_mode: bounded_streaming
+            num_workers: auto
+            loader_pin_memory: true
+            loader_persistent_workers: false
+            loader_prefetch_factor: auto
+            non_blocking_device_transfer: true
+            compile_model: true
+            compile_backend: eager
+            compile_dynamic: true
+            compile_shape_dispatch_mode: signature_family
+            compile_shape_dispatch_max_families: 16
+            signature_family_run_length: 4
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.001
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Execute as an isolated architecture follow-up against the current `128x2` Muon anchor and combine only if it wins cleanly.
+    applicability_guards: []
+
   delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1:
     dimension_family: model
     family: classification_scaling_law

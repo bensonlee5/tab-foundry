@@ -23,6 +23,8 @@ SUPPORTED_FLOATING_LIKELIHOODS = ("single_gaussian",)
 SUPPORTED_INTEGER_LIKELIHOODS = ("hybrid_mixture", "discrete")
 SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
 SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
+SUPPORTED_SANDWICH_COLUMN_SUMMARY_MODES = ("shared_unconditioned", "split_role_conditioned")
+SUPPORTED_SANDWICH_FEATURE_ENCODERS = ("linear", "mlp2")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -226,6 +228,10 @@ class _SandwichModelParams(_SpecModel):
     sandwich_pre_column_attention_layers: int = Field(default=1, ge=0)
     sandwich_pre_column_inducing_tokens: int = Field(default=16, gt=0)
     sandwich_packed_attention: bool = False
+    sandwich_last_stage_full_cell_refresh: bool = False
+    sandwich_column_summary_mode: str = "shared_unconditioned"
+    sandwich_feature_encoder_kind: str = "linear"
+    sandwich_use_class_memory: bool = False
     feature_type_conditioning: str = "film"
     floating_likelihood: str = "single_gaussian"
     integer_likelihood: str = "hybrid_mixture"
@@ -254,6 +260,47 @@ class _SandwichModelParams(_SpecModel):
         if isinstance(value, int) and value in {0, 1}:
             return bool(value)
         raise ValueError(f"sandwich_packed_attention must be boolean-compatible, got {value!r}")
+
+    @field_validator(
+        "sandwich_last_stage_full_cell_refresh",
+        "sandwich_use_class_memory",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_sandwich_boolean_flags(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"sandwich boolean flag must be boolean-compatible, got {value!r}")
+
+    @field_validator("sandwich_column_summary_mode", mode="before")
+    @classmethod
+    def _validate_sandwich_column_summary_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_SANDWICH_COLUMN_SUMMARY_MODES:
+            raise ValueError(
+                "sandwich_column_summary_mode must be one of "
+                f"{SUPPORTED_SANDWICH_COLUMN_SUMMARY_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("sandwich_feature_encoder_kind", mode="before")
+    @classmethod
+    def _validate_sandwich_feature_encoder_kind(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_SANDWICH_FEATURE_ENCODERS:
+            raise ValueError(
+                "sandwich_feature_encoder_kind must be one of "
+                f"{SUPPORTED_SANDWICH_FEATURE_ENCODERS}, got {value!r}"
+            )
+        return normalized
 
     @field_validator("feature_type_conditioning", mode="before")
     @classmethod
@@ -305,8 +352,7 @@ class _SandwichModelParams(_SpecModel):
         normalized = str(value).strip().lower()
         if normalized not in SUPPORTED_INTEGER_LIKELIHOODS:
             raise ValueError(
-                "integer_likelihood must be one of "
-                f"{SUPPORTED_INTEGER_LIKELIHOODS}, got {value!r}"
+                f"integer_likelihood must be one of {SUPPORTED_INTEGER_LIKELIHOODS}, got {value!r}"
             )
         return normalized
 
@@ -427,7 +473,11 @@ def _build_sandwich_defaults() -> dict[str, Any]:
 
 
 SANDWICH_DEFAULTS: dict[str, Any] = _build_sandwich_defaults()
-_COMMON_PAYLOAD_NAMES = frozenset(_BaseModelBuildSpecPayload.model_fields) - {"task", "arch", "params"}
+_COMMON_PAYLOAD_NAMES = frozenset(_BaseModelBuildSpecPayload.model_fields) - {
+    "task",
+    "arch",
+    "params",
+}
 _SIMPLE_PARAM_NAMES = frozenset(_SimpleModelParams.model_fields)
 _STAGED_PARAM_NAMES = frozenset(_StagedModelParams.model_fields)
 _SANDWICH_PARAM_NAMES = frozenset(_SandwichModelParams.model_fields)
@@ -490,7 +540,11 @@ def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, 
 def _validate_payload(payload: Any) -> _ModelBuildSpecPayload:
     if isinstance(
         payload,
-        (_SimpleModelBuildSpecPayload, _StagedModelBuildSpecPayload, _SandwichModelBuildSpecPayload),
+        (
+            _SimpleModelBuildSpecPayload,
+            _StagedModelBuildSpecPayload,
+            _SandwichModelBuildSpecPayload,
+        ),
     ):
         return payload
     candidate = payload
@@ -548,7 +602,9 @@ class ModelBuildSpec:
         object.__setattr__(self, "payload", payload)
         object.__setattr__(self, "_flat", _flat_dict_from_payload(payload))
 
-    def __setattr__(self, name: str, value: Any) -> None:  # pragma: no cover - defensive immutability
+    def __setattr__(
+        self, name: str, value: Any
+    ) -> None:  # pragma: no cover - defensive immutability
         raise AttributeError(f"{self.__class__.__name__} is immutable")
 
     def __getattr__(self, name: str) -> Any:
@@ -611,7 +667,7 @@ def _feature_group_size_from_state_dict(
         return None
     try:
         in_features = int(shape[1])
-    except (IndexError, TypeError, ValueError):
+    except IndexError, TypeError, ValueError:
         return None
     if in_features <= 0 or in_features % _GROUP_SHIFT_COUNT != 0:
         return None

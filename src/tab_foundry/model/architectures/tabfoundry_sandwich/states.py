@@ -35,3 +35,4 @@ class SandwichClassificationState:
     full_cell_stream: torch.Tensor
     summary_input: torch.Tensor
     row_tokens: torch.Tensor
+    train_row_tokens_for_class_memory: torch.Tensor | None = None

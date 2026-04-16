@@ -101,8 +101,7 @@ def normalize_training_backend(value: Any) -> str | None:
     normalized = _TRAINING_BACKEND_ALIASES.get(backend)
     if normalized is None:
         raise ValueError(
-            "training backend must be one of "
-            f"{sorted(_VALID_TRAINING_BACKENDS)}, got {value!r}"
+            f"training backend must be one of {sorted(_VALID_TRAINING_BACKENDS)}, got {value!r}"
         )
     return normalized
 
@@ -248,9 +247,7 @@ def build_training_surface_record(
     if raw_requested_corpus_ref is None:
         raw_requested_corpus_ref = data_cfg.get("corpus_ref")
     requested_corpus_ref = (
-        None
-        if raw_requested_corpus_ref is None
-        else str(raw_requested_corpus_ref).strip() or None
+        None if raw_requested_corpus_ref is None else str(raw_requested_corpus_ref).strip() or None
     )
     raw_materialization_state = data_surface_overrides.get("materialization_state")
     if raw_materialization_state is None:
@@ -282,11 +279,26 @@ def build_training_surface_record(
         model_payload["module_hyperparameters"] = surface.component_hyperparameters()
         model_label = str(surface.stage_label)
     elif model_spec.arch == SANDWICH_MODEL_ARCH:
+        uses_split_column_summaries = (
+            str(model_spec.sandwich_column_summary_mode).strip().lower() == "split_role_conditioned"
+        )
+        uses_last_stage_refresh = bool(model_spec.sandwich_last_stage_full_cell_refresh)
+        uses_class_memory = bool(model_spec.sandwich_use_class_memory)
         model_payload["architecture"] = {
             "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
-            "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
-            "repeated_input_tokens": "row_col_summary_stream",
-            "repeated_input_token_count": "K_times_(R_plus_C)",
+            "initial_input_token_count": (
+                "R_times_C_plus_K_times_(R_plus_2C)"
+                if uses_split_column_summaries
+                else "R_times_C_plus_K_times_(R_plus_C)"
+            ),
+            "repeated_input_tokens": (
+                "row_train_col_plus_test_col_summary_stream"
+                if uses_split_column_summaries
+                else "row_col_summary_stream"
+            ),
+            "repeated_input_token_count": (
+                "K_times_(R_plus_2C)" if uses_split_column_summaries else "K_times_(R_plus_C)"
+            ),
             "summary_tokens_per_axis": int(model_spec.sandwich_summary_tokens_per_axis),
             "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
             "pre_row_attention_layers": int(model_spec.sandwich_pre_row_attention_layers),
@@ -294,15 +306,33 @@ def build_training_surface_record(
             "pre_column_inducing_tokens": int(model_spec.sandwich_pre_column_inducing_tokens),
             "label_injection": "fused_into_row_summaries_and_feature_cells",
             "summary_builder": "summary_query_attention",
+            "column_summary_mode": str(model_spec.sandwich_column_summary_mode),
             "position_encoding": "shared_fourier_row_col",
             "feature_type_encoding": str(model_spec.feature_type_conditioning),
+            "feature_encoder_kind": str(model_spec.sandwich_feature_encoder_kind),
             "floating_likelihood": str(model_spec.floating_likelihood),
             "integer_likelihood": str(model_spec.integer_likelihood),
             "sandwich_activation": str(model_spec.sandwich_activation),
             "sandwich_block_norm": str(model_spec.sandwich_block_norm),
-            "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
-            "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
-            "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+            "last_stage_full_cell_refresh": uses_last_stage_refresh,
+            "latent_core": (
+                "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages_"
+                "with_final_full_cell_refresh"
+                if uses_last_stage_refresh
+                else "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages"
+            ),
+            "layer_semantics": (
+                "stage0_hybrid_then_summary_repeated_stages_with_final_full_cell_refresh"
+                if uses_last_stage_refresh
+                else "stage0_hybrid_then_summary_repeated_stages"
+            ),
+            "class_memory": uses_class_memory,
+            "readout": (
+                "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool_"
+                "then_class_memory_augmented_head"
+                if uses_class_memory
+                else "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool"
+            ),
             "latents": int(model_spec.sandwich_latents),
             "layers": int(model_spec.sandwich_layers),
             "heads": int(model_spec.sandwich_heads),
@@ -369,9 +399,7 @@ def build_training_surface_record(
                 "optimizer_min_lr": None
                 if optimizer_cfg is None or optimizer_cfg.get("min_lr") is None
                 else float(optimizer_cfg["min_lr"]),
-                "schedule_stages": None
-                if schedule_cfg is None
-                else schedule_cfg.get("stages"),
+                "schedule_stages": None if schedule_cfg is None else schedule_cfg.get("stages"),
                 "overrides": training_cfg.get("overrides", {}),
             }
         else:
