@@ -1140,14 +1140,13 @@ Legacy wording note:
     `tf_rd_009_rtx8000_44gb_classification_medium_muon_v1` in `planned` state
     while carrying `264x6` as the current preferred candidate; the freeze still
     waits for a later large-rung Muon validation on the candidate architecture
-  - `tf_rd_009_muon_ns_one_epoch_medium_v1`,
-    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`,
-    `tf_rd_009_muon_phase2_one_epoch_v1`,
-    `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
-    `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
-    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1` remain scaffolded and
-    intentionally empty until the completed fresh-Muon Phase-1 family is
-    promoted into later Phase-2 and upper-family work
+  - [#274](https://github.com/bensonlee5/tab-foundry/issues/274) is now live:
+    `tf_rd_009_muon_ns_one_epoch_medium_v1` is benchmark-backed and complete on
+    the completed fresh-Muon Phase-1 family, with best NS row `144x4 @ 5000`
+    steps at `final_log_loss=0.39719`; `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
+    is still running on the carried `264x6` geometry, so
+    `tf_rd_009_muon_phase2_one_epoch_v1` still waits on batch-critical
+    completion plus validation backfill and fit/audit closeout
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative umbrella for TF-RD-009, but treat the historical
@@ -1161,14 +1160,13 @@ Legacy wording note:
     anchor, keep `128x2` as the carried in-family baseline, and carry the now-
     benchmark-backed `264x6` winner into later Muon planning without reopening
     a larger-model Phase-1 extension first
-  - execute [#274](https://github.com/bensonlee5/tab-foundry/issues/274) as the
-    fresh Muon Phase-2 branch: populate
-    `tf_rd_009_muon_ns_one_epoch_medium_v1`,
-    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, and
-    `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml`; fit
-    Kaplan-style laws on Muon-family points only and keep `L(N,S)` on
-    validation loss as the primary kept law, with benchmark loss as external
-    ranking evidence
+  - continue [#274](https://github.com/bensonlee5/tab-foundry/issues/274) from
+    the now-completed NS half: finish
+    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, then run validation
+    backfill, inspect/fit/audit
+    `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml`, and
+    keep `L(N,S)` on validation loss as the primary kept law with benchmark
+    loss as external ranking evidence
   - keep `Bcrit` and derived `Cmin` diagnostic-only in the fresh Muon base
     family until the redesigned multi-geometry batch lane exists; do not make
     Chinchilla-like claims from the base Muon Phase-2 study alone

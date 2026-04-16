@@ -106,7 +106,7 @@ operational rather than cosmetic.
   - completed width screen `tf_rd_009_muon_width_screen_medium_v1`
   - repo-encoded Phase-1 width-depth family
     `tf_rd_009_muon_width_depth_medium_v1`
-  - one-epoch Phase-2 scaffolds
+  - one-epoch Phase-2 branch
     `tf_rd_009_muon_ns_one_epoch_medium_v1`,
     `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`, and
     `tf_rd_009_muon_phase2_one_epoch_v1`
@@ -389,18 +389,24 @@ Muon reboot note, April 15, 2026 PT: the fresh Muon Phase-1 family is now
 benchmark-backed under completed child
 [#275](https://github.com/bensonlee5/tab-foundry/issues/275). The study config
 `reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
-scaffolds `tf_rd_009_muon_ns_one_epoch_medium_v1` and
-`tf_rd_009_muon_batch_critical_one_epoch_medium_v1` remain intentionally empty
-until [#274](https://github.com/bensonlee5/tab-foundry/issues/274) starts the
-Muon Phase-2 branch on the completed Phase-1 family. The Muon width-depth
-family finished as `72x1=0.4135`, `112x3=0.4137`, `144x4=0.4116`,
-`192x5=0.4146`, and `264x6=0.4009`, with `60x2` still retained as the formal
-external anchor and `128x2` still carried as the in-family baseline. W&B
-system-memory evidence on the live A6000 host recorded peak allocated memory
-`4.28 GB` at `72x1`, `5.48 GB` at `112x3`, and `8.11 GB` at `144x4`, while the
-winning `264x6` row still fit comfortably at `peak_vram_reserved=17.20 GB`.
-Keep that headroom evidence for later planning, but do not reopen a larger-
-model Muon Phase-1 extension before Phase 2.
+Muon Phase-2 is now partially benchmark-backed under
+[#274](https://github.com/bensonlee5/tab-foundry/issues/274): the NS sweep
+`tf_rd_009_muon_ns_one_epoch_medium_v1` is complete over the full
+`72x1/112x3/144x4/192x5/264x6 x {625,1250,2500,5000}` matrix, while the
+batch-critical sweep `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
+continues on the carried `264x6` geometry. The completed NS family currently
+prefers `144x4 @ 5000` steps with `final_log_loss=0.3971900011`; the other
+best-per-geometry rows are `72x1 @ 5000 = 0.4002795118`, `112x3 @ 5000 =
+0.3987292483`, `192x5 @ 5000 = 0.4085763618`, and `264x6 @ 5000 =
+0.4037193629`. The Muon width-depth family still finishes as `72x1=0.4135`,
+`112x3=0.4137`, `144x4=0.4116`, `192x5=0.4146`, and `264x6=0.4009`, with
+`60x2` retained as the formal external anchor and `128x2` carried as the
+in-family baseline. W&B system-memory evidence on the live A6000 host recorded
+peak allocated memory `4.28 GB` at `72x1`, `5.48 GB` at `112x3`, and `8.11 GB`
+at `144x4`, while the winning `264x6` Phase-1 row still fit comfortably at
+`peak_vram_reserved=17.20 GB`. Keep that headroom evidence for later planning,
+but do not reopen a larger-model Muon Phase-1 extension before the Phase-2
+batch-critical fit closes.
 
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row

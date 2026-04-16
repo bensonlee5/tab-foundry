@@ -69,8 +69,14 @@ def test_tf_rd_009_muon_ns_one_epoch_medium_v1_tracks_the_exact_geometry_step_ma
 
     rows = queue["rows"]
     assert len(rows) == len(GEOMETRIES) * len(STEP_LADDER)
-    assert {row["status"] for row in rows} == {"ready"}
-    assert {row["run_id"] for row in rows} == {None}
+    assert {row["status"] for row in rows} == {"completed"}
+    assert {row["interpretation_status"] for row in rows} == {"completed"}
+    assert {
+        row["run_id"] for row in rows
+    } == {
+        f"sd_tf_rd_009_muon_ns_one_epoch_medium_v1_{int(row['order']):02d}_{row['delta_ref']}_v1"
+        for row in rows
+    }
     geometry_counts = Counter(f"{row['model']['d_icl']}x{row['model']['sandwich_layers']}" for row in rows)
     assert dict(geometry_counts) == {label: len(STEP_LADDER) for label in GEOMETRIES}
     step_counts = Counter(row["training"]["overrides"]["runtime"]["max_steps"] for row in rows)
@@ -79,6 +85,11 @@ def test_tf_rd_009_muon_ns_one_epoch_medium_v1_tracks_the_exact_geometry_step_ma
     assert {row["training"]["task_batch_size"] for row in rows} == {16}
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
+    best_row = min(rows, key=lambda row: row["benchmark_metrics"]["final_log_loss"])
+    assert best_row["order"] == 12
+    assert f"{best_row['model']['d_icl']}x{best_row['model']['sandwich_layers']}" == "144x4"
+    assert best_row["training"]["overrides"]["runtime"]["max_steps"] == 5000
+    assert best_row["benchmark_metrics"]["final_log_loss"] == 0.3971900010756594
 
 
 def test_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_tracks_the_exact_batch_step_ladder() -> None:
