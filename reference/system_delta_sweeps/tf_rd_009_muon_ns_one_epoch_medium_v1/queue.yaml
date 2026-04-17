@@ -101,7 +101,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -247,7 +247,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -393,7 +393,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -539,7 +539,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1
   followup_run_ids: []
   decision: defer
@@ -685,7 +685,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
   followup_run_ids: []
   decision: defer
@@ -831,7 +831,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
   followup_run_ids: []
   decision: defer
@@ -977,7 +977,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1123,7 +1123,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1269,7 +1269,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1415,7 +1415,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1561,7 +1561,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1707,7 +1707,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1853,7 +1853,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1
   followup_run_ids: []
   decision: defer
@@ -1999,7 +1999,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2145,7 +2145,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2291,7 +2291,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2437,7 +2437,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2583,7 +2583,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2729,7 +2729,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
   decision: defer
@@ -2875,7 +2875,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
   decision: defer

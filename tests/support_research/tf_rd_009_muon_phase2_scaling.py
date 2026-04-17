@@ -84,6 +84,7 @@ def test_tf_rd_009_muon_ns_one_epoch_medium_v1_tracks_the_exact_geometry_step_ma
     assert {row["training"]["overrides"]["runtime"]["grad_accum_steps"] for row in rows} == {4}
     assert {row["training"]["task_batch_size"] for row in rows} == {16}
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
+    assert {row["benchmark_checkpoint_selection"] for row in rows} == {"best_and_final"}
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
     best_row = min(rows, key=lambda row: row["benchmark_metrics"]["final_log_loss"])
     assert best_row["order"] == 12
@@ -120,6 +121,7 @@ def test_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_tracks_the_exact_batc
     assert dict(batch_counts) == {batch: len(STEP_LADDER) for batch in BATCH_LADDER}
     assert {row["training"]["task_batch_size"] for row in rows} == {16}
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
+    assert {row["benchmark_checkpoint_selection"] for row in rows} == {"best_and_final"}
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
 
 

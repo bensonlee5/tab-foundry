@@ -149,7 +149,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -447,7 +447,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -745,7 +745,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -1043,7 +1043,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -1341,7 +1341,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -1639,7 +1639,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -1937,7 +1937,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -2235,7 +2235,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -2533,7 +2533,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -2831,7 +2831,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -3129,7 +3129,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -3427,7 +3427,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -3725,7 +3725,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -4023,7 +4023,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -4321,7 +4321,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -4619,7 +4619,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -4917,7 +4917,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -5215,7 +5215,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -5513,7 +5513,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
@@ -5811,7 +5811,7 @@ rows:
   - Historical schedulefree TF-RD-009 Phase-2 rows remain context only and must not
     enter the fresh Muon fit.
   execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
+  benchmark_checkpoint_selection: best_and_final
   run_id: null
   followup_run_ids: []
   decision: null
