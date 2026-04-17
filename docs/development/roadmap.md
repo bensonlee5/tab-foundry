@@ -1130,6 +1130,25 @@ Legacy wording note:
     matched-budget final log loss landed at `0.4135`, `0.4137`, `0.4116`,
     `0.4146`, and `0.4009` respectively, so `264x6` is the current benchmark-
     backed Muon Phase-1 winner
+  - as of April 16, 2026 PT, the bounded architecture-isolation sweep
+    `tf_rd_009_muon_arch_isolation_medium_v1` has completed against the same
+    closed medium benchmark, using the carried `128x2` row
+    `sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`
+    as the locked anchor at `0.3951`; the isolated alternatives all lost:
+    final full-cell refresh
+    `sd_tf_rd_009_muon_arch_isolation_medium_v1_01_delta_tf_rd_009_muon_cls_sandwich_last_full_refresh_v1_v1=0.3994`,
+    split role-conditioned column summaries
+    `sd_tf_rd_009_muon_arch_isolation_medium_v1_02_delta_tf_rd_009_muon_cls_sandwich_split_column_summary_v1_v1=0.4018`,
+    `mlp2` feature encoder
+    `sd_tf_rd_009_muon_arch_isolation_medium_v1_03_delta_tf_rd_009_muon_cls_sandwich_feature_encoder_mlp2_v1_v1=0.3984`,
+    and class memory
+    `sd_tf_rd_009_muon_arch_isolation_medium_v1_04_delta_tf_rd_009_muon_cls_sandwich_class_memory_v1_v1=0.4044`;
+    code review of the experimental implementation branch
+    `codex/tf-rd-009-muon-arch-isolation-v1` at `1c52c4f` found no concrete
+    implementation defect, so record this lane as negative evidence only and
+    do not open combinations or follow-up capacity reads from it; the TF-RD-009
+    evidence note now carries the compact table of the four exact deltas, run
+    ids, and final losses for this lane
   - April 15, 2026 A6000 W&B system-memory evidence recorded peak allocated
     memory `4.28 GB` at `72x1`, `5.48 GB` at `112x3`, `8.11 GB` at `144x4`, and
     the winning `264x6` row still fit comfortably with `peak_vram_reserved`
@@ -1169,6 +1188,12 @@ Legacy wording note:
     Kaplan-style laws on Muon-family points only and keep `L(N,S)` on
     validation loss as the primary kept law, with benchmark loss as external
     ranking evidence
+  - treat the completed architecture-isolation sweep as closed negative
+    evidence under [#253](https://github.com/bensonlee5/tab-foundry/issues/253)
+    and [#274](https://github.com/bensonlee5/tab-foundry/issues/274): keep the
+    carried `128x2` Muon anchor unchanged for Phase 2, and do not open
+    combinations, latent-count follow-ups, or benchmark-surface replays from
+    that lane
   - keep `Bcrit` and derived `Cmin` diagnostic-only in the fresh Muon base
     family until the redesigned multi-geometry batch lane exists; do not make
     Chinchilla-like claims from the base Muon Phase-2 study alone

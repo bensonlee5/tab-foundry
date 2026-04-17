@@ -402,6 +402,29 @@ winning `264x6` row still fit comfortably at `peak_vram_reserved=17.20 GB`.
 Keep that headroom evidence for later planning, but do not reopen a larger-
 model Muon Phase-1 extension before Phase 2.
 
+Muon architecture-isolation note, April 16, 2026 PT: the bounded follow-up
+sweep `tf_rd_009_muon_arch_isolation_medium_v1` kept the original closed medium
+benchmark surface fixed and tested four isolated changes against the carried
+`128x2` Muon baseline
+`sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1`
+at final matched-budget log loss `0.3951`. The four tried architecture
+alternatives were:
+
+| Delta id | Architecture change | Run id | Final log loss | Delta vs anchor |
+| --- | --- | --- | --- | --- |
+| `delta_tf_rd_009_muon_cls_sandwich_last_full_refresh_v1` | final-stage full-cell refresh | `sd_tf_rd_009_muon_arch_isolation_medium_v1_01_delta_tf_rd_009_muon_cls_sandwich_last_full_refresh_v1_v1` | `0.3994` | `+0.0043` |
+| `delta_tf_rd_009_muon_cls_sandwich_split_column_summary_v1` | split role-conditioned column summaries | `sd_tf_rd_009_muon_arch_isolation_medium_v1_02_delta_tf_rd_009_muon_cls_sandwich_split_column_summary_v1_v1` | `0.4018` | `+0.0067` |
+| `delta_tf_rd_009_muon_cls_sandwich_feature_encoder_mlp2_v1` | shared `mlp2` feature encoder | `sd_tf_rd_009_muon_arch_isolation_medium_v1_03_delta_tf_rd_009_muon_cls_sandwich_feature_encoder_mlp2_v1_v1` | `0.3984` | `+0.0033` |
+| `delta_tf_rd_009_muon_cls_sandwich_class_memory_v1` | train-only class memory | `sd_tf_rd_009_muon_arch_isolation_medium_v1_04_delta_tf_rd_009_muon_cls_sandwich_class_memory_v1_v1` | `0.4044` | `+0.0093` |
+
+The implementation reference remains the experiment branch
+`codex/tf-rd-009-muon-arch-isolation-v1` at commit `1c52c4f`. A direct code
+review of that implementation found no concrete defect in the four alternative
+paths, so the correct interpretation is negative architectural evidence rather
+than an invalid run. TF-RD-009 Phase 2 should therefore continue from the
+carried Muon anchor unchanged, and this lane should not open combinations,
+capacity follow-ups, or benchmark-surface replays.
+
 The current C axis has also been audited. Five reused 2,500-step NS rows
 (`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row
 (`11`) originally carried `compute_accounting.training_shape_summary: null`,
