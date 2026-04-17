@@ -19,8 +19,8 @@ if str(SRC) not in sys.path:
 
 _MANIFEST_TASK_COUNTS = {
     "openml_classification_small_v1": 5,
-    "openml_classification_medium_v1": 10,
-    "openml_classification_large_v1": 10,
+    "openml_classification_medium_v1": 242,
+    "openml_classification_large_v1": 3,
 }
 
 

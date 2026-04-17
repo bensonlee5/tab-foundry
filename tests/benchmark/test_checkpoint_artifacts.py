@@ -356,3 +356,20 @@ def test_checked_in_live_candidate_has_remote_checkpoint_artifact_metadata() -> 
         entry["remote_artifacts"]["best_checkpoint_wandb_artifact"]
         == "bensonlee55-none/tab-foundry/benchmark-checkpoint-sd_tf_rd_009_width_transfer_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl96_v1_v1:v0"
     )
+
+
+def test_checked_in_muon_anchor_has_remote_checkpoint_artifact_metadata() -> None:
+    registry = load_benchmark_run_registry(default_benchmark_run_registry_path())
+    entry = registry["runs"][
+        "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1"
+    ]
+
+    assert (
+        entry["artifacts"]["best_checkpoint_path"]
+        == "outputs/staged_ladder/research/tf_rd_009_muon_width_screen_medium_v1/delta_tf_rd_009_cls_sandwich_dicl128_v1/"
+        "sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1/train/checkpoints/best.pt"
+    )
+    assert (
+        entry["remote_artifacts"]["best_checkpoint_wandb_artifact"]
+        == "bensonlee55-none/tab-foundry/benchmark-checkpoint-sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1:v0"
+    )

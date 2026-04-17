@@ -1452,7 +1452,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         == "The locked anchor is benchmark registry run "
         "`01_nano_exact_md_prior_parity_fix_binary_medium_v1` on manifest "
         f"`{manifest_path}` "
-        "sourced from `openml_classification_medium` (10 tasks)."
+        "sourced from `openml_classification_medium` (242 tasks)."
     )
     assert "openml_classification_small" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
