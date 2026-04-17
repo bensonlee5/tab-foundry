@@ -230,3 +230,121 @@ def test_render_sweep_summary_table_includes_runtime_columns() -> None:
     assert "6400.0000" in rendered
     assert "2.0KiB" in rendered
     assert "512.0000" in rendered
+
+
+def _selector_row(
+    *,
+    order: int,
+    d_icl: int,
+    layers: int,
+    prescription: str,
+    final_log_loss: float,
+    end_to_end_wall_seconds: float | None,
+) -> dict[str, object]:
+    return {
+        "order": order,
+        "delta_id": (
+            f"delta_tf_rd_009_cls_sandwich_dicl{d_icl}_layers{layers}_muon_"
+            f"{prescription}_v1"
+        ),
+        "status": "completed",
+        "decision": "defer",
+        "run_id": f"run_{order}",
+        "model": {
+            "d_icl": d_icl,
+            "sandwich_layers": layers,
+        },
+        "benchmark_metrics": {
+            "objective_metric": "final_log_loss_at_matched_regime_budget",
+            "final_log_loss": final_log_loss,
+            "delta_final_log_loss": 0.0,
+            "end_to_end_wall_seconds": end_to_end_wall_seconds,
+            "throughput_tokens_per_second": 1000.0 + float(order),
+        },
+    }
+
+
+def test_summarize_sweep_reports_selector_kept_contract_with_time_tiebreak(
+    monkeypatch,
+) -> None:
+    queue = {
+        "sweep_id": "selector_sweep",
+        "surface_role": "classification_training_dynamics_selector",
+        "rows": [
+            _selector_row(order=1, d_icl=128, layers=2, prescription="carry_lowbatch", final_log_loss=0.55, end_to_end_wall_seconds=100.0),
+            _selector_row(order=2, d_icl=128, layers=2, prescription="carry_highbatch", final_log_loss=0.53, end_to_end_wall_seconds=160.0),
+            _selector_row(order=3, d_icl=128, layers=2, prescription="linear_lr_batch", final_log_loss=0.50, end_to_end_wall_seconds=150.0),
+            _selector_row(order=4, d_icl=128, layers=2, prescription="momentum_timescale", final_log_loss=0.51, end_to_end_wall_seconds=170.0),
+            _selector_row(order=5, d_icl=144, layers=4, prescription="carry_lowbatch", final_log_loss=0.53, end_to_end_wall_seconds=110.0),
+            _selector_row(order=6, d_icl=144, layers=4, prescription="carry_highbatch", final_log_loss=0.50, end_to_end_wall_seconds=180.0),
+            _selector_row(order=7, d_icl=144, layers=4, prescription="linear_lr_batch", final_log_loss=0.48, end_to_end_wall_seconds=170.0),
+            _selector_row(order=8, d_icl=144, layers=4, prescription="momentum_timescale", final_log_loss=0.49, end_to_end_wall_seconds=190.0),
+            _selector_row(order=9, d_icl=264, layers=6, prescription="carry_lowbatch", final_log_loss=0.51, end_to_end_wall_seconds=130.0),
+            _selector_row(order=10, d_icl=264, layers=6, prescription="carry_highbatch", final_log_loss=0.49, end_to_end_wall_seconds=230.0),
+            _selector_row(order=11, d_icl=264, layers=6, prescription="linear_lr_batch", final_log_loss=0.46, end_to_end_wall_seconds=220.0),
+            _selector_row(order=12, d_icl=264, layers=6, prescription="momentum_timescale", final_log_loss=0.47, end_to_end_wall_seconds=240.0),
+        ],
+    }
+
+    monkeypatch.setattr(
+        summarize_module,
+        "load_system_delta_queue_for_inspection",
+        lambda **_: queue,
+    )
+    monkeypatch.setattr(summarize_module, "ordered_rows", lambda payload: payload["rows"])
+
+    payload = summarize_module.summarize_sweep(sweep_id="selector_sweep")
+
+    selector_summary = payload["selector_summary"]
+    assert selector_summary is not None
+    assert payload["rows"][0]["pareto_admissible"] is True
+    assert payload["rows"][2]["pareto_admissible"] is True
+    assert payload["rows"][1]["pareto_admissible"] is False
+    assert selector_summary["best_row"]["order"] == 11
+    assert selector_summary["kept_contract"]["prescription_label"] == "carry_lowbatch"
+    assert selector_summary["kept_contract"]["geometry_count"] == 3
+    assert selector_summary["prescription_coverage"][0]["prescription_label"] == "carry_lowbatch"
+    rendered = summarize_module.render_sweep_summary_table(payload)
+    assert "Pareto frontier:" in rendered
+    assert "kept contract: carry_lowbatch" in rendered
+
+
+def test_summarize_sweep_reports_no_universal_selector_contract_when_no_majority(
+    monkeypatch,
+) -> None:
+    queue = {
+        "sweep_id": "selector_sweep_fragmented",
+        "surface_role": "classification_training_dynamics_selector",
+        "rows": [
+            _selector_row(order=1, d_icl=128, layers=2, prescription="carry_lowbatch", final_log_loss=0.55, end_to_end_wall_seconds=None),
+            _selector_row(order=2, d_icl=128, layers=2, prescription="carry_highbatch", final_log_loss=0.54, end_to_end_wall_seconds=None),
+            _selector_row(order=3, d_icl=128, layers=2, prescription="linear_lr_batch", final_log_loss=0.50, end_to_end_wall_seconds=150.0),
+            _selector_row(order=4, d_icl=128, layers=2, prescription="momentum_timescale", final_log_loss=0.51, end_to_end_wall_seconds=None),
+            _selector_row(order=5, d_icl=144, layers=4, prescription="carry_lowbatch", final_log_loss=0.53, end_to_end_wall_seconds=None),
+            _selector_row(order=6, d_icl=144, layers=4, prescription="carry_highbatch", final_log_loss=0.52, end_to_end_wall_seconds=None),
+            _selector_row(order=7, d_icl=144, layers=4, prescription="linear_lr_batch", final_log_loss=0.49, end_to_end_wall_seconds=None),
+            _selector_row(order=8, d_icl=144, layers=4, prescription="momentum_timescale", final_log_loss=0.48, end_to_end_wall_seconds=190.0),
+            _selector_row(order=9, d_icl=264, layers=6, prescription="carry_lowbatch", final_log_loss=0.51, end_to_end_wall_seconds=None),
+            _selector_row(order=10, d_icl=264, layers=6, prescription="carry_highbatch", final_log_loss=0.47, end_to_end_wall_seconds=205.0),
+            _selector_row(order=11, d_icl=264, layers=6, prescription="linear_lr_batch", final_log_loss=0.46, end_to_end_wall_seconds=None),
+            _selector_row(order=12, d_icl=264, layers=6, prescription="momentum_timescale", final_log_loss=0.45, end_to_end_wall_seconds=None),
+        ],
+    }
+
+    monkeypatch.setattr(
+        summarize_module,
+        "load_system_delta_queue_for_inspection",
+        lambda **_: queue,
+    )
+    monkeypatch.setattr(summarize_module, "ordered_rows", lambda payload: payload["rows"])
+
+    payload = summarize_module.summarize_sweep(sweep_id="selector_sweep_fragmented")
+
+    selector_summary = payload["selector_summary"]
+    assert selector_summary is not None
+    assert selector_summary["kept_contract"] is None
+    assert selector_summary["no_universal_kept_contract"] is True
+    assert [
+        coverage["prescription_label"]
+        for coverage in selector_summary["prescription_coverage"]
+    ] == ["linear_lr_batch", "momentum_timescale", "carry_highbatch"]

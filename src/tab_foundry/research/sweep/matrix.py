@@ -823,6 +823,8 @@ def render_and_write_system_delta_matrix(
     sweeps_root: Path | None = None,
     out_path: Path | None = None,
 ) -> Path:
+    from .reporting import refresh_result_cards_for_queue
+
     resolved_queue = (
         queue
         if queue is not None
@@ -850,4 +852,5 @@ def render_and_write_system_delta_matrix(
     )
     contents = render_system_delta_matrix(resolved_queue, registry_path=registry_path)
     write_text(resolved_out_path, contents)
+    refresh_result_cards_for_queue(queue=resolved_queue, registry_path=registry_path)
     return resolved_out_path

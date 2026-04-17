@@ -20,6 +20,7 @@ from .inspection_artifacts import (
 )
 from .paths_io import _copy_jsonable, default_registry_path
 from . import surface_resolution as surface_resolution_module
+from .summarize import build_sweep_summary_payload
 
 
 def _anchor_metrics_payload(registry_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -220,9 +221,20 @@ def inspect_sweep_row(
         raise RuntimeError(
             "sweep inspection contract validation failed:\n- " + "\n- ".join(str(issue) for issue in contract_issues)
         )
+    summary_payload = build_sweep_summary_payload(queue=queue, include_screened=True)
+    row_summary = next(
+        (
+            candidate
+            for candidate in cast(list[dict[str, Any]], summary_payload["rows"])
+            if int(candidate["order"]) == int(order)
+        ),
+        None,
+    )
     return {
         "queue": queue_metadata,
         "row": dict(cast(dict[str, Any], _copy_jsonable(row))),
         "target": target,
         "navigation": navigation,
+        "row_summary": row_summary,
+        "selector_summary": summary_payload.get("selector_summary"),
     }

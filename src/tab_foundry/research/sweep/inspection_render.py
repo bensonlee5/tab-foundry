@@ -11,6 +11,8 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
     row = cast(Mapping[str, Any], payload["row"])
     target = cast(Mapping[str, Any], payload["target"])
     navigation = cast(Mapping[str, Any] | None, payload.get("navigation"))
+    row_summary = cast(Mapping[str, Any] | None, payload.get("row_summary"))
+    selector_summary = cast(Mapping[str, Any] | None, payload.get("selector_summary"))
     resolved = cast(Mapping[str, Any], target["resolved"])
     model = cast(Mapping[str, Any], resolved["model"])
     data = cast(Mapping[str, Any] | None, resolved.get("data"))
@@ -75,6 +77,65 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
                 "linked_scaling_studies="
                 + ", ".join(str(value) for value in linked_scaling_studies)
             )
+    if row_summary is not None:
+        lines.append(
+            "pareto_admissible="
+            + (
+                "yes"
+                if row_summary.get("pareto_admissible") is True
+                else ("no" if row_summary.get("pareto_admissible") is False else "n/a")
+            )
+        )
+        lines.append(
+            "geometry_pareto_admissible="
+            + (
+                "yes"
+                if row_summary.get("geometry_pareto_admissible") is True
+                else (
+                    "no"
+                    if row_summary.get("geometry_pareto_admissible") is False
+                    else "n/a"
+                )
+            )
+        )
+        lines.append(
+            f"selector_geometry_label={row_summary.get('selector_geometry_label') or 'n/a'}"
+        )
+        lines.append(
+            f"selector_prescription_label={row_summary.get('selector_prescription_label') or 'n/a'}"
+        )
+        if row_summary.get("end_to_end_wall_seconds") is not None:
+            lines.append(
+                "end_to_end_wall_seconds="
+                f"{float(row_summary['end_to_end_wall_seconds']):.1f}"
+            )
+        if row_summary.get("throughput_tokens_per_second") is not None:
+            lines.append(
+                "throughput_tokens_per_second="
+                f"{float(row_summary['throughput_tokens_per_second']):.1f}"
+            )
+    if selector_summary is not None:
+        best_row = selector_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "selector_best_row="
+                f"order {int(best_row['order']):02d}, "
+                f"geometry={best_row.get('geometry_label') or 'n/a'}, "
+                f"prescription={best_row.get('prescription_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"wall={float(best_row['end_to_end_wall_seconds']):.1f}s"
+            )
+        kept_contract = selector_summary.get("kept_contract")
+        if isinstance(kept_contract, Mapping):
+            lines.append(
+                "selector_kept_contract="
+                f"{kept_contract['prescription_label']} "
+                f"(frontier_geometries={int(kept_contract['geometry_count'])}, "
+                f"mean_wall={float(kept_contract['mean_end_to_end_wall_seconds']):.1f}s, "
+                f"mean_log_loss={float(kept_contract['mean_benchmark_log_loss']):.6f})"
+            )
+        elif selector_summary.get("no_universal_kept_contract") is True:
+            lines.append("selector_kept_contract=none")
     if data is not None:
         lines.append(f"data.surface_label={data.get('surface_label')}")
         if data.get("corpus_ref") is not None:

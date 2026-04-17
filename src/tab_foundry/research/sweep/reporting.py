@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_LABELS,
     EXTERNAL_BENCHMARK_NANOTABPFN,
@@ -23,6 +25,8 @@ from .objective_metrics import (
     is_classification_objective_metric,
     objective_metric_from_queue_metrics,
 )
+from .paths_io import default_registry_path, repo_root
+from .queue_loading import ordered_rows
 
 
 def research_card_text(
@@ -261,6 +265,68 @@ def _runtime_and_regime_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+def _selector_interpretation_lines(
+    selector_context: Mapping[str, Any] | None,
+) -> list[str]:
+    if not isinstance(selector_context, Mapping):
+        return []
+    row_summary = selector_context.get("row_summary")
+    selector_summary = selector_context.get("summary")
+    if not isinstance(row_summary, Mapping) and not isinstance(selector_summary, Mapping):
+        return []
+    lines = ["", "## Selector interpretation", ""]
+    if isinstance(row_summary, Mapping):
+        pareto_status = (
+            "yes"
+            if row_summary.get("pareto_admissible") is True
+            else ("no" if row_summary.get("pareto_admissible") is False else "n/a")
+        )
+        geometry_pareto_status = (
+            "yes"
+            if row_summary.get("geometry_pareto_admissible") is True
+            else (
+                "no"
+                if row_summary.get("geometry_pareto_admissible") is False
+                else "n/a"
+            )
+        )
+        lines.append(f"- Quality/time Pareto admissible: `{pareto_status}`")
+        lines.append(f"- Geometry-local Pareto admissible: `{geometry_pareto_status}`")
+        if row_summary.get("selector_geometry_label") is not None:
+            lines.append(
+                f"- Selector geometry: `{row_summary['selector_geometry_label']}`"
+            )
+        if row_summary.get("selector_prescription_label") is not None:
+            lines.append(
+                f"- Selector prescription: `{row_summary['selector_prescription_label']}`"
+            )
+    if isinstance(selector_summary, Mapping):
+        best_row = selector_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- Best single selector row: "
+                f"order `{int(best_row['order']):02d}` "
+                f"({best_row.get('geometry_label') or 'n/a'}, "
+                f"{best_row.get('prescription_label') or 'n/a'}, "
+                f"log loss `{float(best_row['final_log_loss']):.6f}`, "
+                f"wall `{float(best_row['end_to_end_wall_seconds']):.1f}s`)"
+            )
+        kept_contract = selector_summary.get("kept_contract")
+        if isinstance(kept_contract, Mapping):
+            lines.append(
+                "- Kept contract: "
+                f"`{kept_contract['prescription_label']}` "
+                f"(frontier geometries `{int(kept_contract['geometry_count'])}`, "
+                f"mean wall `{float(kept_contract['mean_end_to_end_wall_seconds']):.1f}s`, "
+                f"mean log loss `{float(kept_contract['mean_benchmark_log_loss']):.6f}`)"
+            )
+        elif selector_summary.get("no_universal_kept_contract") is True:
+            lines.append(
+                "- Kept contract: none; no prescription reached the required majority frontier coverage."
+            )
+    return lines
+
+
 def result_card_text(
     *,
     row: Mapping[str, Any],
@@ -270,6 +336,7 @@ def result_card_text(
     queue_metrics: Mapping[str, Any],
     decision: str,
     conclusion: str,
+    selector_context: Mapping[str, Any] | None = None,
 ) -> str:
     primary_external_name, primary_external_summary = _primary_external_summary(summary)
     objective_metric = objective_metric_from_queue_metrics(queue_metrics)
@@ -594,6 +661,7 @@ def result_card_text(
     if stage_local_lines:
         lines.extend(["", "## Stage-local stability", ""])
         lines.extend(stage_local_lines)
+    lines.extend(_selector_interpretation_lines(selector_context))
 
     lines.extend(
         [
@@ -620,3 +688,83 @@ def result_card_text(
         ]
     )
     return "\n".join(lines)
+
+
+def refresh_result_cards_for_queue(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> None:
+    from .summarize import build_sweep_summary_payload
+
+    resolved_registry_path = registry_path or default_registry_path()
+    registry = load_benchmark_run_registry(resolved_registry_path)
+    runs = registry.get("runs")
+    if not isinstance(runs, Mapping):
+        return
+    sweep_id = str(queue["sweep_id"])
+    anchor_run_id = (
+        str(queue["anchor_run_id"])
+        if isinstance(queue.get("anchor_run_id"), str) and str(queue["anchor_run_id"]).strip()
+        else None
+    )
+    summary_payload = build_sweep_summary_payload(queue=queue, include_screened=True)
+    row_summaries = {
+        int(cast(Mapping[str, Any], row)["order"]): cast(Mapping[str, Any], row)
+        for row in cast(list[dict[str, Any]], summary_payload["rows"])
+    }
+    selector_context_summary = cast(
+        Mapping[str, Any] | None,
+        summary_payload.get("selector_summary"),
+    )
+    for row in ordered_rows(queue):
+        if str(row.get("status", "")).strip().lower() != "completed":
+            continue
+        run_id = row.get("run_id")
+        if not isinstance(run_id, str) or not run_id.strip():
+            continue
+        run = runs.get(run_id)
+        if not isinstance(run, Mapping):
+            continue
+        artifacts = run.get("artifacts")
+        if not isinstance(artifacts, Mapping):
+            continue
+        raw_summary_path = artifacts.get("comparison_summary_path")
+        if not isinstance(raw_summary_path, str) or not raw_summary_path.strip():
+            continue
+        summary_path = resolve_registry_path_value(raw_summary_path)
+        if not summary_path.exists():
+            continue
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if not isinstance(summary, dict):
+            continue
+        queue_metrics = row.get("benchmark_metrics")
+        if not isinstance(queue_metrics, Mapping):
+            queue_metrics = row.get("screen_metrics")
+        if not isinstance(queue_metrics, Mapping):
+            continue
+        delta_root = (
+            repo_root()
+            / "outputs"
+            / "staged_ladder"
+            / "research"
+            / sweep_id
+            / str(row["delta_id"])
+        )
+        delta_root.mkdir(parents=True, exist_ok=True)
+        (delta_root / "result_card.md").write_text(
+            result_card_text(
+                row=row,
+                run_id=run_id,
+                anchor_run_id=anchor_run_id,
+                summary=summary,
+                queue_metrics=cast(Mapping[str, Any], queue_metrics),
+                decision=str(row.get("decision") or "defer"),
+                conclusion=str(row.get("conclusion") or "pending"),
+                selector_context={
+                    "row_summary": row_summaries.get(int(row["order"])),
+                    "summary": selector_context_summary,
+                },
+            ),
+            encoding="utf-8",
+        )

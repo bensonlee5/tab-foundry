@@ -825,3 +825,85 @@ def test_diff_sweep_row_reports_legacy_prior_override_differences_without_artifa
         "target": "sqrt",
         "against": "none",
     }
+
+
+def test_render_sweep_row_text_surfaces_selector_frontier_context() -> None:
+    text = inspect_module.render_sweep_row_text(
+        {
+            "queue": {
+                "sweep_id": "tf_rd_009_muon_training_dynamics_endpoint_medium_v1",
+                "training_experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+                "training_config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+                "surface_role": "classification_training_dynamics_selector",
+            },
+            "row": {
+                "order": 6,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1",
+                "status": "completed",
+                "decision": "keep",
+                "run_id": "selector_run_06",
+                "parent_delta_ref": None,
+                "benchmark_checkpoint_selection": "best_and_final",
+            },
+            "target": {
+                "resolved": {
+                    "model": {
+                        "stage_label": "tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+                        "arch": "tabfoundry_staged",
+                        "parameter_counts": {"total_params": 1234, "trainable_params": 1234},
+                    }
+                },
+                "artifacts": {},
+                "metrics": {},
+            },
+            "navigation": {
+                "lineage": [
+                    {"sweep_id": "tf_rd_009_muon_width_screen_medium_v1"},
+                    {"sweep_id": "tf_rd_009_muon_training_dynamics_endpoint_medium_v1"},
+                ],
+                "contract": {
+                    "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
+                    "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+                    "carried_in_family_baseline_run_id": "anchor_run",
+                },
+                "winner": {
+                    "order": 10,
+                    "geometry_label": "264x6",
+                    "benchmark_log_loss": 0.46,
+                    "throughput_tokens_per_second": 7000.0,
+                    "end_to_end_wall_seconds": 222.0,
+                },
+                "linked_scaling_study_ids": [],
+            },
+            "row_summary": {
+                "pareto_admissible": True,
+                "geometry_pareto_admissible": True,
+                "selector_geometry_label": "144x4",
+                "selector_prescription_label": "carry_highbatch",
+                "end_to_end_wall_seconds": 180.0,
+                "throughput_tokens_per_second": 6500.0,
+            },
+            "selector_summary": {
+                "best_row": {
+                    "order": 10,
+                    "geometry_label": "264x6",
+                    "prescription_label": "linear_lr_batch",
+                    "final_log_loss": 0.46,
+                    "end_to_end_wall_seconds": 222.0,
+                },
+                "kept_contract": {
+                    "prescription_label": "carry_lowbatch",
+                    "geometry_count": 3,
+                    "mean_end_to_end_wall_seconds": 115.0,
+                    "mean_benchmark_log_loss": 0.52,
+                },
+            },
+        }
+    )
+
+    assert "pareto_admissible=yes" in text
+    assert "geometry_pareto_admissible=yes" in text
+    assert "selector_geometry_label=144x4" in text
+    assert "selector_prescription_label=carry_highbatch" in text
+    assert "selector_best_row=order 10" in text
+    assert "selector_kept_contract=carry_lowbatch" in text
