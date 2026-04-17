@@ -385,37 +385,50 @@ and `{1,2,4,8,16}` ladders on
 `tf_rd_009_phase2_one_epoch_v1`. The original artifacts remain preserved as
 diagnostic history and must not be mixed into the corrected one-epoch fit.
 
-Muon reboot note, April 15, 2026 PT: the fresh Muon Phase-1 family is now
+Muon reboot note, April 17, 2026 PT: the fresh Muon Phase-1 family is now
 benchmark-backed under completed child
-[#275](https://github.com/bensonlee5/tab-foundry/issues/275). The study config
-`reference/scaling_studies/tf_rd_009_muon_phase2_one_epoch_v1.yaml` and sweep
-Muon Phase-2 is now partially benchmark-backed under
-[#274](https://github.com/bensonlee5/tab-foundry/issues/274): the NS sweep
-`tf_rd_009_muon_ns_one_epoch_medium_v1` is complete over the full
-`72x1/112x3/144x4/192x5/264x6 x {625,1250,2500,5000}` matrix, while the
-batch-critical sweep `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
-continues on the carried `264x6` geometry. The completed NS family currently
-prefers `144x4 @ 5000` steps with `final_log_loss=0.3971900011`; the other
-best-per-geometry rows are `72x1 @ 5000 = 0.4002795118`, `112x3 @ 5000 =
-0.3987292483`, `192x5 @ 5000 = 0.4085763618`, and `264x6 @ 5000 =
-0.4037193629`. The Muon width-depth family still finishes as `72x1=0.4135`,
+[#275](https://github.com/bensonlee5/tab-foundry/issues/275), and the fresh
+Muon Phase-2 one-epoch study under
+[#274](https://github.com/bensonlee5/tab-foundry/issues/274) is now complete on
+the corrected multiclass benchmark contract. The important correction is that
+the earlier provisional Phase-2 interpretation was benchmarked against a stale
+binary bundle; the completed study now uses corrected sparse `best_and_final`
+replay against `openml_classification_medium_v1` across all `40` rows, and that
+corrected multiclass surface supersedes the earlier provisional read entirely.
+
+Corrected benchmark summary on `openml_classification_medium_v1`:
+
+- corrected NS best-per-geometry rows:
+  - `72x1 @ 5000 = 0.5067822570`
+  - `112x3 @ 5000 = 0.4986467504`
+  - `144x4 @ 5000 = 0.4914031270`
+  - `192x5 @ 5000 = 0.4935670213`
+  - `264x6 @ 5000 = 0.4950864485`
+- corrected batch-critical best-per-batch rows on the carried `264x6`
+  geometry:
+  - `grad_accum=1 @ 5000 = 0.5149791495`
+  - `grad_accum=2 @ 2500 = 0.5020768425`
+  - `grad_accum=4 @ 5000 = 0.4962134652`
+  - `grad_accum=8 @ 5000 = 0.4853310298`
+  - `grad_accum=16 @ 5000 = 0.4646411887`
+- corrected overall winner:
+  - `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`
+  - `264x6 @ grad_accum=16 @ 5000`
+  - corrected `benchmark_log_loss = 0.4646411887`
+  - corrected `validation_loss = 1.6399969183`
+- validation backfill now covers all `40/40` completed points
+
+The fresh Muon width-depth family still finishes as `72x1=0.4135`,
 `112x3=0.4137`, `144x4=0.4116`, `192x5=0.4146`, and `264x6=0.4009`, with
 `60x2` retained as the formal external anchor and `128x2` carried as the
 in-family baseline. W&B system-memory evidence on the live A6000 host recorded
 peak allocated memory `4.28 GB` at `72x1`, `5.48 GB` at `112x3`, and `8.11 GB`
 at `144x4`, while the winning `264x6` Phase-1 row still fit comfortably at
 `peak_vram_reserved=17.20 GB`. Keep that headroom evidence for later planning,
-but do not reopen a larger-model Muon Phase-1 extension before the Phase-2
-batch-critical fit closes.
+but do not reopen a larger-model Muon Phase-1 extension before the redesigned
+multi-geometry batch lane exists.
 
-The current C axis has also been audited. Five reused 2,500-step NS rows
-(`07`, `11`, `15`, `19`, and `23`) and the reused batch-critical 96x2 row
-(`11`) originally carried `compute_accounting.training_shape_summary: null`,
-which triggered fallback accounting and made the reused rows appear more
-expensive than their same-model higher-step fresh continuations. The compact
-registry now carries shape-summary-backed compute accounting for those reused
-rows, and `research scaling fit` rejects C-axis fits if shape summaries are
-missing for non-reuse rows or same-model NS `C` is non-monotone across steps.
+Phase-2 law family:
 
 - one-dimensional fits:
   - `L(N) = E + (N_c / N)^alpha_N`
@@ -431,121 +444,78 @@ missing for non-reuse rows or same-model NS `C` is non-monotone across steps.
 
 Phase-2 reporting targets are:
 
-- benchmark-backed matched-budget log loss as the repo-facing canonical target
-  for `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, and `L(Cmin)`
-- validation loss as the paper-faithful companion target and the primary
-  checkpointwise target for `L(N,S)` and `Bcrit(L)`
+- corrected multiclass benchmark log loss as the repo-facing canonical target
+  for `L(N)`, `L(D)`, `L(C)`, `L(N,D)`, and the diagnostic `L(Cmin)`
+- validation loss as the primary kept law-fitting target for `L(N,S)` and the
+  batch-critical readiness gate
 
-The study must emit inspectable artifacts for every reported fit:
-
-- JSON payloads with raw points, chosen subsets, fitted scales, alphas,
-  residuals, and direct-vs-implied diagnostics
-- PNG graphs for every one-dimensional law, residual surface, joint-law plot,
-  and the compute frontier
-- a Markdown summary rooted under `outputs/research_scaling/tf_rd_009_phase2/`
-- posthoc W&B summary payloads that surface the fitted alphas and artifact root
-
-Current complete Phase-2 fit values:
+Current corrected Phase-2 fit values:
 
 | Fit | Target | Points | Key parameters | log-space R2 | RMSE |
 | --- | --- | ---: | --- | ---: | ---: |
-| `L(N)` | benchmark log loss | 6 | `alpha_n=0.0223655`, `Nc=0.00200950` | 0.196187 | 0.027509 |
-| `L(D)` | benchmark log loss | 4 | `alpha_d=0.0368629`, `Dc=12671.9517` | 0.205136 | 0.039687 |
-| `L(C)` | benchmark log loss | 44 | `alpha_c=0.521774`, `Cc=5.456582059841496e11` | 0.237521 | 0.036255 |
-| `L(N,D)` | benchmark log loss | 24 | `alpha_n=0.0111205`, `alpha_d=663.875`, `Nc=1.0e-12`, `Dc=49864.2548` | 0.484884 | 0.031717 |
-| `L(N,S)` | validation loss | 24 | `alpha_n=0.0302565`, `alpha_s=0.331430`, `Nc=258222760.6`, `Sc=608.501` | 0.820915 | 0.033284 |
-| `Bcrit(L)` | validation loss | 2 | `alpha_b=0.00459242`, `B_star=5.144890799137182e34` | -0.064950 | 664615.416 |
-| `L(Cmin)` | benchmark log loss | 12 | `alpha_cmin=0.123823`, `Ccmin=2.1079076205300552e10` | 0.915117 | 0.014289 |
+| `L(N)` | benchmark log loss | 5 | `alpha_n=0.0693751`, `Nc=1.0e-12` | 0.688925 | 0.002979 |
+| `L(D)` | benchmark log loss | 4 | `alpha_d=1.117685`, `Dc=16051270.30` | 0.976642 | 0.002553 |
+| `L(C)` | benchmark log loss | 40 | `alpha_c=0.567384`, `Cc=7.082520573420953e12` | 0.774413 | 0.022636 |
+| `L(N,D)` | benchmark log loss | 20 | `alpha_n=1.81106`, `alpha_d=0.107092`, `Nc=3.72344e-05`, `Dc=2098986.64` | 0.626999 | 0.034770 |
+| `L(N,S)` | validation loss | 20 | `alpha_n=0.270970`, `alpha_s=1.57987`, `Nc=57.0145`, `Sc=130.376` | 0.912313 | 0.017185 |
+| `Bcrit(L)` | effective-batch envelope | 5 | `alpha_b=0.00820662`, `B_star=5.515873304289332e34` | -4.421315 | 326301.576392 |
+| `L(Cmin)` | benchmark log loss | 11 | `alpha_cmin=0.0447028`, `Ccmin=1241.04494` | 0.975774 | 0.011368 |
 
-Interpretation: the validation-backed `L(N,S)` surface is the useful primary
-signal. The one-dimensional benchmark-loss slices plus `L(N,D)` remain noisier
-and partly degenerate on this small matrix, so carry them as diagnostics. The
-batch-critical data is complete, but `Bcrit(L)` is weak: its lower envelope has
-only two points and a negative log-space R2, so `L(Cmin)` is a derived
-diagnostic rather than a high-confidence operating law.
+Interpretation:
 
-After the one-epoch correction, this `Bcrit(L)` and its derived `L(Cmin)` are
-not admissible for the corrected compute-optimal story. Refit both only from
-the corrected one-epoch batch-critical artifact once its validation backfill
-lands.
+- the corrected multiclass benchmark surface changes the Phase-2 ranking
+  materially relative to the provisional binary-backed read: corrected NS still
+  prefers `144x4`, but the corrected overall winner is the carried `264x6`
+  geometry at the highest tested effective batch
+- the useful kept law is still validation-backed `L(N,S)`; its primary fit is
+  coherent enough to use as a directional surface with `log_space_r2=0.9123`
+  and `rmse=0.0172`
+- the leave-one-geometry holdout checks are acceptable but not especially tight:
+  corrected validation holdout `rmse=0.02257` for `L(N,S)` and `rmse=0.02270`
+  for `L(N,D)`
+- bootstrap intervals for `L(N,S)` remain wide, especially for `Nc`, `Sc`, and
+  `alpha_s`, so the exponents are not yet stable enough for a strong scaling
+  claim
+- `Bcrit(L)` is not admissible: the corrected audit keeps
+  `ready_for_cmin=false` and the explicit recommendation is `Do not use
+  Bcrit(L) to derive Cmin; run the redesigned multi-geometry batch sweep
+  first.`
+- `L(Cmin)` can be computed mechanically, but it remains a derived diagnostic
+  only because its upstream `Bcrit(L)` readiness gate failed
 
-Axis audit for the complete matrix:
-
-- `N` is structurally valid: six increasing strict non-embedding parameter
-  values from `666542` through `11335950`. It is not a clean monotone loss axis
-  in this grid because each row changes width and depth together, and the
-  highest-step benchmark slice has `log_space_r2=0.196187`.
-- `S` is structurally valid: four completed step values
-  `{625, 1250, 2500, 5000}` per model row. Loss mostly improves with `S`, but
-  several larger rows regress at `5000` versus `2500`, so single-row step slices
-  should be treated as diagnostics rather than strong standalone laws.
-- `D` is internally consistent with the measured runtime budget:
-  `D = B_eff * S` holds to floating tolerance. Because `B_eff` varies by only
-  about 5% and only with the step ladder in the NS matrix, `D` is nearly
-  collinear with `S`; the current `L(D)` uses only four points from the largest
-  `N` row and has `log_space_r2=0.205136`.
-- `B_eff` is independently sampled by the completed batch-critical sweep, but
-  the observed lower envelope is only two points after validation-loss
-  selection; this is why `Bcrit(L)` is recorded as weak.
-- `C` is now structurally valid after the 2,500-step accounting correction: all
-  44 points have observed or explicitly reused shape-summary-backed compute
-  accounting, and same-model NS `C` is monotone in `S`. Its benchmark-loss fit
-  remains weak at `log_space_r2=0.237521`.
-- Target axes differ materially: validation loss has the cleanest structure and
-  supports the reported `L(N,S)` surface; benchmark log loss is noisier across
-  `N`, `D`, and `C`, which is why the one-dimensional benchmark-loss fits are
-  carried as diagnostics.
-
-### Stronger Fit Audit And Follow-On Law Design
-
-Treat [#256](https://github.com/bensonlee5/tab-foundry/issues/256) as a
-completed Phase-2 diagnostic, not as a settled compute-optimal law. The useful
-signal is validation-backed `L(N,S)`. The weak signals are `L(N)`, `L(D)`,
-`L(C)`, `L(N,D)`, and especially `Bcrit(L)` because the current axes are
-partly entangled and the completed batch envelope has only two points.
-
-The repo now exposes the stronger fit-audit surface:
+The repo now exposes the stronger fit-audit surface directly:
 
 ```bash
-tab-foundry research scaling audit --study tf_rd_009_phase2
+tab-foundry research scaling inspect --study tf_rd_009_muon_phase2_one_epoch_v1 --json
+tab-foundry research scaling fit --study tf_rd_009_muon_phase2_one_epoch_v1 --fit-scope all --json
+tab-foundry research scaling audit --study tf_rd_009_muon_phase2_one_epoch_v1 --fit-scope all --json
 ```
 
 The audit writes `audit/audit_summary.json` and `audit/audit.md` under the
-study artifact root by default. It compares validation-loss versus
-benchmark-loss targets, runs leave-one-geometry and leave-one-step residual
-checks on joint laws, bootstraps parameter intervals, adds diagnostic
-broken-power-law univariate checks for knees and non-monotone slices, and gates
-any `Cmin` interpretation on iso-loss `Bcrit(L)` readiness. The audit policy is
-to fit repo telemetry directly: validation loss is the primary law-fitting
+study artifact root. It compares benchmark and validation targets, runs
+leave-one-geometry holdouts on joint laws, bootstraps parameter intervals, and
+gates any `Cmin` interpretation on batch-critical readiness. The audit policy
+is to fit repo telemetry directly: validation loss is the primary law-fitting
 target, benchmark log loss is external transfer validation and repo-facing
 ranking evidence, and Kaplan/Chinchilla exponents are not imported from the
 papers.
 
-Next sweep ordering:
+Next sweep ordering after the corrected Phase-2 closeout:
 
-- first: run the audit and seed/noise checks before interpreting benchmark-loss
-  fits; add two extra seeds for `{96x2,128x4,152x5}` at `{2500,5000}` steps so
-  residuals can be separated into target noise versus real scaling deviation
-- second: redesign `Bcrit(L)` as an iso-loss crossing analysis; run `96x2`,
-  `152x5`, and `176x6` over `grad_accum_steps={1,2,4,8}` to `5000` steps with
-  validation checkpoints at `{625,1250,2500,5000}`, then fit
-  McCandlish-style `Bcrit = Emin / Smin` from equal-validation-loss contours
-  rather than a final-only lower envelope
-- third: use [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for
-  the medium compute-frontier sweep; choose steps from measured
-  `train_flops_per_step(N)` across `{72x1,96x2,112x3,128x4,152x5,176x6}`,
-  bound steps to `625..10000`, and compare Chinchilla-style
-  `L(N,D)=E+A/N^alpha+B/D^beta` against the existing Kaplan-style `L(N,S)`
-- last: keep [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
-  separate for repetition/curriculum slices with fixed architecture plus
-  explicit `unique_task_budget` and `curriculum_id`; fit data-constrained
-  effective-data laws instead of merging those rows into the base `N,S,C`
-  curve
+- first: land the corrected Muon Phase-2 study as a directional result and do
+  not claim compute-optimality from it
+- second: run the redesigned multi-geometry batch lane with at least three
+  geometries before revisiting `Bcrit(L)` or any `Cmin` story
+- third: keep larger-model follow-on work separate from this base study; the
+  next priority is training-dynamics and batch redesign, not another aggressive
+  size extension
+- last: keep missingness as inference-time evaluation only, after the corrected
+  multiclass benchmark contract is trusted
 
-TF-RD-009 adoption decision: do not use `Bcrit(L)` to derive `Cmin` until the
-iso-loss analysis has at least four contour estimates across the redesigned
-multi-geometry batch sweep. Broken neural scaling laws are diagnostic tools for
-knees or non-monotone slices, not the default compute-optimal frontier.
+TF-RD-009 adoption decision: use the corrected Muon Phase-2 study as the fresh
+directional `L(N,S)` surface for the Muon family, but do not use `Bcrit(L)` to
+derive `Cmin` and do not make Chinchilla-like compute-optimal claims until the
+redesigned multi-geometry batch sweep lands.
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 

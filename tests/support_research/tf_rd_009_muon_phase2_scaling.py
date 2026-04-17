@@ -32,7 +32,7 @@ def test_tf_rd_009_muon_phase2_sweeps_are_registered() -> None:
 
     assert index["sweeps"][NS_SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_009_muon_width_depth_medium_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -41,7 +41,7 @@ def test_tf_rd_009_muon_phase2_sweeps_are_registered() -> None:
     }
     assert index["sweeps"][BATCH_SWEEP_ID] == {
         "parent_sweep_id": NS_SWEEP_ID,
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -90,7 +90,7 @@ def test_tf_rd_009_muon_ns_one_epoch_medium_v1_tracks_the_exact_geometry_step_ma
     assert best_row["order"] == 12
     assert f"{best_row['model']['d_icl']}x{best_row['model']['sandwich_layers']}" == "144x4"
     assert best_row["training"]["overrides"]["runtime"]["max_steps"] == 5000
-    assert best_row["benchmark_metrics"]["final_log_loss"] == 0.3971900010756594
+    assert best_row["benchmark_metrics"]["final_log_loss"] == 0.49140312704015116
 
 
 def test_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_tracks_the_exact_batch_step_ladder() -> None:
@@ -112,8 +112,14 @@ def test_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_tracks_the_exact_batc
 
     rows = queue["rows"]
     assert len(rows) == len(BATCH_LADDER) * len(STEP_LADDER)
-    assert {row["status"] for row in rows} == {"ready"}
-    assert {row["run_id"] for row in rows} == {None}
+    assert {row["status"] for row in rows} == {"completed"}
+    assert {row["interpretation_status"] for row in rows} == {"completed"}
+    assert {
+        row["run_id"] for row in rows
+    } == {
+        f"sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_{int(row['order']):02d}_{row['delta_ref']}_v1"
+        for row in rows
+    }
     assert {f"{row['model']['d_icl']}x{row['model']['sandwich_layers']}" for row in rows} == {"264x6"}
     step_counts = Counter(row["training"]["overrides"]["runtime"]["max_steps"] for row in rows)
     assert dict(step_counts) == {step: len(BATCH_LADDER) for step in STEP_LADDER}
@@ -123,6 +129,12 @@ def test_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_tracks_the_exact_batc
     assert {row["training"]["overrides"]["optimizer"]["name"] for row in rows} == {"muon"}
     assert {row["benchmark_checkpoint_selection"] for row in rows} == {"best_and_final"}
     assert {row["data"]["corpus_ref"] for row in rows} == {CORPUS_V6}
+    best_row = min(rows, key=lambda row: row["benchmark_metrics"]["final_log_loss"])
+    assert best_row["order"] == 20
+    assert f"{best_row['model']['d_icl']}x{best_row['model']['sandwich_layers']}" == "264x6"
+    assert best_row["training"]["overrides"]["runtime"]["max_steps"] == 5000
+    assert best_row["training"]["overrides"]["runtime"]["grad_accum_steps"] == 16
+    assert best_row["benchmark_metrics"]["final_log_loss"] == 0.46464118874262356
 
 
 def test_tf_rd_009_muon_phase2_study_config_references_the_new_sweeps_and_variables() -> None:

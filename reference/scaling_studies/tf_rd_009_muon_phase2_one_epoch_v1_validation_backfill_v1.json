@@ -1,8 +1,249 @@
 {
   "notes": [
-    "Placeholder overlay for the fresh Muon TF-RD-009 Phase-2 rerun; populate after the Muon rows land."
+    "Validation losses backfilled post-run from latest checkpoints on muonp2bc1 after corrected multiclass best_and_final benchmark recovery."
   ],
-  "rows": [],
+  "rows": [
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.829144156896151,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.738541373839745,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7214290820635283,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6751624208230238,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7514588649456317,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7175769072312574,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.692553038780506,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6771860856276293,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7335016819146962,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7108515959519606,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6671248353444612,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6652013063430786,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7303098165071928,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6894328915155852,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6632412717892573,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6422616564310515,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7236202221650343,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.676656878911532,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6515355110168457,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6399969183481657,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "validation_loss": 1.8178684803155751,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "validation_loss": 1.757537346619826,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "validation_loss": 1.6884736372874334,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1",
+      "validation_loss": 1.665403242294605,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+      "validation_loss": 1.805285041148846,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+      "validation_loss": 1.7227615943321815,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+      "validation_loss": 1.692590397137862,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
+      "validation_loss": 1.6690766765521123,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+      "validation_loss": 1.7939635056715746,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+      "validation_loss": 1.7254333541943476,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+      "validation_loss": 1.68914500108132,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1",
+      "validation_loss": 1.6554197944127595,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7409115571242113,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.7208058054630573,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.695625589444087,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1",
+      "validation_loss": 1.6562474094904387,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 625,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "validation_loss": 1.861866281582759,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 1250,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "validation_loss": 1.8049586552840013,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 2500,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "validation_loss": 1.714451620211968,
+      "validation_loss_source": "validation_backfill_v1"
+    },
+    {
+      "global_step": 5000,
+      "run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1",
+      "validation_loss": 1.6861597712223346,
+      "validation_loss_source": "validation_backfill_v1"
+    }
+  ],
   "schema": "tab-foundry-scaling-validation-overlay-v1",
   "study_id": "tf_rd_009_muon_phase2_one_epoch_v1"
 }

@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_009_muon_ns_one_
 - Parent sweep id: `tf_rd_009_muon_width_depth_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_009_muon_ns_one_epoch_medium_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `4a546db5b68c9b2d691b1071002e9881d67866651f6af53a5e25d273e23d2629`
+- Resolved queue inputs fingerprint: `fc1c9b8a031395b8814bb6a9a27bf423238e2fbc5f6f96abac62fa0eb6b8cc22`
 
 ## Locked Surface
 
@@ -85,7 +85,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -94,9 +94,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.5370`, delta final log loss `+0.1419`, final Brier score `0.3613`, delta final brier score `+0.1028`, final ROC AUC `0.6617`, delta final roc auc `-0.0966`, final BPC (legacy feature-cell diagnostic) `2.0944`, delta final bpc (legacy feature-cell diagnostic) `-0.0439`, final BPF (legacy feature-cell diagnostic) `2.0944`, delta final bpf (legacy feature-cell diagnostic) `-0.0439`, best ROC AUC `0.6773`, delta final training time `-8087.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.6831`, delta final log loss `+0.2880`, final Brier score `0.4239`, delta final brier score `+0.1654`, final ROC AUC `0.6064`, delta final roc auc `-0.1519`, final BPC (legacy feature-cell diagnostic) `2.1335`, delta final bpc (legacy feature-cell diagnostic) `-0.0048`, final BPF (legacy feature-cell diagnostic) `2.1335`, delta final bpf (legacy feature-cell diagnostic) `-0.0048`, best ROC AUC `0.6064`, delta final training time `-8087.3s`
 
 ### 2. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
@@ -126,7 +128,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -135,9 +137,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.4779`, delta final log loss `+0.0828`, final Brier score `0.3161`, delta final brier score `+0.0576`, final ROC AUC `0.7195`, delta final roc auc `-0.0388`, final BPC (legacy feature-cell diagnostic) `2.1255`, delta final bpc (legacy feature-cell diagnostic) `-0.0128`, final BPF (legacy feature-cell diagnostic) `2.1255`, delta final bpf (legacy feature-cell diagnostic) `-0.0128`, best ROC AUC `0.6698`, delta final training time `-7632.7s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.5966`, delta final log loss `+0.2015`, final Brier score `0.3683`, delta final brier score `+0.1098`, final ROC AUC `0.7022`, delta final roc auc `-0.0561`, final BPC (legacy feature-cell diagnostic) `2.1974`, delta final bpc (legacy feature-cell diagnostic) `+0.0591`, final BPF (legacy feature-cell diagnostic) `2.1974`, delta final bpf (legacy feature-cell diagnostic) `+0.0591`, best ROC AUC `0.7022`, delta final training time `-7632.7s`
 
 ### 3. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
@@ -167,7 +171,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -176,9 +180,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.4064`, delta final log loss `+0.0113`, final Brier score `0.2657`, delta final brier score `+0.0072`, final ROC AUC `0.7575`, delta final roc auc `-0.0008`, final BPC (legacy feature-cell diagnostic) `2.1472`, delta final bpc (legacy feature-cell diagnostic) `+0.0089`, final BPF (legacy feature-cell diagnostic) `2.1472`, delta final bpf (legacy feature-cell diagnostic) `+0.0089`, best ROC AUC `0.5902`, delta final training time `-6694.5s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.5161`, delta final log loss `+0.1210`, final Brier score `0.3142`, delta final brier score `+0.0557`, final ROC AUC `0.7692`, delta final roc auc `+0.0109`, final BPC (legacy feature-cell diagnostic) `2.3315`, delta final bpc (legacy feature-cell diagnostic) `+0.1932`, final BPF (legacy feature-cell diagnostic) `2.3314`, delta final bpf (legacy feature-cell diagnostic) `+0.1931`, best ROC AUC `0.7692`, delta final training time `-6694.5s`
 
 ### 4. `delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1`
 
@@ -208,7 +214,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -217,9 +223,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.4003`, delta final log loss `+0.0052`, final Brier score `0.2628`, delta final brier score `+0.0043`, final ROC AUC `0.7528`, delta final roc auc `-0.0055`, final BPC (legacy feature-cell diagnostic) `2.3213`, delta final bpc (legacy feature-cell diagnostic) `+0.1830`, final BPF (legacy feature-cell diagnostic) `2.3213`, delta final bpf (legacy feature-cell diagnostic) `+0.1830`, best ROC AUC `0.4632`, delta final training time `-4866.5s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1` with final log loss `0.5068`, delta final log loss `+0.1117`, final Brier score `0.3087`, delta final brier score `+0.0502`, final ROC AUC `0.7744`, delta final roc auc `+0.0161`, final BPC (legacy feature-cell diagnostic) `11.3314`, delta final bpc (legacy feature-cell diagnostic) `+9.1931`, final BPF (legacy feature-cell diagnostic) `11.3248`, delta final bpf (legacy feature-cell diagnostic) `+9.1866`, best ROC AUC `0.7744`, delta final training time `-4866.5s`
 
 ### 5. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
@@ -249,7 +257,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -258,9 +266,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.5090`, delta final log loss `+0.1140`, final Brier score `0.3391`, delta final brier score `+0.0806`, final ROC AUC `0.6838`, delta final roc auc `-0.0745`, final BPC (legacy feature-cell diagnostic) `2.4660`, delta final bpc (legacy feature-cell diagnostic) `+0.3277`, final BPF (legacy feature-cell diagnostic) `2.4660`, delta final bpf (legacy feature-cell diagnostic) `+0.3277`, best ROC AUC `0.6807`, delta final training time `-8115.8s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.6496`, delta final log loss `+0.2546`, final Brier score `0.4039`, delta final brier score `+0.1454`, final ROC AUC `0.6583`, delta final roc auc `-0.1000`, final BPC (legacy feature-cell diagnostic) `2.4610`, delta final bpc (legacy feature-cell diagnostic) `+0.3227`, final BPF (legacy feature-cell diagnostic) `2.4610`, delta final bpf (legacy feature-cell diagnostic) `+0.3227`, best ROC AUC `0.6583`, delta final training time `-8115.8s`
 
 ### 6. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
@@ -290,7 +300,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -299,9 +309,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.4219`, delta final log loss `+0.0268`, final Brier score `0.2735`, delta final brier score `+0.0150`, final ROC AUC `0.7596`, delta final roc auc `+0.0013`, final BPC (legacy feature-cell diagnostic) `2.5038`, delta final bpc (legacy feature-cell diagnostic) `+0.3656`, final BPF (legacy feature-cell diagnostic) `2.5038`, delta final bpf (legacy feature-cell diagnostic) `+0.3656`, best ROC AUC `0.6554`, delta final training time `-7650.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.5353`, delta final log loss `+0.1403`, final Brier score `0.3267`, delta final brier score `+0.0682`, final ROC AUC `0.7602`, delta final roc auc `+0.0019`, final BPC (legacy feature-cell diagnostic) `2.4705`, delta final bpc (legacy feature-cell diagnostic) `+0.3322`, final BPF (legacy feature-cell diagnostic) `2.4705`, delta final bpf (legacy feature-cell diagnostic) `+0.3322`, best ROC AUC `0.7602`, delta final training time `-7650.3s`
 
 ### 7. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
@@ -331,7 +343,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -340,9 +352,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.4138`, delta final log loss `+0.0187`, final Brier score `0.2705`, delta final brier score `+0.0119`, final ROC AUC `0.7425`, delta final roc auc `-0.0158`, final BPC (legacy feature-cell diagnostic) `2.4631`, delta final bpc (legacy feature-cell diagnostic) `+0.3248`, final BPF (legacy feature-cell diagnostic) `2.4631`, delta final bpf (legacy feature-cell diagnostic) `+0.3248`, best ROC AUC `0.6606`, delta final training time `-6720.1s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.5098`, delta final log loss `+0.1147`, final Brier score `0.3103`, delta final brier score `+0.0517`, final ROC AUC `0.7722`, delta final roc auc `+0.0139`, final BPC (legacy feature-cell diagnostic) `2.4540`, delta final bpc (legacy feature-cell diagnostic) `+0.3157`, final BPF (legacy feature-cell diagnostic) `2.4540`, delta final bpf (legacy feature-cell diagnostic) `+0.3157`, best ROC AUC `0.7722`, delta final training time `-6720.1s`
 
 ### 8. `delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1`
 
@@ -372,7 +386,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -381,9 +395,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.3987`, delta final log loss `+0.0037`, final Brier score `0.2619`, delta final brier score `+0.0034`, final ROC AUC `0.7504`, delta final roc auc `-0.0079`, final BPC (legacy feature-cell diagnostic) `2.6303`, delta final bpc (legacy feature-cell diagnostic) `+0.4920`, final BPF (legacy feature-cell diagnostic) `2.6303`, delta final bpf (legacy feature-cell diagnostic) `+0.4920`, best ROC AUC `0.6626`, delta final training time `-4896.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1` with final log loss `0.4986`, delta final log loss `+0.1036`, final Brier score `0.3031`, delta final brier score `+0.0446`, final ROC AUC `0.7804`, delta final roc auc `+0.0221`, final BPC (legacy feature-cell diagnostic) `2.5782`, delta final bpc (legacy feature-cell diagnostic) `+0.4400`, final BPF (legacy feature-cell diagnostic) `2.5782`, delta final bpf (legacy feature-cell diagnostic) `+0.4399`, best ROC AUC `0.7804`, delta final training time `-4896.3s`
 
 ### 9. `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1`
 
@@ -413,7 +429,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -422,9 +438,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.5531`, delta final log loss `+0.1581`, final Brier score `0.3766`, delta final brier score `+0.1181`, final ROC AUC `0.6490`, delta final roc auc `-0.1093`, final BPC (legacy feature-cell diagnostic) `2.1644`, delta final bpc (legacy feature-cell diagnostic) `+0.0261`, final BPF (legacy feature-cell diagnostic) `2.1644`, delta final bpf (legacy feature-cell diagnostic) `+0.0261`, best ROC AUC `0.5183`, delta final training time `-8123.2s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.6461`, delta final log loss `+0.2511`, final Brier score `0.4026`, delta final brier score `+0.1441`, final ROC AUC `0.6658`, delta final roc auc `-0.0925`, final BPC (legacy feature-cell diagnostic) `2.1886`, delta final bpc (legacy feature-cell diagnostic) `+0.0504`, final BPF (legacy feature-cell diagnostic) `2.1886`, delta final bpf (legacy feature-cell diagnostic) `+0.0504`, best ROC AUC `0.6658`, delta final training time `-8123.2s`
 
 ### 10. `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1`
 
@@ -454,7 +472,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -463,9 +481,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.4244`, delta final log loss `+0.0294`, final Brier score `0.2762`, delta final brier score `+0.0177`, final ROC AUC `0.7512`, delta final roc auc `-0.0071`, final BPC (legacy feature-cell diagnostic) `2.2050`, delta final bpc (legacy feature-cell diagnostic) `+0.0668`, final BPF (legacy feature-cell diagnostic) `2.2050`, delta final bpf (legacy feature-cell diagnostic) `+0.0668`, best ROC AUC `0.4658`, delta final training time `-7660.7s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.5268`, delta final log loss `+0.1317`, final Brier score `0.3211`, delta final brier score `+0.0626`, final ROC AUC `0.7658`, delta final roc auc `+0.0075`, final BPC (legacy feature-cell diagnostic) `2.2353`, delta final bpc (legacy feature-cell diagnostic) `+0.0971`, final BPF (legacy feature-cell diagnostic) `2.2353`, delta final bpf (legacy feature-cell diagnostic) `+0.0970`, best ROC AUC `0.7658`, delta final training time `-7660.7s`
 
 ### 11. `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1`
 
@@ -495,7 +515,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -504,9 +524,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.4042`, delta final log loss `+0.0092`, final Brier score `0.2644`, delta final brier score `+0.0059`, final ROC AUC `0.7629`, delta final roc auc `+0.0046`, final BPC (legacy feature-cell diagnostic) `2.3424`, delta final bpc (legacy feature-cell diagnostic) `+0.2041`, final BPF (legacy feature-cell diagnostic) `2.3424`, delta final bpf (legacy feature-cell diagnostic) `+0.2041`, best ROC AUC `0.6855`, delta final training time `-6724.9s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.5079`, delta final log loss `+0.1128`, final Brier score `0.3095`, delta final brier score `+0.0510`, final ROC AUC `0.7719`, delta final roc auc `+0.0136`, final BPC (legacy feature-cell diagnostic) `2.3965`, delta final bpc (legacy feature-cell diagnostic) `+0.2583`, final BPF (legacy feature-cell diagnostic) `2.3965`, delta final bpf (legacy feature-cell diagnostic) `+0.2582`, best ROC AUC `0.7719`, delta final training time `-6724.9s`
 
 ### 12. `delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1`
 
@@ -536,7 +558,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -545,9 +567,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.3972`, delta final log loss `+0.0021`, final Brier score `0.2599`, delta final brier score `+0.0014`, final ROC AUC `0.7577`, delta final roc auc `-0.0006`, final BPC (legacy feature-cell diagnostic) `3.0485`, delta final bpc (legacy feature-cell diagnostic) `+0.9102`, final BPF (legacy feature-cell diagnostic) `3.0485`, delta final bpf (legacy feature-cell diagnostic) `+0.9102`, best ROC AUC `0.4992`, delta final training time `-4906.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1` with final log loss `0.4914`, delta final log loss `+0.0963`, final Brier score `0.2989`, delta final brier score `+0.0404`, final ROC AUC `0.7866`, delta final roc auc `+0.0283`, final BPC (legacy feature-cell diagnostic) `3.0328`, delta final bpc (legacy feature-cell diagnostic) `+0.8946`, final BPF (legacy feature-cell diagnostic) `3.0327`, delta final bpf (legacy feature-cell diagnostic) `+0.8944`, best ROC AUC `0.7866`, delta final training time `-4906.3s`
 
 ### 13. `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1`
 
@@ -577,7 +601,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -586,9 +610,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4489`, delta final log loss `+0.0539`, final Brier score `0.2943`, delta final brier score `+0.0358`, final ROC AUC `0.7329`, delta final roc auc `-0.0254`, final BPC (legacy feature-cell diagnostic) `2.1433`, delta final bpc (legacy feature-cell diagnostic) `+0.0051`, final BPF (legacy feature-cell diagnostic) `2.1433`, delta final bpf (legacy feature-cell diagnostic) `+0.0051`, best ROC AUC `0.6950`, delta final training time `-8124.8s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.5710`, delta final log loss `+0.1759`, final Brier score `0.3496`, delta final brier score `+0.0911`, final ROC AUC `0.7438`, delta final roc auc `-0.0145`, final BPC (legacy feature-cell diagnostic) `2.1439`, delta final bpc (legacy feature-cell diagnostic) `+0.0056`, final BPF (legacy feature-cell diagnostic) `2.1439`, delta final bpf (legacy feature-cell diagnostic) `+0.0056`, best ROC AUC `0.7438`, delta final training time `-8124.8s`
 
 ### 14. `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1`
 
@@ -618,7 +644,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -627,9 +653,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4157`, delta final log loss `+0.0206`, final Brier score `0.2713`, delta final brier score `+0.0128`, final ROC AUC `0.7586`, delta final roc auc `+0.0003`, final BPC (legacy feature-cell diagnostic) `2.1490`, delta final bpc (legacy feature-cell diagnostic) `+0.0108`, final BPF (legacy feature-cell diagnostic) `2.1490`, delta final bpf (legacy feature-cell diagnostic) `+0.0108`, best ROC AUC `0.7334`, delta final training time `-7646.0s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.5159`, delta final log loss `+0.1208`, final Brier score `0.3136`, delta final brier score `+0.0551`, final ROC AUC `0.7760`, delta final roc auc `+0.0177`, final BPC (legacy feature-cell diagnostic) `2.1753`, delta final bpc (legacy feature-cell diagnostic) `+0.0370`, final BPF (legacy feature-cell diagnostic) `2.1753`, delta final bpf (legacy feature-cell diagnostic) `+0.0370`, best ROC AUC `0.7760`, delta final training time `-7646.0s`
 
 ### 15. `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1`
 
@@ -659,7 +687,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -668,9 +696,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4135`, delta final log loss `+0.0184`, final Brier score `0.2694`, delta final brier score `+0.0109`, final ROC AUC `0.7421`, delta final roc auc `-0.0162`, final BPC (legacy feature-cell diagnostic) `2.1851`, delta final bpc (legacy feature-cell diagnostic) `+0.0468`, final BPF (legacy feature-cell diagnostic) `2.1851`, delta final bpf (legacy feature-cell diagnostic) `+0.0468`, best ROC AUC `0.6934`, delta final training time `-6699.7s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.5080`, delta final log loss `+0.1129`, final Brier score `0.3091`, delta final brier score `+0.0506`, final ROC AUC `0.7724`, delta final roc auc `+0.0141`, final BPC (legacy feature-cell diagnostic) `2.2106`, delta final bpc (legacy feature-cell diagnostic) `+0.0723`, final BPF (legacy feature-cell diagnostic) `2.2106`, delta final bpf (legacy feature-cell diagnostic) `+0.0723`, best ROC AUC `0.7724`, delta final training time `-6699.7s`
 
 ### 16. `delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1`
 
@@ -700,7 +730,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -709,9 +739,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4086`, delta final log loss `+0.0135`, final Brier score `0.2680`, delta final brier score `+0.0095`, final ROC AUC `0.7398`, delta final roc auc `-0.0185`, final BPC (legacy feature-cell diagnostic) `2.2801`, delta final bpc (legacy feature-cell diagnostic) `+0.1418`, final BPF (legacy feature-cell diagnostic) `2.2801`, delta final bpf (legacy feature-cell diagnostic) `+0.1418`, best ROC AUC `0.6813`, delta final training time `-4883.5s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1` with final log loss `0.4936`, delta final log loss `+0.0985`, final Brier score `0.3003`, delta final brier score `+0.0418`, final ROC AUC `0.7808`, delta final roc auc `+0.0225`, final BPC (legacy feature-cell diagnostic) `2.3067`, delta final bpc (legacy feature-cell diagnostic) `+0.1685`, final BPF (legacy feature-cell diagnostic) `2.3067`, delta final bpf (legacy feature-cell diagnostic) `+0.1685`, best ROC AUC `0.7808`, delta final training time `-4883.5s`
 
 ### 17. `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
 
@@ -741,7 +773,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -750,9 +782,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4263`, delta final log loss `+0.0312`, final Brier score `0.2799`, delta final brier score `+0.0214`, final ROC AUC `0.7346`, delta final roc auc `-0.0237`, final BPC (legacy feature-cell diagnostic) `2.3612`, delta final bpc (legacy feature-cell diagnostic) `+0.2229`, final BPF (legacy feature-cell diagnostic) `2.3612`, delta final bpf (legacy feature-cell diagnostic) `+0.2229`, best ROC AUC `0.4834`, delta final training time `-8067.5s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.5417`, delta final log loss `+0.1466`, final Brier score `0.3294`, delta final brier score `+0.0709`, final ROC AUC `0.7585`, delta final roc auc `+0.0002`, final BPC (legacy feature-cell diagnostic) `2.3881`, delta final bpc (legacy feature-cell diagnostic) `+0.2498`, final BPF (legacy feature-cell diagnostic) `2.3881`, delta final bpf (legacy feature-cell diagnostic) `+0.2498`, best ROC AUC `0.7585`, delta final training time `-8067.5s`
 
 ### 18. `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
 
@@ -782,7 +816,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -791,9 +825,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4043`, delta final log loss `+0.0093`, final Brier score `0.2635`, delta final brier score `+0.0050`, final ROC AUC `0.7581`, delta final roc auc `-0.0002`, final BPC (legacy feature-cell diagnostic) `2.2824`, delta final bpc (legacy feature-cell diagnostic) `+0.1442`, final BPF (legacy feature-cell diagnostic) `2.2824`, delta final bpf (legacy feature-cell diagnostic) `+0.1442`, best ROC AUC `0.6823`, delta final training time `-7556.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.5125`, delta final log loss `+0.1174`, final Brier score `0.3124`, delta final brier score `+0.0539`, final ROC AUC `0.7722`, delta final roc auc `+0.0139`, final BPC (legacy feature-cell diagnostic) `2.3005`, delta final bpc (legacy feature-cell diagnostic) `+0.1622`, final BPF (legacy feature-cell diagnostic) `2.3005`, delta final bpf (legacy feature-cell diagnostic) `+0.1622`, best ROC AUC `0.7722`, delta final training time `-7556.3s`
 
 ### 19. `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
 
@@ -823,7 +859,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -832,9 +868,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1` using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4110`, delta final log loss `+0.0160`, final Brier score `0.2702`, delta final brier score `+0.0117`, final ROC AUC `0.7525`, delta final roc auc `-0.0058`, final BPC (legacy feature-cell diagnostic) `2.2705`, delta final bpc (legacy feature-cell diagnostic) `+0.1322`, final BPF (legacy feature-cell diagnostic) `2.2705`, delta final bpf (legacy feature-cell diagnostic) `+0.1322`, best ROC AUC `0.7069`, delta final training time `-6517.9s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.5067`, delta final log loss `+0.1117`, final Brier score `0.3077`, delta final brier score `+0.0492`, final ROC AUC `0.7744`, delta final roc auc `+0.0161`, final BPC (legacy feature-cell diagnostic) `2.2683`, delta final bpc (legacy feature-cell diagnostic) `+0.1300`, final BPF (legacy feature-cell diagnostic) `2.2683`, delta final bpf (legacy feature-cell diagnostic) `+0.1300`, best ROC AUC `0.7744`, delta final training time `-6517.9s`
 
 ### 20. `delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1`
 
@@ -864,7 +902,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
   - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget reopen
 - Execution policy: `benchmark_full`
-- Benchmark checkpoint selection: `all`
+- Benchmark checkpoint selection: `best_and_final`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -873,6 +911,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1 using best_and_final checkpoints.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1/result_card.md`
-- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4037`, delta final log loss `+0.0086`, final Brier score `0.2655`, delta final brier score `+0.0070`, final ROC AUC `0.7458`, delta final roc auc `-0.0125`, final BPC (legacy feature-cell diagnostic) `2.5950`, delta final bpc (legacy feature-cell diagnostic) `+0.4568`, final BPF (legacy feature-cell diagnostic) `2.5950`, delta final bpf (legacy feature-cell diagnostic) `+0.4568`, best ROC AUC `0.6578`, delta final training time `-4261.3s`
+- Registered run: `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1` with final log loss `0.4951`, delta final log loss `+0.1000`, final Brier score `0.3015`, delta final brier score `+0.0430`, final ROC AUC `0.7820`, delta final roc auc `+0.0237`, final BPC (legacy feature-cell diagnostic) `2.4878`, delta final bpc (legacy feature-cell diagnostic) `+0.3495`, final BPF (legacy feature-cell diagnostic) `2.4878`, delta final bpf (legacy feature-cell diagnostic) `+0.3495`, best ROC AUC `0.7820`, delta final training time `-4261.3s`

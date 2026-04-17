@@ -164,34 +164,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 425.0
+    best_step: 625
     max_grad_norm: 4.1196825005853235
-    best_bpc: 2.0795219249503556
-    best_bpf: 2.0795219099798867
-    best_roc_auc: 0.6772919641809338
-    best_log_loss: 0.5613537471156826
-    best_brier_score: 0.38025221255769626
-    final_bpc: 2.094411676429039
-    final_bpf: 2.094411723003831
-    final_roc_auc: 0.6617191371247559
-    final_log_loss: 0.5369558718094893
-    final_brier_score: 0.3612914239364896
-    final_minus_best_bpc: 0.014889751478683433
-    final_minus_best_bpf: 0.01488981302394432
-    final_minus_best_roc_auc: -0.015572827056177907
-    final_minus_best_log_loss: -0.024397875306193306
-    final_minus_best_brier_score: -0.018960788621206648
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 599.537969624158
+    wall_elapsed_seconds: 610.5662037329748
+    peak_vram_allocated: 2943650816
+    peak_vram_reserved: 3925868544
+    end_to_end_wall_seconds: 634.4804094163701
+    loader_setup_seconds: 20.043274777941406
+    throughput_examples_per_second: 66.71804293742304
+    throughput_tokens_per_second: 398701.0466573929
+    non_train_overhead_seconds: 11.08946900209412
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.024397875306193306
-    delta_final_bpc: -0.04385044297506635
-    delta_final_bpf: -0.04385039584581252
-    delta_final_log_loss: 0.1418843875696275
-    delta_final_brier_score: 0.10278751576637807
-    delta_final_roc_auc: -0.09657630437286868
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6830611453380474
+    final_log_loss: 0.6830611453380474
+    best_brier_score: 0.42388249115473464
+    final_brier_score: 0.42388249115473464
+    best_roc_auc: 0.6063507529767476
+    final_roc_auc: 0.6063507529767476
+    best_bpc: 2.1334808285796076
+    final_bpc: 2.1334808285796076
+    best_bpf: 2.1334646157564094
+    final_bpf: 2.1334646157564094
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.4956335723400116
+    final_train_loss_ema: 1.401417113864413
+    final_tail_mean_train_loss: 1.4177316456796631
+    final_tail_mean_train_loss_ema: 1.4192911852649153
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -577,34 +609,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 350.0
+    best_step: 1250
     max_grad_norm: 2.8343392386872885
-    best_bpc: 2.1027174777762836
-    best_bpf: 2.1027174805485926
-    best_roc_auc: 0.6698214084543654
-    best_log_loss: 0.573887805499559
-    best_brier_score: 0.39172506537837687
-    final_bpc: 2.125454692507899
-    final_bpf: 2.1254546620124994
-    final_roc_auc: 0.7194891847748538
-    final_log_loss: 0.4778602094477849
-    final_brier_score: 0.31610307678046934
-    final_minus_best_bpc: 0.022737214731615385
-    final_minus_best_bpf: 0.022737181463906797
-    final_minus_best_roc_auc: 0.049667776320488355
-    final_minus_best_log_loss: -0.09602759605177408
-    final_minus_best_brier_score: -0.07562198859790753
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1054.1766814733855
+    wall_elapsed_seconds: 1064.985940251965
+    peak_vram_allocated: 1538435584
+    peak_vram_reserved: 3963617280
+    end_to_end_wall_seconds: 1084.750923414249
+    loader_setup_seconds: 19.675298791378736
+    throughput_examples_per_second: 75.88860710539227
+    throughput_tokens_per_second: 454480.7188586022
+    non_train_overhead_seconds: 10.871162384748459
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.09602759605177408
-    delta_final_bpc: -0.012807426896206398
-    delta_final_bpf: -0.012807456837144127
-    delta_final_log_loss: 0.08278872520792308
-    delta_final_brier_score: 0.0575991686103578
-    delta_final_roc_auc: -0.03880625672277083
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.59658515437261
+    final_log_loss: 0.59658515437261
+    best_brier_score: 0.3682658002181892
+    final_brier_score: 0.3682658002181892
+    best_roc_auc: 0.7021700949484491
+    final_roc_auc: 0.7021700949484491
+    best_bpc: 2.1973837767310407
+    final_bpc: 2.1973837767310407
+    best_bpf: 2.197351381866286
+    final_bpf: 2.197351381866286
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0503991544246674
+    final_train_loss_ema: 1.249730100468062
+    final_tail_mean_train_loss: 1.2817518008947373
+    final_tail_mean_train_loss_ema: 1.285012985861531
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -990,34 +1054,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 400.0
+    best_step: 2500
     max_grad_norm: 2.1860357528288086
-    best_bpc: 2.084129907364069
-    best_bpf: 2.084129912908687
-    best_roc_auc: 0.5902448753540305
-    best_log_loss: 0.5849582117224595
-    best_brier_score: 0.4005505420304507
-    final_bpc: 2.1471924316051396
-    final_bpf: 2.147192409426667
-    final_roc_auc: 0.757498471008596
-    final_log_loss: 0.40640228192618394
-    final_brier_score: 0.2656932473073643
-    final_minus_best_bpc: 0.0630625242410705
-    final_minus_best_bpf: 0.06306249651797957
-    final_minus_best_roc_auc: 0.16725359565456555
-    final_minus_best_log_loss: -0.1785559297962756
-    final_minus_best_brier_score: -0.13485729472308638
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1992.3774997643195
+    wall_elapsed_seconds: 2007.887822972145
+    peak_vram_allocated: 1538443776
+    peak_vram_reserved: 3986685952
+    end_to_end_wall_seconds: 2028.3258140916005
+    loader_setup_seconds: 20.34894528472796
+    throughput_examples_per_second: 80.30606650543211
+    throughput_tokens_per_second: 480428.1518503534
+    non_train_overhead_seconds: 15.571938484441489
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.1785559297962756
-    delta_final_bpc: 0.00893031220103424
-    delta_final_bpf: 0.008930290577023214
-    delta_final_log_loss: 0.011330797686322114
-    delta_final_brier_score: 0.0071893391372527815
-    delta_final_roc_auc: -0.0007969704890286033
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5160947123475205
+    final_log_loss: 0.5160947123475205
+    best_brier_score: 0.31416189788211757
+    final_brier_score: 0.31416189788211757
+    best_roc_auc: 0.7692398342354402
+    final_roc_auc: 0.7692398342354402
+    best_bpc: 2.3314775247446438
+    final_bpc: 2.3314775247446438
+    best_bpf: 2.3313583059436485
+    final_bpf: 2.3313583059436485
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0424477010965347
+    final_train_loss_ema: 1.1165371938813926
+    final_tail_mean_train_loss: 1.1473768729269505
+    final_tail_mean_train_loss_ema: 1.1503495902278935
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1403,34 +1499,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl72_layers1_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 425.0
+    best_step: 5000
     max_grad_norm: 2.6354214379600087
-    best_bpc: 2.0934135769688806
-    best_bpf: 2.093413585285808
-    best_roc_auc: 0.46319183859961166
-    best_log_loss: 0.6042173110155776
-    best_brier_score: 0.4184968702955307
-    final_bpc: 2.3212618772373643
-    final_bpf: 2.3212618650392045
-    final_roc_auc: 0.7527518780917819
-    final_log_loss: 0.40027951177186916
-    final_brier_score: 0.26282243136181704
-    final_minus_best_bpc: 0.22784830026848368
-    final_minus_best_bpf: 0.22784827975339672
-    final_minus_best_roc_auc: 0.28956003949217024
-    final_minus_best_log_loss: -0.20393779924370847
-    final_minus_best_brier_score: -0.15567443893371363
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3820.380443732254
+    wall_elapsed_seconds: 3846.2056802399457
+    peak_vram_allocated: 1538449408
+    peak_vram_reserved: 4152360960
+    end_to_end_wall_seconds: 3867.0426482646726
+    loader_setup_seconds: 20.728265014011413
+    throughput_examples_per_second: 83.76129150304769
+    throughput_tokens_per_second: 501015.81980931765
+    non_train_overhead_seconds: 25.901773157529533
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.20393779924370847
-    delta_final_bpc: 0.18299975783325895
-    delta_final_bpf: 0.18299974618956094
-    delta_final_log_loss: 0.005208027532007331
-    delta_final_brier_score: 0.004318523191705503
-    delta_final_roc_auc: -0.005543563405842722
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5067822569760028
+    final_log_loss: 0.5067822569760028
+    best_brier_score: 0.3086896523073197
+    final_brier_score: 0.3086896523073197
+    best_roc_auc: 0.7744077817470514
+    final_roc_auc: 0.7744077817470514
+    best_bpc: 11.331365720334091
+    final_bpc: 11.331365720334091
+    best_bpf: 11.32481257862625
+    final_bpf: 11.32481257862625
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.014817737042904
+    final_train_loss_ema: 1.0390581389484412
+    final_tail_mean_train_loss: 1.1101810462027788
+    final_tail_mean_train_loss_ema: 1.1127184791003013
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1816,34 +1944,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 425.0
+    best_step: 625
     max_grad_norm: 3.0742259673676355
-    best_bpc: 2.319561947223752
-    best_bpf: 2.3195619405702104
-    best_roc_auc: 0.6807265310662349
-    best_log_loss: 0.5133774818503618
-    best_brier_score: 0.341858256126358
-    final_bpc: 2.4660094405329507
-    final_bpf: 2.4660094505132633
-    final_roc_auc: 0.6837617091552026
-    final_log_loss: 0.5090370019974724
-    final_brier_score: 0.33906700250807253
-    final_minus_best_bpc: 0.1464474933091986
-    final_minus_best_bpf: 0.1464475099430529
-    final_minus_best_roc_auc: 0.003035178088967694
-    final_minus_best_log_loss: -0.004340479852889434
-    final_minus_best_brier_score: -0.002791253618285472
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 571.0356067800894
+    wall_elapsed_seconds: 579.7814056030475
+    peak_vram_allocated: 2198907904
+    peak_vram_reserved: 5255462912
+    end_to_end_wall_seconds: 603.1283527789637
+    loader_setup_seconds: 23.19325284892693
+    throughput_examples_per_second: 70.04817129626792
+    throughput_tokens_per_second: 418601.595350349
+    non_train_overhead_seconds: 8.854428675957024
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.004340479852889434
-    delta_final_bpc: 0.3277473211288453
-    delta_final_bpf: 0.3277473316636197
-    delta_final_log_loss: 0.11396551775761055
-    delta_final_brier_score: 0.080563094337961
-    delta_final_roc_auc: -0.074533732342422
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6496380594167691
+    final_log_loss: 0.6496380594167691
+    best_brier_score: 0.4039287661504681
+    final_brier_score: 0.4039287661504681
+    best_roc_auc: 0.65825123242577
+    final_roc_auc: 0.65825123242577
+    best_bpc: 2.4609767712839705
+    final_bpc: 2.4609767712839705
+    best_bpf: 2.4609628041915736
+    final_bpf: 2.4609628041915736
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.4181097447872162
+    final_train_loss_ema: 1.3315812770997324
+    final_tail_mean_train_loss: 1.355498908412835
+    final_tail_mean_train_loss_ema: 1.3590977715219759
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2225,34 +2385,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 350.0
+    best_step: 1250
     max_grad_norm: 2.091365211350475
-    best_bpc: 2.2886513432791067
-    best_bpf: 2.2886513576951137
-    best_roc_auc: 0.6554243185866955
-    best_log_loss: 0.5234851043599239
-    best_brier_score: 0.34901207185116384
-    final_bpc: 2.5038164815237356
-    final_bpf: 2.503816482632659
-    final_roc_auc: 0.7596276354359273
-    final_log_loss: 0.42185949912766524
-    final_brier_score: 0.27345539370255645
-    final_minus_best_bpc: 0.2151651382446289
-    final_minus_best_bpf: 0.21516512493754547
-    final_minus_best_roc_auc: 0.10420331684923179
-    final_minus_best_log_loss: -0.10162560523225866
-    final_minus_best_brier_score: -0.07555667814860739
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1036.573561155703
+    wall_elapsed_seconds: 1048.21975238109
+    peak_vram_allocated: 2198915072
+    peak_vram_reserved: 5284823040
+    end_to_end_wall_seconds: 1068.7516373717226
+    loader_setup_seconds: 20.37783582881093
+    throughput_examples_per_second: 77.1773494886421
+    throughput_tokens_per_second: 462198.7227475063
+    non_train_overhead_seconds: 11.75614285422489
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.10162560523225866
-    delta_final_bpc: 0.3655543621196302
-    delta_final_bpf: 0.36555436378301565
-    delta_final_log_loss: 0.026788014887803413
-    delta_final_brier_score: 0.014951485532444908
-    delta_final_roc_auc: 0.0013321939383026393
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5353348691721803
+    final_log_loss: 0.5353348691721803
+    best_brier_score: 0.3267157025343781
+    final_brier_score: 0.3267157025343781
+    best_roc_auc: 0.7601866103283412
+    final_roc_auc: 0.7601866103283412
+    best_bpc: 2.4704692899290226
+    final_bpc: 2.4704692899290226
+    best_bpf: 2.4704947440556495
+    final_bpf: 2.4704947440556495
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.9249943122267723
+    final_train_loss_ema: 1.1282116530119697
+    final_tail_mean_train_loss: 1.1803529595136641
+    final_tail_mean_train_loss_ema: 1.1853025665254453
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2634,34 +2826,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 425.0
+    best_step: 2500
     max_grad_norm: 2.704633661312972
-    best_bpc: 2.209050002208976
-    best_bpf: 2.2090499944465103
-    best_roc_auc: 0.6605816656820923
-    best_log_loss: 0.5372771525725117
-    best_brier_score: 0.36136133162654704
-    final_bpc: 2.4630995218143905
-    final_bpf: 2.4630995073983835
-    final_roc_auc: 0.7425095226625024
-    final_log_loss: 0.41379154201686585
-    final_brier_score: 0.27045243273009784
-    final_minus_best_bpc: 0.25404951960541444
-    final_minus_best_bpf: 0.25404951295187317
-    final_minus_best_roc_auc: 0.08192785698041005
-    final_minus_best_log_loss: -0.12348561055564589
-    final_minus_best_brier_score: -0.09090889889644921
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1966.7702595568262
+    wall_elapsed_seconds: 1983.8114993199706
+    peak_vram_allocated: 2198926848
+    peak_vram_reserved: 5467275264
+    end_to_end_wall_seconds: 2004.5621280716732
+    loader_setup_seconds: 20.596844314131886
+    throughput_examples_per_second: 81.35164705818407
+    throughput_tokens_per_second: 486683.2998662921
+    non_train_overhead_seconds: 17.150488168001175
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.12348561055564589
-    delta_final_bpc: 0.32483740241028514
-    delta_final_bpf: 0.3248373885487399
-    delta_final_log_loss: 0.01872005777700403
-    delta_final_brier_score: 0.011948524559986295
-    delta_final_roc_auc: -0.01578591883512226
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5097515317855639
+    final_log_loss: 0.5097515317855639
+    best_brier_score: 0.31025106709061523
+    final_brier_score: 0.31025106709061523
+    best_roc_auc: 0.7722075014803844
+    final_roc_auc: 0.7722075014803844
+    best_bpc: 2.4539835081813797
+    final_bpc: 2.4539835081813797
+    best_bpf: 2.4539986450475535
+    final_bpf: 2.4539986450475535
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0284273400902748
+    final_train_loss_ema: 1.0884401578943736
+    final_tail_mean_train_loss: 1.1226357797831297
+    final_tail_mean_train_loss_ema: 1.12578347168744
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3043,34 +3267,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl112_layers3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 525.0
+    best_step: 5000
     max_grad_norm: 3.1229316213964777
-    best_bpc: 2.2602795889211253
-    best_bpf: 2.2602796099906746
-    best_roc_auc: 0.6626036965404443
-    best_log_loss: 0.5166107581438413
-    best_brier_score: 0.34414084577626347
-    final_bpc: 2.630308243285778
-    final_bpf: 2.6303082710088685
-    final_roc_auc: 0.7503938847174794
-    final_log_loss: 0.3987292483031036
-    final_brier_score: 0.2618609948090375
-    final_minus_best_bpc: 0.3700286543646527
-    final_minus_best_bpf: 0.370028661018194
-    final_minus_best_roc_auc: 0.0877901881770351
-    final_minus_best_log_loss: -0.1178815098407377
-    final_minus_best_brier_score: -0.08227985096722595
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3790.5718002142385
+    wall_elapsed_seconds: 3818.9863662477583
+    peak_vram_allocated: 2198935040
+    peak_vram_reserved: 5639241728
+    end_to_end_wall_seconds: 3839.850249226205
+    loader_setup_seconds: 20.71171196270734
+    throughput_examples_per_second: 84.41998117062813
+    throughput_tokens_per_second: 504955.7536126394
+    non_train_overhead_seconds: 28.52249602181837
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.1178815098407377
-    delta_final_bpc: 0.4920461238816727
-    delta_final_bpf: 0.492046152159225
-    delta_final_log_loss: 0.003657764063241753
-    delta_final_brier_score: 0.003357086638925977
-    delta_final_roc_auc: -0.007901556780145258
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.4986467503574734
+    final_log_loss: 0.4986467503574734
+    best_brier_score: 0.3031272596122117
+    final_brier_score: 0.3031272596122117
+    best_roc_auc: 0.7804146721444217
+    final_roc_auc: 0.7804146721444217
+    best_bpc: 2.5782362494225253
+    final_bpc: 2.5782362494225253
+    best_bpf: 2.5781808128145447
+    final_bpf: 2.5781808128145447
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0031155869364738
+    final_train_loss_ema: 1.0302905949990775
+    final_tail_mean_train_loss: 1.1060228414088487
+    final_tail_mean_train_loss_ema: 1.108681483242963
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3452,34 +3708,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 25.0
+    best_step: 625
     max_grad_norm: 3.595210751679737
-    best_bpc: 2.1244218975998637
-    best_bpf: 2.1244218759758526
-    best_roc_auc: 0.518330260612388
-    best_log_loss: 0.6543909558718933
-    best_brier_score: 0.4616544523193828
-    final_bpc: 2.164385849930519
-    final_bpf: 2.164385846603748
-    final_roc_auc: 0.6490179507023746
-    final_log_loss: 0.5531311109146518
-    final_brier_score: 0.37656152737103044
-    final_minus_best_bpc: 0.03996395233065542
-    final_minus_best_bpf: 0.039963970627895584
-    final_minus_best_roc_auc: 0.1306876900899866
-    final_minus_best_log_loss: -0.1012598449572415
-    final_minus_best_brier_score: -0.08509292494835236
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 563.5871033887379
+    wall_elapsed_seconds: 572.867870552931
+    peak_vram_allocated: 3068066304
+    peak_vram_reserved: 7589593088
+    end_to_end_wall_seconds: 593.1992791611701
+    loader_setup_seconds: 20.120247365906835
+    throughput_examples_per_second: 70.97394486049788
+    throughput_tokens_per_second: 424133.93522087584
+    non_train_overhead_seconds: 9.431410214398056
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.1012598449572415
-    delta_final_bpc: 0.026123730526413702
-    delta_final_bpf: 0.026123727754104653
-    delta_final_log_loss: 0.15805962667479
-    delta_final_brier_score: 0.1180576192009189
-    delta_final_roc_auc: -0.10927749079525007
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6461466098688694
+    final_log_loss: 0.6461466098688694
+    best_brier_score: 0.4025780370601524
+    final_brier_score: 0.4025780370601524
+    best_roc_auc: 0.6658360736913753
+    final_roc_auc: 0.6658360736913753
+    best_bpc: 2.1886389592728532
+    final_bpc: 2.1886389592728532
+    best_bpf: 2.1886385221739073
+    final_bpf: 2.1886385221739073
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.3674210980534554
+    final_train_loss_ema: 1.2829152672163924
+    final_tail_mean_train_loss: 1.3081061603531006
+    final_tail_mean_train_loss_ema: 1.3118983355389424
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3859,34 +4147,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 125.0
+    best_step: 1250
     max_grad_norm: 2.4262340669462117
-    best_bpc: 2.1174331770386807
-    best_bpf: 2.117433199771615
-    best_roc_auc: 0.4658323763130284
-    best_log_loss: 0.6102162520225457
-    best_brier_score: 0.42556905097228237
-    final_bpc: 2.205030520017757
-    final_bpf: 2.2050304978392843
-    final_roc_auc: 0.7512071132753622
-    final_log_loss: 0.42444568296480567
-    final_brier_score: 0.27616372194740346
-    final_minus_best_bpc: 0.0875973429790764
-    final_minus_best_bpf: 0.08759729806766936
-    final_minus_best_roc_auc: 0.2853747369623338
-    final_minus_best_log_loss: -0.18577056905774003
-    final_minus_best_brier_score: -0.1494053290248789
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1026.1609968501143
+    wall_elapsed_seconds: 1038.6298990910873
+    peak_vram_allocated: 3068075520
+    peak_vram_reserved: 7589593088
+    end_to_end_wall_seconds: 1059.9575701137073
+    loader_setup_seconds: 21.12075388804078
+    throughput_examples_per_second: 77.96047622699224
+    throughput_tokens_per_second: 466888.70213411545
+    non_train_overhead_seconds: 12.61408838070929
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.18577056905774003
-    delta_final_bpc: 0.06676840061365175
-    delta_final_bpf: 0.06676837898964072
-    delta_final_log_loss: 0.029374198724943845
-    delta_final_brier_score: 0.01765981377729192
-    delta_final_roc_auc: -0.007088328222262463
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.526782753750655
+    final_log_loss: 0.526782753750655
+    best_brier_score: 0.3211252423936931
+    final_brier_score: 0.3211252423936931
+    best_roc_auc: 0.7658273918549577
+    final_roc_auc: 0.7658273918549577
+    best_bpc: 2.2353204686683137
+    final_bpc: 2.2353204686683137
+    best_bpf: 2.2352976809420357
+    final_bpf: 2.2352976809420357
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.9034252613782883
+    final_train_loss_ema: 1.1129242258003713
+    final_tail_mean_train_loss: 1.1642352634072304
+    final_tail_mean_train_loss_ema: 1.1690189378855973
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -4266,34 +4586,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 500.0
+    best_step: 2500
     max_grad_norm: 4.271018091022219
-    best_bpc: 2.108519611802212
-    best_bpf: 2.1085195807523505
-    best_roc_auc: 0.6855454777528379
-    best_log_loss: 0.48182692270869365
-    best_brier_score: 0.3201759749325789
-    final_bpc: 2.3423941900563796
-    final_bpf: 2.342394203363463
-    final_roc_auc: 0.7628800011622848
-    final_log_loss: 0.4042432265427946
-    final_brier_score: 0.26439891845662866
-    final_minus_best_bpc: 0.2338745782541678
-    final_minus_best_bpf: 0.23387462261111258
-    final_minus_best_roc_auc: 0.07733452340944691
-    final_minus_best_log_loss: -0.07758369616589905
-    final_minus_best_brier_score: -0.055777056475950215
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1961.8925335267559
+    wall_elapsed_seconds: 1980.4997803838924
+    peak_vram_allocated: 3068090368
+    peak_vram_reserved: 7765753856
+    end_to_end_wall_seconds: 2001.2573917103
+    loader_setup_seconds: 20.55282300291583
+    throughput_examples_per_second: 81.55390637650233
+    throughput_tokens_per_second: 487893.3089567956
+    non_train_overhead_seconds: 18.75265457155183
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.07758369616589905
-    delta_final_bpc: 0.20413207065227423
-    delta_final_bpf: 0.20413208451381948
-    delta_final_log_loss: 0.009171742302932773
-    delta_final_brier_score: 0.005895010286517122
-    delta_final_roc_auc: 0.004584559664660204
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.507891654839319
+    final_log_loss: 0.507891654839319
+    best_brier_score: 0.30953249632666074
+    final_brier_score: 0.30953249632666074
+    best_roc_auc: 0.7718923833213517
+    final_roc_auc: 0.7718923833213517
+    best_bpc: 2.396527912263809
+    final_bpc: 2.396527912263809
+    best_bpf: 2.396453592980478
+    final_bpf: 2.396453592980478
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0272985249757767
+    final_train_loss_ema: 1.095487027726373
+    final_tail_mean_train_loss: 1.1281592704206704
+    final_tail_mean_train_loss_ema: 1.1312624687628345
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -4673,34 +5025,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 200.0
+    best_step: 5000
     max_grad_norm: 2.936327000965149
-    best_bpc: 2.118750772365304
-    best_bpf: 2.1187507235726644
-    best_roc_auc: 0.499169095235125
-    best_log_loss: 0.603646341366393
-    best_brier_score: 0.419329873983766
-    final_bpc: 3.048463476535886
-    final_bpf: 3.0484634621198787
-    final_roc_auc: 0.7577229280023312
-    final_log_loss: 0.3971900010756594
-    final_brier_score: 0.25992571391020547
-    final_minus_best_bpc: 0.9297127041705817
-    final_minus_best_bpf: 0.9297127385472144
-    final_minus_best_roc_auc: 0.2585538327672062
-    final_minus_best_log_loss: -0.20645634029073356
-    final_minus_best_brier_score: -0.1594041600735605
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3780.5150319170207
+    wall_elapsed_seconds: 3812.982417874038
+    peak_vram_allocated: 3068100608
+    peak_vram_reserved: 8241807360
+    end_to_end_wall_seconds: 3833.3359849727713
+    loader_setup_seconds: 20.149004251230508
+    throughput_examples_per_second: 84.64455168102708
+    throughput_tokens_per_second: 506299.0158326164
+    non_train_overhead_seconds: 32.61169299064204
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.20645634029073356
-    delta_final_bpc: 0.9102013571317804
-    delta_final_bpf: 0.9102013432702352
-    delta_final_log_loss: 0.002118516835797557
-    delta_final_brier_score: 0.0014218057400939288
-    delta_final_roc_auc: -0.0005725134952934141
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.49140312704015116
+    final_log_loss: 0.49140312704015116
+    best_brier_score: 0.29893815856001277
+    final_brier_score: 0.29893815856001277
+    best_roc_auc: 0.78658115657993
+    final_roc_auc: 0.78658115657993
+    best_bpc: 3.032832350861403
+    final_bpc: 3.032832350861403
+    best_bpf: 3.0327029591538555
+    final_bpf: 3.0327029591538555
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0004463642835617
+    final_train_loss_ema: 1.026697086549313
+    final_tail_mean_train_loss: 1.0992620735913514
+    final_tail_mean_train_loss_ema: 1.1018730984280445
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5080,34 +5464,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 400.0
+    best_step: 625
     max_grad_norm: 3.198900585118108
-    best_bpc: 2.1317774805911753
-    best_bpf: 2.131777501660724
-    best_roc_auc: 0.6950228976939925
-    best_log_loss: 0.4982066763438692
-    best_brier_score: 0.332014229874959
-    final_bpc: 2.143329304318095
-    final_bpf: 2.1433292688325394
-    final_roc_auc: 0.7329095870082739
-    final_log_loss: 0.44893795183951574
-    final_brier_score: 0.2943160635371822
-    final_minus_best_bpc: 0.011551823726919874
-    final_minus_best_bpf: 0.011551767171815275
-    final_minus_best_roc_auc: 0.03788668931428141
-    final_minus_best_log_loss: -0.04926872450435349
-    final_minus_best_brier_score: -0.037698166337776784
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 561.9981814874336
+    wall_elapsed_seconds: 571.7516105221584
+    peak_vram_allocated: 3588761600
+    peak_vram_reserved: 8317304832
+    end_to_end_wall_seconds: 592.2251504147425
+    loader_setup_seconds: 20.180454147048295
+    throughput_examples_per_second: 71.17460753010356
+    throughput_tokens_per_second: 425333.07735506416
+    non_train_overhead_seconds: 9.95735905552283
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.04926872450435349
-    delta_final_bpc: 0.005067184913989831
-    delta_final_bpf: 0.005067149982895813
-    delta_final_log_loss: 0.05386646759965391
-    delta_final_brier_score: 0.035812155367070664
-    delta_final_roc_auc: -0.025385854489350712
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5709782859913412
+    final_log_loss: 0.5709782859913412
+    best_brier_score: 0.3495937513940312
+    final_brier_score: 0.3495937513940312
+    best_roc_auc: 0.7437872620561352
+    final_roc_auc: 0.7437872620561352
+    best_bpc: 2.1438689354492504
+    final_bpc: 2.1438689354492504
+    best_bpf: 2.143857154330692
+    final_bpf: 2.143857154330692
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.3080725893378258
+    final_train_loss_ema: 1.2278430445937867
+    final_tail_mean_train_loss: 1.260041606095102
+    final_tail_mean_train_loss_ema: 1.265836889866755
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5487,34 +5903,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 550.0
+    best_step: 1250
     max_grad_norm: 3.875053794894508
-    best_bpc: 2.11734992182532
-    best_bpf: 2.117349942894869
-    best_roc_auc: 0.7333786897730118
-    best_log_loss: 0.46671833381802524
-    best_brier_score: 0.30561477335974996
-    final_bpc: 2.1490370462107102
-    final_bpf: 2.1490370428839394
-    final_roc_auc: 0.7586412078655302
-    final_log_loss: 0.41567189524265935
-    final_brier_score: 0.2713438541399845
-    final_minus_best_bpc: 0.03168712438539023
-    final_minus_best_bpf: 0.031687099989070155
-    final_minus_best_roc_auc: 0.02526251809251845
-    final_minus_best_log_loss: -0.05104643857536589
-    final_minus_best_brier_score: -0.03427091921976544
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1040.7892846362665
+    wall_elapsed_seconds: 1054.3662479743361
+    peak_vram_allocated: 3588773376
+    peak_vram_reserved: 8317304832
+    end_to_end_wall_seconds: 1074.8679930819198
+    loader_setup_seconds: 20.20857010083273
+    throughput_examples_per_second: 76.8647421537956
+    throughput_tokens_per_second: 460326.5839419515
+    non_train_overhead_seconds: 13.782049044035375
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.05104643857536589
-    delta_final_bpc: 0.010774926806604856
-    delta_final_bpf: 0.010774924034295807
-    delta_final_log_loss: 0.020600411002797525
-    delta_final_brier_score: 0.012839945969872979
-    delta_final_roc_auc: 0.00034576636790562
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5158711998626075
+    final_log_loss: 0.5158711998626075
+    best_brier_score: 0.31359981917007584
+    final_brier_score: 0.31359981917007584
+    best_roc_auc: 0.7759962332251693
+    final_roc_auc: 0.7759962332251693
+    best_bpc: 2.1752757492078127
+    final_bpc: 2.1752757492078127
+    best_bpf: 2.1752625169972126
+    final_bpf: 2.1752625169972126
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.8910908848047256
+    final_train_loss_ema: 1.1009418368470107
+    final_tail_mean_train_loss: 1.1518012472391128
+    final_tail_mean_train_loss_ema: 1.15641573953687
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5894,34 +6342,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 500.0
+    best_step: 2500
     max_grad_norm: 4.830152092259322
-    best_bpc: 2.1160445180050163
-    best_bpf: 2.11604451911394
-    best_roc_auc: 0.6933758829054306
-    best_log_loss: 0.4926734035726197
-    best_brier_score: 0.32624908983704726
-    final_bpc: 2.185055756014447
-    final_bpf: 2.1850557748661483
-    final_roc_auc: 0.7420590899750763
-    final_log_loss: 0.41345639200676904
-    final_brier_score: 0.2693824138537771
-    final_minus_best_bpc: 0.06901123800943054
-    final_minus_best_bpf: 0.06901125575220846
-    final_minus_best_roc_auc: 0.048683207069645684
-    final_minus_best_log_loss: -0.07921701156585065
-    final_minus_best_brier_score: -0.056866675983270165
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1987.106436079368
+    wall_elapsed_seconds: 2007.4707883326337
+    peak_vram_allocated: 3588792320
+    peak_vram_reserved: 8539602944
+    end_to_end_wall_seconds: 2027.9078062628396
+    loader_setup_seconds: 20.14605092909187
+    throughput_examples_per_second: 80.51908901049393
+    throughput_tokens_per_second: 481702.55131807557
+    non_train_overhead_seconds: 20.56639880128205
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.07921701156585065
-    delta_final_bpc: 0.046793636610341416
-    delta_final_bpf: 0.04679365601650476
-    delta_final_log_loss: 0.01838490776690721
-    delta_final_brier_score: 0.010878505683665551
-    delta_final_roc_auc: -0.01623635152254832
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.508001875383644
+    final_log_loss: 0.508001875383644
+    best_brier_score: 0.30908139199645046
+    final_brier_score: 0.30908139199645046
+    best_roc_auc: 0.7723786866719715
+    final_roc_auc: 0.7723786866719715
+    best_bpc: 2.210585569625644
+    final_bpc: 2.210585569625644
+    best_bpf: 2.210567595838096
+    final_bpf: 2.210567595838096
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0194612741470337
+    final_train_loss_ema: 1.0837801212963967
+    final_tail_mean_train_loss: 1.1162024432867765
+    final_tail_mean_train_loss_ema: 1.1192545530012983
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -6301,34 +6781,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl192_layers5_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 475.0
+    best_step: 5000
     max_grad_norm: 5.702254156255953
-    best_bpc: 2.112651126329289
-    best_bpf: 2.1126511418542195
-    best_roc_auc: 0.6812681387621247
-    best_log_loss: 0.5196993358099478
-    best_brier_score: 0.3481515873734421
-    final_bpc: 2.2800910883171612
-    final_bpf: 2.2800910550494526
-    final_roc_auc: 0.7397912994782864
-    final_log_loss: 0.40857636176007944
-    final_brier_score: 0.26797001076864735
-    final_minus_best_bpc: 0.16743996198787237
-    final_minus_best_bpf: 0.1674399131952331
-    final_minus_best_roc_auc: 0.058523160716161704
-    final_minus_best_log_loss: -0.11112297404986832
-    final_minus_best_brier_score: -0.08018157660479475
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3803.2974342200905
+    wall_elapsed_seconds: 3839.8688401430845
+    peak_vram_allocated: 3588806144
+    peak_vram_reserved: 11435769856
+    end_to_end_wall_seconds: 3860.045123320073
+    loader_setup_seconds: 19.885810973122716
+    throughput_examples_per_second: 84.13751633537954
+    throughput_tokens_per_second: 503266.1981096154
+    non_train_overhead_seconds: 36.77289877226576
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.11112297404986832
-    delta_final_bpc: 0.14182896891305585
-    delta_final_bpf: 0.14182893619980907
-    delta_final_log_loss: 0.013504877520217617
-    delta_final_brier_score: 0.009466102598535808
-    delta_final_roc_auc: -0.018504142019338254
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.4935670212503273
+    final_log_loss: 0.4935670212503273
+    best_brier_score: 0.30026763043755705
+    final_brier_score: 0.30026763043755705
+    best_roc_auc: 0.7807709221678233
+    final_roc_auc: 0.7807709221678233
+    best_bpc: 2.306717510023387
+    final_bpc: 2.306717510023387
+    best_bpf: 2.306720194317612
+    final_bpf: 2.306720194317612
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0001766458153725
+    final_train_loss_ema: 1.0215035107231614
+    final_tail_mean_train_loss: 1.0897482656911015
+    final_tail_mean_train_loss_ema: 1.0923101147048369
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -6708,34 +7220,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 75.0
+    best_step: 625
     max_grad_norm: 3.6063105155386554
-    best_bpc: 2.2148537125698358
-    best_bpf: 2.214853738075079
-    best_roc_auc: 0.48344543637998666
-    best_log_loss: 0.6140192795469959
-    best_brier_score: 0.4245536848322825
-    final_bpc: 2.3612110781115154
-    final_bpf: 2.361211102507835
-    final_roc_auc: 0.7345991228055798
-    final_log_loss: 0.4263159126977942
-    final_brier_score: 0.27992533693931676
-    final_minus_best_bpc: 0.14635736554167966
-    final_minus_best_bpf: 0.14635736443275604
-    final_minus_best_roc_auc: 0.25115368642559316
-    final_minus_best_log_loss: -0.1877033668492017
-    final_minus_best_brier_score: -0.14462834789296575
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 619.3615529118106
+    wall_elapsed_seconds: 631.0249702660367
+    peak_vram_allocated: 8708411392
+    peak_vram_reserved: 17343447040
+    end_to_end_wall_seconds: 652.238894036971
+    loader_setup_seconds: 20.744724579155445
+    throughput_examples_per_second: 64.58263321632995
+    throughput_tokens_per_second: 385940.0294968516
+    non_train_overhead_seconds: 11.98258570022881
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.1877033668492017
-    delta_final_bpc: 0.22294895870741005
-    delta_final_bpf: 0.2229489836581915
-    delta_final_log_loss: 0.03124442845793235
-    delta_final_brier_score: 0.02142142876920522
-    delta_final_roc_auc: -0.023696318692044804
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5416872073249106
+    final_log_loss: 0.5416872073249106
+    best_brier_score: 0.3293660005564176
+    final_brier_score: 0.3293660005564176
+    best_roc_auc: 0.7585438546627657
+    final_roc_auc: 0.7585438546627657
+    best_bpc: 2.3880578898797893
+    final_bpc: 2.3880578898797893
+    best_bpf: 2.3880670562355535
+    final_bpf: 2.3880670562355535
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.2627221643924713
+    final_train_loss_ema: 1.1731919852594448
+    final_tail_mean_train_loss: 1.2012266970816112
+    final_tail_mean_train_loss_ema: 1.2059000512712736
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -7117,34 +7661,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 250.0
+    best_step: 1250
     max_grad_norm: 4.057113529598022
-    best_bpc: 2.1767523066942083
-    best_bpf: 2.17675231334775
-    best_roc_auc: 0.682318511736577
-    best_log_loss: 0.5160736353954598
-    best_brier_score: 0.34381632977953125
-    final_bpc: 2.2824390910392585
-    final_bpf: 2.282439120980196
-    final_roc_auc: 0.7580588594487422
-    final_log_loss: 0.40433802816692965
-    final_brier_score: 0.2634817775097507
-    final_minus_best_bpc: 0.10568678434505019
-    final_minus_best_bpf: 0.1056868076324462
-    final_minus_best_roc_auc: 0.0757403477121652
-    final_minus_best_log_loss: -0.11173560722853015
-    final_minus_best_brier_score: -0.08033455226978053
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1130.5057840775698
+    wall_elapsed_seconds: 1145.8871117397211
+    peak_vram_allocated: 8708427776
+    peak_vram_reserved: 17343447040
+    end_to_end_wall_seconds: 1167.2386858821847
+    loader_setup_seconds: 20.87816326972097
+    throughput_examples_per_second: 70.76478610436794
+    throughput_tokens_per_second: 423795.2452325766
+    non_train_overhead_seconds: 15.705541261471808
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.11173560722853015
-    delta_final_bpc: 0.14417697163515308
-    delta_final_bpf: 0.14417700213055262
-    delta_final_log_loss: 0.009266543927067827
-    delta_final_brier_score: 0.004977869339639174
-    delta_final_roc_auc: -0.00023658204888243883
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5124712709731608
+    final_log_loss: 0.5124712709731608
+    best_brier_score: 0.31237164468636924
+    final_brier_score: 0.31237164468636924
+    best_roc_auc: 0.7721616330544827
+    final_roc_auc: 0.7721616330544827
+    best_bpc: 2.3004920503156483
+    final_bpc: 2.3004920503156483
+    best_bpf: 2.300488739185505
+    final_bpf: 2.300488739185505
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.8805360496044159
+    final_train_loss_ema: 1.0892529068215926
+    final_tail_mean_train_loss: 1.1392898578047752
+    final_tail_mean_train_loss_ema: 1.1439554097174107
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -7526,34 +8102,66 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on `openml_classification_medium_v1`
+    using `best_and_final` checkpoints.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 325.0
+    best_step: 2500
     max_grad_norm: 4.668576314766298
-    best_bpc: 2.12631112808405
-    best_bpf: 2.1263110582218614
-    best_roc_auc: 0.7068684282037365
-    best_log_loss: 0.48970536143265786
-    best_brier_score: 0.3220992018468084
-    final_bpc: 2.2705084290615347
-    final_bpf: 2.2705084235169166
-    final_roc_auc: 0.7525169005771271
-    final_log_loss: 0.41104317507796917
-    final_brier_score: 0.27018417820755003
-    final_minus_best_bpc: 0.14419730097748484
-    final_minus_best_bpf: 0.14419736529505522
-    final_minus_best_roc_auc: 0.045648472373390536
-    final_minus_best_log_loss: -0.07866218635468869
-    final_minus_best_brier_score: -0.05191502363925837
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 2168.921920580324
+    wall_elapsed_seconds: 2193.238905484788
+    peak_vram_allocated: 8708454400
+    peak_vram_reserved: 17343447040
+    end_to_end_wall_seconds: 2214.0715044760145
+    loader_setup_seconds: 20.31797973997891
+    throughput_examples_per_second: 73.76936831234104
+    throughput_tokens_per_second: 441322.590231321
+    non_train_overhead_seconds: 24.682380214333534
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.07866218635468869
-    delta_final_bpc: 0.13224630965742934
-    delta_final_bpf: 0.13224630466727305
-    delta_final_log_loss: 0.015971690838107344
-    delta_final_brier_score: 0.01168027003743849
-    delta_final_roc_auc: -0.005778540920497566
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5067380703882387
+    final_log_loss: 0.5067380703882387
+    best_brier_score: 0.30768467395427546
+    final_brier_score: 0.30768467395427546
+    best_roc_auc: 0.7744124041021846
+    final_roc_auc: 0.7744124041021846
+    best_bpc: 2.26830134633635
+    final_bpc: 2.26830134633635
+    best_bpf: 2.2682945722849603
+    final_bpf: 2.2682945722849603
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.035177692770958
+    final_train_loss_ema: 1.0921446513822644
+    final_tail_mean_train_loss: 1.124437135979533
+    final_tail_mean_train_loss_ema: 1.1275588540842523
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -7935,34 +8543,69 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_009_muon_ns_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
   benchmark_metrics:
-    best_step: 350.0
+    best_step: 5000
     max_grad_norm: 3.221438540122803
-    best_bpc: 2.1812107374501783
-    best_bpf: 2.1812107574108035
-    best_roc_auc: 0.6578440845763199
-    best_log_loss: 0.5814095110274404
-    best_brier_score: 0.40272759905413197
-    final_bpc: 2.595041033279064
-    final_bpf: 2.5950410488039948
-    final_roc_auc: 0.745823298581875
-    final_log_loss: 0.4037193628586747
-    final_brier_score: 0.2655241971255576
-    final_minus_best_bpc: 0.41383029582888575
-    final_minus_best_bpf: 0.4138302913931913
-    final_minus_best_roc_auc: 0.08797921400555508
-    final_minus_best_log_loss: -0.17769014816876572
-    final_minus_best_brier_score: -0.1372034019285744
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 4425.578198995907
+    wall_elapsed_seconds: 4471.0179887129925
+    peak_vram_allocated: 8708473344
+    peak_vram_reserved: 23389536256
+    end_to_end_wall_seconds: 4491.523757257033
+    loader_setup_seconds: 20.034578535705805
+    throughput_examples_per_second: 72.30693609088252
+    throughput_tokens_per_second: 432501.91363340325
+    non_train_overhead_seconds: 45.76173095172271
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
     objective_metric: final_log_loss_at_matched_regime_budget
-    drift: -0.17769014816876572
-    delta_final_bpc: 0.4567789138749587
-    delta_final_bpf: 0.4567789299543512
-    delta_final_log_loss: 0.008647878618812888
-    delta_final_brier_score: 0.007020288955446041
-    delta_final_roc_auc: -0.012472142915749607
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.4950864485319733
+    final_log_loss: 0.4950864485319733
+    best_brier_score: 0.3014709388263246
+    final_brier_score: 0.3014709388263246
+    best_roc_auc: 0.7820258278500674
+    final_roc_auc: 0.7820258278500674
+    best_bpc: 2.4877940514672594
+    final_bpc: 2.4877940514672594
+    best_bpf: 2.4877575238876184
+    final_bpf: 2.4877575238876184
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0037237405776978
+    final_train_loss_ema: 1.0226137457430688
+    final_tail_mean_train_loss: 1.0921927614510059
+    final_tail_mean_train_loss_ema: 1.0947292620806335
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
+    delta_final_log_loss: 0.10001496429211149
+    delta_final_brier_score: 0.042967030656213046
+    delta_final_roc_auc: 0.023730386352442734
+    delta_final_bpc: 0.349531932063154
+    delta_final_bpf: 0.3494954050379748
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -8228,4 +8871,4 @@ rows:
       max_steps: 5000
   resolved_surface_fingerprint: d0954348936f014ca6fb8b6093f79c14336c2a53f5fce4baf1423acd8517a408
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_ns_one_epoch_medium_v1/resolved_queue.yaml
-inputs_fingerprint: 4a546db5b68c9b2d691b1071002e9881d67866651f6af53a5e25d273e23d2629
+inputs_fingerprint: fc1c9b8a031395b8814bb6a9a27bf423238e2fbc5f6f96abac62fa0eb6b8cc22

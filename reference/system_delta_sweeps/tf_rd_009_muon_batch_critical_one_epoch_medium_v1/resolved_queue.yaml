@@ -50,7 +50,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
     and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -150,10 +150,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 1 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -163,10 +163,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_01_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 9.410781323018924
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 448.85395768657327
+    wall_elapsed_seconds: 464.65606532618403
+    peak_vram_allocated: 13620298240
+    peak_vram_reserved: 18691915776
+    end_to_end_wall_seconds: 495.61672383360565
+    loader_setup_seconds: 25.815123418346047
+    throughput_examples_per_second: 22.278961405488648
+    throughput_tokens_per_second: 132310.08211688648
+    non_train_overhead_seconds: 16.28211509436369
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 162
+    tokens_per_step: 95020.6464
+    tokens_seen: 59387904
+    token_budget: 59387904
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6293256073118298
+    final_log_loss: 0.6293256073118298
+    best_brier_score: 0.38604640749939584
+    final_brier_score: 0.38604640749939584
+    best_roc_auc: 0.6770370286883395
+    final_roc_auc: 0.6770370286883395
+    best_bpc: 2.405959462575025
+    final_bpc: 2.405959462575025
+    best_bpf: 2.4059836613991488
+    final_bpf: 2.4059836613991488
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.4620466232299805
+    final_train_loss_ema: 1.4361766735224224
+    final_tail_mean_train_loss: 1.3103140464850835
+    final_tail_mean_train_loss_ema: 1.2770489549234942
+    final_tail_record_count: 63
+    one_family_step_count: 625
+    mixed_family_step_count: 0
+    consecutive_repeated_family_step_count: 462
+    consecutive_switched_family_step_count: 162
+    family_block_count: 163
+    estimated_family_switch_count: 162
+    delta_final_log_loss: 0.23425412307196802
+    delta_final_brier_score: 0.1275424993292843
+    delta_final_roc_auc: -0.08125841280928514
+    delta_final_bpc: 0.26769734317091975
+    delta_final_bpf: 0.2677215425495052
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -274,15 +336,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -345,10 +492,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: e49d94e8c87d92913f93c37e9ac8932b4e8aced310ab2336cc1b750080effdd4
+  resolved_surface_fingerprint: a37e5e96079a006a8f0527e1dc7cfce9922ecaebb03aa0ccbe0f922aae0b5b3c
 - order: 2
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
     and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -448,10 +595,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 2 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -461,10 +608,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_02_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250
+    max_grad_norm: 5.759190200410216
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 618.8762249425054
+    wall_elapsed_seconds: 641.1566950734705
+    peak_vram_allocated: 8703492608
+    peak_vram_reserved: 21455962112
+    end_to_end_wall_seconds: 668.3293916936964
+    loader_setup_seconds: 26.28559410944581
+    throughput_examples_per_second: 32.316639731729936
+    throughput_tokens_per_second: 193195.80100384002
+    non_train_overhead_seconds: 22.77206625044346
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 321
+    tokens_per_step: 95651.4304
+    tokens_seen: 119564288
+    token_budget: 119564288
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5290918489580076
+    final_log_loss: 0.5290918489580076
+    best_brier_score: 0.32115784307893225
+    final_brier_score: 0.32115784307893225
+    best_roc_auc: 0.7709960131149481
+    final_roc_auc: 0.7709960131149481
+    best_bpc: 2.3122578930959214
+    final_bpc: 2.3122578930959214
+    best_bpf: 2.3122634478600093
+    final_bpf: 2.3122634478600093
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.5423247814178467
+    final_train_loss_ema: 1.1552963916720151
+    final_tail_mean_train_loss: 1.1669318633079528
+    final_tail_mean_train_loss_ema: 1.1729938400949484
+    final_tail_record_count: 125
+    one_family_step_count: 1250
+    mixed_family_step_count: 0
+    consecutive_repeated_family_step_count: 928
+    consecutive_switched_family_step_count: 321
+    family_block_count: 322
+    estimated_family_switch_count: 321
+    delta_final_log_loss: 0.13402036471814582
+    delta_final_brier_score: 0.06265393490882071
+    delta_final_roc_auc: 0.01270057161732352
+    delta_final_bpc: 0.17399577369181607
+    delta_final_bpf: 0.1740013290103657
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -572,15 +781,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -643,10 +937,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 49a7360f0dc6b2afebe09dc8c516a52c7cab7a7e44372de87d8a59b4671c127e
+  resolved_surface_fingerprint: ac4441d692818e19c8b588668709c507caf701aed195505ae70eae052e98a12d
 - order: 3
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
     and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -746,10 +1040,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 3 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -759,10 +1053,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_03_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 7.094364101931344
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1095.383701318875
+    wall_elapsed_seconds: 1129.1276941616088
+    peak_vram_allocated: 8703500800
+    peak_vram_reserved: 24165482496
+    end_to_end_wall_seconds: 1156.145659165457
+    loader_setup_seconds: 26.020578492432833
+    throughput_examples_per_second: 36.51688440483348
+    throughput_tokens_per_second: 218221.62929044222
+    non_train_overhead_seconds: 34.23912720568478
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 95614.5664
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5180242588985894
+    final_log_loss: 0.5180242588985894
+    best_brier_score: 0.3153044795261081
+    final_brier_score: 0.3153044795261081
+    best_roc_auc: 0.7712944475533178
+    final_roc_auc: 0.7712944475533178
+    best_bpc: 2.394623355982642
+    final_bpc: 2.394623355982642
+    best_bpf: 2.3945876435281828
+    final_bpf: 2.3945876435281828
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.3305864930152893
+    final_train_loss_ema: 1.1476801308111395
+    final_tail_mean_train_loss: 1.1584000432491302
+    final_tail_mean_train_loss_ema: 1.1655676892221707
+    final_tail_record_count: 250
+    one_family_step_count: 2500
+    mixed_family_step_count: 0
+    consecutive_repeated_family_step_count: 1864
+    consecutive_switched_family_step_count: 635
+    family_block_count: 636
+    estimated_family_switch_count: 635
+    delta_final_log_loss: 0.12295277465872756
+    delta_final_brier_score: 0.05680057135599653
+    delta_final_roc_auc: 0.012999006055693152
+    delta_final_bpc: 0.2563612365785368
+    delta_final_bpf: 0.2563255246785392
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -870,15 +1226,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -941,10 +1382,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 4bf5f6d7cb01c65dc9ff8c0b4f942989be9be6f497ebefa58fa99e0d88bcba79
+  resolved_surface_fingerprint: 428ae7f9a12fe555119aa4079cfcf576a6e8feafc954b4926136b49c0d0fa49b
 - order: 4
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
     and grad_accum_steps=1 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -1044,10 +1485,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 4 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -1057,10 +1498,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 6.062971219314163
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 2093.310877127573
+    wall_elapsed_seconds: 2156.7994332071394
+    peak_vram_allocated: 8703517184
+    peak_vram_reserved: 24165482496
+    end_to_end_wall_seconds: 2184.3567432705313
+    loader_setup_seconds: 26.56549232453108
+    throughput_examples_per_second: 38.2169704816016
+    throughput_tokens_per_second: 228873.30364299347
+    non_train_overhead_seconds: 63.9826540928334
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 95820.5952
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.514979149451224
+    final_log_loss: 0.514979149451224
+    best_brier_score: 0.3123403616260701
+    final_brier_score: 0.3123403616260701
+    best_roc_auc: 0.769341764076321
+    final_roc_auc: 0.769341764076321
+    best_bpc: 2.310416322142372
+    final_bpc: 2.310416322142372
+    best_bpf: 2.3104147314942716
+    final_bpf: 2.3104147314942716
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.48270517587661743
+    final_train_loss_ema: 1.0358345592274547
+    final_tail_mean_train_loss: 1.119383688569069
+    final_tail_mean_train_loss_ema: 1.121249328535313
+    final_tail_record_count: 500
+    one_family_step_count: 5000
+    mixed_family_step_count: 0
+    consecutive_repeated_family_step_count: 3733
+    consecutive_switched_family_step_count: 1266
+    family_block_count: 1267
+    estimated_family_switch_count: 1266
+    delta_final_log_loss: 0.1199076652113622
+    delta_final_brier_score: 0.053836453455958555
+    delta_final_roc_auc: 0.011046322578696421
+    delta_final_bpc: 0.17215420273826654
+    delta_final_bpf: 0.172152612644628
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1168,15 +1671,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -1239,10 +1827,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: f097db5d0db1361d92016956dd90cfdc446a63785f17f47ee7ba1121cfc8fd25
+  resolved_surface_fingerprint: 88fa2c3ca6050c988ad90c65ed82431feec04b0e780fcabddac4f60598378c4d
 - order: 5
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
     and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -1342,10 +1930,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 5 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -1355,10 +1943,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 7.469281953899047
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 540.227746611461
+    wall_elapsed_seconds: 555.088697437197
+    peak_vram_allocated: 8713383936
+    peak_vram_reserved: 25060966400
+    end_to_end_wall_seconds: 583.6570890787989
+    loader_setup_seconds: 27.602159187197685
+    throughput_examples_per_second: 37.02142314134832
+    throughput_tokens_per_second: 221322.00493210176
+    non_train_overhead_seconds: 15.36367566138506
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 321
+    tokens_per_step: 191302.8608
+    tokens_seen: 119564288
+    token_budget: 119564288
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.552253820590544
+    final_log_loss: 0.552253820590544
+    best_brier_score: 0.3344491687133547
+    final_brier_score: 0.3344491687133547
+    best_roc_auc: 0.7566029897166957
+    final_roc_auc: 0.7566029897166957
+    best_bpc: 2.290161531013004
+    final_bpc: 2.290161531013004
+    best_bpf: 2.290120554829503
+    final_bpf: 2.290120554829503
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.3680700063705444
+    final_train_loss_ema: 1.1455944487799292
+    final_tail_mean_train_loss: 1.195052624931411
+    final_tail_mean_train_loss_ema: 1.216011847386117
+    final_tail_record_count: 63
+    one_family_step_count: 607
+    mixed_family_step_count: 18
+    consecutive_repeated_family_step_count: 292
+    consecutive_switched_family_step_count: 297
+    family_block_count: 315
+    estimated_family_switch_count: 314
+    delta_final_log_loss: 0.15718233635068213
+    delta_final_brier_score: 0.07594526054324319
+    delta_final_roc_auc: -0.0016924517809289163
+    delta_final_bpc: 0.15189941160889875
+    delta_final_bpf: 0.1518584359798596
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1466,15 +2116,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -1537,10 +2272,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 929c9693d05e13bfe692cd03beeda18f4e91e6da0ff7ea79ecd77936a61bc31e
+  resolved_surface_fingerprint: 4e495487d3ae4b1979ecc5d1b2c9b67a39912d9ee62c87fc5a335a4da4387a2f
 - order: 6
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
     and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -1640,10 +2375,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 6 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -1653,10 +2388,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250
+    max_grad_norm: 5.997419085000219
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 914.8308809828013
+    wall_elapsed_seconds: 937.3848275784403
+    peak_vram_allocated: 8713392128
+    peak_vram_reserved: 25060966400
+    end_to_end_wall_seconds: 964.8137388769537
+    loader_setup_seconds: 26.544018745422363
+    throughput_examples_per_second: 43.723928467552454
+    throughput_tokens_per_second: 261290.2788581028
+    non_train_overhead_seconds: 23.043116468936205
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 191229.1328
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5228384075164543
+    final_log_loss: 0.5228384075164543
+    best_brier_score: 0.32000831889102466
+    final_brier_score: 0.32000831889102466
+    best_roc_auc: 0.7667658342748611
+    final_roc_auc: 0.7667658342748611
+    best_bpc: 2.3263664498862946
+    final_bpc: 2.3263664498862946
+    best_bpf: 2.326350730967373
+    final_bpf: 2.326350730967373
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.1656343042850494
+    final_train_loss_ema: 1.149474575284879
+    final_tail_mean_train_loss: 1.1755977514982223
+    final_tail_mean_train_loss_ema: 1.1844701284296144
+    final_tail_record_count: 125
+    one_family_step_count: 1225
+    mixed_family_step_count: 25
+    consecutive_repeated_family_step_count: 596
+    consecutive_switched_family_step_count: 605
+    family_block_count: 629
+    estimated_family_switch_count: 628
+    delta_final_log_loss: 0.12776692327659245
+    delta_final_brier_score: 0.061504410720913116
+    delta_final_roc_auc: 0.00847039277723649
+    delta_final_bpc: 0.18810433048218922
+    delta_final_bpf: 0.18808861211772943
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -1764,15 +2561,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -1835,10 +2717,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 5afdae331f17e22e6cfa62922c170ffea663b6bdb173269e1d46f2ce5a274a2b
+  resolved_surface_fingerprint: 40966da86cc6640b773384af5a1ed2c292b48133c86280a90bc73bac39405436
 - order: 7
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
     and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -1938,10 +2820,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 7 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -1951,10 +2833,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 7.9886171553753345
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1746.4152289628983
+    wall_elapsed_seconds: 1781.076341021806
+    peak_vram_allocated: 8713408512
+    peak_vram_reserved: 25060966400
+    end_to_end_wall_seconds: 1808.1694657634944
+    loader_setup_seconds: 26.160436680540442
+    throughput_examples_per_second: 45.80812092866808
+    throughput_tokens_per_second: 274335.0882736595
+    non_train_overhead_seconds: 35.185720313340425
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 191641.1904
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5020768424859898
+    final_log_loss: 0.5020768424859898
+    best_brier_score: 0.3056583189310983
+    final_brier_score: 0.3056583189310983
+    best_roc_auc: 0.7782873167445098
+    final_roc_auc: 0.7782873167445098
+    best_bpc: 2.3915776133808873
+    final_bpc: 2.3915776133808873
+    best_bpf: 2.3914998415023687
+    final_bpf: 2.3914998415023687
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0199532806873322
+    final_train_loss_ema: 1.0608151827079784
+    final_tail_mean_train_loss: 1.128691344499588
+    final_tail_mean_train_loss_ema: 1.1318710889713302
+    final_tail_record_count: 250
+    one_family_step_count: 1356
+    mixed_family_step_count: 1144
+    consecutive_repeated_family_step_count: 105
+    consecutive_switched_family_step_count: 114
+    family_block_count: 1251
+    estimated_family_switch_count: 1250
+    delta_final_log_loss: 0.107005358246128
+    delta_final_brier_score: 0.047154410760986754
+    delta_final_roc_auc: 0.01999187524688517
+    delta_final_bpc: 0.2533154939767819
+    delta_final_bpf: 0.25323772265272515
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2062,15 +3006,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -2133,10 +3162,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: e31fc926374c14488f2d23e8bac25376f14e6b392fc0850fa79384b13878d574
+  resolved_surface_fingerprint: 5d99ce575e770c3c8550669bdd4ceea710a5d8fed891352ddd9de55bbb6676c6
 - order: 8
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
     and grad_accum_steps=2 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -2236,10 +3265,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 8 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -2249,10 +3278,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 5.272543242907622
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3328.583344273269
+    wall_elapsed_seconds: 3390.312572155148
+    peak_vram_allocated: 8713435136
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 3417.4197873640805
+    loader_setup_seconds: 26.2656522821635
+    throughput_examples_per_second: 48.068497451107945
+    throughput_tokens_per_second: 287568.05553534505
+    non_train_overhead_seconds: 62.21467124670744
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 191438.848
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5060798252222931
+    final_log_loss: 0.5060798252222931
+    best_brier_score: 0.3081436786450536
+    final_brier_score: 0.3081436786450536
+    best_roc_auc: 0.7755221502881458
+    final_roc_auc: 0.7755221502881458
+    best_bpc: 2.4026290304256386
+    final_bpc: 2.4026290304256386
+    best_bpf: 2.4027033811134344
+    final_bpf: 2.4027033811134344
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.6328287720680237
+    final_train_loss_ema: 1.0796105047459914
+    final_tail_mean_train_loss: 1.1154681678563356
+    final_tail_mean_train_loss_ema: 1.1180291328230183
+    final_tail_record_count: 500
+    one_family_step_count: 2737
+    mixed_family_step_count: 2263
+    consecutive_repeated_family_step_count: 240
+    consecutive_switched_family_step_count: 243
+    family_block_count: 2497
+    estimated_family_switch_count: 2496
+    delta_final_log_loss: 0.11100834098243129
+    delta_final_brier_score: 0.04963977047494206
+    delta_final_roc_auc: 0.017226708790521128
+    delta_final_bpc: 0.2643669110215332
+    delta_final_bpf: 0.26444126226379083
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2360,15 +3451,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -2431,10 +3607,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: d5b35fcb9da99d4cea5ef077f87bdfa4289012278b9102f0275702d2e459e98c
+  resolved_surface_fingerprint: 64b2c30ee764cc9d1f67ea1de2a393d06d6cbc4d934f33c9f9b6c80d83e5bcdb
 - order: 9
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
     and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -2534,10 +3710,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 9 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -2547,10 +3723,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 3.4600735649973227
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 831.793951427564
+    wall_elapsed_seconds: 846.2892266400158
+    peak_vram_allocated: 8713392128
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 873.5638524703681
+    loader_setup_seconds: 26.3950888607651
+    throughput_examples_per_second: 48.088832494333616
+    throughput_tokens_per_second: 287374.5542267462
+    non_train_overhead_seconds: 14.976487945765257
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.540148326665921
+    final_log_loss: 0.540148326665921
+    best_brier_score: 0.3277860553738095
+    final_brier_score: 0.3277860553738095
+    best_roc_auc: 0.7626972643686479
+    final_roc_auc: 0.7626972643686479
+    best_bpc: 2.378668069732499
+    final_bpc: 2.378668069732499
+    best_bpf: 2.378664323875496
+    final_bpf: 2.378664323875496
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.2492063343524933
+    final_train_loss_ema: 1.1690717996355617
+    final_tail_mean_train_loss: 1.2005528411458408
+    final_tail_mean_train_loss_ema: 1.2056803893230355
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
+    delta_final_log_loss: 0.14507684242605923
+    delta_final_brier_score: 0.06928214720369796
+    delta_final_roc_auc: 0.004401822871023309
+    delta_final_bpc: 0.24040595032839374
+    delta_final_bpf: 0.2404022050258523
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2658,15 +3896,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -2729,10 +4052,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: cc37c06521b8b512d95fa67e25eab46e4838223a3af997656f490ca5ca853e5b
+  resolved_surface_fingerprint: aa5b409db83c82febe75d601e0f90d2906bd787c9ea7952f78ed4280b2055774
 - order: 10
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
     and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -2832,10 +4155,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 10 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -2845,10 +4168,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250
+    max_grad_norm: 3.9158930574055
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1526.7308306284249
+    wall_elapsed_seconds: 1547.7100147474557
+    peak_vram_allocated: 8713408512
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 1575.2910873107612
+    loader_setup_seconds: 26.616354251280427
+    throughput_examples_per_second: 52.39954443513191
+    throughput_tokens_per_second: 313809.7209989492
+    non_train_overhead_seconds: 21.469946656376123
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 383282.3808
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5143114637933734
+    final_log_loss: 0.5143114637933734
+    best_brier_score: 0.31350121743914544
+    final_brier_score: 0.31350121743914544
+    best_roc_auc: 0.7758458144771365
+    final_roc_auc: 0.7758458144771365
+    best_bpc: 2.2480468688865294
+    final_bpc: 2.2480468688865294
+    best_bpf: 2.248058623897476
+    final_bpf: 2.248058623897476
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.8770335018634796
+    final_train_loss_ema: 1.0865300635968613
+    final_tail_mean_train_loss: 1.1393081786036492
+    final_tail_mean_train_loss_ema: 1.144075086808555
+    final_tail_record_count: 125
+    one_family_step_count: 34
+    mixed_family_step_count: 1216
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 31
+    family_block_count: 34
+    estimated_family_switch_count: 33
+    delta_final_log_loss: 0.11923997955351162
+    delta_final_brier_score: 0.0549973092690339
+    delta_final_roc_auc: 0.017550372979511897
+    delta_final_bpc: 0.109784749482424
+    delta_final_bpf: 0.10979650504783223
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -2956,15 +4341,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -3027,10 +4497,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: c5c181dd9254b4b1e9112840df2e4805eba9a00d19fbcb6d8c46e13fdabc56c1
+  resolved_surface_fingerprint: c3e22982f1f83795b1ad1ec4ef934c3d99f444b657c4493e78b03f10009d574c
 - order: 11
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
     and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -3130,10 +4600,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 11 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -3143,10 +4613,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 4.629340883034387
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 2962.811316234991
+    wall_elapsed_seconds: 2997.639307761565
+    peak_vram_allocated: 8713435136
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 3024.669390756637
+    loader_setup_seconds: 26.176953699439764
+    throughput_examples_per_second: 54.00276390307598
+    throughput_tokens_per_second: 323069.59095065156
+    non_train_overhead_seconds: 35.33943456411362
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.504585353473678
+    final_log_loss: 0.504585353473678
+    best_brier_score: 0.3065904558515321
+    final_brier_score: 0.3065904558515321
+    best_roc_auc: 0.7789231103850366
+    final_roc_auc: 0.7789231103850366
+    best_bpc: 2.6438550941596626
+    final_bpc: 2.6438550941596626
+    best_bpf: 2.643890474244116
+    final_bpf: 2.643890474244116
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0218147188425064
+    final_train_loss_ema: 1.0844229357488167
+    final_tail_mean_train_loss: 1.1161809314638376
+    final_tail_mean_train_loss_ema: 1.1190930583410224
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
+    delta_final_log_loss: 0.10951386923381623
+    delta_final_brier_score: 0.048086547681420566
+    delta_final_roc_auc: 0.020627668887411965
+    delta_final_bpc: 0.5055929747555572
+    delta_final_bpf: 0.5056283553944723
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3254,15 +4786,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -3325,10 +4942,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 65da367784e87491aa576cccb3457df140819cc49c8244e749915e549d9891b6
+  resolved_surface_fingerprint: c3bb44390f194c0ebe7c79bbd152d7cb7569533370182cf968fa9f17929312a2
 - order: 12
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
     and grad_accum_steps=4 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -3428,10 +5045,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 12 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -3441,10 +5058,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 4.750879200116797
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 5796.340949045494
+    wall_elapsed_seconds: 5861.857708884403
+    peak_vram_allocated: 8713454080
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 5889.291012013331
+    loader_setup_seconds: 26.563592728227377
+    throughput_examples_per_second: 55.207242433296756
+    throughput_tokens_per_second: 330220.5748119764
+    non_train_overhead_seconds: 66.01705836504698
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.496213465163772
+    final_log_loss: 0.496213465163772
+    best_brier_score: 0.3019592473192208
+    final_brier_score: 0.3019592473192208
+    best_roc_auc: 0.7783645268293387
+    final_roc_auc: 0.7783645268293387
+    best_bpc: 2.548357811162416
+    final_bpc: 2.548357811162416
+    best_bpf: 2.5483046592479766
+    final_bpf: 2.5483046592479766
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.005423828959465
+    final_train_loss_ema: 1.0253137239063423
+    final_tail_mean_train_loss: 1.0927936260700226
+    final_tail_mean_train_loss_ema: 1.0953062024735216
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
+    delta_final_log_loss: 0.10114198092391019
+    delta_final_brier_score: 0.04345533914910926
+    delta_final_roc_auc: 0.02006908533171403
+    delta_final_bpc: 0.41009569175831073
+    delta_final_bpf: 0.410042540398333
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3552,15 +5231,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -3623,10 +5387,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: ac26faef6594ce195426ff6277ce364956e066ee3636e32eec35863a66423a43
+  resolved_surface_fingerprint: d0954348936f014ca6fb8b6093f79c14336c2a53f5fce4baf1423acd8517a408
 - order: 13
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
     and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -3726,10 +5490,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 13 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -3739,10 +5503,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_13_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 3.3890068855303377
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1460.6350702904165
+    wall_elapsed_seconds: 1475.0903928466141
+    peak_vram_allocated: 8713408512
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 1502.1341091189533
+    loader_setup_seconds: 26.123346926644444
+    throughput_examples_per_second: 54.77069640953759
+    throughput_tokens_per_second: 328010.0455925247
+    non_train_overhead_seconds: 14.966792974621058
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 1266
+    tokens_per_step: 766564.7616
+    tokens_seen: 479102976
+    token_budget: 479102976
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5320076634112776
+    final_log_loss: 0.5320076634112776
+    best_brier_score: 0.32288878800234055
+    final_brier_score: 0.32288878800234055
+    best_roc_auc: 0.764389792295314
+    final_roc_auc: 0.764389792295314
+    best_bpc: 2.3564741574102794
+    final_bpc: 2.3564741574102794
+    best_bpf: 2.356486132602599
+    final_bpf: 2.356486132602599
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.1513484790921211
+    final_train_loss_ema: 1.1471033470188083
+    final_tail_mean_train_loss: 1.1805694290688113
+    final_tail_mean_train_loss_ema: 1.1876062622029961
+    final_tail_record_count: 63
+    one_family_step_count: 0
+    mixed_family_step_count: 625
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.13693617917141576
+    delta_final_brier_score: 0.06438487983222901
+    delta_final_roc_auc: 0.006094350797689385
+    delta_final_bpc: 0.21821203800617406
+    delta_final_bpf: 0.21822401375295541
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -3850,15 +5676,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -3921,10 +5832,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: b0cca8ef1b287468376c2baeeeb0e75717174e5726d4b5892d17d554d8329b0f
+  resolved_surface_fingerprint: 721bbdb60643da636db1d37b9aa3c1e619e5c8e4625af4671467f85fbf474826
 - order: 14
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
     and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -4024,10 +5935,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 14 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -4037,10 +5948,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_14_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250
+    max_grad_norm: 2.9250164609703733
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 2774.5976183023304
+    wall_elapsed_seconds: 2796.1103977523744
+    peak_vram_allocated: 8713435136
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 2822.956648344174
+    loader_setup_seconds: 25.963709896430373
+    throughput_examples_per_second: 57.6660193696475
+    throughput_tokens_per_second: 344984.8849022189
+    non_train_overhead_seconds: 22.04980586655438
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 765755.392
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5059226932349051
+    final_log_loss: 0.5059226932349051
+    best_brier_score: 0.30793357153185424
+    final_brier_score: 0.30793357153185424
+    best_roc_auc: 0.7779214789673172
+    final_roc_auc: 0.7779214789673172
+    best_bpc: 2.28738576695409
+    final_bpc: 2.28738576695409
+    best_bpf: 2.2873855567523695
+    final_bpf: 2.2873855567523695
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0080171041190624
+    final_train_loss_ema: 1.0947984122039458
+    final_tail_mean_train_loss: 1.1240449818521738
+    final_tail_mean_train_loss_ema: 1.128102941069325
+    final_tail_record_count: 125
+    one_family_step_count: 0
+    mixed_family_step_count: 1250
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.1108512089950433
+    delta_final_brier_score: 0.049429663361742704
+    delta_final_roc_auc: 0.019626037469692603
+    delta_final_bpc: 0.14912364754998464
+    delta_final_bpf: 0.14912343790272597
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -4148,15 +6121,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -4219,10 +6277,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 8b7e21434249c20c10db850cf06b84832a73c0d1306905012f46589385c6be51
+  resolved_surface_fingerprint: 7488f6a4c5f4592aa2edeb449448ede10a7c2d4844fd9bd5fba45f02761dd098
 - order: 15
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
     and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -4322,10 +6380,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 15 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -4335,10 +6393,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_15_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 2.9038424831962573
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 5418.995615521446
+    wall_elapsed_seconds: 5453.857304431498
+    peak_vram_allocated: 8713454080
+    peak_vram_reserved: 25899827200
+    end_to_end_wall_seconds: 5481.089130874723
+    loader_setup_seconds: 26.320365138351917
+    throughput_examples_per_second: 59.05153329215378
+    throughput_tokens_per_second: 353215.0929440856
+    non_train_overhead_seconds: 35.37738371454179
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 765628.416
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.49477882174219734
+    final_log_loss: 0.49477882174219734
+    best_brier_score: 0.30133921212256065
+    final_brier_score: 0.30133921212256065
+    best_roc_auc: 0.7813611927443486
+    final_roc_auc: 0.7813611927443486
+    best_bpc: 2.4554186132144515
+    final_bpc: 2.4554186132144515
+    best_bpf: 2.455412803849493
+    final_bpf: 2.455412803849493
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0585004203021526
+    final_train_loss_ema: 1.0433910225877565
+    final_tail_mean_train_loss: 1.0919272629767656
+    final_tail_mean_train_loss_ema: 1.0953611938941974
+    final_tail_record_count: 250
+    one_family_step_count: 0
+    mixed_family_step_count: 2500
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.09970733750233551
+    delta_final_brier_score: 0.04283530395244911
+    delta_final_roc_auc: 0.023065751246723942
+    delta_final_bpc: 0.31715649381034616
+    delta_final_bpf: 0.31715068499984955
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -4446,15 +6566,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -4517,10 +6722,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 912d7043d44a85a9da10095b917acbca2cd275e5261e0905fccb106b1d3926f9
+  resolved_surface_fingerprint: 1e6a5547eadba4aa0f134e65f86fb821c5eede915952ec524754811482f87f10
 - order: 16
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
     and grad_accum_steps=8 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -4620,10 +6825,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 16 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -4633,10 +6838,75 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - 'Execution attempt `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`
+    failed: [enforce fail at inline_container.cc:672] . unexpected pos 27950848 vs
+    27950768'
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_16_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 2.8970966914109253
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 10248.08862963505
+    wall_elapsed_seconds: 10309.961087606847
+    peak_vram_allocated: 13630277120
+    peak_vram_reserved: 18788384768
+    end_to_end_wall_seconds: 10339.539067586884
+    loader_setup_seconds: 27.197970299050212
+    throughput_examples_per_second: 62.45066988875089
+    throughput_tokens_per_second: 372848.884713058
+    non_train_overhead_seconds: 62.39520449191332
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 10025
+    tokens_per_step: 764197.6832
+    tokens_seen: 3820988416
+    token_budget: 3820988416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.4853310297869567
+    final_log_loss: 0.4853310297869567
+    best_brier_score: 0.2950637449525447
+    final_brier_score: 0.2950637449525447
+    best_roc_auc: 0.7860410859635246
+    final_roc_auc: 0.7860410859635246
+    best_bpc: 2.602446751965925
+    final_bpc: 2.602446751965925
+    best_bpf: 2.6024000880293605
+    final_bpf: 2.6024000880293605
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.954965315759182
+    final_train_loss_ema: 1.020575584757148
+    final_tail_mean_train_loss: 1.072303456991911
+    final_tail_mean_train_loss_ema: 1.074199591425438
+    final_tail_record_count: 500
+    one_family_step_count: 0
+    mixed_family_step_count: 5000
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.09025954554709487
+    delta_final_brier_score: 0.036559836782433186
+    delta_final_roc_auc: 0.0277456444659
+    delta_final_bpc: 0.46418463256181974
+    delta_final_bpf: 0.46413796917971695
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -4744,15 +7014,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -4815,10 +7170,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 6d7fab558e42c45d8ea7d074b2d0a683cd4448f3d47cc95946fa12cc0f9075cb
+  resolved_surface_fingerprint: 5b9c993b32c52b1f2966a4a0a8c9f5048ccc70359cd5986b223e07d59a3931fd
 - order: 17
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=625
     and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -4918,10 +7273,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 17 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -4931,10 +7286,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_17_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 4.716170735515889
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 2683.059965662658
+    wall_elapsed_seconds: 2697.6245435997844
+    peak_vram_allocated: 8713435136
+    peak_vram_reserved: 26763853824
+    end_to_end_wall_seconds: 2725.837007597089
+    loader_setup_seconds: 27.37757464684546
+    throughput_examples_per_second: 59.63340441423322
+    throughput_tokens_per_second: 356754.6951055913
+    non_train_overhead_seconds: 15.051986549049616
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 1531510.784
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.5209859392602433
+    final_log_loss: 0.5209859392602433
+    best_brier_score: 0.31784033852022675
+    final_brier_score: 0.31784033852022675
+    best_roc_auc: 0.7713707642981023
+    final_roc_auc: 0.7713707642981023
+    best_bpc: 2.205371563621416
+    final_bpc: 2.205371563621416
+    best_bpf: 2.205376796778588
+    final_bpf: 2.205376796778588
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0960244163870811
+    final_train_loss_ema: 1.1424663644805468
+    final_tail_mean_train_loss: 1.1627219952051602
+    final_tail_mean_train_loss_ema: 1.165071453431932
+    final_tail_record_count: 63
+    one_family_step_count: 0
+    mixed_family_step_count: 625
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.12591445502038145
+    delta_final_brier_score: 0.05933643035011521
+    delta_final_roc_auc: 0.013075322800477629
+    delta_final_bpc: 0.0671094442173108
+    delta_final_bpf: 0.06711467792894465
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5042,15 +7459,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -5113,10 +7615,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 625
-  resolved_surface_fingerprint: 9a07e3bb7c70d272078524bd131b86752bbf9e214cd93d56f978c09039325d05
+  resolved_surface_fingerprint: cbfc8ee13ffdbd4b7165b5588ed5f90da71000becbcaf4be323273a51c03c957
 - order: 18
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=1250
     and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -5216,10 +7718,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 18 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -5229,10 +7731,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_18_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 1250
+    max_grad_norm: 2.5328891856194167
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 5218.097603417933
+    wall_elapsed_seconds: 5242.328751124442
+    peak_vram_allocated: 8713454080
+    peak_vram_reserved: 26763853824
+    end_to_end_wall_seconds: 5271.454413939267
+    loader_setup_seconds: 28.121230414137244
+    throughput_examples_per_second: 61.32503151922554
+    throughput_tokens_per_second: 366813.95893136505
+    non_train_overhead_seconds: 24.71909731812775
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 1531256.832
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.502381311212066
+    final_log_loss: 0.502381311212066
+    best_brier_score: 0.30604369382762203
+    final_brier_score: 0.30604369382762203
+    best_roc_auc: 0.7773321493655008
+    final_roc_auc: 0.7773321493655008
+    best_bpc: 2.2895599153645523
+    final_bpc: 2.2895599153645523
+    best_bpf: 2.2895899021204196
+    final_bpf: 2.2895899021204196
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.9585126042366028
+    final_train_loss_ema: 1.0672632533444744
+    final_tail_mean_train_loss: 1.101687417499721
+    final_tail_mean_train_loss_ema: 1.1064857168297277
+    final_tail_record_count: 125
+    one_family_step_count: 0
+    mixed_family_step_count: 1250
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.10730982697220415
+    delta_final_brier_score: 0.04753978565751049
+    delta_final_roc_auc: 0.019036707867876146
+    delta_final_bpc: 0.1512977959604469
+    delta_final_bpf: 0.151327783270776
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5340,15 +7904,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -5411,10 +8060,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 1250
-  resolved_surface_fingerprint: 1ec15952d93ea83dbdbe32d45beef1e544e73ce86e90fa8f6f7c0ee53adf177c
+  resolved_surface_fingerprint: 67e15975badf1ba2539d0d0c61e95605710a3ab7f1534ff064388ae2783f566d
 - order: 19
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=2500
     and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -5514,10 +8163,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 19 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -5527,10 +8176,72 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_19_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 2.0066113587554564
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 10414.646553704515
+    wall_elapsed_seconds: 10450.722160303965
+    peak_vram_allocated: 8713454080
+    peak_vram_reserved: 26763853824
+    end_to_end_wall_seconds: 10479.354747053236
+    loader_setup_seconds: 27.67724950425327
+    throughput_examples_per_second: 61.451917422233635
+    throughput_tokens_per_second: 366886.0384552239
+    non_train_overhead_seconds: 36.561140628531575
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 10025
+    tokens_per_step: 1528395.3664
+    tokens_seen: 3820988416
+    token_budget: 3820988416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.48030088049122127
+    final_log_loss: 0.48030088049122127
+    best_brier_score: 0.2917294771901584
+    final_brier_score: 0.2917294771901584
+    best_roc_auc: 0.788138592611378
+    final_roc_auc: 0.788138592611378
+    best_bpc: 2.271989023469308
+    final_bpc: 2.271989023469308
+    best_bpf: 2.2719714985237465
+    final_bpf: 2.2719714985237465
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0310594141483307
+    final_train_loss_ema: 1.0289703313429792
+    final_tail_mean_train_loss: 1.0719619408994914
+    final_tail_mean_train_loss_ema: 1.0748040755160082
+    final_tail_record_count: 250
+    one_family_step_count: 0
+    mixed_family_step_count: 2500
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.08522939625135945
+    delta_final_brier_score: 0.03322556902004686
+    delta_final_roc_auc: 0.029843151113753352
+    delta_final_bpc: 0.1337269040652025
+    delta_final_bpf: 0.1337093796741029
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5638,15 +8349,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -5709,10 +8505,10 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: b3088896e8578ea550d96f3bcd12b6e03255fbfededd6d4bc08143eb54bdcc9d
+  resolved_surface_fingerprint: 07954ee775856a8500a6406eeb2e0578a28491ef0bfe0b918dcbcfa3effa1a1f
 - order: 20
   delta_id: delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1
-  status: ready
+  status: completed
   rationale: Execute fresh Muon one-epoch batch-critical row `264x6` at max_steps=5000
     and grad_accum_steps=16 on `tf_rd_010_dagzoo_medium_control_curated_v6`.
   hypothesis: ''
@@ -5812,10 +8608,10 @@ rows:
     enter the fresh Muon fit.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: best_and_final
-  run_id: null
+  run_id: sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute order 20 as fresh Muon batch-critical row in `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`;
     treat `Bcrit` and `Cmin` as diagnostic-only.
@@ -5825,10 +8621,74 @@ rows:
   - This Muon rerun stays on `tf_rd_010_dagzoo_medium_control_curated_v6` and the
     post-#271 packed/runtime stack.
   - Do not mix this row with historical schedulefree TF-RD-009 Phase-2 evidence.
+  - 'Execution attempt `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`
+    failed: [Errno 28] No space left on device'
+  - Canonical rerun registered as `sd_tf_rd_009_muon_batch_critical_one_epoch_medium_v1_20_delta_tf_rd_009_cls_sandwich_dicl264_layers6_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Corrected sparse multiclass replay recorded on openml_classification_medium_v1
+    using best_and_final checkpoints.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 1.962833696333353
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 21598.248045496643
+    wall_elapsed_seconds: 21666.01262962632
+    peak_vram_allocated: 13630277120
+    peak_vram_reserved: 18788384768
+    end_to_end_wall_seconds: 21694.97297381796
+    loader_setup_seconds: 26.875121664255857
+    throughput_examples_per_second: 59.26406610868085
+    throughput_tokens_per_second: 353228.05738360394
+    non_train_overhead_seconds: 68.26740771345794
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 20022
+    tokens_per_step: 1525821.44
+    tokens_seen: 7629107200
+    token_budget: 7629107200
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.46464118874262356
+    final_log_loss: 0.46464118874262356
+    best_brier_score: 0.28320038020876653
+    final_brier_score: 0.28320038020876653
+    best_roc_auc: 0.7946445728952907
+    final_roc_auc: 0.7946445728952907
+    best_bpc: 2.4329085949368063
+    final_bpc: 2.4329085949368063
+    best_bpf: 2.4328924053506724
+    final_bpf: 2.4328924053506724
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 0.9147926550358534
+    final_train_loss_ema: 0.9927307538441363
+    final_tail_mean_train_loss: 1.055898514971137
+    final_tail_mean_train_loss_ema: 1.0569434584255881
+    final_tail_record_count: 500
+    one_family_step_count: 0
+    mixed_family_step_count: 5000
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 0
+    family_block_count: 0
+    estimated_family_switch_count: 0
+    delta_final_log_loss: 0.06956970450276173
+    delta_final_brier_score: 0.024696472038654993
+    delta_final_roc_auc: 0.036349131397666046
+    delta_final_bpc: 0.29464647553270096
+    delta_final_bpf: 0.29463028650102885
   parent_delta_ref: null
   dimension_family: model
   family: classification_scaling_law
@@ -5936,15 +8796,100 @@ rows:
       surface_label: tf_rd_010_dagzoo_medium_control
       source: manifest
       filter_policy: null
-      allow_missing_values: false
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-      materialization_state: null
+      materialization_state: finalized
       recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
-      corpus_id: null
-      corpus_record_path: null
-      manifest: null
-      dagzoo_provenance: null
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_sha256: b6ad26d9c953e09048bcf29055ca181428b362317322f0dd87de7f0e9c6e5668
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
       overrides:
         source: manifest
         manifest_path: null
@@ -6007,6 +8952,6 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: c1f96d623ab69a7df23951e466460c59f987696509b8ce5da1eecbbfbeb72c3b
+  resolved_surface_fingerprint: 29b12512e861faff1a4d9904f8a2cebc115794c70d16e82368317f3dfce9237f
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_batch_critical_one_epoch_medium_v1/resolved_queue.yaml
-inputs_fingerprint: e603175853889ac6cad04c23dca20924155c88483e945bed6c267fbcb74256bf
+inputs_fingerprint: 870fc98bf670f253d2ded21cb42c804e4faabeb639f240f327fd2ae5c2e34315
