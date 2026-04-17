@@ -40,6 +40,9 @@ class ScalingStudyConfig:
     canonical_loss_axes: dict[str, str]
     canonical_variables: dict[str, str]
     slice_selection: dict[str, str]
+    primary_fit: dict[str, Any] | None
+    historical_context_studies: tuple[str, ...]
+    frozen_contract: dict[str, Any] | None
 
     def output_root_path(self, *, root: Path | None = None) -> Path:
         return resolve_repo_relative_path(self.output_root, root=root or repo_root())
@@ -178,4 +181,19 @@ def load_scaling_study_config(
         canonical_loss_axes=_required_mapping(payload, "canonical_loss_axes"),
         canonical_variables=_required_mapping(payload, "canonical_variables"),
         slice_selection=_required_mapping(payload, "slice_selection"),
+        primary_fit=(
+            _required_mapping(payload, "primary_fit")
+            if isinstance(payload.get("primary_fit"), Mapping)
+            else None
+        ),
+        historical_context_studies=tuple(
+            str(value) for value in payload.get("historical_context_studies", [])
+        )
+        if isinstance(payload.get("historical_context_studies"), list)
+        else (),
+        frozen_contract=(
+            _required_mapping(payload, "frozen_contract")
+            if isinstance(payload.get("frozen_contract"), Mapping)
+            else None
+        ),
     )

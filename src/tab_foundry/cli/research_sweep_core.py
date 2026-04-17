@@ -24,9 +24,13 @@ from tab_foundry.research.sweep import matrix as sweep_matrix
 
 def _run_list_sweeps(*, index_path: Path) -> int:
     for sweep_info in sweep_manage.list_sweeps(index_path=index_path):
+        depth = int(sweep_info.get("depth", 0))
+        tree_prefix = f"{'  ' * depth}{'└─ ' if depth else ''}"
         print(
-            f"{sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
-            f"{sweep_info['complexity_level']:<16}  anchor={sweep_info['anchor_run_id']}"
+            f"{tree_prefix}{sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
+            f"{sweep_info['complexity_level']:<16}  "
+            f"anchor={sweep_info['anchor_run_id']}  "
+            f"baseline={sweep_info['control_baseline_id']}"
         )
     return 0
 

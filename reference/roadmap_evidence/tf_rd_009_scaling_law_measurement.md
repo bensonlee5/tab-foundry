@@ -502,20 +502,38 @@ papers.
 
 Next sweep ordering after the corrected Phase-2 closeout:
 
-- first: land the corrected Muon Phase-2 study as a directional result and do
-  not claim compute-optimality from it
-- second: run the redesigned multi-geometry batch lane with at least three
-  geometries before revisiting `Bcrit(L)` or any `Cmin` story
-- third: keep larger-model follow-on work separate from this base study; the
-  next priority is training-dynamics and batch redesign, not another aggressive
-  size extension
+- first: keep merged PR [#280](https://github.com/bensonlee5/tab-foundry/pull/280)
+  as a directional Muon Phase-2 result and do not claim compute-optimality from
+  it
+- second: land
+  [#283](https://github.com/bensonlee5/tab-foundry/issues/283) so the active
+  Muon lineage is easy to inspect and hard to misuse; the canonical operator
+  path should expose the active benchmark, corpus, formal anchor, carried
+  baseline, linked study, kept winner, and fit/audit readiness from one place
+- third: run
+  [#284](https://github.com/bensonlee5/tab-foundry/issues/284), the compact
+  `12`-row Muon training-dynamics selector over `128x2`, `144x4`, and `264x6`
+  at a fixed 5000-step endpoint, and rank rows on the corrected quality/time
+  Pareto frontier
+- fourth: only after the selector keeps one dynamics contract should a later
+  Muon Phase-2B rerun redesign the multi-geometry batch surface before
+  revisiting `Bcrit(L)` or any `Cmin` story
+- fifth: keep larger-model follow-on work separate from this base study;
+  [#269](https://github.com/bensonlee5/tab-foundry/issues/269) and
+  [#259](https://github.com/bensonlee5/tab-foundry/issues/259) are both
+  downstream of the cleanup and selector work, not the immediate next action
 - last: keep missingness as inference-time evaluation only, after the corrected
   multiclass benchmark contract is trusted
 
 TF-RD-009 adoption decision: use the corrected Muon Phase-2 study as the fresh
 directional `L(N,S)` surface for the Muon family, but do not use `Bcrit(L)` to
 derive `Cmin` and do not make Chinchilla-like compute-optimal claims until the
-redesigned multi-geometry batch sweep lands.
+cleanup lane and compact training-dynamics selector land, a kept dynamics
+contract is chosen, and a later multi-geometry batch rerun materially improves
+the conditioning of the batch surface. The corrected empirical lesson is
+training-dynamics-first: on the trusted multiclass benchmark, batch-side gains
+were larger than geometry-only gains, so the next defended study should test
+optimizer and batch invariants before reopening larger-family work.
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 
@@ -736,9 +754,10 @@ The reopened upper-family child under
 [#269](https://github.com/bensonlee5/tab-foundry/issues/269) keeps these
 frozen formulas as the historical design surface and preserves the old
 selector artifact as schedulefree-branch context only. The active Muon reboot
-does not inherit that continuation in place; after Muon Phase 2 lands, rerun
-the upper-family selector on Muon-only evidence before choosing any fresh
-continuation under the retained `~40 GB` target.
+does not inherit that continuation in place; after corrected Muon Phase 2, the
+next work is the cleanup lane plus the compact training-dynamics selector, and
+only after those land should the upper-family selector be reconsidered on
+Muon-only evidence under the retained `~40 GB` target.
 
 ### Capacity Table
 
@@ -1060,8 +1079,9 @@ Exact handoff to [#255](https://github.com/bensonlee5/tab-foundry/issues/255):
   the broadened family is complete enough to choose the best
   matched-regime-budget row among `health=ok` runs on `rtx8000_44gb`
 - keep compute-optimal parameter-token work in
-  [#259](https://github.com/bensonlee5/tab-foundry/issues/259) and curriculum or
-  repeated-data slice work in
+  [#259](https://github.com/bensonlee5/tab-foundry/issues/259) blocked until a
+  later Muon Phase-2B rerun produces a better-conditioned multi-geometry batch
+  surface, and keep curriculum or repeated-data slice work in
   [#260](https://github.com/bensonlee5/tab-foundry/issues/260)
 
 ## Hardware-Aware Preferred Architecture State

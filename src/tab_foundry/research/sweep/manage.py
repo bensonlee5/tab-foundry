@@ -11,6 +11,7 @@ from tab_foundry.research.lane_contract import (
     resolve_new_sweep_training_surface,
     resolve_sweep_semantics,
 )
+from tab_foundry.research.navigation import list_sweep_tree_entries
 
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
 from .catalog import (
@@ -375,12 +376,7 @@ def create_sweep(
 
 
 def list_sweeps(*, index_path: Path | None = None) -> list[dict[str, Any]]:
-    index = load_system_delta_index_payload(index_path)
-    ordered = sorted(index.sweeps.items(), key=lambda item: str(item[0]))
     return [
-        {
-            "sweep_id": sweep_id,
-            **cast(dict[str, Any], _copy_jsonable(sweep_info.to_payload_dict())),
-        }
-        for sweep_id, sweep_info in ordered
+        cast(dict[str, Any], _copy_jsonable(entry))
+        for entry in list_sweep_tree_entries(index_path=index_path)
     ]

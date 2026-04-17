@@ -1,0 +1,44 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_009_muon_training_dynamics_endpoint_medium_v1
+parent_sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
+status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+surface_role: classification_training_dynamics_selector
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - 'PR #280 closed the corrected Muon Phase-2 study as a directional `L(N,S)` result,
+    not a stable compute-optimal law surface.'
+  - 'The next defended TF-RD-009 move is cleanup-first navigation and contract hardening
+    under #283, then the compact training-dynamics selector under #284.'
+  - Keep `60x2` as the formal external Muon anchor from `tf_rd_009_muon_width_screen_medium_v1`,
+    but carry `128x2` as the in-family baseline into this selector.
+  - Keep the corrected `openml_classification_medium_v1` benchmark and `tf_rd_010_dagzoo_medium_control_curated_v6`
+    corpus fixed; historical schedulefree TF-RD-009 remains preserved context only.
+  - Rank selector rows on the quality/time Pareto frontier before any Muon Phase-2B
+    rerun or upper-family reopening.
+  dimension_table: []
+anchor_context:
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

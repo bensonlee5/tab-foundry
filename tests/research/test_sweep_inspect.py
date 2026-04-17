@@ -406,6 +406,14 @@ def test_inspect_sweep_row_reports_resolved_surfaces(
     assert payload["target"]["resolved"]["model"]["stage_label"] == "row_cls_pool_test"
     assert payload["target"]["resolved"]["model"]["module_selection"]["row_pool"] == "row_cls"
     assert payload["target"]["resolved"]["data"]["surface_label"] == "anchor_manifest_default"
+    assert [entry["sweep_id"] for entry in payload["navigation"]["lineage"]] == ["mini_sweep"]
+    assert payload["navigation"]["contract"]["benchmark_manifest_path"] == (
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
+    )
+    assert payload["navigation"]["contract"]["control_baseline_id"] == "cls_benchmark_linear_v2"
+    assert payload["navigation"]["contract"]["carried_in_family_baseline_run_id"] == "anchor_run"
+    assert payload["navigation"]["winner"] is None
+    assert payload["navigation"]["contract_issues"] == []
 
 
 def test_inspection_artifact_helpers_share_row_and_anchor_path_resolution(
@@ -474,6 +482,31 @@ def test_inspect_sweep_row_uses_canonical_queue_metadata_payload(
     )
 
     assert payload["queue"] == sentinel_metadata
+
+
+def test_inspect_sweep_row_fails_fast_on_anchor_contract_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    sweep_path = sweeps_root / "mini_sweep" / "sweep.yaml"
+    sweep_payload = OmegaConf.to_container(OmegaConf.load(sweep_path), resolve=True)
+    assert isinstance(sweep_payload, dict)
+    anchor_context = sweep_payload["anchor_context"]
+    assert isinstance(anchor_context, dict)
+    anchor_context["run_id"] = "mismatched_anchor"
+    _write_yaml(sweep_path, sweep_payload)
+
+    with pytest.raises(RuntimeError, match="anchor_context.run_id"):
+        _ = inspect_module.inspect_sweep_row(
+            order=1,
+            sweep_id="mini_sweep",
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            registry_path=registry_path,
+        )
 
 
 def test_inspect_sweep_row_materializes_catalog_default_effective_surface(

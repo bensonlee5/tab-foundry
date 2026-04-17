@@ -482,14 +482,16 @@ Treat the current `Bcrit(L)` output as weak diagnostic evidence: the completed
 lower envelope has only two points.
 
 The April 12 to April 13 schedulefree TF-RD-009 studies above are historical
-diagnostics only. The active reboot path is now the fresh Muon family on the
-same benchmark slice but a different frozen training surface:
+diagnostics only. The canonical active TF-RD-009 operator path is now the fresh
+Muon lineage on the corrected multiclass benchmark plus the fixed `v6`
+training surface:
 
 ```bash
+tab-foundry research sweep list-sweeps
 tab-foundry dev resolve-config \
   experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 tab-foundry research sweep inspect \
-  --sweep-id tf_rd_009_muon_width_screen_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_endpoint_medium_v1 \
   --order 1 \
   --json
 tab-foundry research scaling inspect \
@@ -497,14 +499,47 @@ tab-foundry research scaling inspect \
   --json
 ```
 
-`tf_rd_009_muon_width_screen_medium_v1` has now completed the fresh Muon width
-screen on the full 2500-step `v6` contract, with `60x2=0.4172`,
-`48x2=0.4147`, `96x2=0.4128`, and `128x2=0.3951` final matched-budget log
-loss. Keep `60x2` as the formal external Muon anchor, but carry `128x2`
-forward as the current in-family baseline for the rederived Phase-1 family
-`72x1/112x3/144x4/192x5/264x6`. The Muon width-depth queue is now populated;
-the Muon Phase-2 study ids remain scaffolded until those fresh Phase-1 rows are
-benchmark-backed and promoted into later Muon scaling-law work.
+Use that sequence for operator triage:
+
+- `research sweep list-sweeps` now renders the sweep index as a parent/child
+  tree, which makes the active Muon lineage easy to locate without guessing
+  whether an older schedulefree branch is still active
+- `research sweep inspect` now surfaces lineage, active benchmark manifest,
+  control baseline, carried in-family baseline, corpus ref, linked scaling
+  studies, and the sweep winner with throughput and wall-time context by
+  default
+- `research scaling inspect` is now the canonical lane-level inspection
+  entrypoint; it shows linked sweeps, kept winner, fit/audit readiness, and
+  fails fast if benchmark, baseline, corpus, anchor, or full-surface
+  completeness contracts drift
+
+The active Muon lineage is:
+
+- `tf_rd_009_muon_width_screen_medium_v1`
+- `tf_rd_009_muon_width_depth_medium_v1`
+- `tf_rd_009_muon_ns_one_epoch_medium_v1`
+- `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
+- `tf_rd_009_muon_phase2_one_epoch_v1`
+- next selector sweep: `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
+
+`tf_rd_009_muon_width_screen_medium_v1` completed the fresh Muon width screen
+on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
+`96x2=0.4128`, and `128x2=0.3951` final matched-budget log loss. Keep `60x2`
+as the formal external Muon anchor, but carry `128x2` forward as the current
+in-family baseline. The corrected Muon Phase-2 closeout in merged PR
+[#280](https://github.com/bensonlee5/tab-foundry/pull/280) keeps `L(N,S)` as a
+directional signal only, so the next defended execution lane is the compact
+training-dynamics selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
+over `128x2`, `144x4`, and `264x6` at the fixed 5000-step endpoint.
+
+The selector keeps the corrected `openml_classification_medium_v1` benchmark,
+the fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus, and ranks rows
+on a quality/time Pareto frontier across four prescriptions per geometry:
+
+- carried low-batch baseline
+- carried high-batch empirical reference
+- linear LR/batch prescription
+- momentum-timescale prescription
 
 For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than
