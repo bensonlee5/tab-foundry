@@ -959,8 +959,12 @@ Legacy wording note:
   [#257](https://github.com/bensonlee5/tab-foundry/issues/257),
   completed Muon Phase-1 child
   [#275](https://github.com/bensonlee5/tab-foundry/issues/275),
-  active Muon Phase-2 child
+  completed corrected Muon Phase-2 child
   [#274](https://github.com/bensonlee5/tab-foundry/issues/274),
+  active Muon cleanup child
+  [#283](https://github.com/bensonlee5/tab-foundry/issues/283),
+  active compact Muon training-dynamics selector child
+  [#284](https://github.com/bensonlee5/tab-foundry/issues/284),
   post-fit frontier and robustness umbrella
   [#258](https://github.com/bensonlee5/tab-foundry/issues/258),
   later Muon upper-family reopen child
@@ -1141,8 +1145,9 @@ Legacy wording note:
     while carrying `264x6` as the current preferred candidate; the freeze still
     waits for a later large-rung Muon validation on the candidate architecture
   - [#274](https://github.com/bensonlee5/tab-foundry/issues/274) is now
-    complete on this branch under corrected sparse multiclass replay against
-    `openml_classification_medium_v1`: the earlier provisional binary-backed
+    complete and merged via [#280](https://github.com/bensonlee5/tab-foundry/pull/280)
+    under corrected sparse multiclass replay against
+    `openml_classification_medium_v1`; the earlier provisional binary-backed
     interpretation is superseded. The corrected NS family prefers
     `144x4 @ 5000 = 0.4914031270`, while the corrected batch-critical family
     prefers `264x6 @ grad_accum=16 @ 5000 = 0.4646411887`, which is the
@@ -1150,6 +1155,25 @@ Legacy wording note:
     validation-backed, the primary `L(N,S)` validation fit lands at
     `log_space_r2=0.9123` with `rmse=0.0172`, and the audit explicitly keeps
     `Bcrit` and derived `Cmin` diagnostic-only with `ready_for_cmin=false`
+  - the corrected Phase-2 result changes the next defended move: batch-side
+    gains now dominate geometry-only gains on the active Muon surface, so the
+    next lane is training-dynamics-first rather than immediate upper-family
+    reopen or compute-frontier work
+  - the active Muon lineage is now the canonical TF-RD-009 path:
+    `tf_rd_009_muon_width_screen_medium_v1` ->
+    `tf_rd_009_muon_width_depth_medium_v1` ->
+    `tf_rd_009_muon_ns_one_epoch_medium_v1` ->
+    `tf_rd_009_muon_batch_critical_one_epoch_medium_v1` ->
+    `tf_rd_009_muon_phase2_one_epoch_v1`; the historical schedulefree family
+    under [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
+    [#255](https://github.com/bensonlee5/tab-foundry/issues/255),
+    [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
+    [#257](https://github.com/bensonlee5/tab-foundry/issues/257) remains
+    preserved context only
+  - the next executable selector surface is now
+    `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`, a compact `12`-row
+    endpoint study over `128x2`, `144x4`, and `264x6` that ranks rows on a
+    corrected quality/time Pareto frontier before any later Muon Phase-2B rerun
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative umbrella for TF-RD-009, but treat the historical
@@ -1163,25 +1187,32 @@ Legacy wording note:
     anchor, keep `128x2` as the carried in-family baseline, and carry the now-
     benchmark-backed `264x6` winner into later Muon planning without reopening
     a larger-model Phase-1 extension first
-  - land [#274](https://github.com/bensonlee5/tab-foundry/issues/274) from
-    draft PR [#280](https://github.com/bensonlee5/tab-foundry/pull/280) with
-    the corrected multiclass Phase-2 closeout: keep `L(N,S)` on validation
-    loss as the primary kept law, keep benchmark loss as external ranking
-    evidence, and document that the corrected Muon base study is directional
-    rather than compute-optimal
-  - keep `Bcrit` and derived `Cmin` diagnostic-only in the fresh Muon base
-    family until the redesigned multi-geometry batch lane exists; do not make
-    Chinchilla-like claims from the base Muon Phase-2 study alone
-  - run [#269](https://github.com/bensonlee5/tab-foundry/issues/269) only after
-    `tf_rd_009_muon_phase2_one_epoch_v1` lands, using the Muon upper-extension
-    ids `tf_rd_009_muon_width_depth_upper_extension_one_epoch_medium_v1`,
-    `tf_rd_009_muon_ns_upper_extension_one_epoch_medium_v1`, and
-    `tf_rd_009_muon_phase2_upper_extension_one_epoch_v1`; if a later larger-
-    model Muon probe is still needed, treat it as post-Phase-2 work instead of
-    as a blocker on the current reboot path
-  - after the Muon upper-family and redesigned batch lane land, return to
-    [#259](https://github.com/bensonlee5/tab-foundry/issues/259) for the later
-    compute-frontier / Chinchilla-style branch, and keep
+  - keep [#274](https://github.com/bensonlee5/tab-foundry/issues/274) and
+    merged PR [#280](https://github.com/bensonlee5/tab-foundry/pull/280) as the
+    corrected Muon Phase-2 closeout: keep `L(N,S)` on validation loss as the
+    primary directional law, keep benchmark loss as external ranking evidence,
+    and keep `Bcrit` / `Cmin` diagnostic-only with `ready_for_cmin=false`
+  - land [#283](https://github.com/bensonlee5/tab-foundry/issues/283) next so
+    one sweep/scaling inspection path can show the active benchmark, corpus,
+    formal external anchor, carried in-family baseline, linked study lineage,
+    kept winner, and fit/audit readiness, while failing fast on benchmark,
+    baseline, corpus, anchor, and replay-completeness contract drift
+  - after the cleanup child lands, execute
+    [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the compact
+    Muon training-dynamics selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`:
+    keep the corrected `openml_classification_medium_v1` benchmark and
+    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, run the
+    `128x2` / `144x4` / `264x6` endpoint matrix with carried low-batch,
+    carried high-batch, linear LR/batch, and momentum-timescale prescriptions,
+    and rank rows on the corrected quality/time Pareto frontier
+  - only after the cleanup child and compact selector land should
+    [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited
+    for any Muon upper-family move; treat any later larger-model probe as
+    post-selector work instead of as a blocker on the current active reboot path
+  - only after a later Muon Phase-2B rerun produces a better-conditioned
+    multi-geometry batch surface should
+    [#259](https://github.com/bensonlee5/tab-foundry/issues/259) be revisited
+    for the compute-frontier / Chinchilla-style branch; keep
     [#260](https://github.com/bensonlee5/tab-foundry/issues/260) separate as a
     repetition or curriculum slice
   - maintain hardware baselines statefully in

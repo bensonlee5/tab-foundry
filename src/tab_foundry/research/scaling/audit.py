@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, Callable, Literal, Mapping, Sequence
+from typing import Any, Callable, Literal, Mapping, Sequence, cast
 
 import numpy as np
 
 from tab_foundry.bench.artifacts import write_json
+from tab_foundry.research.navigation import build_scaling_navigation_payload
 from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root
 from tab_foundry.research.scaling.fit import (
     FIT_SCOPE_ALL,
@@ -1001,6 +1002,19 @@ def audit_scaling_study(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
+    navigation = build_scaling_navigation_payload(
+        config=config,
+        points=all_points,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    contract_issues = navigation.get("contract_issues")
+    if isinstance(contract_issues, list) and contract_issues:
+        raise RuntimeError(
+            "scaling study contract validation failed:\n- "
+            + "\n- ".join(str(issue) for issue in contract_issues)
+        )
     points = _ns_points(all_points) if normalized_scope == FIT_SCOPE_NS_ONLY else all_points
     artifact_root = (
         out_root.expanduser().resolve()
@@ -1010,10 +1024,18 @@ def audit_scaling_study(
     artifact_root.mkdir(parents=True, exist_ok=True)
     ns_points = _ns_points(points)
     batch_points = _batch_points(points)
+    completeness = cast(Mapping[str, Any], navigation.get("completeness", {}))
+    if normalized_scope == FIT_SCOPE_ALL and batch_points and not bool(completeness.get("all_expected_points_present")):
+        raise RuntimeError(
+            "fit_scope='all' requires the full expected study surface before auditing; "
+            f"expected={completeness.get('expected_counts_by_family')} "
+            f"actual={completeness.get('actual_counts_by_family')}"
+        )
     payload: dict[str, Any] = {
         "schema": SCALING_AUDIT_SCHEMA,
         "study": config.as_dict(),
         "fit_scope": normalized_scope,
+        "navigation": navigation,
         "counts": {
             "total_completed_points": len(points),
             "all_completed_points": len(all_points),

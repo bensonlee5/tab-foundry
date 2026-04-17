@@ -308,7 +308,7 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
                     "status": "draft",
                     "anchor_run_id": "anchor_run",
                     "complexity_level": "classification_md",
-                    "benchmark_manifest_path": "bundle.json",
+                    "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
                     "control_baseline_id": "baseline",
                     "external_benchmarks": [],
                 },
@@ -317,7 +317,7 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
                     "status": "draft",
                     "anchor_run_id": "anchor_run",
                     "complexity_level": "classification_md",
-                    "benchmark_manifest_path": "bundle.json",
+                    "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
                     "control_baseline_id": "baseline",
                     "external_benchmarks": [],
                 },
@@ -329,7 +329,7 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
         "status": "draft",
         "complexity_level": "classification_md",
         "anchor_run_id": "anchor_run",
-        "benchmark_manifest_path": "bundle.json",
+        "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "baseline",
         "external_benchmarks": [],
         "training_experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_compile_eager_dynamic_v1",
@@ -426,34 +426,39 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
         ("batch_4", 4, 128.0),
         ("batch_16", 16, 512.0),
     ]
-    for order, (run_id, grad_accum_steps, tokens_per_step) in enumerate(batch_specs, start=1):
-        validation_loss = math.sqrt(10.0 / tokens_per_step)
-        benchmark_loss = validation_loss + 0.08
-        registry_runs[run_id] = _registry_entry(
-            run_id=run_id,
-            d_icl=96,
-            layers=2,
-            canonical_n=2_000_000,
-            benchmark_loss=benchmark_loss,
-            validation_loss=validation_loss,
-            final_step=1250,
-            tokens_per_step=tokens_per_step,
-            tokens_seen=int(tokens_per_step * 1250.0),
-            train_flops_per_token=float(8.0e6),
-            root=root,
-        )
-        batch_rows.append(
-            _queue_row(
-                order=order,
-                delta_ref="delta_geom_96x2",
+    order = 1
+    for run_prefix, grad_accum_steps, tokens_per_step in batch_specs:
+        for steps in (625, 1250):
+            run_id = f"{run_prefix}_{steps}"
+            step_penalty = 0.02 if steps == 625 else 0.0
+            validation_loss = math.sqrt(10.0 / tokens_per_step) + step_penalty
+            benchmark_loss = validation_loss + 0.08
+            registry_runs[run_id] = _registry_entry(
+                run_id=run_id,
                 d_icl=96,
                 layers=2,
-                max_steps=1250,
-                grad_accum_steps=grad_accum_steps,
-                run_id=run_id,
+                canonical_n=2_000_000,
                 benchmark_loss=benchmark_loss,
+                validation_loss=validation_loss,
+                final_step=steps,
+                tokens_per_step=tokens_per_step,
+                tokens_seen=int(tokens_per_step * float(steps)),
+                train_flops_per_token=float(8.0e6),
+                root=root,
             )
-        )
+            batch_rows.append(
+                _queue_row(
+                    order=order,
+                    delta_ref="delta_geom_96x2",
+                    d_icl=96,
+                    layers=2,
+                    max_steps=steps,
+                    grad_accum_steps=grad_accum_steps,
+                    run_id=run_id,
+                    benchmark_loss=benchmark_loss,
+                )
+            )
+            order += 1
     _write_yaml(
         sweeps_root / "synthetic_batch" / "queue.yaml",
         {
@@ -477,7 +482,7 @@ def _study_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
             "study_id": "synthetic_phase2",
             "phase": 2,
             "output_root": "outputs/research_scaling/synthetic_phase2",
-            "phase1_reference_sweep_id": "tf_rd_009_width_depth_medium_v1",
+            "phase1_reference_sweep_id": "synthetic_ns",
             "sweeps": [
                 {"name": "ns_core", "sweep_id": "synthetic_ns", "family": "ns_core"},
                 {
@@ -783,7 +788,7 @@ def test_fit_scaling_study_ns_only_omits_batch_fits(
 
     assert payload["fit_scope"] == "ns-only"
     assert payload["counts"]["total_completed_points"] == 4
-    assert payload["counts"]["all_completed_points"] == 7
+    assert payload["counts"]["all_completed_points"] == 10
     assert payload["counts"]["batch_critical_completed_points"] == 0
     assert set(payload["fit_summary"]) == {"L(N)", "L(D)", "L(C)", "L(N,D)", "L(N,S)"}
     assert set(payload["alphas"]) == {"alpha_n", "alpha_d", "alpha_s", "alpha_c"}
@@ -944,15 +949,42 @@ def test_inspect_scaling_study_reports_missing_validation_without_crashing(tmp_p
         sweeps_root=sweeps_root,
     )
 
-    assert payload["counts"]["total_completed_points"] == 7
+    assert payload["counts"]["total_completed_points"] == 10
     assert payload["counts"]["validation_backed_points"] == 0
-    assert payload["counts"]["missing_validation_points"] == 7
+    assert payload["counts"]["missing_validation_points"] == 10
     assert payload["counts"]["l_n_points"] == 2
     assert payload["counts"]["l_ns_points"] == 0
     assert (
         payload["validation_coverage"]["missing"][0]["missing_reason"]
         == "history_missing_validation_records"
     )
+    navigation = payload["navigation"]
+    assert navigation["contract"]["phase1_reference_sweep_id"] == "synthetic_ns"
+    assert navigation["contract"]["benchmark_manifest_path"] == (
+        "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
+    )
+    assert navigation["contract"]["control_baseline_id"] == "baseline"
+    assert navigation["winner"]["geometry_label"] == "96x2"
+    assert navigation["fit_audit_state"]["full_scope_ready"] is True
+    assert navigation["completeness"]["all_expected_points_present"] is True
+
+
+def test_inspect_scaling_study_fails_fast_on_mixed_benchmark_contract(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    batch_sweep_path = sweeps_root / "synthetic_batch" / "sweep.yaml"
+    batch_sweep = OmegaConf.to_container(OmegaConf.load(batch_sweep_path), resolve=True)
+    assert isinstance(batch_sweep, dict)
+    batch_sweep["benchmark_manifest_path"] = "data/manifests/bench/openml_classification_large_v1/manifest.parquet"
+    _write_yaml(batch_sweep_path, batch_sweep)
+
+    with pytest.raises(RuntimeError, match="benchmark manifest mismatch"):
+        _ = inspect_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
 
 
 def test_inspect_scaling_study_uses_validation_backfill_sidecars(tmp_path: Path) -> None:
@@ -968,8 +1000,8 @@ def test_inspect_scaling_study_uses_validation_backfill_sidecars(tmp_path: Path)
         sweeps_root=sweeps_root,
     )
 
-    assert payload["counts"]["total_completed_points"] == 7
-    assert payload["counts"]["validation_backed_points"] == 7
+    assert payload["counts"]["total_completed_points"] == 10
+    assert payload["counts"]["validation_backed_points"] == 10
     assert payload["counts"]["missing_validation_points"] == 0
     assert payload["available_points"][0]["validation_loss_source"] == "validation_backfill_v1"
 
@@ -992,6 +1024,54 @@ def test_fit_scaling_study_requires_validation_for_strict_fits(tmp_path: Path) -
         )
 
 
+def test_fit_scaling_study_rejects_incomplete_full_scope_surface(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    batch_queue_path = sweeps_root / "synthetic_batch" / "queue.yaml"
+    batch_queue = OmegaConf.to_container(OmegaConf.load(batch_queue_path), resolve=True)
+    assert isinstance(batch_queue, dict)
+    rows = batch_queue["rows"]
+    assert isinstance(rows, list)
+    rows[-1]["status"] = "ready"
+    rows[-1]["run_id"] = None
+    rows[-1]["benchmark_metrics"] = None
+    _write_yaml(batch_queue_path, batch_queue)
+
+    with pytest.raises(RuntimeError, match="requires the full expected study surface"):
+        _ = fit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "artifacts",
+        )
+
+
+def test_audit_scaling_study_rejects_incomplete_full_scope_surface(tmp_path: Path) -> None:
+    study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
+    batch_queue_path = sweeps_root / "synthetic_batch" / "queue.yaml"
+    batch_queue = OmegaConf.to_container(OmegaConf.load(batch_queue_path), resolve=True)
+    assert isinstance(batch_queue, dict)
+    rows = batch_queue["rows"]
+    assert isinstance(rows, list)
+    rows[-1]["status"] = "ready"
+    rows[-1]["run_id"] = None
+    rows[-1]["benchmark_metrics"] = None
+    _write_yaml(batch_queue_path, batch_queue)
+
+    with pytest.raises(RuntimeError, match="requires the full expected study surface"):
+        _ = audit_scaling_study(
+            study_path=study_path,
+            registry_path=registry_path,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+            out_root=tmp_path / "audit",
+            bootstrap_samples=2,
+            bootstrap_seed=7,
+        )
+
+
 def test_validation_backfill_dry_run_reports_ready_and_incomplete_rows(tmp_path: Path) -> None:
     study_path, registry_path, index_path, catalog_path, sweeps_root = _study_workspace(tmp_path)
     _remove_validation_history(tmp_path, registry_path)
@@ -1011,8 +1091,8 @@ def test_validation_backfill_dry_run_reports_ready_and_incomplete_rows(tmp_path:
         dry_run=True,
     )
 
-    assert payload["counts"]["candidate_rows"] == 7
-    assert payload["counts"]["dry_run_ready"] == 6
+    assert payload["counts"]["candidate_rows"] == 10
+    assert payload["counts"]["dry_run_ready"] == 9
     assert payload["counts"]["incomplete_artifacts"] == 1
     incomplete = [row for row in payload["rows"] if row["status"] == "incomplete_artifacts"]
     assert incomplete[0]["run_id"] == "ns_72_625"

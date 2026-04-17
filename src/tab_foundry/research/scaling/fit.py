@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 import json
 import math
 from pathlib import Path
-from typing import Any, Callable, Literal, Mapping, Sequence
+from typing import Any, Callable, Literal, Mapping, Sequence, cast
 
 import numpy as np
 
@@ -16,6 +16,7 @@ from tab_foundry.benchmark_registry import (
     load_benchmark_run_entry,
     resolve_registry_path_value,
 )
+from tab_foundry.research.navigation import build_scaling_navigation_payload
 from tab_foundry.research.scaling.study import ScalingStudyConfig, load_scaling_study_config
 from tab_foundry.research.scaling.validation_backfill_schema import (
     VALIDATION_BACKFILL_FILENAME,
@@ -75,6 +76,8 @@ class ScalingStudyRunPoint:
     run_dir: str
     history_path: str
     telemetry_path: str
+    throughput_tokens_per_second: float | None = None
+    end_to_end_wall_seconds: float | None = None
     compute_training_shape_summary_present: bool = True
     compute_training_shape_signature_count: int = 1
     uses_reuse_train_artifact: bool = False
@@ -551,6 +554,16 @@ def _collect_run_point(
         steps=steps,
         tokens_seen=tokens_seen,
         tokens_per_step=tokens_per_step,
+        throughput_tokens_per_second=(
+            None
+            if metrics.get("throughput_tokens_per_second") is None
+            else float(metrics["throughput_tokens_per_second"])
+        ),
+        end_to_end_wall_seconds=(
+            None
+            if metrics.get("end_to_end_wall_seconds") is None
+            else float(metrics["end_to_end_wall_seconds"])
+        ),
         train_flops_per_token=_required_float(
             compute_accounting,
             "train_flops_per_token",
@@ -813,6 +826,19 @@ def inspect_scaling_study(
         sweeps_root=sweeps_root,
     )
     validation_points = _validation_backed_points(points)
+    navigation = build_scaling_navigation_payload(
+        config=config,
+        points=points,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    contract_issues = navigation.get("contract_issues")
+    if isinstance(contract_issues, list) and contract_issues:
+        raise RuntimeError(
+            "scaling study contract validation failed:\n- "
+            + "\n- ".join(str(issue) for issue in contract_issues)
+        )
     return {
         "study": config.as_dict(),
         "available_points": [point.as_dict() for point in points],
@@ -833,6 +859,7 @@ def inspect_scaling_study(
             "bcrit_points": len(_batch_envelope(_batch_points(points))),
         },
         "validation_coverage": _validation_coverage_payload(points),
+        "navigation": navigation,
     }
 
 
@@ -841,6 +868,7 @@ def render_scaling_study_text(payload: Mapping[str, Any]) -> str:
 
     study = payload.get("study", {})
     counts = payload.get("counts", {})
+    navigation = payload.get("navigation", {})
     lines = [
         f"Study: {study.get('study_id', 'unknown')}",
         f"Phase: {study.get('phase', 'unknown')}",
@@ -850,6 +878,49 @@ def render_scaling_study_text(payload: Mapping[str, Any]) -> str:
         f"Validation-backed points: {counts.get('validation_backed_points', 0)}",
         f"Missing validation points: {counts.get('missing_validation_points', 0)}",
     ]
+    if isinstance(navigation, Mapping):
+        contract = navigation.get("contract")
+        if isinstance(contract, Mapping):
+            lines.append(
+                f"Benchmark manifest: {contract.get('benchmark_manifest_path', 'unknown')}"
+            )
+            lines.append(
+                f"Control baseline: {contract.get('control_baseline_id', 'unknown')}"
+            )
+            if contract.get("corpus_ref") is not None:
+                lines.append(f"Corpus ref: {contract.get('corpus_ref')}")
+            if contract.get("carried_in_family_baseline_run_id") is not None:
+                lines.append(
+                    "Carried baseline run: "
+                    f"{contract.get('carried_in_family_baseline_run_id')}"
+                )
+        winner = navigation.get("winner")
+        if isinstance(winner, Mapping):
+            winner_bits = [
+                f"{winner.get('geometry_label', 'unknown')}",
+                f"log_loss={float(winner['benchmark_log_loss']):.6f}",
+            ]
+            if winner.get("throughput_tokens_per_second") is not None:
+                winner_bits.append(
+                    f"throughput={float(winner['throughput_tokens_per_second']):.1f} tok/s"
+                )
+            if winner.get("end_to_end_wall_seconds") is not None:
+                winner_bits.append(f"wall={float(winner['end_to_end_wall_seconds']):.1f}s")
+            lines.append("Winner: " + ", ".join(winner_bits))
+        fit_audit_state = navigation.get("fit_audit_state")
+        if isinstance(fit_audit_state, Mapping):
+            lines.append(
+                "Fit/audit state: "
+                f"overlay={bool(fit_audit_state.get('validation_overlay_exists'))} "
+                f"fit={bool(fit_audit_state.get('fit_summary_exists'))} "
+                f"audit={bool(fit_audit_state.get('audit_summary_exists'))}"
+            )
+        completeness = navigation.get("completeness")
+        if isinstance(completeness, Mapping):
+            lines.append(
+                "Full-scope completeness: "
+                f"{bool(completeness.get('all_expected_points_present'))}"
+            )
     fit_summary = payload.get("fit_summary")
     if isinstance(fit_summary, Mapping):
         lines.append("Fits:")
@@ -1592,6 +1663,19 @@ def fit_scaling_study(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
+    navigation = build_scaling_navigation_payload(
+        config=config,
+        points=all_points,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    contract_issues = navigation.get("contract_issues")
+    if isinstance(contract_issues, list) and contract_issues:
+        raise RuntimeError(
+            "scaling study contract validation failed:\n- "
+            + "\n- ".join(str(issue) for issue in contract_issues)
+        )
     points = _ns_points(all_points) if normalized_fit_scope == FIT_SCOPE_NS_ONLY else all_points
     artifact_root = (
         out_root.expanduser().resolve()
@@ -1613,6 +1697,17 @@ def fit_scaling_study(
     l_nd_points = _ns_points(points)
     l_ns_points = _require_validation_points(_ns_points(points), fit_name="L(N,S)")
     batch_points = _batch_points(points)
+    completeness = cast(Mapping[str, Any], navigation.get("completeness", {}))
+    if (
+        normalized_fit_scope == FIT_SCOPE_ALL
+        and batch_points
+        and not bool(completeness.get("all_expected_points_present"))
+    ):
+        raise RuntimeError(
+            "fit_scope='all' requires the full expected study surface before fitting; "
+            f"expected={completeness.get('expected_counts_by_family')} "
+            f"actual={completeness.get('actual_counts_by_family')}"
+        )
     cmin_points: tuple[dict[str, Any], ...] = ()
     fit_summary: dict[str, Any] = {}
     fit_summary["L(N)"] = {
@@ -1849,6 +1944,7 @@ def fit_scaling_study(
     fit_payload = {
         "study": config.as_dict(),
         "fit_scope": normalized_fit_scope,
+        "navigation": navigation,
         "counts": {
             "total_completed_points": len(points),
             "all_completed_points": len(all_points),

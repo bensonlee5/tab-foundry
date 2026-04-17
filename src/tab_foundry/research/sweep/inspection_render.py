@@ -10,6 +10,7 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
     queue = cast(Mapping[str, Any], payload["queue"])
     row = cast(Mapping[str, Any], payload["row"])
     target = cast(Mapping[str, Any], payload["target"])
+    navigation = cast(Mapping[str, Any] | None, payload.get("navigation"))
     resolved = cast(Mapping[str, Any], target["resolved"])
     model = cast(Mapping[str, Any], resolved["model"])
     data = cast(Mapping[str, Any] | None, resolved.get("data"))
@@ -34,6 +35,46 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         f"model.parameters.total={parameter_counts['total_params']}",
         f"model.parameters.trainable={parameter_counts['trainable_params']}",
     ]
+    if navigation is not None:
+        lineage = navigation.get("lineage")
+        if isinstance(lineage, list) and lineage:
+            lines.append(
+                "lineage=" + " -> ".join(str(cast(Mapping[str, Any], entry)["sweep_id"]) for entry in lineage if isinstance(entry, Mapping))
+            )
+        contract = navigation.get("contract")
+        if isinstance(contract, Mapping):
+            lines.append(f"benchmark_manifest_path={contract.get('benchmark_manifest_path')}")
+            lines.append(f"control_baseline_id={contract.get('control_baseline_id')}")
+            lines.append(f"carried_in_family_baseline_run_id={contract.get('carried_in_family_baseline_run_id')}")
+            if contract.get("corpus_ref") is not None:
+                lines.append(f"data.corpus_ref.locked={contract.get('corpus_ref')}")
+            formal_external_reference = contract.get("formal_external_reference")
+            if isinstance(formal_external_reference, Mapping):
+                lines.append(
+                    "formal_external_reference="
+                    + json.dumps(dict(formal_external_reference), sort_keys=True)
+                )
+        winner = navigation.get("winner")
+        if isinstance(winner, Mapping):
+            winner_parts = [f"order {int(winner['order']):02d}"]
+            if winner.get("geometry_label") is not None:
+                winner_parts.append(str(winner["geometry_label"]))
+            winner_parts.append(f"log_loss={float(winner['benchmark_log_loss']):.6f}")
+            if winner.get("throughput_tokens_per_second") is not None:
+                winner_parts.append(
+                    f"throughput={float(winner['throughput_tokens_per_second']):.1f} tok/s"
+                )
+            if winner.get("end_to_end_wall_seconds") is not None:
+                winner_parts.append(
+                    f"wall={float(winner['end_to_end_wall_seconds']):.1f}s"
+                )
+            lines.append("sweep_winner=" + ", ".join(winner_parts))
+        linked_scaling_studies = navigation.get("linked_scaling_study_ids")
+        if isinstance(linked_scaling_studies, list) and linked_scaling_studies:
+            lines.append(
+                "linked_scaling_studies="
+                + ", ".join(str(value) for value in linked_scaling_studies)
+            )
     if data is not None:
         lines.append(f"data.surface_label={data.get('surface_label')}")
         if data.get("corpus_ref") is not None:

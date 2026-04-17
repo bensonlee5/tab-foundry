@@ -7,6 +7,7 @@ from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
+from tab_foundry.research.navigation import validate_sweep_contract
 
 from .inspection_artifacts import queue_metadata_payload
 from .queue_loading import load_system_delta_queue, ordered_rows, write_resolved_system_delta_queue
@@ -339,6 +340,8 @@ def validate_system_delta_queue(
     registry_path: Path | None = None,
 ) -> list[str]:
     issues: list[str] = []
+    if any(key in queue for key in ("canonical_queue_path", "canonical_sweep_path", "canonical_matrix_path")):
+        issues.extend(validate_sweep_contract(queue=queue))
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
     sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")

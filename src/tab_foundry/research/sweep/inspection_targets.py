@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.research.navigation import build_sweep_navigation_payload
+
 from .inspection_artifacts import (
     anchor_has_training_artifacts,
     anchor_run_artifacts,
@@ -209,8 +211,18 @@ def inspect_sweep_row(
         sweeps_root=sweeps_root,
     )
     queue_metadata = queue_metadata_payload(queue)
+    navigation = build_sweep_navigation_payload(
+        queue=queue,
+        index_path=index_path,
+    )
+    contract_issues = navigation.get("contract_issues")
+    if isinstance(contract_issues, list) and contract_issues:
+        raise RuntimeError(
+            "sweep inspection contract validation failed:\n- " + "\n- ".join(str(issue) for issue in contract_issues)
+        )
     return {
         "queue": queue_metadata,
         "row": dict(cast(dict[str, Any], _copy_jsonable(row))),
         "target": target,
+        "navigation": navigation,
     }
