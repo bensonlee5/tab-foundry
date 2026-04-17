@@ -1,0 +1,18 @@
+{
+  "name": "openml_classification_large",
+  "selection": {
+    "max_classes": 10,
+    "max_features": 20,
+    "max_missing_pct": 20.0,
+    "min_classes": 2,
+    "min_minority_class_pct": 1.0,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    363685,
+    363699,
+    363707
+  ],
+  "version": 1
+}
