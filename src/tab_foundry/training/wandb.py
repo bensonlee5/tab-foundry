@@ -17,6 +17,7 @@ from tab_foundry.hashing import sha256_text
 
 _WANDB_ARTIFACT_NAME_MAXLEN = 128
 _WANDB_ARTIFACT_NAME_HASH_HEX = 12
+_WANDB_ARTIFACT_INIT_TIMEOUT_SECONDS = 300
 
 
 @dataclass(frozen=True, slots=True)
@@ -368,6 +369,9 @@ def publish_checkpoint_artifact(
         init_kwargs["entity"] = normalized_entity
     if normalized_run_name is not None:
         init_kwargs["name"] = normalized_run_name
+    settings_ctor = getattr(wandb, "Settings", None)
+    if callable(settings_ctor):
+        init_kwargs["settings"] = settings_ctor(init_timeout=_WANDB_ARTIFACT_INIT_TIMEOUT_SECONDS)
 
     run = wandb.init(**init_kwargs)
     if run is None:  # pragma: no cover - defensive branch

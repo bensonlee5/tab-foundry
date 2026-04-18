@@ -51,6 +51,10 @@ def test_publish_checkpoint_artifact_returns_waited_ref(
         Artifact = FakeArtifact
 
         @staticmethod
+        def Settings(**kwargs):
+            return {"kind": "settings", **kwargs}
+
+        @staticmethod
         def init(**kwargs):
             captured["init_kwargs"] = kwargs
             return FakeRun()
@@ -78,6 +82,10 @@ def test_publish_checkpoint_artifact_returns_waited_ref(
         "job_type": "benchmark-checkpoint-publish",
         "mode": "online",
         "name": "run_001",
+        "settings": {
+            "kind": "settings",
+            "init_timeout": 300,
+        },
     }
     assert captured["aliases"] == ["best"]
     assert captured["files"] == [(str(checkpoint_path.resolve()), "best.pt")]
@@ -119,6 +127,10 @@ def test_publish_checkpoint_artifact_shortens_long_artifact_names(
 
     class FakeWandb:
         Artifact = FakeArtifact
+
+        @staticmethod
+        def Settings(**kwargs):
+            return {"kind": "settings", **kwargs}
 
         @staticmethod
         def init(**kwargs):
