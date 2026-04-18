@@ -14,6 +14,7 @@ from tab_foundry.benchmark_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.artifacts import write_json
+from tab_foundry.hashing import sha256_text
 from tab_foundry.repo_paths import repo_root
 from tab_foundry.training.instability import telemetry_path
 from tab_foundry.training.wandb import (
@@ -25,6 +26,9 @@ from tab_foundry.training.wandb import (
 CheckpointSource = Literal["local_registry", "wandb_artifact"]
 
 _WANDB_REQUIRED_FIELDS = ("project", "run_id", "run_name")
+_ARTIFACT_NAME_PREFIX = "benchmark-checkpoint-"
+_WANDB_ARTIFACT_NAME_MAXLEN = 128
+_ARTIFACT_NAME_HASH_HEX = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +63,20 @@ def artifact_name_for_run_id(run_id: str) -> str:
     normalized_run_id = str(run_id).strip()
     if not normalized_run_id:
         raise RuntimeError("run_id must be a non-empty string")
-    return f"benchmark-checkpoint-{normalized_run_id}"
+    artifact_name = f"{_ARTIFACT_NAME_PREFIX}{normalized_run_id}"
+    if len(artifact_name) <= _WANDB_ARTIFACT_NAME_MAXLEN:
+        return artifact_name
+    hash_suffix = sha256_text(normalized_run_id)[:_ARTIFACT_NAME_HASH_HEX]
+    max_run_id_chars = (
+        _WANDB_ARTIFACT_NAME_MAXLEN
+        - len(_ARTIFACT_NAME_PREFIX)
+        - 1
+        - len(hash_suffix)
+    )
+    if max_run_id_chars <= 0:  # pragma: no cover - defensive guard
+        raise RuntimeError("W&B artifact name budget is too small to encode a benchmark checkpoint artifact")
+    truncated_run_id = normalized_run_id[:max_run_id_chars]
+    return f"{_ARTIFACT_NAME_PREFIX}{truncated_run_id}-{hash_suffix}"
 
 
 def normalized_wandb_registry_payload(value: Any) -> dict[str, str] | None:

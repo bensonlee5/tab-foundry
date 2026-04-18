@@ -84,6 +84,26 @@ def test_publish_checkpoint_artifact_returns_waited_ref(
     assert captured["finished"] is True
 
 
+def test_artifact_name_for_run_id_keeps_short_names_stable() -> None:
+    assert checkpoint_artifacts_module.artifact_name_for_run_id("run_001") == "benchmark-checkpoint-run_001"
+
+
+def test_artifact_name_for_run_id_shortens_long_names_deterministically() -> None:
+    run_id = (
+        "sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_"
+        "delta_tf_rd_009_cls_sandwich_dicl128_layers2_muon_carry_lowbatch_v1_v1"
+    )
+
+    artifact_name = checkpoint_artifacts_module.artifact_name_for_run_id(run_id)
+
+    assert len(artifact_name) <= 128
+    assert artifact_name.startswith(
+        "benchmark-checkpoint-sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_"
+    )
+    assert artifact_name.endswith("-aee36847774b")
+    assert checkpoint_artifacts_module.artifact_name_for_run_id(run_id) == artifact_name
+
+
 def test_download_checkpoint_artifact_downloads_best_pt(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
