@@ -46,6 +46,17 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         contract = navigation.get("contract")
         if isinstance(contract, Mapping):
             lines.append(f"benchmark_manifest_path={contract.get('benchmark_manifest_path')}")
+            if contract.get("uses_default_anchor_benchmark") is not None:
+                lines.append(
+                    "uses_default_anchor_benchmark="
+                    + ("yes" if contract.get("uses_default_anchor_benchmark") else "no")
+                )
+            default_anchor_benchmark = contract.get("default_anchor_benchmark")
+            if isinstance(default_anchor_benchmark, Mapping):
+                lines.append(
+                    "default_anchor_benchmark_manifest_path="
+                    f"{default_anchor_benchmark.get('benchmark_manifest_path')}"
+                )
             lines.append(f"control_baseline_id={contract.get('control_baseline_id')}")
             lines.append(f"carried_in_family_baseline_run_id={contract.get('carried_in_family_baseline_run_id')}")
             if contract.get("corpus_ref") is not None:

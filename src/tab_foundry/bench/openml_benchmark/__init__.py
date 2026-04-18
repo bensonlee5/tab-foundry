@@ -18,11 +18,14 @@ from .bundle import (
     benchmark_bundle_allows_missing_values,
     benchmark_bundle_summary,
     benchmark_bundle_task_type,
+    default_anchor_benchmark_summary,
+    default_anchor_control_baseline_id,
     default_benchmark_bundle_path,
     default_benchmark_manifest_path,
     load_benchmark_bundle,
     load_benchmark_bundle_for_execution,
     normalize_benchmark_bundle,
+    validate_default_anchor_benchmark_summary,
 )
 from .curves import (
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
@@ -99,6 +102,8 @@ __all__ = [
     "dataset_log_loss_metrics",
     "dataset_picp_90_metrics",
     "dataset_roc_auc_metrics",
+    "default_anchor_benchmark_summary",
+    "default_anchor_control_baseline_id",
     "default_benchmark_bundle_path",
     "default_benchmark_manifest_path",
     "evaluate_classifier",
@@ -120,6 +125,7 @@ __all__ = [
     "save_dataset_cache",
     "summarize_checkpoint_curve",
     "task_bootstrap_roc_auc_interval",
+    "validate_default_anchor_benchmark_summary",
 ]
 
 

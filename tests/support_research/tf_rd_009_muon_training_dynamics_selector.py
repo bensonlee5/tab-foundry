@@ -146,6 +146,12 @@ def test_tf_rd_009_muon_training_dynamics_selector_materializes_and_exposes_the_
         SELECTOR_SWEEP,
     ]
     assert navigation["contract"]["benchmark_manifest_path"] == BENCHMARK_MANIFEST
+    assert navigation["contract"]["uses_default_anchor_benchmark"] is True
+    assert navigation["contract"]["default_anchor_benchmark"]["benchmark_manifest_path"] == BENCHMARK_MANIFEST
+    assert (
+        navigation["contract"]["default_anchor_benchmark"]["benchmark_bundle"]["name"]
+        == "openml_classification_medium"
+    )
     assert navigation["contract"]["control_baseline_id"] == CONTROL_BASELINE
     assert navigation["contract"]["corpus_ref"] == CORPUS_V6
     assert navigation["contract"]["carried_in_family_baseline_run_id"] == ANCHOR_RUN_ID
@@ -171,6 +177,8 @@ def test_tf_rd_009_muon_phase2_inspection_exposes_the_canonical_active_contract_
     navigation = payload["navigation"]
     assert [entry["sweep_id"] for entry in navigation["linked_sweeps"]] == [NS_SWEEP, BCRIT_SWEEP]
     assert navigation["contract"]["benchmark_manifest_path"] == BENCHMARK_MANIFEST
+    assert navigation["contract"]["uses_default_anchor_benchmark"] is True
+    assert navigation["contract"]["default_anchor_benchmark"]["benchmark_manifest_path"] == BENCHMARK_MANIFEST
     assert navigation["contract"]["control_baseline_id"] == CONTROL_BASELINE
     assert navigation["contract"]["corpus_ref"] == CORPUS_V6
     assert navigation["contract"]["carried_in_family_baseline_run_id"] == ANCHOR_RUN_ID

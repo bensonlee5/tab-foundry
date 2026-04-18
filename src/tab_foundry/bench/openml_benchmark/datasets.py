@@ -15,6 +15,7 @@ from tab_realdata_hub.openml import (
 )
 from tab_foundry.data.dataset import load_manifest_record_metadata
 
+from .bundle import default_benchmark_manifest_path, validate_default_anchor_benchmark_summary
 from .dataset_common import BenchmarkDataset, _assert_finite_benchmark_datasets
 
 __all__ = [
@@ -193,6 +194,13 @@ def load_benchmark_manifest_datasets(
             context=f"benchmark manifest {benchmark_manifest_path!s}",
         )
     bundle_summary = benchmark_manifest_bundle_summary(task_records)
+    if resolved_manifest_path == default_benchmark_manifest_path().expanduser().resolve():
+        anchor_contract_issues = validate_default_anchor_benchmark_summary(bundle_summary)
+        if anchor_contract_issues:
+            raise RuntimeError(
+                "default anchor benchmark manifest drift detected:\n- "
+                + "\n- ".join(anchor_contract_issues)
+            )
     return datasets, task_records, {
         "manifest_path": str(loaded.manifest_path),
         "contract_version": int(loaded.contract_version),

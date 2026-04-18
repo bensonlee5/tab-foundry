@@ -9,10 +9,12 @@ from typing import Any, Mapping, cast
 from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root
 
 
-BENCHMARK_BUNDLE_FILENAME = "openml_binary_medium_v1.json"
+BENCHMARK_BUNDLE_FILENAME = "openml_classification_medium_v1.json"
+DEFAULT_ANCHOR_CONTROL_BASELINE_ID = "cls_benchmark_linear_multiclass_medium_v1"
 _CLASSIFICATION_TASK_TYPE = "supervised_classification"
 _PERCENT_SCALE_MAX = 100.0
 _REGRESSION_TASK_TYPE = "supervised_regression"
+_OPTIONAL_BUNDLE_KEYS = {"tasks"}
 _ALLOWED_BUNDLE_SELECTION_TASK_TYPES = {
     _CLASSIFICATION_TASK_TYPE,
     _REGRESSION_TASK_TYPE,
@@ -31,6 +33,12 @@ def default_benchmark_manifest_path() -> Path:
 
     bundle_stem = Path(BENCHMARK_BUNDLE_FILENAME).stem
     return repo_root() / "data" / "manifests" / "bench" / bundle_stem / "manifest.parquet"
+
+
+def default_anchor_control_baseline_id() -> str:
+    """Return the canonical control-baseline id paired with the default anchor benchmark."""
+
+    return DEFAULT_ANCHOR_CONTROL_BASELINE_ID
 
 
 def _default_repo_root() -> Path:
@@ -106,6 +114,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
             "min_minority_class_pct",
         }
         | ({"task_type"} if "task_type" in payload else set())
+        | ({"min_classes"} if "min_classes" in payload else set())
         if task_type == _CLASSIFICATION_TASK_TYPE
         else {
             "new_instances",
@@ -141,13 +150,26 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
     if task_type == _CLASSIFICATION_TASK_TYPE:
         max_classes = payload["max_classes"]
         min_minority_class_pct = payload["min_minority_class_pct"]
+        min_classes = payload.get("min_classes")
         if not isinstance(max_classes, int) or isinstance(max_classes, bool) or max_classes <= 0:
             raise RuntimeError("benchmark bundle selection.max_classes must be a positive int")
+        if min_classes is not None and (
+            not isinstance(min_classes, int)
+            or isinstance(min_classes, bool)
+            or min_classes <= 0
+            or min_classes > max_classes
+        ):
+            raise RuntimeError(
+                "benchmark bundle selection.min_classes must be a positive int "
+                "no larger than max_classes"
+            )
         if not isinstance(min_minority_class_pct, (int, float)) or not 0 <= float(min_minority_class_pct) <= _PERCENT_SCALE_MAX:
             raise RuntimeError(
                 "benchmark bundle selection.min_minority_class_pct must be a percentage between 0 and 100"
             )
         normalized["max_classes"] = int(max_classes)
+        if min_classes is not None:
+            normalized["min_classes"] = int(min_classes)
         normalized["min_minority_class_pct"] = float(min_minority_class_pct)
     return normalized
 
@@ -157,12 +179,13 @@ def normalize_benchmark_bundle(payload: Any) -> dict[str, Any]:
 
     if not isinstance(payload, dict):
         raise RuntimeError("benchmark bundle must be a JSON object")
-    expected_keys = {"name", "version", "selection", "task_ids", "tasks"}
+    required_keys = {"name", "version", "selection", "task_ids"}
+    expected_keys = required_keys | _OPTIONAL_BUNDLE_KEYS
     actual_keys = set(payload.keys())
-    if actual_keys != expected_keys:
+    if not required_keys.issubset(actual_keys) or not actual_keys.issubset(expected_keys):
         raise RuntimeError(
             "benchmark bundle keys mismatch: "
-            f"missing={sorted(expected_keys - actual_keys)}, "
+            f"missing={sorted(required_keys - actual_keys)}, "
             f"extra={sorted(actual_keys - expected_keys)}"
         )
 
@@ -170,15 +193,15 @@ def normalize_benchmark_bundle(payload: Any) -> dict[str, Any]:
     version = payload["version"]
     selection = payload["selection"]
     task_ids = payload["task_ids"]
-    tasks = payload["tasks"]
+    tasks = payload.get("tasks", [])
     if not isinstance(name, str) or not name.strip():
         raise RuntimeError("benchmark bundle name must be a non-empty string")
     if not isinstance(version, int) or version <= 0:
         raise RuntimeError("benchmark bundle version must be a positive int")
     if not isinstance(task_ids, list) or not task_ids:
         raise RuntimeError("benchmark bundle task_ids must be a non-empty list")
-    if not isinstance(tasks, list) or not tasks:
-        raise RuntimeError("benchmark bundle tasks must be a non-empty list")
+    if not isinstance(tasks, list):
+        raise RuntimeError("benchmark bundle tasks must be a list when present")
 
     normalized_selection = _normalize_selection(selection)
     selection_task_type = str(normalized_selection["task_type"])
@@ -211,7 +234,7 @@ def normalize_benchmark_bundle(payload: Any) -> dict[str, Any]:
             normalized_task["n_classes"] = int(task_payload["n_classes"])
         normalized_tasks.append(normalized_task)
 
-    if normalized_task_ids != [int(task["task_id"]) for task in normalized_tasks]:
+    if normalized_tasks and normalized_task_ids != [int(task["task_id"]) for task in normalized_tasks]:
         raise RuntimeError("benchmark bundle task_ids must match tasks[].task_id order exactly")
 
     return {
@@ -321,3 +344,73 @@ def benchmark_bundle_summary(
         "allow_missing_values": allow_missing_values,
         "all_tasks_no_missing": None if allow_missing_values is None else (not allow_missing_values),
     }
+
+
+def _normalized_bundle_summary_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    task_ids = [int(task_id) for task_id in cast(list[Any], payload.get("task_ids", []))]
+    selection_raw = payload.get("selection")
+    selection = (
+        cast(dict[str, Any], json.loads(json.dumps(selection_raw, sort_keys=True)))
+        if isinstance(selection_raw, Mapping)
+        else None
+    )
+    source_path_value = payload.get("source_path")
+    source_path = (
+        canonical_benchmark_bundle_source_path(str(source_path_value))
+        if isinstance(source_path_value, str) and source_path_value.strip()
+        else None
+    )
+    return {
+        "name": str(payload["name"]),
+        "version": int(payload["version"]),
+        "source_path": source_path,
+        "task_count": int(payload["task_count"]),
+        "task_ids": task_ids,
+        "selection": selection,
+        "allow_missing_values": (
+            None
+            if payload.get("allow_missing_values") is None
+            else bool(payload["allow_missing_values"])
+        ),
+        "all_tasks_no_missing": (
+            None
+            if payload.get("all_tasks_no_missing") is None
+            else bool(payload["all_tasks_no_missing"])
+        ),
+    }
+
+
+def default_anchor_benchmark_summary() -> dict[str, Any]:
+    """Return the canonical medium-multiclass anchor benchmark summary."""
+
+    bundle_path = default_benchmark_bundle_path()
+    bundle = load_benchmark_bundle(bundle_path, allow_missing_values=True)
+    return benchmark_bundle_summary(bundle, source_path=bundle_path)
+
+
+def validate_default_anchor_benchmark_summary(
+    bundle_summary: Mapping[str, Any] | None,
+) -> list[str]:
+    """Return contract issues when the default anchor benchmark resolves to a stale surface."""
+
+    if bundle_summary is None:
+        return ["default anchor benchmark summary is missing from the resolved manifest surface"]
+    expected = _normalized_bundle_summary_payload(default_anchor_benchmark_summary())
+    actual = _normalized_bundle_summary_payload(bundle_summary)
+    issues: list[str] = []
+    for key in (
+        "name",
+        "version",
+        "source_path",
+        "task_count",
+        "task_ids",
+        "selection",
+        "allow_missing_values",
+        "all_tasks_no_missing",
+    ):
+        if actual[key] != expected[key]:
+            issues.append(
+                "default anchor benchmark mismatch for "
+                f"{key}: expected={expected[key]!r} actual={actual[key]!r}"
+            )
+    return issues

@@ -2354,25 +2354,31 @@ def test_run_nanotabpfn_benchmark_propagates_record_derivation_failure(
         )
 
 
-def test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:
+def test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_multiclass_bundles() -> None:
     legacy_bundle_path = (
         REPO_ROOT / "src" / "tab_foundry" / "bench" / "openml_benchmark_v1.json"
     )
     medium_bundle_path = (
-        REPO_ROOT / "src" / "tab_foundry" / "bench" / "openml_binary_medium_v1.json"
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "openml_classification_medium_v1.json"
     )
 
     legacy_bundle = benchmark_module.load_benchmark_bundle(legacy_bundle_path)
-    medium_bundle = benchmark_module.load_benchmark_bundle(medium_bundle_path)
+    medium_bundle = benchmark_module.load_benchmark_bundle(
+        medium_bundle_path,
+        allow_missing_values=True,
+    )
 
     assert legacy_bundle["name"] == "openml_binary_small"
     assert legacy_bundle["task_ids"] == [363613, 363621, 363629]
-    assert medium_bundle["name"] == "openml_binary_medium"
-    assert len(medium_bundle["task_ids"]) == 10
-    assert all(int(task["n_classes"]) == 2 for task in medium_bundle["tasks"])
+    assert medium_bundle["name"] == "openml_classification_medium"
+    assert len(medium_bundle["task_ids"]) == 242
+    assert medium_bundle["tasks"] == []
+    assert int(medium_bundle["selection"]["min_classes"]) == 2
+    assert int(medium_bundle["selection"]["max_classes"]) == 10
+    assert float(medium_bundle["selection"]["max_missing_pct"]) == 20.0
 
 
-def test_default_benchmark_manifest_path_resolves_to_medium_binary_bundle() -> None:
+def test_default_benchmark_manifest_path_resolves_to_medium_multiclass_bundle() -> None:
     bundle_path = compare_module.default_benchmark_manifest_path()
 
     assert bundle_path == (
@@ -2380,7 +2386,7 @@ def test_default_benchmark_manifest_path_resolves_to_medium_binary_bundle() -> N
         / "data"
         / "manifests"
         / "bench"
-        / "openml_binary_medium_v1"
+        / "openml_classification_medium_v1"
         / "manifest.parquet"
     )
 

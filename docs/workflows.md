@@ -279,21 +279,24 @@ tab-foundry bench compare \
   --tabicl-root <path-to-tabicl>
 ```
 
-The canonical medium benchmark surface is
-`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. The
-canonical frozen control baseline id is `cls_benchmark_linear_v2`.
+The repo-wide default anchor benchmark is the medium multiclass surface with
+natural missingness preserved:
+`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. Until
+that default is intentionally changed, this is the anchor benchmark that sweep
+inspection, scaling inspection, and contract validation expect. The paired
+frozen control baseline id is `cls_benchmark_linear_multiclass_medium_v1`.
 
 Benchmark comparison and sweep execution consume manifest paths only. Use the
 repo-tracked bundle JSON only as a materialization input:
 
 ```bash
 tab-foundry bench materialize-openml-bundle \
-  --bundle-path src/tab_foundry/bench/openml_binary_medium_v1.json \
+  --bundle-path src/tab_foundry/bench/openml_classification_medium_v1.json \
   --out-root data/manifests/bench/openml_classification_medium_v1
 ```
 
-The checked-in `cls_benchmark_linear_v2` entry freezes the prior-trained staged
-anchor run at:
+The checked-in `cls_benchmark_linear_multiclass_medium_v1` entry freezes the
+prior-trained staged anchor run at:
 
 - `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
 - `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`
@@ -302,7 +305,7 @@ Re-freeze that control baseline from the current anchor when needed:
 
 ```bash
 tab-foundry bench registry freeze-baseline \
-  --baseline-id cls_benchmark_linear_v2 \
+  --baseline-id cls_benchmark_linear_multiclass_medium_v1 \
   --experiment cls_benchmark_staged_prior \
   --config-profile cls_benchmark_staged_prior \
   --run-dir outputs/staged_ladder/01_nano_exact_md/prior_parity_fix \
@@ -436,7 +439,7 @@ Train-only `screen_only` rows still need:
 `result_card.md`. `screen_only` rows are diagnostic only.
 
 Benchmark-facing writeups should cite the locked manifest path,
-`cls_benchmark_linear_v2`, `training_surface_record.json`,
+`cls_benchmark_linear_multiclass_medium_v1`, `training_surface_record.json`,
 `research_card.md`, `campaign.yaml`, and `result_card.md`.
 
 For scaling studies whose benchmark-only runs were executed with
