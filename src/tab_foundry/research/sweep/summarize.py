@@ -408,6 +408,21 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
             )
             if rendered_leaderboard:
                 lines.append(f"- regime leaderboard: {rendered_leaderboard}")
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "- kept regime (T2 then T1): "
+                f"{kept_regime['regime_label']} "
+                f"(T2 order {int(kept_regime['t2_order']):02d}, "
+                f"log_loss={float(kept_regime['t2_log_loss']):.6f})"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "- T2 vs carried high-batch: "
+                f"{t2_vs_highbatch['winning_regime_label']} "
+                f"delta_log_loss={float(t2_vs_highbatch['delta_log_loss']):+.6f}"
+            )
         if isinstance(imported_orders, list) and imported_orders:
             lines.append(
                 "- imported baseline orders: "

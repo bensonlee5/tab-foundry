@@ -1170,10 +1170,13 @@ Legacy wording note:
     [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) remains
     preserved context only
-  - the active `#284` execution surface is now the faithful paper-derived
-    transfer pair:
-    `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1` followed by
-    `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+  - the active `#284` execution surface is now the strict shared-anchor LMO
+    transfer sweep:
+    `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
+  - the earlier screen-based transfer sweeps
+    `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1` and
+    `tf_rd_009_muon_training_dynamics_transfer_medium_v1` remain preserved
+    superseded context only
   - the earlier heuristic endpoint selector
     `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` remains tracked
     superseded context only; it is no longer the canonical training-dynamics
@@ -1203,13 +1206,21 @@ Legacy wording note:
     baseline, corpus, anchor, and replay-completeness contract drift
   - after the cleanup child lands, execute
     [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the
-    faithful Muon transfer study at fixed `144x4`: keep the corrected
-    `openml_classification_medium_v1` default anchor benchmark and
-    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, run the T0
-    screen `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`, then
-    validate the screened Regime `B` and Regime `D` winners against the carried
-    low-batch and carried high-batch baselines on
-    `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+    strict shared-anchor Muon transfer study at fixed `144x4`: keep the
+    corrected `openml_classification_medium_v1` default anchor benchmark and
+    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, reuse one
+    carried low-batch `144x4` Muon `T0` artifact as the shared source of truth,
+    and derive Regime `B` and Regime `D` deterministically inside
+    `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
+  - for that transfer study, carry one exact sandwich architecture surface
+    rather than a generic family label: `d_icl=144`, `sandwich_layers=4`,
+    `sandwich_latents=24`, `sandwich_heads=1`,
+    `sandwich_summary_tokens_per_axis=3`, `sandwich_ff_expansion=2`,
+    `sandwich_self_attention_per_cross=4`,
+    `sandwich_pre_row_attention_layers=1`,
+    `sandwich_pre_column_attention_layers=1`, and
+    `sandwich_pre_column_inducing_tokens=16`; treat optimizer and batch laws as
+    the only active variable
   - derive the transfer rows directly from
     [arXiv:2603.15958](https://arxiv.org/abs/2603.15958):
     Regime `B` uses `B(T)=64`, `alpha(T)=alpha0*(T/T0)^(-1/2)`, and
@@ -1222,6 +1233,15 @@ Legacy wording note:
     nearest-realizable effective batch rounding, `max_steps=round_half_up(T/B)`,
     and a default `2%` drift guard on realized batch and effective-budget
     mismatch
+  - keep the active `#284` surface law-driven rather than screened: the
+    canonical sweep is a `10`-row validation surface with imported carried
+    low-batch baselines at `T0/T1/T2`, carried high-batch baselines at
+    `T0/T1/T2`, and Regime `B` / Regime `D` rows only at `T1/T2`; there is no
+    regime-specific `T0` search in the active path
+  - choose the kept law-derived regime by corrected benchmark log loss with a
+    `T2`-first, `T1` tie-break rule, then compare that winning regime against
+    the carried high-batch baseline at `T2` before opening any later Phase-2B
+    rerun issue
   - only after the cleanup child and faithful transfer study land should
     [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited
     for any Muon upper-family move; treat any later larger-model probe as

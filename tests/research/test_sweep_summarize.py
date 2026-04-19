@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import tab_foundry.research.sweep.summarize as summarize_module
 from tab_foundry.research.sweep.summarize import render_sweep_summary_table, summarize_sweep
 
@@ -358,6 +360,7 @@ def _transfer_row(
     final_log_loss: float,
     end_to_end_wall_seconds: float | None,
     imported: bool = False,
+    shared_anchor: bool = False,
 ) -> dict[str, object]:
     row: dict[str, object] = {
         "order": order,
@@ -391,6 +394,13 @@ def _transfer_row(
             "source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1",
             "source_order": order,
         }
+    if shared_anchor:
+        row["transfer_resolution"] = {
+            "shared_anchor_provenance": {
+                "anchor_sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1",
+                "anchor_order": 1,
+            }
+        }
     return row
 
 
@@ -401,10 +411,11 @@ def test_summarize_sweep_reports_transfer_regime_leaderboard(monkeypatch) -> Non
         "rows": [
             _transfer_row(order=1, regime_label="carry_lowbatch", target_budget_label="T0", final_log_loss=0.49, end_to_end_wall_seconds=5400.0, imported=True),
             _transfer_row(order=2, regime_label="carry_lowbatch", target_budget_label="T1", final_log_loss=0.47, end_to_end_wall_seconds=5500.0, imported=True),
-            _transfer_row(order=3, regime_label="B", target_budget_label="T0", final_log_loss=0.45, end_to_end_wall_seconds=7000.0),
-            _transfer_row(order=4, regime_label="B", target_budget_label="T1", final_log_loss=0.43, end_to_end_wall_seconds=7100.0),
-            _transfer_row(order=5, regime_label="D", target_budget_label="T0", final_log_loss=0.46, end_to_end_wall_seconds=6600.0),
-            _transfer_row(order=6, regime_label="D", target_budget_label="T1", final_log_loss=0.44, end_to_end_wall_seconds=6800.0),
+            _transfer_row(order=4, regime_label="carry_highbatch", target_budget_label="T2", final_log_loss=0.44, end_to_end_wall_seconds=6300.0),
+            _transfer_row(order=7, regime_label="B", target_budget_label="T1", final_log_loss=0.43, end_to_end_wall_seconds=7100.0, shared_anchor=True),
+            _transfer_row(order=8, regime_label="B", target_budget_label="T2", final_log_loss=0.41, end_to_end_wall_seconds=7200.0, shared_anchor=True),
+            _transfer_row(order=9, regime_label="D", target_budget_label="T1", final_log_loss=0.435, end_to_end_wall_seconds=6800.0, shared_anchor=True),
+            _transfer_row(order=10, regime_label="D", target_budget_label="T2", final_log_loss=0.425, end_to_end_wall_seconds=6900.0, shared_anchor=True),
         ],
     }
 
@@ -419,17 +430,37 @@ def test_summarize_sweep_reports_transfer_regime_leaderboard(monkeypatch) -> Non
 
     transfer_summary = payload["transfer_summary"]
     assert transfer_summary is not None
-    assert transfer_summary["best_row"]["order"] == 4
+    assert transfer_summary["best_row"]["order"] == 8
     assert transfer_summary["best_row"]["regime_label"] == "B"
     assert transfer_summary["fastest_row"]["order"] == 1
     assert transfer_summary["imported_baseline_orders"] == [1, 2]
     assert [entry["regime_label"] for entry in transfer_summary["regime_leaderboard"]] == [
         "B",
         "D",
+        "carry_highbatch",
         "carry_lowbatch",
     ]
+    assert transfer_summary["kept_regime"]["winner_rule"] == "T2_then_T1"
+    assert transfer_summary["kept_regime"]["regime_label"] == "B"
+    assert transfer_summary["kept_regime"]["t1_order"] == 7
+    assert transfer_summary["kept_regime"]["t1_log_loss"] == pytest.approx(0.43)
+    assert transfer_summary["kept_regime"]["t2_order"] == 8
+    assert transfer_summary["kept_regime"]["t2_log_loss"] == pytest.approx(0.41)
+    assert transfer_summary["kept_regime"]["runner_up_regime_label"] == "D"
+    assert transfer_summary["kept_regime"]["runner_up_t1_order"] == 9
+    assert transfer_summary["kept_regime"]["runner_up_t1_log_loss"] == pytest.approx(0.435)
+    assert transfer_summary["kept_regime"]["runner_up_t2_order"] == 10
+    assert transfer_summary["kept_regime"]["runner_up_t2_log_loss"] == pytest.approx(0.425)
+    assert transfer_summary["t2_vs_carried_highbatch"]["winning_regime_label"] == "B"
+    assert transfer_summary["t2_vs_carried_highbatch"]["winning_regime_order"] == 8
+    assert transfer_summary["t2_vs_carried_highbatch"]["winning_regime_t2_log_loss"] == pytest.approx(0.41)
+    assert transfer_summary["t2_vs_carried_highbatch"]["carried_highbatch_order"] == 4
+    assert transfer_summary["t2_vs_carried_highbatch"]["carried_highbatch_t2_log_loss"] == pytest.approx(0.44)
+    assert transfer_summary["t2_vs_carried_highbatch"]["delta_log_loss"] == pytest.approx(-0.03)
 
     rendered = summarize_module.render_sweep_summary_table(payload)
     assert "Transfer summary:" in rendered
-    assert "best transfer row: order 04, regime=B" in rendered
+    assert "best transfer row: order 08, regime=B" in rendered
     assert "imported baseline orders: 01, 02" in rendered
+    assert "kept regime (T2 then T1): B" in rendered
+    assert "T2 vs carried high-batch: B delta_log_loss=-0.030000" in rendered

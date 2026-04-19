@@ -8,10 +8,15 @@ import torch
 
 import tab_foundry.bench.control_baseline_freeze as control_baseline_module
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
+from tab_foundry.bench.openml_benchmark import default_anchor_control_baseline_id
 from tab_foundry.data.surface import DataSurfaceConfig
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_control_baseline_default_id_tracks_default_anchor_contract() -> None:
+    assert control_baseline_module.DEFAULT_BASELINE_ID == default_anchor_control_baseline_id()
 
 
 def _write_checkpoint(

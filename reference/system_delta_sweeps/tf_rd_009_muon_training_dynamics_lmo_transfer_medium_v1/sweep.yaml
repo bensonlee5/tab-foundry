@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
-sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
 parent_sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
-status: superseded
+status: draft
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -9,21 +9,17 @@ control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
-surface_role: classification_training_dynamics_transfer_screen
+surface_role: classification_training_dynamics_transfer
 comparison_policy: anchor_only
 upstream_reference:
   name: Deriving Hyperparameter Scaling Laws via Modern Optimization Theory
   model_source: https://arxiv.org/abs/2603.15958
 anchor_surface:
   notes:
-  - 'This sweep is superseded context only; the active #284 study is now the strict
-    shared-anchor LMO transfer sweep tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1.'
-  - Hold geometry fixed at 144x4 and use the paper-derived budget-transfer study to
-    choose one T0 anchor for Regime B and one for Regime D.
-  - Regime B keeps effective batch fixed at 64 while scaling momentum and lr with
-    budget; Regime D jointly scales batch, momentum, and lr.
-  - Use the corrected openml_classification_medium_v1 anchor benchmark with natural
-    missingness preserved; fail fast if any row drifts to a binary surface.
+  - 'This sweep is the active #284 strict shared-anchor LMO transfer study; the earlier screen-based transfer sweeps are superseded context only.'
+  - Keep geometry fixed at 144x4, reuse one carried low-batch Muon T0 artifact as the shared anchor, and derive Regime B and Regime D deterministically from that anchor.
+  - 'Do not perform any T0 hyperparameter search in the canonical #284 path; T0 is the shared carried anchor and the regime comparison happens at T1/T2.'
+  - Primary decision criterion is corrected benchmark log loss on openml_classification_medium_v1 with a T2-first, T1 tie-break winner rule; runtime remains diagnostic only.
   dimension_table: []
 anchor_context:
   run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1

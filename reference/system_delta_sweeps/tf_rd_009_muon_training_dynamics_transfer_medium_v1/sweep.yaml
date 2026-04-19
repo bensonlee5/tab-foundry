@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_009_muon_training_dynamics_transfer_medium_v1
 parent_sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
-status: draft
+status: superseded
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -16,9 +16,8 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2603.15958
 anchor_surface:
   notes:
-  - 'This sweep is the active #284 faithful transfer study, and the earlier
-    heuristic selector is now superseded context rather than the canonical
-    training-dynamics decision surface.'
+  - 'This sweep is superseded context only; the active #284 study is now the strict
+    shared-anchor LMO transfer sweep tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1.'
   - Keep geometry fixed at 144x4 and compare carried low-batch, carried high-batch,
     Regime B, and Regime D across T0/T1/T2.
   - The earlier 5000-step high-batch selector row remains preserved historical context

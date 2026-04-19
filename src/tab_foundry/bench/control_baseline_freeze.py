@@ -9,7 +9,11 @@ import torch
 
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
-from tab_foundry.bench.openml_benchmark import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.openml_benchmark import (
+    collect_checkpoint_snapshots,
+    default_anchor_control_baseline_id,
+    resolve_tab_foundry_best_checkpoint,
+)
 from tab_foundry.registry.common import (
     copy_jsonable as _copy_jsonable,
     load_comparison_summary as _load_comparison_summary,
@@ -24,7 +28,7 @@ from tab_foundry.repo_paths import repo_root
 
 REGISTRY_SCHEMA = read_control_baseline_registry.REGISTRY_SCHEMA
 REGISTRY_VERSION = read_control_baseline_registry.REGISTRY_VERSION
-DEFAULT_BASELINE_ID = "cls_benchmark_linear_v2"
+DEFAULT_BASELINE_ID = default_anchor_control_baseline_id()
 DEFAULT_EXPERIMENT = "cls_benchmark_staged_prior"
 DEFAULT_CONFIG_PROFILE = DEFAULT_EXPERIMENT
 DEFAULT_BUDGET_CLASS = "short-run"

@@ -913,7 +913,7 @@ def test_render_sweep_row_text_surfaces_transfer_context() -> None:
     text = inspect_module.render_sweep_row_text(
         {
             "queue": {
-                "sweep_id": "tf_rd_009_muon_training_dynamics_transfer_medium_v1",
+                "sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1",
                 "training_experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
                 "training_config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
                 "surface_role": "classification_training_dynamics_transfer",
@@ -940,8 +940,9 @@ def test_render_sweep_row_text_surfaces_transfer_context() -> None:
             },
             "navigation": {
                 "lineage": [
-                    {"sweep_id": "tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1"},
+                    {"sweep_id": "tf_rd_009_muon_training_dynamics_endpoint_medium_v1"},
                     {"sweep_id": "tf_rd_009_muon_training_dynamics_transfer_medium_v1"},
+                    {"sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1"},
                 ],
                 "contract": {
                     "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
@@ -966,6 +967,11 @@ def test_render_sweep_row_text_surfaces_transfer_context() -> None:
                 "imported_baseline_provenance": {
                     "source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1",
                     "source_order": 11,
+                },
+                "shared_anchor_provenance": {
+                    "anchor_sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1",
+                    "anchor_order": 1,
+                    "anchor_run_dir": "outputs/staged_ladder/research/lmo/anchor/train",
                 },
             },
             "transfer_summary": {
@@ -994,6 +1000,14 @@ def test_render_sweep_row_text_surfaces_transfer_context() -> None:
                     }
                 ],
                 "imported_baseline_orders": [1, 2, 3],
+                "kept_regime": {
+                    "regime_label": "B",
+                    "t2_order": 8,
+                    "t2_log_loss": 0.41,
+                },
+                "t2_vs_carried_highbatch": {
+                    "delta_log_loss": -0.015,
+                },
             },
         }
     )
@@ -1006,5 +1020,9 @@ def test_render_sweep_row_text_surfaces_transfer_context() -> None:
     assert "realized_effective_budget=160000" in text
     assert '"source_order": 11' in text
     assert '"source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1"' in text
+    assert '"anchor_order": 1' in text
+    assert '"anchor_sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1"' in text
     assert "transfer_best_row=order 08, regime=B" in text
     assert "transfer_fastest_row=order 01, regime=carry_lowbatch" in text
+    assert "transfer_kept_regime=B@T2(order 08, log_loss=0.410000)" in text
+    assert "transfer_t2_vs_carried_highbatch=delta_log_loss=-0.015000" in text

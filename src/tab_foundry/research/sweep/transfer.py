@@ -177,6 +177,16 @@ def imported_baseline_provenance(row: Mapping[str, Any]) -> dict[str, Any] | Non
     return dict(cast(Mapping[str, Any], raw_payload))
 
 
+def _shared_anchor_provenance(row: Mapping[str, Any]) -> dict[str, Any] | None:
+    context = row_transfer_context(row)
+    if not isinstance(context, Mapping):
+        return None
+    raw_payload = context.get("shared_anchor_provenance")
+    if not isinstance(raw_payload, Mapping):
+        return None
+    return dict(cast(Mapping[str, Any], raw_payload))
+
+
 def annotate_rows_with_transfer_context(
     *,
     rows: list[dict[str, Any]],
@@ -215,6 +225,7 @@ def annotate_rows_with_transfer_context(
         row["budget_drift"] = None if context is None else _optional_float(context.get("budget_drift"))
         row["batch_drift"] = None if context is None else _optional_float(context.get("batch_drift"))
         row["imported_baseline_provenance"] = provenance
+        row["shared_anchor_provenance"] = _shared_anchor_provenance(row)
 
     eligible_rows = [
         row
@@ -318,6 +329,102 @@ def annotate_rows_with_transfer_context(
             str(payload["regime_label"]),
         )
     )
+    completed_rows = [
+        row
+        for row in eligible_rows
+        if str(row.get("status", "")).strip().lower() == "completed"
+    ]
+
+    def _best_completed_row(regime_label: str, budget_label: str) -> Mapping[str, Any] | None:
+        budget_rows = [
+            row
+            for row in completed_rows
+            if str(row.get("transfer_regime_label")) == regime_label
+            and str(row.get("transfer_target_budget_label")) == budget_label
+        ]
+        if not budget_rows:
+            return None
+        return min(
+            budget_rows,
+            key=lambda row: (
+                float(row["final_log_loss"]),
+                float(row["end_to_end_wall_seconds"])
+                if row.get("end_to_end_wall_seconds") is not None
+                else math.inf,
+                int(row["order"]),
+            ),
+        )
+
+    kept_regime: dict[str, Any] | None = None
+    regime_budget_comparison: list[dict[str, Any]] = []
+    t2_vs_carried_highbatch: dict[str, Any] | None = None
+    regime_b_t2 = _best_completed_row(TRANSFER_REGIME_B, "T2")
+    regime_d_t2 = _best_completed_row(TRANSFER_REGIME_D, "T2")
+    if regime_b_t2 is not None and regime_d_t2 is not None:
+        regime_b_t1 = _best_completed_row(TRANSFER_REGIME_B, "T1")
+        regime_d_t1 = _best_completed_row(TRANSFER_REGIME_D, "T1")
+        for regime_label, t1_row, t2_row in (
+            (TRANSFER_REGIME_B, regime_b_t1, regime_b_t2),
+            (TRANSFER_REGIME_D, regime_d_t1, regime_d_t2),
+        ):
+            regime_budget_comparison.append(
+                {
+                    "regime_label": regime_label,
+                    "t1_order": None if t1_row is None else int(t1_row["order"]),
+                    "t1_log_loss": None if t1_row is None else float(t1_row["final_log_loss"]),
+                    "t2_order": int(t2_row["order"]),
+                    "t2_log_loss": float(t2_row["final_log_loss"]),
+                }
+            )
+        winning_t1 = regime_b_t1
+        winning_t2 = regime_b_t2
+        winning_regime = TRANSFER_REGIME_B
+        losing_t1 = regime_d_t1
+        losing_t2 = regime_d_t2
+        if (
+            float(regime_d_t2["final_log_loss"]),
+            math.inf if regime_d_t1 is None else float(regime_d_t1["final_log_loss"]),
+            float(regime_d_t2["end_to_end_wall_seconds"])
+            if regime_d_t2.get("end_to_end_wall_seconds") is not None
+            else math.inf,
+            TRANSFER_REGIME_D,
+        ) < (
+            float(regime_b_t2["final_log_loss"]),
+            math.inf if regime_b_t1 is None else float(regime_b_t1["final_log_loss"]),
+            float(regime_b_t2["end_to_end_wall_seconds"])
+            if regime_b_t2.get("end_to_end_wall_seconds") is not None
+            else math.inf,
+            TRANSFER_REGIME_B,
+        ):
+            winning_t1 = regime_d_t1
+            winning_t2 = regime_d_t2
+            winning_regime = TRANSFER_REGIME_D
+            losing_t1 = regime_b_t1
+            losing_t2 = regime_b_t2
+        kept_regime = {
+            "winner_rule": "T2_then_T1",
+            "regime_label": winning_regime,
+            "t1_order": None if winning_t1 is None else int(winning_t1["order"]),
+            "t1_log_loss": None if winning_t1 is None else float(winning_t1["final_log_loss"]),
+            "t2_order": int(winning_t2["order"]),
+            "t2_log_loss": float(winning_t2["final_log_loss"]),
+            "runner_up_regime_label": TRANSFER_REGIME_D if winning_regime == TRANSFER_REGIME_B else TRANSFER_REGIME_B,
+            "runner_up_t1_order": None if losing_t1 is None else int(losing_t1["order"]),
+            "runner_up_t1_log_loss": None if losing_t1 is None else float(losing_t1["final_log_loss"]),
+            "runner_up_t2_order": int(losing_t2["order"]),
+            "runner_up_t2_log_loss": float(losing_t2["final_log_loss"]),
+        }
+        carried_highbatch_t2 = _best_completed_row("carry_highbatch", "T2")
+        if carried_highbatch_t2 is not None:
+            t2_vs_carried_highbatch = {
+                "winning_regime_label": winning_regime,
+                "winning_regime_order": int(winning_t2["order"]),
+                "winning_regime_t2_log_loss": float(winning_t2["final_log_loss"]),
+                "carried_highbatch_order": int(carried_highbatch_t2["order"]),
+                "carried_highbatch_t2_log_loss": float(carried_highbatch_t2["final_log_loss"]),
+                "delta_log_loss": float(winning_t2["final_log_loss"])
+                - float(carried_highbatch_t2["final_log_loss"]),
+            }
     return {
         "eligible_row_count": len(eligible_rows),
         "best_row": {
@@ -339,6 +446,9 @@ def annotate_rows_with_transfer_context(
             }
         ),
         "regime_leaderboard": regime_leaderboard,
+        "kept_regime": kept_regime,
+        "regime_budget_comparison": regime_budget_comparison,
+        "t2_vs_carried_highbatch": t2_vs_carried_highbatch,
         "imported_baseline_orders": sorted(
             int(row["order"])
             for row in rows

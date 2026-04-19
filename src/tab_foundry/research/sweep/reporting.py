@@ -382,6 +382,20 @@ def _transfer_interpretation_lines(
                 rendered_parts.append(f"run `{source_run_id}`")
             if rendered_parts:
                 lines.append("- Imported baseline provenance: " + ", ".join(rendered_parts))
+        shared_anchor = row_summary.get("shared_anchor_provenance")
+        if isinstance(shared_anchor, Mapping):
+            anchor_sweep_id = shared_anchor.get("anchor_sweep_id")
+            anchor_order = shared_anchor.get("anchor_order")
+            anchor_run_dir = shared_anchor.get("anchor_run_dir")
+            rendered_parts = []
+            if anchor_sweep_id is not None:
+                rendered_parts.append(f"sweep `{anchor_sweep_id}`")
+            if anchor_order is not None:
+                rendered_parts.append(f"order `{int(anchor_order):02d}`")
+            if anchor_run_dir is not None:
+                rendered_parts.append(f"run dir `{anchor_run_dir}`")
+            if rendered_parts:
+                lines.append("- Shared anchor provenance: " + ", ".join(rendered_parts))
     if isinstance(transfer_summary, Mapping):
         best_row = transfer_summary.get("best_row")
         if isinstance(best_row, Mapping):
@@ -412,6 +426,22 @@ def _transfer_interpretation_lines(
             )
             if rendered:
                 lines.append(f"- Regime leaderboard: {rendered}")
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "- Kept regime (`T2` then `T1`): "
+                f"`{kept_regime['regime_label']}` "
+                f"(T2 order `{int(kept_regime['t2_order']):02d}`, "
+                f"log loss `{float(kept_regime['t2_log_loss']):.6f}`)"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "- T2 vs carried high-batch: "
+                f"winning regime `{t2_vs_highbatch['winning_regime_label']}` "
+                f"minus carried high-batch delta log loss "
+                f"`{float(t2_vs_highbatch['delta_log_loss']):+.6f}`"
+            )
     return lines
 
 

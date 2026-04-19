@@ -171,6 +171,11 @@ def test_result_card_text_includes_transfer_interpretation_when_provided() -> No
                     "source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1",
                     "source_order": 11,
                 },
+                "shared_anchor_provenance": {
+                    "anchor_sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1",
+                    "anchor_order": 1,
+                    "anchor_run_dir": "outputs/staged_ladder/research/lmo/anchor/train",
+                },
             },
             "summary": {
                 "best_row": {
@@ -194,6 +199,15 @@ def test_result_card_text_includes_transfer_interpretation_when_provided() -> No
                         "mean_benchmark_log_loss": 0.437,
                     },
                 ],
+                "kept_regime": {
+                    "regime_label": "B",
+                    "t2_order": 8,
+                    "t2_log_loss": 0.412345,
+                },
+                "t2_vs_carried_highbatch": {
+                    "winning_regime_label": "B",
+                    "delta_log_loss": -0.012345,
+                },
             },
         },
     )
@@ -205,9 +219,12 @@ def test_result_card_text_includes_transfer_interpretation_when_provided() -> No
     assert "- Target budget label: `T1`" in text
     assert "- Realized effective budget: `160000`" in text
     assert "- Imported baseline provenance: sweep `tf_rd_009_muon_ns_one_epoch_medium_v1`, order `11`" in text
+    assert "- Shared anchor provenance: sweep `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`, order `01`, run dir `outputs/staged_ladder/research/lmo/anchor/train`" in text
     assert "- Best transfer row: order `08` (regime `B`, log loss `0.412345`, budget `T1`)" in text
     assert "- Fastest transfer row: order `01` (regime `carry_lowbatch`, wall `5400.0s`)" in text
     assert "- Regime leaderboard: B: mean log loss `0.421000`; D: mean log loss `0.437000`" in text
+    assert "- Kept regime (`T2` then `T1`): `B` (T2 order `08`, log loss `0.412345`)" in text
+    assert "- T2 vs carried high-batch: winning regime `B` minus carried high-batch delta log loss `-0.012345`" in text
 
 
 def test_refresh_result_cards_for_queue_rewrites_completed_cards_with_selector_context(
@@ -375,6 +392,10 @@ def test_refresh_result_cards_for_queue_rewrites_completed_cards_with_transfer_c
                     "realized_effective_budget": 160000,
                     "budget_drift": 0.0,
                     "batch_drift": 0.0,
+                    "shared_anchor_provenance": {
+                        "anchor_sweep_id": "tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1",
+                        "anchor_order": 1,
+                    },
                 }
             ],
             "transfer_summary": {
@@ -395,6 +416,15 @@ def test_refresh_result_cards_for_queue_rewrites_completed_cards_with_transfer_c
                         "mean_benchmark_log_loss": 0.42,
                     }
                 ],
+                "kept_regime": {
+                    "regime_label": "B",
+                    "t2_order": 8,
+                    "t2_log_loss": 0.41,
+                },
+                "t2_vs_carried_highbatch": {
+                    "winning_regime_label": "B",
+                    "delta_log_loss": -0.02,
+                },
             },
         },
     )
@@ -414,3 +444,5 @@ def test_refresh_result_cards_for_queue_rewrites_completed_cards_with_transfer_c
     assert "## Transfer interpretation" in text
     assert "- Transfer regime: `B`" in text
     assert "- Best transfer row: order `08`" in text
+    assert "- Shared anchor provenance: sweep `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`, order `01`" in text
+    assert "- Kept regime (`T2` then `T1`): `B`" in text

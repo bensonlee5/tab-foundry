@@ -177,6 +177,12 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
                 "imported_baseline_provenance="
                 + json.dumps(dict(imported_baseline), sort_keys=True)
             )
+        shared_anchor = row_summary.get("shared_anchor_provenance")
+        if isinstance(shared_anchor, Mapping):
+            lines.append(
+                "shared_anchor_provenance="
+                + json.dumps(dict(shared_anchor), sort_keys=True)
+            )
     if selector_summary is not None:
         best_row = selector_summary.get("best_row")
         if isinstance(best_row, Mapping):
@@ -225,6 +231,19 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
                     [dict(cast(Mapping[str, Any], item)) for item in regime_leaderboard if isinstance(item, Mapping)],
                     sort_keys=True,
                 )
+            )
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "transfer_kept_regime="
+                f"{kept_regime.get('regime_label')}@T2(order {int(kept_regime['t2_order']):02d}, "
+                f"log_loss={float(kept_regime['t2_log_loss']):.6f})"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "transfer_t2_vs_carried_highbatch="
+                f"delta_log_loss={float(t2_vs_highbatch['delta_log_loss']):+.6f}"
             )
     if data is not None:
         lines.append(f"data.surface_label={data.get('surface_label')}")

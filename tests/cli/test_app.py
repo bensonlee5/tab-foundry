@@ -1040,6 +1040,30 @@ def test_bench_env_bootstrap_run_from_args_forwards_tab_realdata_hub_root(
     assert captured["config"].tab_realdata_hub_root == hub_root
 
 
+def test_bench_registry_freeze_baseline_uses_default_anchor_baseline_id_when_omitted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        control_baseline_freeze_cli_module,
+        "_freeze_baseline_command",
+        capture_handler(captured, {"baseline_id": _str_attr("baseline_id")}),
+    )
+
+    result = CliRunner().invoke(
+        control_baseline_freeze_cli_module.COMMAND,
+        [
+            "--run-dir",
+            "/tmp/run",
+            "--comparison-summary",
+            "/tmp/comparison_summary.json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert captured["baseline_id"] == control_baseline_freeze_library_module.DEFAULT_BASELINE_ID
+
+
 def test_cli_groups_register_expected_commands() -> None:
     assert _command_names(bench_group.GROUP) == [
         "bundle",

@@ -10700,8 +10700,8 @@ deltas:
       batch fixed while transferring Muon momentum and lr with budget.
     upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
     expected_effect: If the paper fixed-batch transfer law is the better inductive
-      bias, the screened T0 anchor should extrapolate cleanly to T1/T2 without local
-      retuning.
+      bias, the strict shared T0 anchor transfer should extrapolate cleanly to T1/T2
+      without local retuning.
     adequacy_knobs:
     - paper-derived budget transfer law
     - corrected openml_classification_medium_v1 anchor benchmark
@@ -10791,8 +10791,8 @@ deltas:
       default_plan: []
     default_initial_status: ready
     default_initial_interpretation_status: pending
-    default_next_action: Screen the faithful transfer candidates for regime B on T0,
-      then carry only the winning anchor into tf_rd_009_muon_training_dynamics_transfer_medium_v1.
+    default_next_action: Apply the strict shared-anchor LMO transfer law for regime
+      B from the carried low-batch T0 anchor inside tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1.
     applicability_guards: []
   delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1:
     dimension_family: training
@@ -10802,8 +10802,8 @@ deltas:
       effective batch, Muon momentum, and lr with budget.
     upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
     expected_effect: If the joint batch+momentum+lr transfer law is the better inductive
-      bias, the screened T0 anchor should beat both carried baselines on corrected
-      benchmark log loss.
+      bias, the strict shared T0 anchor transfer should beat both carried baselines
+      on corrected benchmark log loss.
     adequacy_knobs:
     - paper-derived budget transfer law
     - corrected openml_classification_medium_v1 anchor benchmark
@@ -10893,6 +10893,6 @@ deltas:
       default_plan: []
     default_initial_status: ready
     default_initial_interpretation_status: pending
-    default_next_action: Screen the faithful transfer candidates for regime D on T0,
-      then carry only the winning anchor into tf_rd_009_muon_training_dynamics_transfer_medium_v1.
+    default_next_action: Apply the strict shared-anchor LMO transfer law for regime
+      D from the carried low-batch T0 anchor inside tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1.
     applicability_guards: []

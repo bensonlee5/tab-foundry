@@ -494,15 +494,15 @@ tab-foundry research sweep list-sweeps
 tab-foundry dev resolve-config \
   experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 tab-foundry research sweep inspect \
-  --sweep-id tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
   --order 1 \
   --json
 tab-foundry research sweep inspect \
-  --sweep-id tf_rd_009_muon_training_dynamics_transfer_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
   --order 7 \
   --json
 tab-foundry research sweep summarize \
-  --sweep-id tf_rd_009_muon_training_dynamics_transfer_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
   --json
 tab-foundry research scaling inspect \
   --study tf_rd_009_muon_phase2_one_epoch_v1 \
@@ -530,8 +530,8 @@ The active Muon lineage is:
 - `tf_rd_009_muon_ns_one_epoch_medium_v1`
 - `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
 - `tf_rd_009_muon_phase2_one_epoch_v1`
-- active `#284` screen: `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`
-- active `#284` validation: `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+- active `#284` strict LMO transfer:
+  `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
 
 `tf_rd_009_muon_width_screen_medium_v1` completed the fresh Muon width screen
 on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
@@ -540,27 +540,49 @@ as the formal external Muon anchor, but carry `128x2` forward as the current
 in-family baseline. The corrected Muon Phase-2 closeout in merged PR
 [#280](https://github.com/bensonlee5/tab-foundry/pull/280) keeps `L(N,S)` as a
 directional signal only, so the next defended execution lane is the faithful
-paper-derived transfer study for
+paper-derived strict shared-anchor LMO transfer study for
 [#284](https://github.com/bensonlee5/tab-foundry/issues/284): keep geometry
 fixed at `144x4`, keep the default anchor benchmark
 `openml_classification_medium_v1`, and compare the carried baselines against
 paper-derived Regime `B` and Regime `D` across the reused budget ladder
 `T0/T1/T2 = {625×64, 2500×64, 5000×64}`.
 
-The screen and validation sweeps are intentionally separate:
+The active `#284` sweep is the single shared-anchor transfer surface:
 
-- `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`
-  - `30` train-only T0 rows at `144x4`
-  - Regime `B`: fixed batch `B(T)=64`, `6` rows over
-    `lr_max ∈ {1e-3, 2e-3}` and `momentum ∈ {0.90, 0.95, 0.975}`
-  - Regime `D`: `24` rows over realizable `B0 ∈ {64, 80, 96, 128}` with the
-    same LR and momentum grid
-- `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
-  - logical `12`-row comparison surface at `144x4`
+- `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
+  - strict `10`-row comparison surface at `144x4`
   - imported carried low-batch baselines at `T0/T1/T2`
-  - new carried high-batch baselines at `T0/T1/T2`
-  - screened Regime `B` winner transferred to `T0/T1/T2`
-  - screened Regime `D` winner transferred to `T0/T1/T2`
+  - carried high-batch baselines at `T0/T1/T2`
+  - law-derived Regime `B` rows at `T1/T2`
+  - law-derived Regime `D` rows at `T1/T2`
+  - no regime-specific `T0` rows, because both regimes share the same carried
+    low-batch `T0` anchor by construction
+  - no T0 hyperparameter search in the canonical `#284` path
+  - winner rule: lower corrected benchmark log loss at `T2`, then lower log
+    loss at `T1`
+
+The earlier screen-based transfer sweeps
+`tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1` and
+`tf_rd_009_muon_training_dynamics_transfer_medium_v1` remain preserved
+historical context only; they are no longer the active operator route for
+`#284`.
+
+The carried model architecture for the active `#284` sweep is the fixed
+`tabfoundry_sandwich` surface:
+
+- geometry: `144x4`
+- frozen non-scaling architecture knobs:
+  - `sandwich_latents=24`
+  - `sandwich_heads=1`
+  - `sandwich_ff_expansion=2`
+  - `sandwich_summary_tokens_per_axis=3`
+  - `sandwich_self_attention_per_cross=4`
+  - `sandwich_pre_row_attention_layers=1`
+  - `sandwich_pre_column_attention_layers=1`
+  - `sandwich_pre_column_inducing_tokens=16`
+  - `feature_type_conditioning=film`
+  - `floating_likelihood=single_gaussian`
+  - `integer_likelihood=hybrid_mixture`
 
 The paper-derived transfer laws are implemented directly:
 
@@ -577,11 +599,12 @@ The paper-derived transfer laws are implemented directly:
 - with `task_batch_size=16`, `weight_decay=0.01`, and warmup/cosine schedule
   shape held fixed
 
-Use the faithful screen first, then benchmark the regime winners and compare
-them against the carried baselines on corrected benchmark log loss. The earlier
-endpoint selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` remains
-tracked superseded context only; it is no longer the canonical `#284` decision
-surface.
+Use the shared carried low-batch `T0` row as the one anchor source of truth,
+then compare Regime `B` and Regime `D` at `T2` first and `T1` second. After
+that regime choice, compare the winning law-derived regime against the carried
+high-batch baseline before opening any later Phase-2B rerun issue. The earlier
+endpoint selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` and the
+screen-based transfer pair remain tracked superseded context only.
 
 Treat `openml_classification_medium_v1` as the repo-wide default anchor
 benchmark until explicitly changed. Validation and inspection now fail fast if a

@@ -512,10 +512,9 @@ Next sweep ordering after the corrected Phase-2 closeout:
   baseline, linked study, kept winner, and fit/audit readiness from one place
 - third: run
   [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the faithful
-  `144x4` Muon transfer study: first run the `30`-row T0 screen
-  `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`, then validate
-  the screened Regime `B` and Regime `D` winners against the carried baselines
-  on `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+  `144x4` Muon transfer study as one strict shared-anchor LMO sweep:
+  `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`, with no T0
+  hyperparameter screen in the canonical path
 - fourth: only after the transfer study keeps one dynamics contract should a later
   Muon Phase-2B rerun redesign the multi-geometry batch surface before
   revisiting `Bcrit(L)` or any `Cmin` story
@@ -543,7 +542,19 @@ earlier heuristic endpoint selector. Keep geometry fixed at `144x4`, reuse the
 existing rung-equivalent effective-task budgets `T0/T1/T2 = {625×64, 2500×64,
 5000×64}`, and carry the repo-wide default anchor benchmark
 `openml_classification_medium_v1` forward as the only admissible benchmark
-surface until explicitly changed.
+contract. The active `#284` sweep uses one shared carried low-batch Muon `T0`
+artifact as the anchor source of truth, then derives Regime `B` and Regime `D`
+deterministically at `T1/T2`; there is no regime-specific T0 search in the
+canonical lane.
+surface until explicitly changed. The carried tested architecture is the
+concrete sandwich surface `d_icl=144`, `sandwich_layers=4`,
+`sandwich_latents=24`, `sandwich_heads=1`,
+`sandwich_summary_tokens_per_axis=3`, `sandwich_ff_expansion=2`,
+`sandwich_self_attention_per_cross=4`,
+`sandwich_pre_row_attention_layers=1`,
+`sandwich_pre_column_attention_layers=1`, and
+`sandwich_pre_column_inducing_tokens=16`; the study is testing training
+dynamics on that fixed architecture, not reopening architecture movement.
 
 - Regime `B`:
   - `B(T)=64`

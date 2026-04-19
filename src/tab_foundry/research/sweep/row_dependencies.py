@@ -160,6 +160,68 @@ def _resolve_screen_winner(
     return resolution, winning_row, source_queue, str(winning_candidate["value"])
 
 
+def _resolve_shared_anchor(
+    *,
+    queue: Mapping[str, Any],
+    policy: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    anchor_order = _optional_positive_int(
+        policy.get("anchor_order"),
+        context="shared anchor policy anchor_order",
+    )
+    if anchor_order is None:
+        raise RuntimeError("shared anchor policy anchor_order must be provided")
+    source_sweep_id = (
+        _optional_non_empty_string(
+            policy.get("anchor_sweep_id"),
+            context="shared anchor policy anchor_sweep_id",
+        )
+        or str(queue.get("sweep_id", "")).strip()
+    )
+    source_queue, source_rows = _queue_for_sweep(queue=queue, sweep_id=source_sweep_id)
+    anchor_row = _find_row_by_order(
+        rows=source_rows,
+        order=int(anchor_order),
+        context=f"shared anchor sweep {source_sweep_id}",
+    )
+    return anchor_row, source_queue
+
+
+def _shared_anchor_provenance(
+    *,
+    anchor_row: Mapping[str, Any],
+    source_queue: Mapping[str, Any],
+) -> dict[str, Any]:
+    provenance: dict[str, Any] = {
+        "anchor_sweep_id": str(source_queue["sweep_id"]),
+        "anchor_order": int(anchor_row["order"]),
+    }
+    delta_id = _optional_non_empty_string(
+        anchor_row.get("delta_id", anchor_row.get("delta_ref")),
+        context=f"shared anchor row {int(anchor_row['order'])}.delta_id",
+    )
+    if delta_id is not None:
+        provenance["anchor_delta_id"] = delta_id
+    reuse_artifact = anchor_row.get("reuse_train_artifact")
+    if isinstance(reuse_artifact, Mapping):
+        anchor_run_dir = _optional_non_empty_string(
+            reuse_artifact.get("run_dir"),
+            context=f"shared anchor row {int(anchor_row['order'])}.reuse_train_artifact.run_dir",
+        )
+        if anchor_run_dir is not None:
+            provenance["anchor_run_dir"] = anchor_run_dir
+    imported_baseline = anchor_row.get("imported_baseline_provenance")
+    if isinstance(imported_baseline, Mapping):
+        provenance["anchor_imported_baseline_provenance"] = dict(cast(Mapping[str, Any], imported_baseline))
+    run_id = _optional_non_empty_string(
+        anchor_row.get("run_id"),
+        context=f"shared anchor row {int(anchor_row['order'])}.run_id",
+    )
+    if run_id is not None:
+        provenance["anchor_run_id"] = run_id
+    return provenance
+
+
 def _first_schedule_stage(row: Mapping[str, Any]) -> Mapping[str, Any]:
     training = _mapping_value(row, "training", context=f"row {int(row['order'])}")
     overrides = _mapping_value(training, "overrides", context=f"row {int(row['order'])} training")
@@ -381,25 +443,60 @@ def resolve_dynamic_training_overrides(
             raise RuntimeError(f"dynamic_training_overrides.{override_key} must be a mapping")
         policy = cast(dict[str, Any], policy_raw)
         kind = str(policy.get("kind", "")).strip()
-        if kind != "screen_winner_transfer":
+        if kind not in {"screen_winner_transfer", "shared_anchor_transfer"}:
             raise RuntimeError(f"unsupported dynamic training override policy kind: {kind!r}")
 
-        resolution, winning_row, source_queue, winning_value = _resolve_screen_winner(
-            queue=queue,
-            policy=policy,
-        )
-        runtime, optimizer, schedule_stage, task_batch_size = _training_overrides(winning_row)
+        if kind == "screen_winner_transfer":
+            resolution, anchor_row, source_queue, anchor_label = _resolve_screen_winner(
+                queue=queue,
+                policy=policy,
+            )
+            resolution_note = (
+                f"Resolved transfer training overrides `{override_key}` from screen row "
+                f"`{int(resolution['winning_order'])}` in `{source_queue['sweep_id']}` "
+                f"({resolution['reason']})."
+            )
+            shared_anchor_provenance = _shared_anchor_provenance(
+                anchor_row=anchor_row,
+                source_queue=source_queue,
+            )
+            shared_anchor_provenance["anchor_candidate_label"] = str(anchor_label)
+            shared_anchor_provenance["resolution_reason"] = str(resolution["reason"])
+        else:
+            anchor_row, source_queue = _resolve_shared_anchor(
+                queue=queue,
+                policy=policy,
+            )
+            anchor_label = _optional_non_empty_string(
+                policy.get("anchor_label"),
+                context=f"dynamic_training_overrides.{override_key}.anchor_label",
+            ) or f"order_{int(anchor_row['order']):02d}"
+            resolution = {
+                "winning_order": int(anchor_row["order"]),
+                "reason": "shared_anchor",
+            }
+            resolution_note = (
+                f"Resolved transfer training overrides `{override_key}` from shared anchor row "
+                f"`{int(anchor_row['order'])}` in `{source_queue['sweep_id']}`."
+            )
+            shared_anchor_provenance = _shared_anchor_provenance(
+                anchor_row=anchor_row,
+                source_queue=source_queue,
+            )
+            shared_anchor_provenance["anchor_candidate_label"] = str(anchor_label)
+
+        runtime, optimizer, schedule_stage, task_batch_size = _training_overrides(anchor_row)
         base_grad_accum_steps = _optional_positive_int(
             runtime.get("grad_accum_steps"),
-            context=f"row {int(winning_row['order'])} runtime.grad_accum_steps",
+            context=f"row {int(anchor_row['order'])} runtime.grad_accum_steps",
         )
         base_max_steps = _optional_positive_int(
             runtime.get("max_steps"),
-            context=f"row {int(winning_row['order'])} runtime.max_steps",
+            context=f"row {int(anchor_row['order'])} runtime.max_steps",
         )
         if base_grad_accum_steps is None or base_max_steps is None:
             raise RuntimeError(
-                f"screen winner row {int(winning_row['order'])} omitted grad_accum_steps or max_steps"
+                f"anchor row {int(anchor_row['order'])} omitted grad_accum_steps or max_steps"
             )
         base_effective_batch = int(task_batch_size * base_grad_accum_steps)
         base_effective_budget = int(base_max_steps * base_effective_batch)
@@ -453,19 +550,15 @@ def resolve_dynamic_training_overrides(
                 **resolved_schedule,
                 "resolved_from_order": int(resolution["winning_order"]),
                 "resolved_from_sweep_id": str(source_queue["sweep_id"]),
-                "resolved_candidate_label": str(winning_value),
+                "resolved_candidate_label": str(anchor_label),
                 "resolution_reason": str(resolution["reason"]),
+                "shared_anchor_provenance": dict(shared_anchor_provenance),
             }
 
         policy["resolved_from_order"] = int(resolution["winning_order"])
         policy["resolved_from_sweep_id"] = str(source_queue["sweep_id"])
-        policy["resolved_candidate_label"] = str(winning_value)
+        policy["resolved_candidate_label"] = str(anchor_label)
         policy["resolution_reason"] = str(resolution["reason"])
-        resolution_note = (
-            f"Resolved transfer training overrides `{override_key}` from screen row "
-            f"`{int(resolution['winning_order'])}` in `{source_queue['sweep_id']}` "
-            f"({resolution['reason']})."
-        )
         queue_row["notes"] = append_note(queue_notes, resolution_note)
         materialized_row["notes"] = append_note(materialized_notes, resolution_note)
 

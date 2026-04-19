@@ -60,9 +60,23 @@ def _default_anchor_benchmark_contract() -> dict[str, Any]:
     }
 
 
+def _uses_default_anchor_benchmark_contract(
+    *,
+    benchmark_manifest_path: str | Path,
+    control_baseline_id: str | None,
+) -> bool:
+    resolved_manifest_path = Path(str(benchmark_manifest_path)).expanduser().resolve()
+    default_manifest_path = default_benchmark_manifest_path().expanduser().resolve()
+    if resolved_manifest_path != default_manifest_path:
+        return False
+    return _optional_string(control_baseline_id) == default_anchor_control_baseline_id()
+
+
 def _default_anchor_manifest_contract_issues(manifest_path: Path) -> list[str]:
     if manifest_path.expanduser().resolve() != default_benchmark_manifest_path().expanduser().resolve():
         return []
+    if not manifest_path.exists():
+        return ["default anchor benchmark manifest is not materialized locally"]
     characteristics = compute_manifest_characteristics(manifest_path)
     expected_summary = default_anchor_benchmark_summary()
     expected_task_count = int(expected_summary["task_count"])
@@ -316,9 +330,9 @@ def build_sweep_navigation_payload(
         "contract": {
             "benchmark_manifest_path": str(queue["benchmark_manifest_path"]),
             "default_anchor_benchmark": _default_anchor_benchmark_contract(),
-            "uses_default_anchor_benchmark": (
-                Path(str(queue["benchmark_manifest_path"])).expanduser().resolve()
-                == default_benchmark_manifest_path().expanduser().resolve()
+            "uses_default_anchor_benchmark": _uses_default_anchor_benchmark_contract(
+                benchmark_manifest_path=str(queue["benchmark_manifest_path"]),
+                control_baseline_id=_optional_string(queue.get("control_baseline_id")),
             ),
             "control_baseline_id": str(queue["control_baseline_id"]),
             "external_benchmarks": list(cast(Sequence[Any], queue.get("external_benchmarks", []))),
@@ -468,8 +482,11 @@ def build_scaling_navigation_payload(
             "default_anchor_benchmark": _default_anchor_benchmark_contract(),
             "uses_default_anchor_benchmark": (
                 len(benchmark_paths) == 1
-                and Path(next(iter(benchmark_paths))).expanduser().resolve()
-                == default_benchmark_manifest_path().expanduser().resolve()
+                and len(control_baselines) == 1
+                and _uses_default_anchor_benchmark_contract(
+                    benchmark_manifest_path=next(iter(benchmark_paths)),
+                    control_baseline_id=next(iter(control_baselines)),
+                )
             ),
             "control_baseline_id": next(iter(control_baselines)) if len(control_baselines) == 1 else None,
             "training_experiment": next(iter(training_experiments)) if len(training_experiments) == 1 else None,

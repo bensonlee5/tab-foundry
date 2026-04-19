@@ -253,7 +253,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -621,7 +621,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -989,7 +989,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -1357,7 +1357,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -1725,7 +1725,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -2093,7 +2093,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -2462,7 +2462,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -2831,7 +2831,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -3200,7 +3200,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -3569,7 +3569,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -3938,7 +3938,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -4307,7 +4307,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -4676,7 +4676,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -5045,7 +5045,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -5414,7 +5414,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -5783,7 +5783,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -6152,7 +6152,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -6521,7 +6521,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -6890,7 +6890,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -7259,7 +7259,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -7628,7 +7628,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -7997,7 +7997,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -8366,7 +8366,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -8735,7 +8735,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -9104,7 +9104,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -9473,7 +9473,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -9842,7 +9842,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -10211,7 +10211,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -10580,7 +10580,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454
@@ -10949,7 +10949,7 @@ rows:
       corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
       corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
       manifest:
-        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
       dagzoo_provenance:
         acceptance_rate: 0.9985836421932587
         accepted_datasets: 1729454

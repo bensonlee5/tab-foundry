@@ -345,11 +345,12 @@ def build_optimizer(
                 lr=lr,
                 weight_decay=weight_decay,
             )
+            adamw_tail_extra_kwargs = {k: v for k, v in extra_kwargs.items() if k != "momentum"}
             adamw_tail = torch.optim.AdamW(
                 adamw_tail_groups,
                 lr=lr,
                 weight_decay=weight_decay,
-                **extra_kwargs,
+                **adamw_tail_extra_kwargs,
             )
             optimizers.append(("adamw", adamw_tail))
         resolved = "muon+adamw" if len(optimizers) == 2 else "muon"
