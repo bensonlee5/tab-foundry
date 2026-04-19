@@ -511,29 +511,56 @@ Next sweep ordering after the corrected Phase-2 closeout:
   path should expose the active benchmark, corpus, formal anchor, carried
   baseline, linked study, kept winner, and fit/audit readiness from one place
 - third: run
-  [#284](https://github.com/bensonlee5/tab-foundry/issues/284), the compact
-  `12`-row Muon training-dynamics selector over `128x2`, `144x4`, and `264x6`
-  at a fixed 5000-step endpoint, and rank rows on the corrected quality/time
-  Pareto frontier
-- fourth: only after the selector keeps one dynamics contract should a later
+  [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the faithful
+  `144x4` Muon transfer study: first run the `30`-row T0 screen
+  `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`, then validate
+  the screened Regime `B` and Regime `D` winners against the carried baselines
+  on `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+- fourth: only after the transfer study keeps one dynamics contract should a later
   Muon Phase-2B rerun redesign the multi-geometry batch surface before
   revisiting `Bcrit(L)` or any `Cmin` story
 - fifth: keep larger-model follow-on work separate from this base study;
   [#269](https://github.com/bensonlee5/tab-foundry/issues/269) and
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259) are both
-  downstream of the cleanup and selector work, not the immediate next action
+  downstream of the cleanup and faithful transfer work, not the immediate next
+  action
 - last: keep missingness as inference-time evaluation only, after the corrected
   multiclass benchmark contract is trusted
 
 TF-RD-009 adoption decision: use the corrected Muon Phase-2 study as the fresh
 directional `L(N,S)` surface for the Muon family, but do not use `Bcrit(L)` to
 derive `Cmin` and do not make Chinchilla-like compute-optimal claims until the
-cleanup lane and compact training-dynamics selector land, a kept dynamics
-contract is chosen, and a later multi-geometry batch rerun materially improves
-the conditioning of the batch surface. The corrected empirical lesson is
+cleanup lane and faithful transfer study land, a kept dynamics contract is
+chosen, and a later multi-geometry batch rerun materially improves the
+conditioning of the batch surface. The corrected empirical lesson is
 training-dynamics-first: on the trusted multiclass benchmark, batch-side gains
 were larger than geometry-only gains, so the next defended study should test
 optimizer and batch invariants before reopening larger-family work.
+
+The faithful transfer study is derived directly from
+[arXiv:2603.15958](https://arxiv.org/abs/2603.15958) rather than from the
+earlier heuristic endpoint selector. Keep geometry fixed at `144x4`, reuse the
+existing rung-equivalent effective-task budgets `T0/T1/T2 = {625×64, 2500×64,
+5000×64}`, and carry the repo-wide default anchor benchmark
+`openml_classification_medium_v1` forward as the only admissible benchmark
+surface until explicitly changed.
+
+- Regime `B`:
+  - `B(T)=64`
+  - `alpha(T)=alpha0*(T/T0)^(-1/2)`
+  - `lr_max(T)=lr0*(T/T0)^(-3/4)`
+- Regime `D`:
+  - `B(T)=B0*(T/T0)^(1/6)`
+  - `alpha(T)=alpha0*(T/T0)^(-1/3)`
+  - `lr_max(T)=lr0*(T/T0)^(-7/12)`
+- in both regimes:
+  - `momentum(T)=1-alpha(T)`
+  - `min_lr=lr_max*1e-3`
+  - `task_batch_size=16`
+  - realized effective batch is the nearest multiple of `16`
+  - `max_steps=round_half_up(target_effective_budget / realized_effective_batch)`
+  - validation should fail if realized batch or effective-budget drift exceeds
+    the default `2%` guard
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 

@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
-sweep_id: tf_rd_009_muon_training_dynamics_endpoint_medium_v1
+sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
 parent_sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
-status: superseded
+status: draft
 complexity_level: classification_md
 anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
 benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
@@ -9,25 +9,21 @@ control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
 external_benchmarks: []
 training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
-surface_role: classification_training_dynamics_selector
+surface_role: classification_training_dynamics_transfer_screen
 comparison_policy: anchor_only
 upstream_reference:
-  name: PerceiverIO
-  model_source: https://openreview.net/forum?id=fILj7WpI-g
+  name: Deriving Hyperparameter Scaling Laws via Modern Optimization Theory
+  model_source: https://arxiv.org/abs/2603.15958
 anchor_surface:
   notes:
-  - 'PR #280 closed the corrected Muon Phase-2 study as a directional `L(N,S)` result,
-    not a stable compute-optimal law surface.'
-  - 'The next defended TF-RD-009 move is cleanup-first navigation and contract hardening
-    under #283, then the compact training-dynamics selector under #284.'
-  - Keep `60x2` as the formal external Muon anchor from `tf_rd_009_muon_width_screen_medium_v1`,
-    but carry `128x2` as the in-family baseline into this selector.
-  - Keep the corrected `openml_classification_medium_v1` benchmark and `tf_rd_010_dagzoo_medium_control_curated_v6`
-    corpus fixed; historical schedulefree TF-RD-009 remains preserved context only.
-  - Rank selector rows on the quality/time Pareto frontier before any Muon Phase-2B
-    rerun or upper-family reopening.
-  - 'Superseded by the faithful paper-derived transfer screen plus validation sweeps
-    under issue #284; keep this selector as historical context only.'
+  - 'This sweep replaces the compact heuristic selector as the active #284 screen
+    and treats the earlier selector as superseded context only.'
+  - Hold geometry fixed at 144x4 and use the paper-derived budget-transfer study to
+    choose one T0 anchor for Regime B and one for Regime D.
+  - Regime B keeps effective batch fixed at 64 while scaling momentum and lr with
+    budget; Regime D jointly scales batch, momentum, and lr.
+  - Use the corrected openml_classification_medium_v1 anchor benchmark with natural
+    missingness preserved; fail fast if any row drifts to a binary surface.
   dimension_table: []
 anchor_context:
   run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1

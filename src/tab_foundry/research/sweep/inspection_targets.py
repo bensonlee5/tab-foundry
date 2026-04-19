@@ -237,4 +237,5 @@ def inspect_sweep_row(
         "navigation": navigation,
         "row_summary": row_summary,
         "selector_summary": summary_payload.get("selector_summary"),
+        "transfer_summary": summary_payload.get("transfer_summary"),
     }

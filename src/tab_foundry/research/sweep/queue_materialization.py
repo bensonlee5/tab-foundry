@@ -140,6 +140,16 @@ def _reuse_train_artifact_payload(
     return None
 
 
+def _optional_extra_payload(
+    queue_row: QueueRowPayload | Mapping[str, Any],
+    key: str,
+) -> Any:
+    raw_payload = queue_row.get(key)
+    if raw_payload is None:
+        return None
+    return _copy_jsonable(raw_payload) if isinstance(raw_payload, (dict, list)) else raw_payload
+
+
 def _json_fingerprint(payload: Mapping[str, Any]) -> str:
     return sha256_text(json.dumps(_copy_jsonable(payload), sort_keys=True, separators=(",", ":")))
 
@@ -335,6 +345,16 @@ def inspection_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    for extra_key in (
+        "dynamic_training_overrides",
+        "dynamic_reuse_train_artifact",
+        "transfer_context",
+        "transfer_resolution",
+        "imported_baseline_provenance",
+    ):
+        extra_payload = _optional_extra_payload(queue_row, extra_key)
+        if extra_payload is not None:
+            payload[extra_key] = extra_payload
     reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
     if reuse_train_artifact is not None:
         payload["reuse_train_artifact"] = reuse_train_artifact
@@ -555,6 +575,16 @@ def materialize_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    for extra_key in (
+        "dynamic_training_overrides",
+        "dynamic_reuse_train_artifact",
+        "transfer_context",
+        "transfer_resolution",
+        "imported_baseline_provenance",
+    ):
+        extra_payload = _optional_extra_payload(queue_row, extra_key)
+        if extra_payload is not None:
+            payload[extra_key] = extra_payload
     reuse_train_artifact = _reuse_train_artifact_payload(queue_row)
     if reuse_train_artifact is not None:
         payload["reuse_train_artifact"] = reuse_train_artifact
@@ -640,6 +670,8 @@ def materialize_resolved_system_delta_queue(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> ResolvedQueuePayload:
+    from . import row_dependencies as _row_dependencies
+
     materialized = materialize_system_delta_queue(
         catalog=catalog,
         sweep=sweep,
@@ -649,21 +681,48 @@ def materialize_resolved_system_delta_queue(
     )
     resolved_repo_root = _resolved_repo_root(catalog_path=catalog_path, sweeps_root=sweeps_root)
     training_experiment = resolve_sweep_semantics(sweep).training_surface.training_experiment
+    materialized_payload = materialized.to_payload_dict()
+    queue_rows_payload = cast(list[dict[str, Any]], materialized_payload["rows"])
+    queue_for_resolution = {
+        "sweep_id": sweep.sweep_id,
+        "training_experiment": training_experiment,
+        "rows": queue_rows_payload,
+    }
     resolved_rows: list[dict[str, Any]] = []
-    for row in materialized.rows:
+    for row_payload in queue_rows_payload:
+        _row_dependencies.resolve_dynamic_model_overrides(
+            queue=queue_for_resolution,
+            queue_row=row_payload,
+            materialized_row=row_payload,
+        )
+        _row_dependencies.resolve_dynamic_training_overrides(
+            queue=queue_for_resolution,
+            queue_row=row_payload,
+            materialized_row=row_payload,
+        )
+        _row_dependencies.resolve_dynamic_reuse_train_artifact(
+            queue=queue_for_resolution,
+            queue_row=row_payload,
+            materialized_row=row_payload,
+        )
+        validate_one_epoch_contract(
+            row_payload,
+            repo_root=resolved_repo_root,
+            sweep_id=sweep.sweep_id,
+            sweeps_root=sweeps_root,
+        )
         resolved_surface, resolved_surface_fingerprint = _resolved_surface_payload(
-            row=row.to_payload_dict(),
+            row=row_payload,
             sweep_id=sweep.sweep_id,
             training_experiment=training_experiment,
             repo_root=resolved_repo_root,
             sweeps_root=sweeps_root,
         )
-        row_payload = row.to_payload_dict()
         row_payload["resolved_surface"] = resolved_surface
         row_payload["resolved_surface_fingerprint"] = resolved_surface_fingerprint
-        resolved_rows.append(row_payload)
+        resolved_rows.append(dict(row_payload))
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
-    payload = materialized.to_payload_dict()
+    payload = materialized_payload
     payload.update(
         {
             "schema": RESOLVED_QUEUE_SCHEMA,

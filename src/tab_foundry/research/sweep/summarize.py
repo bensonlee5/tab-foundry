@@ -11,6 +11,7 @@ from .objective_metrics import (
     objective_metric_from_queue_metrics,
 )
 from .pareto import annotate_rows_with_pareto
+from .transfer import annotate_rows_with_transfer_context
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
@@ -131,6 +132,21 @@ def build_sweep_summary_payload(
                 "stability": _stability_verdict(row, metrics),
                 "objective_metric": objective_metric,
                 "model": None if not isinstance(row.get("model"), Mapping) else dict(cast(Mapping[str, Any], row["model"])),
+                "transfer_context": (
+                    dict(cast(Mapping[str, Any], row["transfer_context"]))
+                    if isinstance(row.get("transfer_context"), Mapping)
+                    else None
+                ),
+                "transfer_resolution": (
+                    dict(cast(Mapping[str, Any], row["transfer_resolution"]))
+                    if isinstance(row.get("transfer_resolution"), Mapping)
+                    else None
+                ),
+                "imported_baseline_provenance": (
+                    dict(cast(Mapping[str, Any], row["imported_baseline_provenance"]))
+                    if isinstance(row.get("imported_baseline_provenance"), Mapping)
+                    else None
+                ),
                 "final_roc_auc": _optional_float(metrics.get("final_roc_auc")),
                 "delta_final_roc_auc": _optional_float(metrics.get("delta_final_roc_auc")),
                 "final_bpc": _optional_float(metrics.get("final_bpc")),
@@ -190,6 +206,10 @@ def build_sweep_summary_payload(
         rows=rows_payload,
         surface_role=(str(queue.get("surface_role")) if queue.get("surface_role") is not None else None),
     )
+    transfer_summary = annotate_rows_with_transfer_context(
+        rows=rows_payload,
+        surface_role=(str(queue.get("surface_role")) if queue.get("surface_role") is not None else None),
+    )
     return {
         "sweep_id": str(queue["sweep_id"]),
         "row_count": len(rows_payload),
@@ -197,6 +217,7 @@ def build_sweep_summary_payload(
         "surface_role": str(queue.get("surface_role") or ""),
         "rows": rows_payload,
         "selector_summary": selector_summary,
+        "transfer_summary": transfer_summary,
     }
 
 
@@ -346,4 +367,50 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
                         if isinstance(geometry_row, Mapping)
                     )
                 )
+    transfer_summary = payload.get("transfer_summary")
+    if isinstance(transfer_summary, Mapping):
+        best_row = transfer_summary.get("best_row")
+        fastest_row = transfer_summary.get("fastest_row")
+        leaderboard = transfer_summary.get("regime_leaderboard")
+        imported_orders = transfer_summary.get("imported_baseline_orders")
+        if best_row or fastest_row or leaderboard or imported_orders:
+            lines.extend(["", "Transfer summary:"])
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- best transfer row: "
+                f"order {int(best_row['order']):02d}, "
+                f"regime={best_row.get('regime_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"budget={best_row.get('target_budget_label') or 'n/a'}"
+            )
+        if isinstance(fastest_row, Mapping):
+            lines.append(
+                "- fastest transfer row: "
+                f"order {int(fastest_row['order']):02d}, "
+                f"regime={fastest_row.get('regime_label') or 'n/a'}, "
+                f"wall={float(fastest_row['end_to_end_wall_seconds']):.1f}s, "
+                f"log_loss={float(fastest_row['final_log_loss']):.6f}"
+            )
+        if isinstance(leaderboard, list) and leaderboard:
+            rendered_leaderboard = ", ".join(
+                (
+                    f"{str(cast(Mapping[str, Any], item)['regime_label'])} "
+                    f"(mean_log_loss={float(cast(Mapping[str, Any], item)['mean_benchmark_log_loss']):.6f}"
+                    + (
+                        ""
+                        if cast(Mapping[str, Any], item).get("mean_end_to_end_wall_seconds") is None
+                        else f", mean_wall={float(cast(Mapping[str, Any], item)['mean_end_to_end_wall_seconds']):.1f}s"
+                    )
+                    + ")"
+                )
+                for item in leaderboard
+                if isinstance(item, Mapping)
+            )
+            if rendered_leaderboard:
+                lines.append(f"- regime leaderboard: {rendered_leaderboard}")
+        if isinstance(imported_orders, list) and imported_orders:
+            lines.append(
+                "- imported baseline orders: "
+                + ", ".join(f"{int(value):02d}" for value in imported_orders)
+            )
     return "\n".join(lines)

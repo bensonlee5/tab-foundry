@@ -346,7 +346,14 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             name=optimizer_requested_name,
             lr=first_stage.lr_max,
             weight_decay=float(cfg.optimizer.weight_decay),
-            extra_kwargs={"betas": tuple(cfg.optimizer.betas)},
+            extra_kwargs={
+                "betas": tuple(cfg.optimizer.betas),
+                **(
+                    {"momentum": float(cfg.optimizer.momentum)}
+                    if getattr(cfg.optimizer, "momentum", None) is not None
+                    else {}
+                ),
+            },
             require_requested=bool(cfg.optimizer.require_requested),
             muon_per_parameter_lr=bool(cfg.optimizer.muon_per_parameter_lr),
             muon_lr_scale_base=float(cfg.optimizer.muon_lr_scale_base),

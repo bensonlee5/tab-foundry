@@ -494,8 +494,15 @@ tab-foundry research sweep list-sweeps
 tab-foundry dev resolve-config \
   experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 tab-foundry research sweep inspect \
-  --sweep-id tf_rd_009_muon_training_dynamics_endpoint_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1 \
   --order 1 \
+  --json
+tab-foundry research sweep inspect \
+  --sweep-id tf_rd_009_muon_training_dynamics_transfer_medium_v1 \
+  --order 7 \
+  --json
+tab-foundry research sweep summarize \
+  --sweep-id tf_rd_009_muon_training_dynamics_transfer_medium_v1 \
   --json
 tab-foundry research scaling inspect \
   --study tf_rd_009_muon_phase2_one_epoch_v1 \
@@ -523,7 +530,8 @@ The active Muon lineage is:
 - `tf_rd_009_muon_ns_one_epoch_medium_v1`
 - `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
 - `tf_rd_009_muon_phase2_one_epoch_v1`
-- next selector sweep: `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
+- active `#284` screen: `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`
+- active `#284` validation: `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
 
 `tf_rd_009_muon_width_screen_medium_v1` completed the fresh Muon width screen
 on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
@@ -531,18 +539,55 @@ on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
 as the formal external Muon anchor, but carry `128x2` forward as the current
 in-family baseline. The corrected Muon Phase-2 closeout in merged PR
 [#280](https://github.com/bensonlee5/tab-foundry/pull/280) keeps `L(N,S)` as a
-directional signal only, so the next defended execution lane is the compact
-training-dynamics selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
-over `128x2`, `144x4`, and `264x6` at the fixed 5000-step endpoint.
+directional signal only, so the next defended execution lane is the faithful
+paper-derived transfer study for
+[#284](https://github.com/bensonlee5/tab-foundry/issues/284): keep geometry
+fixed at `144x4`, keep the default anchor benchmark
+`openml_classification_medium_v1`, and compare the carried baselines against
+paper-derived Regime `B` and Regime `D` across the reused budget ladder
+`T0/T1/T2 = {625×64, 2500×64, 5000×64}`.
 
-The selector keeps the corrected `openml_classification_medium_v1` benchmark,
-the fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus, and ranks rows
-on a quality/time Pareto frontier across four prescriptions per geometry:
+The screen and validation sweeps are intentionally separate:
 
-- carried low-batch baseline
-- carried high-batch empirical reference
-- linear LR/batch prescription
-- momentum-timescale prescription
+- `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`
+  - `30` train-only T0 rows at `144x4`
+  - Regime `B`: fixed batch `B(T)=64`, `6` rows over
+    `lr_max ∈ {1e-3, 2e-3}` and `momentum ∈ {0.90, 0.95, 0.975}`
+  - Regime `D`: `24` rows over realizable `B0 ∈ {64, 80, 96, 128}` with the
+    same LR and momentum grid
+- `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+  - logical `12`-row comparison surface at `144x4`
+  - imported carried low-batch baselines at `T0/T1/T2`
+  - new carried high-batch baselines at `T0/T1/T2`
+  - screened Regime `B` winner transferred to `T0/T1/T2`
+  - screened Regime `D` winner transferred to `T0/T1/T2`
+
+The paper-derived transfer laws are implemented directly:
+
+- Regime `B`
+  - `B(T)=64`
+  - `alpha(T)=alpha0*(T/T0)^(-1/2)`
+  - `lr_max(T)=lr0*(T/T0)^(-3/4)`
+- Regime `D`
+  - `B(T)=B0*(T/T0)^(1/6)`
+  - `alpha(T)=alpha0*(T/T0)^(-1/3)`
+  - `lr_max(T)=lr0*(T/T0)^(-7/12)`
+- `momentum(T)=1-alpha(T)`
+- `min_lr=lr_max*1e-3`
+- with `task_batch_size=16`, `weight_decay=0.01`, and warmup/cosine schedule
+  shape held fixed
+
+Use the faithful screen first, then benchmark the regime winners and compare
+them against the carried baselines on corrected benchmark log loss. The earlier
+endpoint selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` remains
+tracked superseded context only; it is no longer the canonical `#284` decision
+surface.
+
+Treat `openml_classification_medium_v1` as the repo-wide default anchor
+benchmark until explicitly changed. Validation and inspection now fail fast if a
+default-anchor sweep resolves to the wrong manifest hash or to any binary
+benchmark surface, which closes the loophole that previously let stale binary
+contracts sneak back into TF-RD-009 recovery work.
 
 For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than

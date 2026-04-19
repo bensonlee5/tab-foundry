@@ -595,6 +595,14 @@ def render_system_delta_matrix(
             )
         elif queue_row["dimension_family"] == "training":
             lines.append(f"- Training overrides: `{queue_row['training'].get('overrides', {})}`")
+            dynamic_training_overrides = queue_row.get("dynamic_training_overrides")
+            if isinstance(dynamic_training_overrides, Mapping) and dynamic_training_overrides:
+                lines.append(f"- Dynamic training overrides: `{dict(dynamic_training_overrides)}`")
+            dynamic_reuse_train_artifact = queue_row.get("dynamic_reuse_train_artifact")
+            if isinstance(dynamic_reuse_train_artifact, Mapping) and dynamic_reuse_train_artifact:
+                lines.append(
+                    f"- Dynamic reuse train artifact: `{dict(dynamic_reuse_train_artifact)}`"
+                )
         else:
             lines.append(f"- Preprocessing overrides: `{queue_row['preprocessing'].get('overrides', {})}`")
         reuse_train_artifact = queue_row.get("reuse_train_artifact")
@@ -604,6 +612,15 @@ def render_system_delta_matrix(
                 "- Reuse training surface fingerprint: "
                 f"`{reuse_train_artifact.get('training_surface_fingerprint')}`"
             )
+        transfer_context = queue_row.get("transfer_context")
+        if isinstance(transfer_context, Mapping) and transfer_context:
+            lines.append(f"- Transfer context: `{dict(transfer_context)}`")
+        transfer_resolution = queue_row.get("transfer_resolution")
+        if isinstance(transfer_resolution, Mapping) and transfer_resolution:
+            lines.append(f"- Transfer resolution: `{dict(transfer_resolution)}`")
+        imported_baseline = queue_row.get("imported_baseline_provenance")
+        if isinstance(imported_baseline, Mapping) and imported_baseline:
+            lines.append(f"- Imported baseline provenance: `{dict(imported_baseline)}`")
         lines.append("- Parameter adequacy plan:")
         for plan_item in cast(list[str], queue_row.get("parameter_adequacy_plan", [])):
             lines.append(f"  - {plan_item}")
@@ -825,22 +842,32 @@ def render_and_write_system_delta_matrix(
 ) -> Path:
     from .reporting import refresh_result_cards_for_queue
 
-    resolved_queue = (
-        queue
-        if queue is not None
-        else load_system_delta_queue(
-            path=write_resolved_system_delta_queue(
+    if queue is not None:
+        resolved_queue = queue
+    else:
+        try:
+            resolved_queue = load_system_delta_queue(
+                path=write_resolved_system_delta_queue(
+                    sweep_id=sweep_id,
+                    index_path=index_path,
+                    catalog_path=catalog_path,
+                    sweeps_root=sweeps_root,
+                ),
                 sweep_id=sweep_id,
                 index_path=index_path,
                 catalog_path=catalog_path,
                 sweeps_root=sweeps_root,
-            ),
-            sweep_id=sweep_id,
-            index_path=index_path,
-            catalog_path=catalog_path,
-            sweeps_root=sweeps_root,
-        )
-    )
+            )
+        except RuntimeError as exc:
+            message = str(exc)
+            if "missing screen_metrics" not in message:
+                raise
+            resolved_queue = load_system_delta_queue(
+                sweep_id=sweep_id,
+                index_path=index_path,
+                catalog_path=catalog_path,
+                sweeps_root=sweeps_root,
+            )
     resolved_sweep_id = _require_non_empty_string(
         sweep_id if sweep_id is not None else resolved_queue.get("sweep_id"),
         context="sweep_id",

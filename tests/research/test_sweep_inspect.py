@@ -907,3 +907,104 @@ def test_render_sweep_row_text_surfaces_selector_frontier_context() -> None:
     assert "selector_prescription_label=carry_highbatch" in text
     assert "selector_best_row=order 10" in text
     assert "selector_kept_contract=carry_lowbatch" in text
+
+
+def test_render_sweep_row_text_surfaces_transfer_context() -> None:
+    text = inspect_module.render_sweep_row_text(
+        {
+            "queue": {
+                "sweep_id": "tf_rd_009_muon_training_dynamics_transfer_medium_v1",
+                "training_experiment": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+                "training_config_profile": "cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1",
+                "surface_role": "classification_training_dynamics_transfer",
+            },
+            "row": {
+                "order": 8,
+                "delta_id": "delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1",
+                "status": "ready",
+                "decision": "defer",
+                "run_id": None,
+                "parent_delta_ref": None,
+                "benchmark_checkpoint_selection": "best_and_final",
+            },
+            "target": {
+                "resolved": {
+                    "model": {
+                        "stage_label": "tf_rd_009_cls_sandwich_dicl144_layers4_v1",
+                        "arch": "tabfoundry_staged",
+                        "parameter_counts": {"total_params": 1234, "trainable_params": 1234},
+                    }
+                },
+                "artifacts": {},
+                "metrics": {},
+            },
+            "navigation": {
+                "lineage": [
+                    {"sweep_id": "tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1"},
+                    {"sweep_id": "tf_rd_009_muon_training_dynamics_transfer_medium_v1"},
+                ],
+                "contract": {
+                    "benchmark_manifest_path": "data/manifests/bench/openml_classification_medium_v1/manifest.parquet",
+                    "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+                    "carried_in_family_baseline_run_id": "anchor_run",
+                },
+                "winner": None,
+                "linked_scaling_study_ids": [],
+            },
+            "row_summary": {
+                "transfer_regime_label": "B",
+                "transfer_phase": "validation",
+                "transfer_formula_label": "Theorem 2 fixed-batch transfer",
+                "transfer_target_budget_label": "T1",
+                "transfer_candidate_label": "regime_b_lr0.001_m0.95_beff64",
+                "target_effective_batch": 64,
+                "realized_effective_batch": 64,
+                "target_effective_budget": 160000,
+                "realized_effective_budget": 160000,
+                "budget_drift": 0.0,
+                "batch_drift": 0.0,
+                "imported_baseline_provenance": {
+                    "source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1",
+                    "source_order": 11,
+                },
+            },
+            "transfer_summary": {
+                "best_row": {
+                    "order": 8,
+                    "regime_label": "B",
+                    "final_log_loss": 0.41,
+                    "end_to_end_wall_seconds": 7200.0,
+                    "target_budget_label": "T1",
+                },
+                "fastest_row": {
+                    "order": 1,
+                    "regime_label": "carry_lowbatch",
+                    "final_log_loss": 0.49,
+                    "end_to_end_wall_seconds": 5400.0,
+                    "target_budget_label": "T0",
+                },
+                "regime_leaderboard": [
+                    {
+                        "regime_label": "B",
+                        "row_count": 2,
+                        "best_row_order": 8,
+                        "best_log_loss": 0.41,
+                        "mean_benchmark_log_loss": 0.42,
+                        "mean_end_to_end_wall_seconds": 7150.0,
+                    }
+                ],
+                "imported_baseline_orders": [1, 2, 3],
+            },
+        }
+    )
+
+    assert "transfer_regime_label=B" in text
+    assert "transfer_phase=validation" in text
+    assert "transfer_formula_label=Theorem 2 fixed-batch transfer" in text
+    assert "transfer_target_budget_label=T1" in text
+    assert "target_effective_batch=64" in text
+    assert "realized_effective_budget=160000" in text
+    assert '"source_order": 11' in text
+    assert '"source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1"' in text
+    assert "transfer_best_row=order 08, regime=B" in text
+    assert "transfer_fastest_row=order 01, regime=carry_lowbatch" in text

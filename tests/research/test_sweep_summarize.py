@@ -348,3 +348,88 @@ def test_summarize_sweep_reports_no_universal_selector_contract_when_no_majority
         coverage["prescription_label"]
         for coverage in selector_summary["prescription_coverage"]
     ] == ["linear_lr_batch", "momentum_timescale", "carry_highbatch"]
+
+
+def _transfer_row(
+    *,
+    order: int,
+    regime_label: str,
+    target_budget_label: str,
+    final_log_loss: float,
+    end_to_end_wall_seconds: float | None,
+    imported: bool = False,
+) -> dict[str, object]:
+    row: dict[str, object] = {
+        "order": order,
+        "delta_id": f"delta_transfer_{order}",
+        "status": "completed",
+        "decision": "keep",
+        "run_id": f"transfer_run_{order}",
+        "benchmark_metrics": {
+            "objective_metric": "final_log_loss_at_matched_regime_budget",
+            "final_log_loss": final_log_loss,
+            "delta_final_log_loss": 0.0,
+            "end_to_end_wall_seconds": end_to_end_wall_seconds,
+            "throughput_tokens_per_second": 2000.0 + float(order),
+        },
+        "transfer_context": {
+            "regime_label": regime_label,
+            "phase": "validation",
+            "formula_label": "Theorem 2 fixed-batch transfer" if regime_label == "B" else "baseline import",
+            "base_budget_label": "T0",
+            "target_budget_label": target_budget_label,
+            "target_effective_batch": 64,
+            "realized_effective_batch": 64,
+            "target_effective_budget": {"T0": 40000, "T1": 160000, "T2": 320000}[target_budget_label],
+            "realized_effective_budget": {"T0": 40000, "T1": 160000, "T2": 320000}[target_budget_label],
+            "budget_drift": 0.0,
+            "batch_drift": 0.0,
+        },
+    }
+    if imported:
+        row["imported_baseline_provenance"] = {
+            "source_sweep_id": "tf_rd_009_muon_ns_one_epoch_medium_v1",
+            "source_order": order,
+        }
+    return row
+
+
+def test_summarize_sweep_reports_transfer_regime_leaderboard(monkeypatch) -> None:
+    queue = {
+        "sweep_id": "transfer_sweep",
+        "surface_role": "classification_training_dynamics_transfer",
+        "rows": [
+            _transfer_row(order=1, regime_label="carry_lowbatch", target_budget_label="T0", final_log_loss=0.49, end_to_end_wall_seconds=5400.0, imported=True),
+            _transfer_row(order=2, regime_label="carry_lowbatch", target_budget_label="T1", final_log_loss=0.47, end_to_end_wall_seconds=5500.0, imported=True),
+            _transfer_row(order=3, regime_label="B", target_budget_label="T0", final_log_loss=0.45, end_to_end_wall_seconds=7000.0),
+            _transfer_row(order=4, regime_label="B", target_budget_label="T1", final_log_loss=0.43, end_to_end_wall_seconds=7100.0),
+            _transfer_row(order=5, regime_label="D", target_budget_label="T0", final_log_loss=0.46, end_to_end_wall_seconds=6600.0),
+            _transfer_row(order=6, regime_label="D", target_budget_label="T1", final_log_loss=0.44, end_to_end_wall_seconds=6800.0),
+        ],
+    }
+
+    monkeypatch.setattr(
+        summarize_module,
+        "load_system_delta_queue_for_inspection",
+        lambda **_: queue,
+    )
+    monkeypatch.setattr(summarize_module, "ordered_rows", lambda payload: payload["rows"])
+
+    payload = summarize_module.summarize_sweep(sweep_id="transfer_sweep")
+
+    transfer_summary = payload["transfer_summary"]
+    assert transfer_summary is not None
+    assert transfer_summary["best_row"]["order"] == 4
+    assert transfer_summary["best_row"]["regime_label"] == "B"
+    assert transfer_summary["fastest_row"]["order"] == 1
+    assert transfer_summary["imported_baseline_orders"] == [1, 2]
+    assert [entry["regime_label"] for entry in transfer_summary["regime_leaderboard"]] == [
+        "B",
+        "D",
+        "carry_lowbatch",
+    ]
+
+    rendered = summarize_module.render_sweep_summary_table(payload)
+    assert "Transfer summary:" in rendered
+    assert "best transfer row: order 04, regime=B" in rendered
+    assert "imported baseline orders: 01, 02" in rendered

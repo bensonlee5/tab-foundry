@@ -1170,10 +1170,14 @@ Legacy wording note:
     [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) remains
     preserved context only
-  - the next executable selector surface is now
-    `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`, a compact `12`-row
-    endpoint study over `128x2`, `144x4`, and `264x6` that ranks rows on a
-    corrected quality/time Pareto frontier before any later Muon Phase-2B rerun
+  - the active `#284` execution surface is now the faithful paper-derived
+    transfer pair:
+    `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1` followed by
+    `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+  - the earlier heuristic endpoint selector
+    `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` remains tracked
+    superseded context only; it is no longer the canonical training-dynamics
+    decision surface
 - Required work:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative umbrella for TF-RD-009, but treat the historical
@@ -1198,14 +1202,27 @@ Legacy wording note:
     kept winner, and fit/audit readiness, while failing fast on benchmark,
     baseline, corpus, anchor, and replay-completeness contract drift
   - after the cleanup child lands, execute
-    [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the compact
-    Muon training-dynamics selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`:
-    keep the corrected `openml_classification_medium_v1` benchmark and
-    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, run the
-    `128x2` / `144x4` / `264x6` endpoint matrix with carried low-batch,
-    carried high-batch, linear LR/batch, and momentum-timescale prescriptions,
-    and rank rows on the corrected quality/time Pareto frontier
-  - only after the cleanup child and compact selector land should
+    [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the
+    faithful Muon transfer study at fixed `144x4`: keep the corrected
+    `openml_classification_medium_v1` default anchor benchmark and
+    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, run the T0
+    screen `tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1`, then
+    validate the screened Regime `B` and Regime `D` winners against the carried
+    low-batch and carried high-batch baselines on
+    `tf_rd_009_muon_training_dynamics_transfer_medium_v1`
+  - derive the transfer rows directly from
+    [arXiv:2603.15958](https://arxiv.org/abs/2603.15958):
+    Regime `B` uses `B(T)=64`, `alpha(T)=alpha0*(T/T0)^(-1/2)`, and
+    `lr_max(T)=lr0*(T/T0)^(-3/4)`; Regime `D` uses
+    `B(T)=B0*(T/T0)^(1/6)`, `alpha(T)=alpha0*(T/T0)^(-1/3)`, and
+    `lr_max(T)=lr0*(T/T0)^(-7/12)` with `momentum(T)=1-alpha(T)` and
+    `min_lr=lr_max*1e-3`
+  - realize budgets deterministically on the existing rung ladder
+    `T0/T1/T2 = {625×64, 2500×64, 5000×64}` with `task_batch_size=16`,
+    nearest-realizable effective batch rounding, `max_steps=round_half_up(T/B)`,
+    and a default `2%` drift guard on realized batch and effective-budget
+    mismatch
+  - only after the cleanup child and faithful transfer study land should
     [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited
     for any Muon upper-family move; treat any later larger-model probe as
     post-selector work instead of as a blocker on the current active reboot path

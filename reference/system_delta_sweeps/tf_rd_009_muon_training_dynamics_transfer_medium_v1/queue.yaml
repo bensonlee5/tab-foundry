@@ -1,0 +1,1958 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_muon_training_dynamics_transfer_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: 4fc459d869ad4846c6cfae41b5c03ff051b4d47a924f1126afbec3d8ee4a7c5a
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the transfer study
+    without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 09 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 3.595210751679737
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 563.5871033887379
+    wall_elapsed_seconds: 572.867870552931
+    peak_vram_allocated: 3068066304
+    peak_vram_reserved: 7589593088
+    end_to_end_wall_seconds: 593.1992791611701
+    loader_setup_seconds: 20.120247365906835
+    throughput_examples_per_second: 70.97394486049788
+    throughput_tokens_per_second: 424133.93522087584
+    non_train_overhead_seconds: 9.431410214398056
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6461466098688694
+    final_log_loss: 0.6461466098688694
+    best_brier_score: 0.4025780370601524
+    final_brier_score: 0.4025780370601524
+    best_roc_auc: 0.6658360736913753
+    final_roc_auc: 0.6658360736913753
+    best_bpc: 2.1886389592728532
+    final_bpc: 2.1886389592728532
+    best_bpf: 2.1886385221739073
+    final_bpf: 2.1886385221739073
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.3674210980534554
+    final_train_loss_ema: 1.2829152672163924
+    final_tail_mean_train_loss: 1.3081061603531006
+    final_tail_mean_train_loss_ema: 1.3118983355389424
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
+  parent_delta_ref: null
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 9
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: a4c7d3c6553c38115717e1178045a9b795c21c50d5104cbea7c9e02b3125eb6f
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the transfer study
+    without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 11 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 4.271018091022219
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1961.8925335267559
+    wall_elapsed_seconds: 1980.4997803838924
+    peak_vram_allocated: 3068090368
+    peak_vram_reserved: 7765753856
+    end_to_end_wall_seconds: 2001.2573917103
+    loader_setup_seconds: 20.55282300291583
+    throughput_examples_per_second: 81.55390637650233
+    throughput_tokens_per_second: 487893.3089567956
+    non_train_overhead_seconds: 18.75265457155183
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.507891654839319
+    final_log_loss: 0.507891654839319
+    best_brier_score: 0.30953249632666074
+    final_brier_score: 0.30953249632666074
+    best_roc_auc: 0.7718923833213517
+    final_roc_auc: 0.7718923833213517
+    best_bpc: 2.396527912263809
+    final_bpc: 2.396527912263809
+    best_bpf: 2.396453592980478
+    final_bpf: 2.396453592980478
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0272985249757767
+    final_train_loss_ema: 1.095487027726373
+    final_tail_mean_train_loss: 1.1281592704206704
+    final_tail_mean_train_loss_ema: 1.1312624687628345
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
+  parent_delta_ref: null
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 11
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 160000
+    realized_effective_budget: 160000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: 7ced1d99f22a54bfcb426e1cfb57b5f40bfc925b674839077baadc1b8d838e40
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the transfer study
+    without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 12 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 2.936327000965149
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3780.5150319170207
+    wall_elapsed_seconds: 3812.982417874038
+    peak_vram_allocated: 3068100608
+    peak_vram_reserved: 8241807360
+    end_to_end_wall_seconds: 3833.3359849727713
+    loader_setup_seconds: 20.149004251230508
+    throughput_examples_per_second: 84.64455168102708
+    throughput_tokens_per_second: 506299.0158326164
+    non_train_overhead_seconds: 32.61169299064204
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.49140312704015116
+    final_log_loss: 0.49140312704015116
+    best_brier_score: 0.29893815856001277
+    final_brier_score: 0.29893815856001277
+    best_roc_auc: 0.78658115657993
+    final_roc_auc: 0.78658115657993
+    best_bpc: 3.032832350861403
+    final_bpc: 3.032832350861403
+    best_bpf: 3.0327029591538555
+    final_bpf: 3.0327029591538555
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0004463642835617
+    final_train_loss_ema: 1.026697086549313
+    final_tail_mean_train_loss: 1.0992620735913514
+    final_tail_mean_train_loss_ema: 1.1018730984280445
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
+  parent_delta_ref: null
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 12
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 320000
+    realized_effective_budget: 320000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: ready
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 156
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 156
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 39936
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    paper-derived regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 40000
+    realized_effective_budget: 39936
+    budget_drift: -0.0016000000000000458
+    batch_drift: 0.0
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: ready
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    paper-derived regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 160000
+    realized_effective_budget: 160000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 6
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: ready
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    paper-derived regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 320000
+    realized_effective_budget: 320000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 7
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime B at 144x4 on the T0 rung.
+  hypothesis: Regime B should extrapolate from its winning T0 anchor to T0 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime B and apply pure paper-derived
+    transfer to T0.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime B on T0.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime B on T0 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: B
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 1
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 2
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 3
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 4
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 5
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 6
+      tie_break_preference: regime_b_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 40000
+      fixed_effective_batch: 64
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: B
+    formula_label: paper regime B fixed-batch transfer
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_screen_winner
+    target_effective_budget: 40000
+  dynamic_reuse_train_artifact:
+    t0_winner:
+      kind: screen_winner_artifact
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 1
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 2
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 3
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 4
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 5
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 6
+      tie_break_preference: regime_b_lr0.001_m0.9_beff64
+- order: 8
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime B at 144x4 on the T1 rung.
+  hypothesis: Regime B should extrapolate from its winning T0 anchor to T1 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime B and apply pure paper-derived
+    transfer to T1.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime B on T1.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime B on T1 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: B
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 1
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 2
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 3
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 4
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 5
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 6
+      tie_break_preference: regime_b_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 160000
+      fixed_effective_batch: 64
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: B
+    formula_label: paper regime B fixed-batch transfer
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: regime_b_screen_winner
+    target_effective_budget: 160000
+  dynamic_reuse_train_artifact: null
+- order: 9
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime B at 144x4 on the T2 rung.
+  hypothesis: Regime B should extrapolate from its winning T0 anchor to T2 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime B and apply pure paper-derived
+    transfer to T2.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime B on T2.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime B on T2 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: B
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 1
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 2
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 3
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 4
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 5
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 6
+      tie_break_preference: regime_b_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 320000
+      fixed_effective_batch: 64
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: B
+    formula_label: paper regime B fixed-batch transfer
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: regime_b_screen_winner
+    target_effective_budget: 320000
+  dynamic_reuse_train_artifact: null
+- order: 10
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime D at 144x4 on the T0 rung.
+  hypothesis: Regime D should extrapolate from its winning T0 anchor to T0 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime D and apply pure paper-derived
+    transfer to T0.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime D on T0.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime D on T0 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: D
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 7
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 8
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 9
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 10
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 11
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 12
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 13
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 14
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 15
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 16
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 17
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 18
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 19
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 20
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 21
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 22
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 23
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 24
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 25
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 26
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 27
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 28
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 29
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 30
+      tie_break_preference: regime_d_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 40000
+      fixed_effective_batch: null
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: D
+    formula_label: paper regime D joint batch+momentum+lr transfer
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_screen_winner
+    target_effective_budget: 40000
+  dynamic_reuse_train_artifact:
+    t0_winner:
+      kind: screen_winner_artifact
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 7
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 8
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 9
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 10
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 11
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 12
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 13
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 14
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 15
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 16
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 17
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 18
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 19
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 20
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 21
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 22
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 23
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 24
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 25
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 26
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 27
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 28
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 29
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 30
+      tie_break_preference: regime_d_lr0.001_m0.9_beff64
+- order: 11
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime D at 144x4 on the T1 rung.
+  hypothesis: Regime D should extrapolate from its winning T0 anchor to T1 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime D and apply pure paper-derived
+    transfer to T1.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime D on T1.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime D on T1 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: D
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 7
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 8
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 9
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 10
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 11
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 12
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 13
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 14
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 15
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 16
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 17
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 18
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 19
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 20
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 21
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 22
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 23
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 24
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 25
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 26
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 27
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 28
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 29
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 30
+      tie_break_preference: regime_d_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 160000
+      fixed_effective_batch: null
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: D
+    formula_label: paper regime D joint batch+momentum+lr transfer
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: regime_d_screen_winner
+    target_effective_budget: 160000
+  dynamic_reuse_train_artifact: null
+- order: 12
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Apply faithful paper-derived transfer regime D at 144x4 on the T2 rung.
+  hypothesis: Regime D should extrapolate from its winning T0 anchor to T2 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime D and apply pure paper-derived
+    transfer to T2.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+    before executing regime D on T2.
+  - Do not retune beyond the screen winner; larger-budget rows must be pure extrapolation
+    from the kept T0 anchor.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute regime D on T2 only after the T0 screen chooses its anchor.
+  notes:
+  - Resolve the winning T0 anchor from tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1;
+    this row stays placeholder-only until screen metrics exist.
+  dynamic_model_overrides: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: screen_winner_transfer
+      regime_label: D
+      compare_orders:
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 7
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 8
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 9
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 10
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 11
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 12
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 13
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 14
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 15
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 16
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 17
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 18
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 19
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 20
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 21
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 22
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 23
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 24
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 25
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 26
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 27
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 28
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 29
+      - sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+        order: 30
+      tie_break_preference: regime_d_lr0.001_m0.9_beff64
+      base_effective_budget: 40000
+      target_effective_budget: 320000
+      fixed_effective_batch: null
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+  transfer_context:
+    phase: validation
+    regime_label: D
+    formula_label: paper regime D joint batch+momentum+lr transfer
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: regime_d_screen_winner
+    target_effective_budget: 320000
+  dynamic_reuse_train_artifact: null

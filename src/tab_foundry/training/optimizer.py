@@ -199,6 +199,11 @@ def build_optimizer(
     params = [p for p in model.parameters() if p.requires_grad]
     adamw_params = _build_adamw_param_groups(model, params, lr=lr, weight_decay=weight_decay)
     requested = name.strip().lower()
+    if requested != "muon" and "momentum" in extra_kwargs:
+        raise ValueError(
+            "optimizer.momentum is only supported for the requested optimizer 'muon'; "
+            f"got requested optimizer {requested!r}"
+        )
 
     if requested == "adamw":
         opt = torch.optim.AdamW(adamw_params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
@@ -253,11 +258,12 @@ def build_optimizer(
                     "Requested optimizer 'muon' is unavailable and optimizer.require_requested=true."
                 ) from exc
             fallback_reason = "muon_unavailable"
+            fallback_extra_kwargs = {k: v for k, v in extra_kwargs.items() if k != "momentum"}
             opt = torch.optim.AdamW(
                 adamw_params,
                 lr=lr,
                 weight_decay=weight_decay,
-                **extra_kwargs,
+                **fallback_extra_kwargs,
             )
             return OptimizerSelection(
                 optimizers=[("adamw", opt)],
@@ -274,18 +280,19 @@ def build_optimizer(
         adamw_tail_params: list[nn.Parameter] = []
         if muon_partition_non2d:
             muon_source_params, adamw_tail_params = _partition_muon_params(model, params)
-        if not muon_source_params:
-            fallback_reason = "muon_no_eligible_params"
-            opt = torch.optim.AdamW(
-                adamw_params,
-                lr=lr,
-                weight_decay=weight_decay,
-                **extra_kwargs,
-            )
-            return OptimizerSelection(
-                optimizers=[("adamw", opt)],
-                requested_name=requested,
-                resolved_name="adamw",
+            if not muon_source_params:
+                fallback_reason = "muon_no_eligible_params"
+                fallback_extra_kwargs = {k: v for k, v in extra_kwargs.items() if k != "momentum"}
+                opt = torch.optim.AdamW(
+                    adamw_params,
+                    lr=lr,
+                    weight_decay=weight_decay,
+                    **fallback_extra_kwargs,
+                )
+                return OptimizerSelection(
+                    optimizers=[("adamw", opt)],
+                    requested_name=requested,
+                    resolved_name="adamw",
                 fallback_reason=fallback_reason,
             )
         dist_ready = torch.distributed.is_available() and torch.distributed.is_initialized()
@@ -300,11 +307,12 @@ def build_optimizer(
                         "process group is initialized."
                     )
                 fallback_reason = "muon_single_device_unavailable"
+                fallback_extra_kwargs = {k: v for k, v in extra_kwargs.items() if k != "momentum"}
                 opt = torch.optim.AdamW(
                     adamw_params,
                     lr=lr,
                     weight_decay=weight_decay,
-                    **extra_kwargs,
+                    **fallback_extra_kwargs,
                 )
                 return OptimizerSelection(
                     optimizers=[("adamw", opt)],

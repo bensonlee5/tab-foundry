@@ -327,6 +327,94 @@ def _selector_interpretation_lines(
     return lines
 
 
+def _transfer_interpretation_lines(
+    transfer_context: Mapping[str, Any] | None,
+) -> list[str]:
+    if not isinstance(transfer_context, Mapping):
+        return []
+    row_summary = transfer_context.get("row_summary")
+    transfer_summary = transfer_context.get("summary")
+    if not isinstance(row_summary, Mapping) and not isinstance(transfer_summary, Mapping):
+        return []
+    lines = ["", "## Transfer interpretation", ""]
+    if isinstance(row_summary, Mapping):
+        if row_summary.get("transfer_regime_label") is not None:
+            lines.append(f"- Transfer regime: `{row_summary['transfer_regime_label']}`")
+        if row_summary.get("transfer_phase") is not None:
+            lines.append(f"- Transfer phase: `{row_summary['transfer_phase']}`")
+        if row_summary.get("transfer_formula_label") is not None:
+            lines.append(f"- Transfer formula: `{row_summary['transfer_formula_label']}`")
+        if row_summary.get("transfer_target_budget_label") is not None:
+            lines.append(
+                f"- Target budget label: `{row_summary['transfer_target_budget_label']}`"
+            )
+        if row_summary.get("target_effective_batch") is not None:
+            lines.append(
+                f"- Target effective batch: `{float(row_summary['target_effective_batch']):.1f}`"
+            )
+        if row_summary.get("realized_effective_batch") is not None:
+            lines.append(
+                f"- Realized effective batch: `{int(row_summary['realized_effective_batch'])}`"
+            )
+        if row_summary.get("target_effective_budget") is not None:
+            lines.append(
+                f"- Target effective budget: `{int(row_summary['target_effective_budget'])}`"
+            )
+        if row_summary.get("realized_effective_budget") is not None:
+            lines.append(
+                f"- Realized effective budget: `{int(row_summary['realized_effective_budget'])}`"
+            )
+        if row_summary.get("budget_drift") is not None:
+            lines.append(f"- Budget drift: `{float(row_summary['budget_drift']):+.6f}`")
+        if row_summary.get("batch_drift") is not None:
+            lines.append(f"- Batch drift: `{float(row_summary['batch_drift']):+.6f}`")
+        imported_baseline = row_summary.get("imported_baseline_provenance")
+        if isinstance(imported_baseline, Mapping):
+            source_sweep_id = imported_baseline.get("source_sweep_id")
+            source_order = imported_baseline.get("source_order")
+            source_run_id = imported_baseline.get("source_run_id")
+            rendered_parts = []
+            if source_sweep_id is not None:
+                rendered_parts.append(f"sweep `{source_sweep_id}`")
+            if source_order is not None:
+                rendered_parts.append(f"order `{int(source_order):02d}`")
+            if source_run_id is not None:
+                rendered_parts.append(f"run `{source_run_id}`")
+            if rendered_parts:
+                lines.append("- Imported baseline provenance: " + ", ".join(rendered_parts))
+    if isinstance(transfer_summary, Mapping):
+        best_row = transfer_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- Best transfer row: "
+                f"order `{int(best_row['order']):02d}` "
+                f"(regime `{best_row.get('regime_label') or 'n/a'}`, "
+                f"log loss `{float(best_row['final_log_loss']):.6f}`, "
+                f"budget `{best_row.get('target_budget_label') or 'n/a'}`)"
+            )
+        fastest_row = transfer_summary.get("fastest_row")
+        if isinstance(fastest_row, Mapping):
+            lines.append(
+                "- Fastest transfer row: "
+                f"order `{int(fastest_row['order']):02d}` "
+                f"(regime `{fastest_row.get('regime_label') or 'n/a'}`, "
+                f"wall `{float(fastest_row['end_to_end_wall_seconds']):.1f}s`)"
+            )
+        leaderboard = transfer_summary.get("regime_leaderboard")
+        if isinstance(leaderboard, list) and leaderboard:
+            rendered = "; ".join(
+                (
+                    f"{str(cast(Mapping[str, Any], item)['regime_label'])}: "
+                    f"mean log loss `{float(cast(Mapping[str, Any], item)['mean_benchmark_log_loss']):.6f}`"
+                )
+                for item in leaderboard
+                if isinstance(item, Mapping)
+            )
+            if rendered:
+                lines.append(f"- Regime leaderboard: {rendered}")
+    return lines
+
+
 def result_card_text(
     *,
     row: Mapping[str, Any],
@@ -337,6 +425,7 @@ def result_card_text(
     decision: str,
     conclusion: str,
     selector_context: Mapping[str, Any] | None = None,
+    transfer_context: Mapping[str, Any] | None = None,
 ) -> str:
     primary_external_name, primary_external_summary = _primary_external_summary(summary)
     objective_metric = objective_metric_from_queue_metrics(queue_metrics)
@@ -662,6 +751,7 @@ def result_card_text(
         lines.extend(["", "## Stage-local stability", ""])
         lines.extend(stage_local_lines)
     lines.extend(_selector_interpretation_lines(selector_context))
+    lines.extend(_transfer_interpretation_lines(transfer_context))
 
     lines.extend(
         [
@@ -717,6 +807,10 @@ def refresh_result_cards_for_queue(
         Mapping[str, Any] | None,
         summary_payload.get("selector_summary"),
     )
+    transfer_context_summary = cast(
+        Mapping[str, Any] | None,
+        summary_payload.get("transfer_summary"),
+    )
     for row in ordered_rows(queue):
         if str(row.get("status", "")).strip().lower() != "completed":
             continue
@@ -764,6 +858,10 @@ def refresh_result_cards_for_queue(
                 selector_context={
                     "row_summary": row_summaries.get(int(row["order"])),
                     "summary": selector_context_summary,
+                },
+                transfer_context={
+                    "row_summary": row_summaries.get(int(row["order"])),
+                    "summary": transfer_context_summary,
                 },
             ),
             encoding="utf-8",

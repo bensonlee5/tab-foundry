@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing note: TF-RD-009 issue [#284](https://github.com/bensonlee5/tab-foundry/issues/284)
+  now tracks the faithful paper-derived Muon transfer study rather than the
+  earlier heuristic endpoint selector. The repo now ships tracked screen and
+  validation sweeps for the fixed-geometry `144x4` transfer lane, exposes
+  transfer formulas and realized budget/batch diagnostics in sweep
+  inspect/summarize/result-card output, and preserves the old endpoint study as
+  superseded context only.
+- User-facing note: Muon configs now accept an explicit
+  `optimizer.momentum` field for the core Muon momentum parameter. The repo
+  defaults that field to `0.95` for Muon surfaces, keeps `optimizer.betas` as
+  the Adam-style beta tuple, and rejects `optimizer.momentum` on optimizers
+  that do not support it.
+- User-facing note: the repo-wide default anchor benchmark contract is now
+  hardened around `openml_classification_medium_v1`. Default-anchor validation
+  and inspection fail fast if a sweep drifts to the wrong manifest hash or to a
+  binary benchmark surface.
+
 ## [0.17.2] - 2026-04-15
 
 ### Changed
