@@ -37,7 +37,7 @@ from tab_foundry.export.inspection import export_check
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import model_surface_payload, synthetic_forward_batch
 from tab_foundry.model.outputs import ClassificationOutput
-from tab_foundry.model.spec import model_build_spec_from_mappings
+from tab_foundry.model.spec import SANDWICH_FAMILY_MODEL_ARCHES, model_build_spec_from_mappings
 from tab_foundry.task_batching import move_batch
 from tab_foundry.training.health import health_check, run_inspect
 
@@ -244,7 +244,7 @@ def forward_check(
                 "y_train": y_train_batched,
                 "train_test_split_index": synthetic_batch.train_test_split_index,
             }
-            if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+            if str(getattr(model, "arch", "")).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES:
                 batched_kwargs["feature_types"] = synthetic_batch.task_batch.metadata.get(
                     "feature_types"
                 )

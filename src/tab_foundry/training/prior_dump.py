@@ -220,10 +220,10 @@ class PriorDumpTaskBatchReader:
                     raise RuntimeError(
                         "prior dump feature_types must have shape [dataset_count, max_num_features], "
                         f"got {tuple(int(dim) for dim in feature_types_ds.shape)}"
-                    )
+                )
             elif self.require_feature_types:
                 raise RuntimeError(
-                    "tabfoundry_sandwich prior-dump training requires an explicit "
+                    "sandwich-family prior-dump training requires an explicit "
                     f"'feature_types' dataset in the prior dump. Regenerate or update the dump: {self.path}"
                 )
 

@@ -20,6 +20,8 @@ from pydantic import (
 
 from tab_foundry.hashing import SHA256_HEX_LENGTH
 from tab_foundry.model.spec import (
+    GRID_SANDWICH_MODEL_ARCH,
+    ROUTED_SANDWICH_MODEL_ARCH,
     SANDWICH_MODEL_ARCH,
     STAGED_MODEL_ARCH,
     SUPPORTED_MODEL_ARCHES,
@@ -108,6 +110,13 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     feature_type_conditioning: StrictStr | None = None
     floating_likelihood: StrictStr | None = None
     integer_likelihood: StrictStr | None = None
+    routed_residual_mode: StrictStr | None = None
+    routed_residual_streams: StrictInt | None = None
+    routed_residual_scale: StrictStr | None = None
+    routed_row_summary_tokens: StrictInt | None = None
+    routed_column_summary_tokens: StrictInt | None = None
+    routed_evidence_tokens: StrictInt | None = None
+    routed_direct_cell_bypass: StrictBool | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -342,6 +351,13 @@ class ExportModelSpec:
     feature_type_conditioning: str
     floating_likelihood: str
     integer_likelihood: str
+    routed_residual_mode: str
+    routed_residual_streams: int
+    routed_residual_scale: str
+    routed_row_summary_tokens: int
+    routed_column_summary_tokens: int
+    routed_evidence_tokens: int
+    routed_direct_cell_bypass: bool
 
     @classmethod
     def from_build_spec(
@@ -393,6 +409,13 @@ class ExportModelSpec:
             feature_type_conditioning=str(spec.feature_type_conditioning),
             floating_likelihood=str(spec.floating_likelihood),
             integer_likelihood=str(spec.integer_likelihood),
+            routed_residual_mode=str(spec.routed_residual_mode),
+            routed_residual_streams=int(spec.routed_residual_streams),
+            routed_residual_scale=str(spec.routed_residual_scale),
+            routed_row_summary_tokens=int(spec.routed_row_summary_tokens),
+            routed_column_summary_tokens=int(spec.routed_column_summary_tokens),
+            routed_evidence_tokens=int(spec.routed_evidence_tokens),
+            routed_direct_cell_bypass=bool(spec.routed_direct_cell_bypass),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -441,6 +464,13 @@ class ExportModelSpec:
                 "feature_type_conditioning": self.feature_type_conditioning,
                 "floating_likelihood": self.floating_likelihood,
                 "integer_likelihood": self.integer_likelihood,
+                "routed_residual_mode": self.routed_residual_mode,
+                "routed_residual_streams": self.routed_residual_streams,
+                "routed_residual_scale": self.routed_residual_scale,
+                "routed_row_summary_tokens": self.routed_row_summary_tokens,
+                "routed_column_summary_tokens": self.routed_column_summary_tokens,
+                "routed_evidence_tokens": self.routed_evidence_tokens,
+                "routed_direct_cell_bypass": self.routed_direct_cell_bypass,
             },
         )
 
@@ -472,11 +502,59 @@ class ExportModelSpec:
                 "feature_type_conditioning",
                 "floating_likelihood",
                 "integer_likelihood",
+                "routed_residual_mode",
+                "routed_residual_streams",
+                "routed_residual_scale",
+                "routed_row_summary_tokens",
+                "routed_column_summary_tokens",
+                "routed_evidence_tokens",
+                "routed_direct_cell_bypass",
             ):
                 payload.pop(field_name, None)
             return payload
         for field_name in ("stage", "stage_label", "module_overrides", "staged_dropout"):
             payload.pop(field_name, None)
+        if self.arch == SANDWICH_MODEL_ARCH:
+            if self.pre_encoder_clip is None:
+                payload.pop("pre_encoder_clip", None)
+            for field_name in (
+                "routed_residual_mode",
+                "routed_residual_streams",
+                "routed_residual_scale",
+                "routed_row_summary_tokens",
+                "routed_column_summary_tokens",
+                "routed_evidence_tokens",
+                "routed_direct_cell_bypass",
+            ):
+                payload.pop(field_name, None)
+            return payload
+        if self.arch == ROUTED_SANDWICH_MODEL_ARCH:
+            if self.pre_encoder_clip is None:
+                payload.pop("pre_encoder_clip", None)
+            for field_name in ("sandwich_summary_tokens_per_axis",):
+                payload.pop(field_name, None)
+            return payload
+        if self.arch == GRID_SANDWICH_MODEL_ARCH:
+            if self.pre_encoder_clip is None:
+                payload.pop("pre_encoder_clip", None)
+            for field_name in (
+                "sandwich_latents",
+                "sandwich_summary_tokens_per_axis",
+                "sandwich_self_attention_per_cross",
+                "sandwich_pre_row_attention_layers",
+                "sandwich_pre_column_attention_layers",
+                "floating_likelihood",
+                "integer_likelihood",
+                "routed_residual_mode",
+                "routed_residual_streams",
+                "routed_residual_scale",
+                "routed_row_summary_tokens",
+                "routed_column_summary_tokens",
+                "routed_evidence_tokens",
+                "routed_direct_cell_bypass",
+            ):
+                payload.pop(field_name, None)
+            return payload
         if self.arch != SANDWICH_MODEL_ARCH:
             payload.pop("pre_encoder_clip", None)
             for field_name in (
@@ -494,13 +572,16 @@ class ExportModelSpec:
                 "feature_type_conditioning",
                 "floating_likelihood",
                 "integer_likelihood",
+                "routed_residual_mode",
+                "routed_residual_streams",
+                "routed_residual_scale",
+                "routed_row_summary_tokens",
+                "routed_column_summary_tokens",
+                "routed_evidence_tokens",
+                "routed_direct_cell_bypass",
             ):
                 payload.pop(field_name, None)
             return payload
-        if self.stage is None:
-            payload.pop("stage", None)
-        if self.pre_encoder_clip is None:
-            payload.pop("pre_encoder_clip", None)
         return payload
 
 

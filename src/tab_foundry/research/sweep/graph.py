@@ -12,7 +12,7 @@ import torch
 
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import synthetic_forward_batch
-from tab_foundry.model.spec import ModelBuildSpec
+from tab_foundry.model.spec import ModelBuildSpec, SANDWICH_FAMILY_MODEL_ARCHES
 
 from tab_foundry.research.lane_contract import resolve_training_surface_context
 
@@ -84,7 +84,7 @@ class _ForwardBatchedWrapper(torch.nn.Module):
             "y_train": y_train,
             "train_test_split_index": self.train_test_split_index,
         }
-        if str(getattr(self.model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+        if str(getattr(self.model, "arch", "")).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES:
             batched_kwargs["feature_types"] = self.feature_types
         return cast(
             torch.Tensor,

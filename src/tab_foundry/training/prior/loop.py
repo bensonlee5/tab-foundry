@@ -13,6 +13,7 @@ from omegaconf import DictConfig
 import torch
 
 from tab_foundry.hardware_profiles import build_hardware_summary
+from tab_foundry.model.spec import SANDWICH_FAMILY_MODEL_ARCHES
 from tab_foundry.training.artifacts import (
     append_history_record,
     append_jsonl_record,
@@ -68,6 +69,10 @@ from tab_foundry.types import TrainResult
 
 _PRIOR_STAGE_NAME = "prior_dump"
 _PRIOR_BATCH_NDIM = 3
+
+
+def _requires_explicit_feature_types(arch: str) -> bool:
+    return str(arch).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES
 
 
 @dataclass(slots=True)
@@ -194,15 +199,16 @@ def _run_prior_step_with_microbatch_retry(
                 "y_train": y_train_batch[start:stop],
                 "train_test_split_index": train_test_split_index,
             }
-            if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+            model_arch = str(getattr(model, "arch", "")).strip().lower()
+            if _requires_explicit_feature_types(model_arch):
                 if feature_types_batch is None:
                     raise RuntimeError(
-                        "tabfoundry_sandwich prior-dump training requires explicit feature_types "
+                        f"{model_arch} prior-dump training requires explicit feature_types "
                         "for every task in the batch"
                     )
                 batched_kwargs["feature_types"] = feature_types_batch[start:stop]
             if loss_surface == "cell_bpc":
-                if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+                if model_arch == "tabfoundry_sandwich":
                     batched_kwargs["y_test"] = y_all_batch[start:stop, train_test_split_index:]
                 forward_batched_cell_likelihood = getattr(model, "forward_batched_cell_likelihood", None)
                 if not callable(forward_batched_cell_likelihood):
@@ -815,7 +821,7 @@ def run_prior_training(
             num_steps=max_steps,
             batch_size=prior_batch_config.batch_size,
             non_finite_policy=prior_dump_non_finite_policy,
-            require_feature_types=str(spec.arch) == "tabfoundry_sandwich",
+            require_feature_types=_requires_explicit_feature_types(str(spec.arch)),
             on_non_finite_batch=_record_non_finite_batch,
         )
 

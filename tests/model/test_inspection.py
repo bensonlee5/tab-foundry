@@ -8,6 +8,7 @@ from tab_foundry.model.inspection import (
     parameter_accounting_from_model_spec,
     parameter_counts_from_model_spec,
     synthetic_forward_batch,
+    synthetic_reference_arrays,
 )
 from tab_foundry.model.spec import model_build_spec_from_mappings
 
@@ -48,6 +49,41 @@ def _sandwich_spec() -> object:
             "sandwich_ff_expansion": 2,
             "sandwich_summary_tokens_per_axis": 4,
             "sandwich_self_attention_per_cross": 4,
+        },
+    )
+
+
+def _routed_sandwich_spec() -> object:
+    return model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "routed_sandwich",
+            "d_icl": 32,
+            "many_class_base": 4,
+            "head_hidden_dim": 64,
+            "sandwich_latents": 12,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 2,
+            "routed_row_summary_tokens": 2,
+            "routed_column_summary_tokens": 1,
+            "routed_evidence_tokens": 6,
+        },
+    )
+
+
+def _grid_sandwich_spec() -> object:
+    return model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "grid_sandwich",
+            "d_icl": 32,
+            "many_class_base": 4,
+            "head_hidden_dim": 64,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 2,
+            "sandwich_pre_column_inducing_tokens": 8,
         },
     )
 
@@ -141,6 +177,39 @@ def test_parameter_accounting_uses_strict_non_embedding_params_as_canonical_n() 
         and entry["expanded_reason"] == "learned_test_token"
         for entry in accounting["parameter_breakdown"]
     )
+
+
+def test_parameter_counts_and_surface_payload_include_routed_sandwich_metadata() -> None:
+    spec = _routed_sandwich_spec()
+
+    counts = parameter_counts_from_model_spec(spec)
+    payload = model_surface_payload(spec)
+    synthetic = synthetic_reference_arrays(spec, include_missing_inputs=True)
+
+    assert counts["total_params"] > 0
+    assert counts["trainable_params"] > 0
+    assert payload["arch"] == "routed_sandwich"
+    assert payload["architecture"]["residual_routing"] == "dynamic_hyper"
+    assert payload["architecture"]["residual_streams"] == 2
+    assert payload["architecture"]["evidence_tokens"] == 6
+    assert payload["architecture"]["direct_cell_bypass"] is False
+    assert synthetic.feature_types == ["floating", "floating", "floating"]
+
+
+def test_parameter_counts_and_surface_payload_include_grid_sandwich_metadata() -> None:
+    spec = _grid_sandwich_spec()
+
+    counts = parameter_counts_from_model_spec(spec)
+    payload = model_surface_payload(spec)
+    batch = synthetic_forward_batch(spec)
+
+    assert counts["total_params"] > 0
+    assert counts["trainable_params"] > 0
+    assert payload["arch"] == "grid_sandwich"
+    assert payload["architecture"]["grid_preservation"] == "explicit_row_feature_grid_through_core"
+    assert payload["architecture"]["column_inducing_tokens"] == 8
+    assert batch.expected_output_kind == "logits"
+    assert batch.expected_num_classes == 4
 
 
 def test_compute_accounting_reports_training_flops_from_inspected_shapes() -> None:

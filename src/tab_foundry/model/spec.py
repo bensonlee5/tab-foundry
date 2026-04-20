@@ -16,13 +16,28 @@ SUPPORTED_MODEL_TASKS = ("classification",)
 SIMPLE_MODEL_ARCH: Final = "tabfoundry_simple"
 STAGED_MODEL_ARCH: Final = "tabfoundry_staged"
 SANDWICH_MODEL_ARCH: Final = "tabfoundry_sandwich"
-SUPPORTED_MODEL_ARCHES = (SIMPLE_MODEL_ARCH, STAGED_MODEL_ARCH, SANDWICH_MODEL_ARCH)
+ROUTED_SANDWICH_MODEL_ARCH: Final = "routed_sandwich"
+GRID_SANDWICH_MODEL_ARCH: Final = "grid_sandwich"
+SUPPORTED_MODEL_ARCHES = (
+    SIMPLE_MODEL_ARCH,
+    STAGED_MODEL_ARCH,
+    SANDWICH_MODEL_ARCH,
+    ROUTED_SANDWICH_MODEL_ARCH,
+    GRID_SANDWICH_MODEL_ARCH,
+)
+SANDWICH_FAMILY_MODEL_ARCHES = (
+    SANDWICH_MODEL_ARCH,
+    ROUTED_SANDWICH_MODEL_ARCH,
+    GRID_SANDWICH_MODEL_ARCH,
+)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 SUPPORTED_FEATURE_TYPE_CONDITIONING = ("film", "additive_embedding")
 SUPPORTED_FLOATING_LIKELIHOODS = ("single_gaussian",)
 SUPPORTED_INTEGER_LIKELIHOODS = ("hybrid_mixture", "discrete")
 SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
 SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
+SUPPORTED_ROUTED_RESIDUAL_MODES = ("dynamic_hyper",)
+SUPPORTED_ROUTED_RESIDUAL_SCALES = ("deepnorm",)
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -311,6 +326,57 @@ class _SandwichModelParams(_SpecModel):
         return normalized
 
 
+class _RoutedSandwichModelParams(_SandwichModelParams):
+    routed_residual_mode: str = "dynamic_hyper"
+    routed_residual_streams: int = Field(default=2, gt=1)
+    routed_residual_scale: str = "deepnorm"
+    routed_row_summary_tokens: int = Field(default=4, gt=0)
+    routed_column_summary_tokens: int = Field(default=2, gt=0)
+    routed_evidence_tokens: int = Field(default=16, gt=0)
+    routed_direct_cell_bypass: bool = False
+
+    @field_validator("routed_residual_mode", mode="before")
+    @classmethod
+    def _validate_routed_residual_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_ROUTED_RESIDUAL_MODES:
+            raise ValueError(
+                "routed_residual_mode must be one of "
+                f"{SUPPORTED_ROUTED_RESIDUAL_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("routed_residual_scale", mode="before")
+    @classmethod
+    def _validate_routed_residual_scale(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_ROUTED_RESIDUAL_SCALES:
+            raise ValueError(
+                "routed_residual_scale must be one of "
+                f"{SUPPORTED_ROUTED_RESIDUAL_SCALES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("routed_direct_cell_bypass", mode="before")
+    @classmethod
+    def _coerce_routed_direct_cell_bypass(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"routed_direct_cell_bypass must be boolean-compatible, got {value!r}")
+
+
+class _GridSandwichModelParams(_SandwichModelParams):
+    pass
+
+
 # ---------------------------------------------------------------------------
 # Payload models (discriminated union over arch)
 # ---------------------------------------------------------------------------
@@ -384,8 +450,22 @@ class _SandwichModelBuildSpecPayload(_BaseModelBuildSpecPayload):
     params: _SandwichModelParams = Field(default_factory=_SandwichModelParams)
 
 
+class _RoutedSandwichModelBuildSpecPayload(_BaseModelBuildSpecPayload):
+    arch: Literal["routed_sandwich"] = ROUTED_SANDWICH_MODEL_ARCH
+    params: _RoutedSandwichModelParams = Field(default_factory=_RoutedSandwichModelParams)
+
+
+class _GridSandwichModelBuildSpecPayload(_BaseModelBuildSpecPayload):
+    arch: Literal["grid_sandwich"] = GRID_SANDWICH_MODEL_ARCH
+    params: _GridSandwichModelParams = Field(default_factory=_GridSandwichModelParams)
+
+
 _ModelBuildSpecPayload = Annotated[
-    _SimpleModelBuildSpecPayload | _StagedModelBuildSpecPayload | _SandwichModelBuildSpecPayload,
+    _SimpleModelBuildSpecPayload
+    | _StagedModelBuildSpecPayload
+    | _SandwichModelBuildSpecPayload
+    | _RoutedSandwichModelBuildSpecPayload
+    | _GridSandwichModelBuildSpecPayload,
     Field(discriminator="arch"),
 ]
 _MODEL_BUILD_SPEC_PAYLOAD_ADAPTER: TypeAdapter[_ModelBuildSpecPayload] = TypeAdapter(
@@ -409,6 +489,9 @@ def _build_flat_defaults() -> dict[str, Any]:
     for name, info in _SandwichModelParams.model_fields.items():
         if name not in defaults:
             defaults[name] = info.default
+    for name, info in _RoutedSandwichModelParams.model_fields.items():
+        if name not in defaults:
+            defaults[name] = info.default
     return defaults
 
 
@@ -427,10 +510,24 @@ def _build_sandwich_defaults() -> dict[str, Any]:
 
 
 SANDWICH_DEFAULTS: dict[str, Any] = _build_sandwich_defaults()
+ROUTED_SANDWICH_DEFAULTS: dict[str, Any] = {
+    **SANDWICH_DEFAULTS,
+    **{
+        name: info.default for name, info in _RoutedSandwichModelParams.model_fields.items()
+    },
+}
+GRID_SANDWICH_DEFAULTS: dict[str, Any] = {
+    **SANDWICH_DEFAULTS,
+    **{
+        name: info.default for name, info in _GridSandwichModelParams.model_fields.items()
+    },
+}
 _COMMON_PAYLOAD_NAMES = frozenset(_BaseModelBuildSpecPayload.model_fields) - {"task", "arch", "params"}
 _SIMPLE_PARAM_NAMES = frozenset(_SimpleModelParams.model_fields)
 _STAGED_PARAM_NAMES = frozenset(_StagedModelParams.model_fields)
 _SANDWICH_PARAM_NAMES = frozenset(_SandwichModelParams.model_fields)
+_ROUTED_SANDWICH_PARAM_NAMES = frozenset(_RoutedSandwichModelParams.model_fields)
+_GRID_SANDWICH_PARAM_NAMES = frozenset(_GridSandwichModelParams.model_fields)
 _STAGED_COMPAT_KEYS = ("stage", "stage_label", "module_overrides")
 
 
@@ -479,6 +576,10 @@ def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, 
         param_names = _SIMPLE_PARAM_NAMES
     elif arch == STAGED_MODEL_ARCH:
         param_names = _STAGED_PARAM_NAMES
+    elif arch == ROUTED_SANDWICH_MODEL_ARCH:
+        param_names = _ROUTED_SANDWICH_PARAM_NAMES
+    elif arch == GRID_SANDWICH_MODEL_ARCH:
+        param_names = _GRID_SANDWICH_PARAM_NAMES
     else:
         param_names = _SANDWICH_PARAM_NAMES
     params = {key: mapping[key] for key in param_names if mapping.get(key) is not None}
@@ -490,7 +591,13 @@ def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, 
 def _validate_payload(payload: Any) -> _ModelBuildSpecPayload:
     if isinstance(
         payload,
-        (_SimpleModelBuildSpecPayload, _StagedModelBuildSpecPayload, _SandwichModelBuildSpecPayload),
+        (
+            _SimpleModelBuildSpecPayload,
+            _StagedModelBuildSpecPayload,
+            _SandwichModelBuildSpecPayload,
+            _RoutedSandwichModelBuildSpecPayload,
+            _GridSandwichModelBuildSpecPayload,
+        ),
     ):
         return payload
     candidate = payload

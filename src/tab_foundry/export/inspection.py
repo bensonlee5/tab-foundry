@@ -13,6 +13,7 @@ from tab_foundry.device import resolve_torch_device
 from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
 from tab_foundry.hardware_profiles import build_hardware_summary
 from tab_foundry.model.inspection import model_surface_payload, synthetic_reference_arrays
+from tab_foundry.model.spec import SANDWICH_FAMILY_MODEL_ARCHES
 
 from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, SUPPORTED_SCHEMA_VERSIONS
 from .exporter import export_checkpoint, validate_export_bundle
@@ -79,7 +80,7 @@ def _timing_reference_arrays(
     y_train = (np.arange(_TIMING_FIXTURE_TRAIN_ROWS, dtype=np.int64) % num_classes) + 100
     feature_types = (
         [DEFAULT_FEATURE_TYPE] * _TIMING_FIXTURE_FEATURE_COUNT
-        if str(model_payload["arch"]).strip().lower() == "tabfoundry_sandwich"
+        if str(model_payload["arch"]).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES
         else None
     )
     return {

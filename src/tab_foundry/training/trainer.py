@@ -217,7 +217,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
             raise RuntimeError(
                 "runtime.activation_checkpointing=true requires a model with "
                 "enable_activation_checkpointing(); this runtime hook is currently "
-                "implemented by tabfoundry_staged and tabfoundry_sandwich"
+                "implemented by tabfoundry_staged and the sandwich-family arches"
             )
         enable_activation_checkpointing()
     compile_policy = resolve_compile_policy(cfg.runtime)
