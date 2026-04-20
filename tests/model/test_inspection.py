@@ -83,6 +83,8 @@ def _grid_sandwich_spec() -> object:
             "sandwich_layers": 2,
             "sandwich_heads": 4,
             "sandwich_ff_expansion": 2,
+            "sandwich_pre_row_attention_layers": 2,
+            "sandwich_pre_column_attention_layers": 1,
             "sandwich_pre_column_inducing_tokens": 8,
         },
     )
@@ -207,6 +209,8 @@ def test_parameter_counts_and_surface_payload_include_grid_sandwich_metadata() -
     assert counts["trainable_params"] > 0
     assert payload["arch"] == "grid_sandwich"
     assert payload["architecture"]["grid_preservation"] == "explicit_row_feature_grid_through_core"
+    assert payload["architecture"]["pre_row_attention_layers"] == 2
+    assert payload["architecture"]["pre_column_attention_layers"] == 1
     assert payload["architecture"]["column_inducing_tokens"] == 8
     assert batch.expected_output_kind == "logits"
     assert batch.expected_num_classes == 4

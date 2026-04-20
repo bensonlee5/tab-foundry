@@ -99,7 +99,7 @@ class _RoutedCrossAttentionBlock(nn.Module):
         activation: str,
         block_norm: str,
         num_streams: int,
-        residual_scale: float,
+        residual_multiplier: float,
         packed_attention: bool = False,
     ) -> None:
         super().__init__()
@@ -111,7 +111,7 @@ class _RoutedCrossAttentionBlock(nn.Module):
         self.kv_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.packed_attention = bool(packed_attention)
-        self.residual_scale = float(residual_scale)
+        self.residual_multiplier = float(residual_multiplier)
         self.attn = (
             _NativePackedCrossAttention(embedding_size=embedding_size, n_heads=n_heads)
             if self.packed_attention
@@ -135,10 +135,10 @@ class _RoutedCrossAttentionBlock(nn.Module):
         if self.packed_attention:
             if not isinstance(self.attn, _NativePackedCrossAttention):
                 raise RuntimeError("packed routed cross-attention is missing native attention")
-            primary = primary + (self.residual_scale * self.attn(q_norm, key_value=kv_norm))
+            primary = primary + (self.residual_multiplier * self.attn(q_norm, key_value=kv_norm))
         else:
             primary = primary + (
-                self.residual_scale
+                self.residual_multiplier
                 * multihead_attention_sdpa(
                     cast(nn.MultiheadAttention, self.attn),
                     q_norm,
@@ -146,7 +146,7 @@ class _RoutedCrossAttentionBlock(nn.Module):
                     kv_norm,
                 )
             )
-        primary = primary + (self.residual_scale * self.ff(self.ff_norm(primary)))
+        primary = primary + (self.residual_multiplier * self.ff(self.ff_norm(primary)))
         return self.router.depth_mix(query_streams, primary)
 
 
@@ -162,7 +162,7 @@ class _RoutedSelfAttentionBlock(nn.Module):
         activation: str,
         block_norm: str,
         num_streams: int,
-        residual_scale: float,
+        residual_multiplier: float,
         packed_attention: bool = False,
     ) -> None:
         super().__init__()
@@ -173,7 +173,7 @@ class _RoutedSelfAttentionBlock(nn.Module):
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.packed_attention = bool(packed_attention)
-        self.residual_scale = float(residual_scale)
+        self.residual_multiplier = float(residual_multiplier)
         self.attn = (
             _NativePackedSelfAttention(embedding_size=embedding_size, n_heads=n_heads)
             if self.packed_attention
@@ -202,11 +202,11 @@ class _RoutedSelfAttentionBlock(nn.Module):
             if not isinstance(self.attn, _NativePackedSelfAttention):
                 raise RuntimeError("packed routed self-attention is missing native attention")
             primary = primary + (
-                self.residual_scale * self.attn(hidden_norm, attn_bias=attn_bias)
+                self.residual_multiplier * self.attn(hidden_norm, attn_bias=attn_bias)
             )
         else:
             primary = primary + (
-                self.residual_scale
+                self.residual_multiplier
                 * multihead_attention_sdpa(
                     cast(nn.MultiheadAttention, self.attn),
                     hidden_norm,
@@ -215,7 +215,7 @@ class _RoutedSelfAttentionBlock(nn.Module):
                     attn_bias=attn_bias,
                 )
             )
-        primary = primary + (self.residual_scale * self.ff(self.ff_norm(primary)))
+        primary = primary + (self.residual_multiplier * self.ff(self.ff_norm(primary)))
         return self.router.depth_mix(query_streams, primary)
 
 
@@ -231,7 +231,7 @@ class _RoutedPerceiverStage(nn.Module):
         activation: str,
         block_norm: str,
         num_streams: int,
-        residual_scale: float,
+        residual_multiplier: float,
         self_attention_per_cross: int,
         packed_attention: bool = False,
     ) -> None:
@@ -243,7 +243,7 @@ class _RoutedPerceiverStage(nn.Module):
             activation=activation,
             block_norm=block_norm,
             num_streams=num_streams,
-            residual_scale=residual_scale,
+            residual_multiplier=residual_multiplier,
             packed_attention=packed_attention,
         )
         self.self_blocks = nn.ModuleList(
@@ -255,7 +255,7 @@ class _RoutedPerceiverStage(nn.Module):
                     activation=activation,
                     block_norm=block_norm,
                     num_streams=num_streams,
-                    residual_scale=residual_scale,
+                    residual_multiplier=residual_multiplier,
                     packed_attention=packed_attention,
                 )
                 for _ in range(self_attention_per_cross)
@@ -383,9 +383,14 @@ class RoutedSandwichClassifier(nn.Module):
                 f"got {self.routed_residual_scale!r}"
             )
 
-        residual_depth = max(1, self.sandwich_layers * (self.self_attention_per_cross + 1))
-        self.deepnorm_residual_scale = float((8.0 * residual_depth) ** (-0.25))
-        deepnorm_init_scale = float((2.0 * residual_depth) ** (-0.25))
+        residual_depth = (
+            self.sandwich_layers * (self.self_attention_per_cross + 1)
+            + 1
+            + int(self.routed_direct_cell_bypass)
+        )
+        self.deepnorm_residual_depth = max(1, int(residual_depth))
+        self.deepnorm_alpha = float((2.0 * self.deepnorm_residual_depth) ** 0.25)
+        self.deepnorm_beta = float((8.0 * self.deepnorm_residual_depth) ** (-0.25))
 
         self.tokenizer = ScalarPerFeatureMissingnessTokenizer()
         self.feature_encoder = SharedLinearFeatureEncoder(
@@ -486,7 +491,7 @@ class RoutedSandwichClassifier(nn.Module):
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
                     num_streams=self.routed_residual_streams,
-                    residual_scale=self.deepnorm_residual_scale,
+                    residual_multiplier=self.deepnorm_alpha,
                     self_attention_per_cross=self.self_attention_per_cross,
                     packed_attention=self.sandwich_packed_attention,
                 )
@@ -500,7 +505,7 @@ class RoutedSandwichClassifier(nn.Module):
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
             num_streams=self.routed_residual_streams,
-            residual_scale=self.deepnorm_residual_scale,
+            residual_multiplier=self.deepnorm_alpha,
             packed_attention=self.sandwich_packed_attention,
         )
         self.cell_readout = _RoutedCrossAttentionBlock(
@@ -510,7 +515,7 @@ class RoutedSandwichClassifier(nn.Module):
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
             num_streams=self.routed_residual_streams,
-            residual_scale=self.deepnorm_residual_scale,
+            residual_multiplier=self.deepnorm_alpha,
             packed_attention=self.sandwich_packed_attention,
         )
         self.test_row_pool = _CrossAttentionBlock(
@@ -528,9 +533,9 @@ class RoutedSandwichClassifier(nn.Module):
         )
 
         for stage in self.perceiver_stages:
-            _scale_routed_block_outputs(stage, scale=deepnorm_init_scale)
-        _scale_routed_block_outputs(self.latent_readout, scale=deepnorm_init_scale)
-        _scale_routed_block_outputs(self.cell_readout, scale=deepnorm_init_scale)
+            _scale_routed_block_outputs(stage, scale=self.deepnorm_beta)
+        _scale_routed_block_outputs(self.latent_readout, scale=self.deepnorm_beta)
+        _scale_routed_block_outputs(self.cell_readout, scale=self.deepnorm_beta)
 
         self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None

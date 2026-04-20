@@ -46,6 +46,12 @@ MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
 _LEGACY_SANDWICH_FIELDS = ("sandwich_row_latents", "sandwich_col_latents")
 _LEGACY_SANDWICH_FEATURE_TYPE_EMBEDDING_KEY = "feature_type_embedding.weight"
+_ROUTED_SANDWICH_DEAD_FIELDS = ("sandwich_summary_tokens_per_axis",)
+_GRID_SANDWICH_DEAD_FIELDS = (
+    "sandwich_latents",
+    "sandwich_self_attention_per_cross",
+    "sandwich_summary_tokens_per_axis",
+)
 
 
 class ModelStage(StrEnum):
@@ -136,6 +142,57 @@ def _reject_legacy_sandwich_fields(
     raise ValueError(
         "tabfoundry_sandwich no longer supports "
         f"{legacy_fields}; use model.sandwich_latents instead."
+    )
+
+
+def _effective_mapping_value(
+    *,
+    key: str,
+    primary_map: Mapping[str, Any],
+    fallback_map: Mapping[str, Any],
+) -> Any:
+    if primary_map.get(key) is not None:
+        return primary_map.get(key)
+    return fallback_map.get(key)
+
+
+def _reject_arch_specific_sandwich_fields(
+    *,
+    arch: str,
+    primary_map: Mapping[str, Any],
+    fallback_map: Mapping[str, Any],
+) -> None:
+    if arch == ROUTED_SANDWICH_MODEL_ARCH:
+        routed_default = SANDWICH_DEFAULTS["sandwich_summary_tokens_per_axis"]
+        routed_value = _effective_mapping_value(
+            key="sandwich_summary_tokens_per_axis",
+            primary_map=primary_map,
+            fallback_map=fallback_map,
+        )
+        if routed_value is not None and int(routed_value) != int(routed_default):
+            raise ValueError(
+                "routed_sandwich does not support model.sandwich_summary_tokens_per_axis; "
+                "use model.routed_row_summary_tokens and model.routed_column_summary_tokens."
+            )
+        return
+    if arch != GRID_SANDWICH_MODEL_ARCH:
+        return
+    invalid_fields: list[str] = []
+    for field_name in _GRID_SANDWICH_DEAD_FIELDS:
+        field_value = _effective_mapping_value(
+            key=field_name,
+            primary_map=primary_map,
+            fallback_map=fallback_map,
+        )
+        field_default = SANDWICH_DEFAULTS[field_name]
+        if field_value is not None and int(field_value) != int(field_default):
+            invalid_fields.append(f"model.{field_name}")
+    if not invalid_fields:
+        return
+    invalid_fields_text = ", ".join(invalid_fields)
+    raise ValueError(
+        "grid_sandwich does not support "
+        f"{invalid_fields_text}; it keeps an explicit grid core without latent or summary-stream knobs."
     )
 
 
@@ -556,6 +613,16 @@ def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, 
     mapping = _with_staged_arch_compat(mapping)
     task = str(mapping.get("task", "classification")).strip().lower()
     arch = _resolved_arch(mapping.get("arch", DEFAULT_MODEL_ARCH))
+    _reject_legacy_sandwich_fields(
+        arch=arch,
+        primary_map=mapping,
+        fallback_map={},
+    )
+    _reject_arch_specific_sandwich_fields(
+        arch=arch,
+        primary_map=mapping,
+        fallback_map={},
+    )
     if arch != STAGED_MODEL_ARCH and mapping.get("stage") is not None:
         _ = resolve_model_stage(arch=arch, stage=mapping.get("stage"))
     if arch != STAGED_MODEL_ARCH and mapping.get("stage_label") is not None:
@@ -689,6 +756,11 @@ def model_build_spec_from_mappings(
         primary_map.get("arch") or fallback_map.get("arch") or DEFAULT_MODEL_ARCH
     )
     _reject_legacy_sandwich_fields(
+        arch=arch_value,
+        primary_map=primary_map,
+        fallback_map=fallback_map,
+    )
+    _reject_arch_specific_sandwich_fields(
         arch=arch_value,
         primary_map=primary_map,
         fallback_map=fallback_map,

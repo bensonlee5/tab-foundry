@@ -114,11 +114,15 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_pre_row_attention_layers=2,
+        sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
     )
 
     assert isinstance(model, GridSandwichClassifier)
     assert len(model.grid_layers) == 2
+    assert len(model.pre_row_attention_blocks) == 2
+    assert len(model.pre_column_attention_blocks) == 1
     assert model.pre_column_inducing_tokens == 8
 
 
@@ -181,7 +185,25 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.d_icl == 60
     assert spec.sandwich_layers == 2
     assert spec.sandwich_heads == 4
+    assert spec.sandwich_pre_row_attention_layers == 1
+    assert spec.sandwich_pre_column_attention_layers == 1
     assert spec.sandwich_pre_column_inducing_tokens == 16
+
+
+def test_grid_sandwich_model_spec_round_trips_pre_perceiver_mixer_fields() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": GRID_SANDWICH_MODEL_ARCH,
+            "sandwich_pre_row_attention_layers": 2,
+            "sandwich_pre_column_attention_layers": 3,
+        },
+    )
+
+    assert spec.sandwich_pre_row_attention_layers == 2
+    assert spec.sandwich_pre_column_attention_layers == 3
+    assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
+    assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -308,6 +330,36 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         _ = model_build_spec_from_mappings(
             task="classification",
             primary={"arch": "routed_sandwich", "routed_residual_scale": "prenorm"},
+        )
+
+
+def test_routed_sandwich_model_spec_rejects_legacy_summary_tokens_field() -> None:
+    with pytest.raises(ValueError, match="routed_row_summary_tokens"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": ROUTED_SANDWICH_MODEL_ARCH,
+                "sandwich_summary_tokens_per_axis": 3,
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value"),
+    (
+        ("sandwich_latents", 32),
+        ("sandwich_self_attention_per_cross", 2),
+        ("sandwich_summary_tokens_per_axis", 3),
+    ),
+)
+def test_grid_sandwich_model_spec_rejects_dead_sandwich_fields(
+    field_name: str,
+    field_value: int,
+) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": GRID_SANDWICH_MODEL_ARCH, field_name: field_value},
         )
 
 

@@ -167,6 +167,8 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "input_token_count": "R_times_C",
                 "grid_core": "alternating_row_self_attention_and_column_row_isab",
                 "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+                "pre_row_attention_layers": int(spec.sandwich_pre_row_attention_layers),
+                "pre_column_attention_layers": int(spec.sandwich_pre_column_attention_layers),
                 "grid_preservation": "explicit_row_feature_grid_through_core",
                 "label_injection": "train_row_feature_tokens_only",
                 "position_encoding": "shared_fourier_row_col",

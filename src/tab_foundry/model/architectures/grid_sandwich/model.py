@@ -90,6 +90,8 @@ class GridSandwichClassifier(nn.Module):
         sandwich_ff_expansion: int = _D["sandwich_ff_expansion"],
         sandwich_activation: str = _D["sandwich_activation"],
         sandwich_block_norm: str = _D["sandwich_block_norm"],
+        sandwich_pre_row_attention_layers: int = _D["sandwich_pre_row_attention_layers"],
+        sandwich_pre_column_attention_layers: int = _D["sandwich_pre_column_attention_layers"],
         sandwich_pre_column_inducing_tokens: int = _D["sandwich_pre_column_inducing_tokens"],
         sandwich_packed_attention: bool = _D["sandwich_packed_attention"],
         feature_type_conditioning: str = _D["feature_type_conditioning"],
@@ -109,6 +111,8 @@ class GridSandwichClassifier(nn.Module):
             sandwich_ff_expansion=sandwich_ff_expansion,
             sandwich_activation=sandwich_activation,
             sandwich_block_norm=sandwich_block_norm,
+            sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
+            sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
             sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
             sandwich_packed_attention=sandwich_packed_attention,
             feature_type_conditioning=feature_type_conditioning,
@@ -126,6 +130,10 @@ class GridSandwichClassifier(nn.Module):
         self.sandwich_ff_expansion = int(self.model_spec.sandwich_ff_expansion)
         self.sandwich_activation = str(self.model_spec.sandwich_activation).strip().lower()
         self.sandwich_block_norm = str(self.model_spec.sandwich_block_norm).strip().lower()
+        self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
+        self.pre_column_attention_layers = int(
+            self.model_spec.sandwich_pre_column_attention_layers
+        )
         self.pre_column_inducing_tokens = int(self.model_spec.sandwich_pre_column_inducing_tokens)
         self.sandwich_packed_attention = bool(self.model_spec.sandwich_packed_attention)
         self.feature_type_conditioning = (
@@ -150,8 +158,33 @@ class GridSandwichClassifier(nn.Module):
         else:
             self.feature_type_film = None
             self.feature_type_embedding = nn.Embedding(len(FEATURE_TYPE_VOCAB), self.d_icl)
-        self.pre_row_attention_blocks = nn.ModuleList()
-        self.pre_column_attention_blocks = nn.ModuleList()
+        self.pre_row_attention_blocks = nn.ModuleList(
+            [
+                _SelfAttentionBlock(
+                    embedding_size=self.d_icl,
+                    n_heads=self.sandwich_heads,
+                    ff_expansion=self.sandwich_ff_expansion,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
+                    packed_attention=self.sandwich_packed_attention,
+                )
+                for _ in range(self.pre_row_attention_layers)
+            ]
+        )
+        self.pre_column_attention_blocks = nn.ModuleList(
+            [
+                _InducedSetAttentionBlock(
+                    embedding_size=self.d_icl,
+                    n_heads=self.sandwich_heads,
+                    ff_expansion=self.sandwich_ff_expansion,
+                    activation=self.sandwich_activation,
+                    block_norm=self.sandwich_block_norm,
+                    num_inducing=self.pre_column_inducing_tokens,
+                    packed_attention=self.sandwich_packed_attention,
+                )
+                for _ in range(self.pre_column_attention_layers)
+            ]
+        )
         self.grid_layers = nn.ModuleList(
             [
                 _GridMixerLayer(

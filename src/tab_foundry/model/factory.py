@@ -158,6 +158,8 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
             sandwich_activation=str(spec.sandwich_activation),
             sandwich_block_norm=str(spec.sandwich_block_norm),
+            sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
+            sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
             sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
             sandwich_packed_attention=bool(spec.sandwich_packed_attention),
             feature_type_conditioning=str(spec.feature_type_conditioning),

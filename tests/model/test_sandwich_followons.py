@@ -58,7 +58,11 @@ def _routed_model() -> RoutedSandwichClassifier:
     )
 
 
-def _grid_model() -> GridSandwichClassifier:
+def _grid_model(
+    *,
+    sandwich_pre_row_attention_layers: int = 1,
+    sandwich_pre_column_attention_layers: int = 1,
+) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
         input_normalization="train_zscore_clip",
@@ -67,6 +71,8 @@ def _grid_model() -> GridSandwichClassifier:
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
+        sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
         sandwich_pre_column_inducing_tokens=8,
     )
 
@@ -90,7 +96,9 @@ def test_routed_sandwich_forward_and_forward_batched_shapes_match() -> None:
     assert tuple(batched_logits.shape) == (1, 2, 4)
     assert torch.allclose(output.logits, batched_logits.squeeze(0), atol=1e-5, rtol=1e-5)
     assert model.test_query_seed.shape == (1, 1, 2, 32)
-    assert model.deepnorm_residual_scale > 0.0
+    assert model.deepnorm_residual_depth == 11
+    assert model.deepnorm_alpha == pytest.approx((2.0 * 11.0) ** 0.25)
+    assert model.deepnorm_beta == pytest.approx((8.0 * 11.0) ** (-0.25))
 
 
 def test_routed_sandwich_requires_feature_types_for_forward_batched() -> None:
@@ -132,6 +140,26 @@ def test_grid_sandwich_forward_and_forward_batched_shapes_match() -> None:
     assert tuple(batched_logits.shape) == (1, 2, 4)
     assert torch.allclose(output.logits, batched_logits.squeeze(0), atol=1e-5, rtol=1e-5)
     assert len(model.grid_layers) == 2
+
+
+def test_grid_sandwich_honors_pre_perceiver_mixer_depths() -> None:
+    baseline = _grid_model(
+        sandwich_pre_row_attention_layers=0,
+        sandwich_pre_column_attention_layers=0,
+    )
+    mixed = _grid_model(
+        sandwich_pre_row_attention_layers=2,
+        sandwich_pre_column_attention_layers=1,
+    )
+
+    baseline_params = sum(int(parameter.numel()) for parameter in baseline.parameters())
+    mixed_params = sum(int(parameter.numel()) for parameter in mixed.parameters())
+
+    assert len(baseline.pre_row_attention_blocks) == 0
+    assert len(baseline.pre_column_attention_blocks) == 0
+    assert len(mixed.pre_row_attention_blocks) == 2
+    assert len(mixed.pre_column_attention_blocks) == 1
+    assert mixed_params > baseline_params
 
 
 def test_grid_sandwich_rejects_non_classification_loss_surface() -> None:
