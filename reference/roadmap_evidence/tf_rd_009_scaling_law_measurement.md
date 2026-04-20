@@ -505,19 +505,21 @@ Next sweep ordering after the corrected Phase-2 closeout:
 - first: keep merged PR [#280](https://github.com/bensonlee5/tab-foundry/pull/280)
   as a directional Muon Phase-2 result and do not claim compute-optimality from
   it
-- second: land
-  [#283](https://github.com/bensonlee5/tab-foundry/issues/283) so the active
-  Muon lineage is easy to inspect and hard to misuse; the canonical operator
-  path should expose the active benchmark, corpus, formal anchor, carried
-  baseline, linked study, kept winner, and fit/audit readiness from one place
-- third: run
-  [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the faithful
-  `144x4` Muon transfer study as one strict shared-anchor LMO sweep:
-  `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`, with no T0
-  hyperparameter screen in the canonical path
-- fourth: only after the transfer study keeps one dynamics contract should a later
-  Muon Phase-2B rerun redesign the multi-geometry batch surface before
-  revisiting `Bcrit(L)` or any `Cmin` story
+- second:
+  [#283](https://github.com/bensonlee5/tab-foundry/issues/283) is satisfied on
+  this branch: the active Muon lineage is easy to inspect and hard to misuse,
+  with canonical sweep/scaling inspection surfaces, lineage/context display,
+  and fail-fast default-anchor contract guards
+- third:
+  [#284](https://github.com/bensonlee5/tab-foundry/issues/284) is complete as
+  the strict shared-anchor `144x4` Muon transfer sweep
+  `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`; the law-derived
+  Regime `B` beats Regime `D`, but `B@T2=0.5143437440` does not beat carried
+  high-batch `T2=0.5135392585`, so neither law-derived regime is strong enough
+  to justify a Phase-2B rerun from this study
+- fourth: only after some later separate study produces a better-conditioned
+  multi-geometry batch surface should any Muon Phase-2B rerun redesign the
+  batch surface before revisiting `Bcrit(L)` or any `Cmin` story
 - fifth: keep larger-model follow-on work separate from this base study;
   [#269](https://github.com/bensonlee5/tab-foundry/issues/269) and
   [#259](https://github.com/bensonlee5/tab-foundry/issues/259) are both
@@ -528,23 +530,22 @@ Next sweep ordering after the corrected Phase-2 closeout:
 
 TF-RD-009 adoption decision: use the corrected Muon Phase-2 study as the fresh
 directional `L(N,S)` surface for the Muon family, but do not use `Bcrit(L)` to
-derive `Cmin` and do not make Chinchilla-like compute-optimal claims until the
-cleanup lane and faithful transfer study land, a kept dynamics contract is
-chosen, and a later multi-geometry batch rerun materially improves the
-conditioning of the batch surface. The corrected empirical lesson is
-training-dynamics-first: on the trusted multiclass benchmark, batch-side gains
-were larger than geometry-only gains, so the next defended study should test
-optimizer and batch invariants before reopening larger-family work.
+derive `Cmin` and do not make Chinchilla-like compute-optimal claims. The
+cleanup lane is now satisfied, and the faithful transfer study is now complete:
+the corrected empirical lesson remains training-dynamics-first, but the strict
+shared-anchor LMO laws did not beat the carried high-batch baseline at `T2`, so
+this negative transfer result does not justify a later Phase-2B rerun by
+itself and does not reopen larger-family or compute-frontier work.
 
 The faithful transfer study is derived directly from
 [arXiv:2603.15958](https://arxiv.org/abs/2603.15958) rather than from the
-earlier heuristic endpoint selector. Keep geometry fixed at `144x4`, reuse the
-existing rung-equivalent effective-task budgets `T0/T1/T2 = {625×64, 2500×64,
-5000×64}`, and carry the repo-wide default anchor benchmark
-`openml_classification_medium_v1` forward as the only admissible benchmark
-contract. The active `#284` sweep uses one shared carried low-batch Muon `T0`
-artifact as the anchor source of truth, then derives Regime `B` and Regime `D`
-deterministically at `T1/T2`; there is no regime-specific T0 search in the
+earlier heuristic endpoint selector. It kept geometry fixed at `144x4`, reused
+the rung-equivalent effective-task budgets `T0/T1/T2 = {625×64, 2500×64,
+5000×64}`, and carried the repo-wide default anchor benchmark
+`openml_classification_medium_v1` as the only admissible benchmark contract.
+The completed `#284` sweep used one shared carried low-batch Muon `T0`
+artifact as the anchor source of truth, then derived Regime `B` and Regime `D`
+deterministically at `T1/T2`; there was no regime-specific T0 search in the
 canonical lane.
 surface until explicitly changed. The carried tested architecture is the
 concrete sandwich surface `d_icl=144`, `sandwich_layers=4`,
@@ -572,6 +573,14 @@ dynamics on that fixed architecture, not reopening architecture movement.
   - `max_steps=round_half_up(target_effective_budget / realized_effective_batch)`
   - validation should fail if realized batch or effective-budget drift exceeds
     the default `2%` guard
+- completed result:
+  - kept law-derived regime: `B`
+  - `B@T1=0.5239001271`, `B@T2=0.5143437440`
+  - `D@T1=0.5268794041`, `D@T2=0.5169818590`
+  - carried high-batch `T2=0.5135392585`
+  - imported carried low-batch `T2=0.4914031270`
+  - `B` lost to carried high-batch at `T2` by `+0.0008044855` log loss, so the
+    study closes without opening a later Phase-2B rerun issue
 
 ## Joint Width-Depth Derivation For [#255](https://github.com/bensonlee5/tab-foundry/issues/255)
 

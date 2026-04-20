@@ -1170,7 +1170,7 @@ Legacy wording note:
     [#256](https://github.com/bensonlee5/tab-foundry/issues/256), and
     [#257](https://github.com/bensonlee5/tab-foundry/issues/257) remains
     preserved context only
-  - the active `#284` execution surface is now the strict shared-anchor LMO
+  - the completed `#284` execution surface is the strict shared-anchor LMO
     transfer sweep:
     `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
   - the earlier screen-based transfer sweeps
@@ -1181,7 +1181,7 @@ Legacy wording note:
     `tf_rd_009_muon_training_dynamics_endpoint_medium_v1` remains tracked
     superseded context only; it is no longer the canonical training-dynamics
     decision surface
-- Required work:
+- Closeout state:
   - keep [#253](https://github.com/bensonlee5/tab-foundry/issues/253) as the
     authoritative umbrella for TF-RD-009, but treat the historical
     schedulefree family under [#254](https://github.com/bensonlee5/tab-foundry/issues/254),
@@ -1199,54 +1199,40 @@ Legacy wording note:
     corrected Muon Phase-2 closeout: keep `L(N,S)` on validation loss as the
     primary directional law, keep benchmark loss as external ranking evidence,
     and keep `Bcrit` / `Cmin` diagnostic-only with `ready_for_cmin=false`
-  - land [#283](https://github.com/bensonlee5/tab-foundry/issues/283) next so
-    one sweep/scaling inspection path can show the active benchmark, corpus,
-    formal external anchor, carried in-family baseline, linked study lineage,
-    kept winner, and fit/audit readiness, while failing fast on benchmark,
-    baseline, corpus, anchor, and replay-completeness contract drift
-  - after the cleanup child lands, execute
-    [#284](https://github.com/bensonlee5/tab-foundry/issues/284) as the
-    strict shared-anchor Muon transfer study at fixed `144x4`: keep the
-    corrected `openml_classification_medium_v1` default anchor benchmark and
-    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus fixed, reuse one
-    carried low-batch `144x4` Muon `T0` artifact as the shared source of truth,
-    and derive Regime `B` and Regime `D` deterministically inside
-    `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
-  - for that transfer study, carry one exact sandwich architecture surface
-    rather than a generic family label: `d_icl=144`, `sandwich_layers=4`,
-    `sandwich_latents=24`, `sandwich_heads=1`,
+  - [#283](https://github.com/bensonlee5/tab-foundry/issues/283) is now
+    satisfied on this branch: `research sweep list-sweeps` renders the lineage
+    tree, `research sweep inspect` exposes the active benchmark/corpus/carried
+    baseline/shared-anchor winner surface, `research scaling inspect` exposes
+    linked sweeps plus winner and fit/audit readiness, and the default-anchor
+    contract guards now fail fast on benchmark, baseline, corpus, anchor, and
+    replay-completeness drift
+  - [#284](https://github.com/bensonlee5/tab-foundry/issues/284) is complete
+    on the fixed `144x4` sandwich surface (`d_icl=144`,
+    `sandwich_layers=4`, `sandwich_latents=24`, `sandwich_heads=1`,
     `sandwich_summary_tokens_per_axis=3`, `sandwich_ff_expansion=2`,
     `sandwich_self_attention_per_cross=4`,
     `sandwich_pre_row_attention_layers=1`,
     `sandwich_pre_column_attention_layers=1`, and
-    `sandwich_pre_column_inducing_tokens=16`; treat optimizer and batch laws as
-    the only active variable
-  - derive the transfer rows directly from
-    [arXiv:2603.15958](https://arxiv.org/abs/2603.15958):
-    Regime `B` uses `B(T)=64`, `alpha(T)=alpha0*(T/T0)^(-1/2)`, and
-    `lr_max(T)=lr0*(T/T0)^(-3/4)`; Regime `D` uses
-    `B(T)=B0*(T/T0)^(1/6)`, `alpha(T)=alpha0*(T/T0)^(-1/3)`, and
-    `lr_max(T)=lr0*(T/T0)^(-7/12)` with `momentum(T)=1-alpha(T)` and
-    `min_lr=lr_max*1e-3`
-  - realize budgets deterministically on the existing rung ladder
-    `T0/T1/T2 = {625×64, 2500×64, 5000×64}` with `task_batch_size=16`,
-    nearest-realizable effective batch rounding, `max_steps=round_half_up(T/B)`,
-    and a default `2%` drift guard on realized batch and effective-budget
-    mismatch
-  - keep the active `#284` surface law-driven rather than screened: the
-    canonical sweep is a `10`-row validation surface with imported carried
-    low-batch baselines at `T0/T1/T2`, carried high-batch baselines at
-    `T0/T1/T2`, and Regime `B` / Regime `D` rows only at `T1/T2`; there is no
-    regime-specific `T0` search in the active path
-  - choose the kept law-derived regime by corrected benchmark log loss with a
-    `T2`-first, `T1` tie-break rule, then compare that winning regime against
-    the carried high-batch baseline at `T2` before opening any later Phase-2B
-    rerun issue
-  - only after the cleanup child and faithful transfer study land should
+    `sandwich_pre_column_inducing_tokens=16`) against the corrected
+    `openml_classification_medium_v1` benchmark and
+    `tf_rd_010_dagzoo_medium_control_curated_v6` corpus
+  - the completed strict shared-anchor LMO sweep kept Regime `B` over Regime
+    `D` by the tracked `T2`-then-`T1` rule:
+    `B@T1=0.5239001271`, `B@T2=0.5143437440`,
+    `D@T1=0.5268794041`, `D@T2=0.5169818590`
+  - the best overall row in the completed study remains the imported carried
+    low-batch baseline `T2` row `3` at `0.4914031270`; the carried high-batch
+    `T2` row `6` landed at `0.5135392585`
+  - final transfer-study verdict: the kept law-derived regime `B` did **not**
+    beat carried high-batch at `T2`
+    (`0.5143437440` vs `0.5135392585`, delta `+0.0008044855` log loss), so
+    close `#284` without opening any later Phase-2B rerun issue from this lane
+  - only after the completed cleanup child and negative faithful transfer study
+    closeout should
     [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited
     for any Muon upper-family move; treat any later larger-model probe as
     post-selector work instead of as a blocker on the current active reboot path
-  - only after a later Muon Phase-2B rerun produces a better-conditioned
+  - only after some later separate study produces a better-conditioned
     multi-geometry batch surface should
     [#259](https://github.com/bensonlee5/tab-foundry/issues/259) be revisited
     for the compute-frontier / Chinchilla-style branch; keep
