@@ -11,6 +11,9 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
     row = cast(Mapping[str, Any], payload["row"])
     target = cast(Mapping[str, Any], payload["target"])
     navigation = cast(Mapping[str, Any] | None, payload.get("navigation"))
+    row_summary = cast(Mapping[str, Any] | None, payload.get("row_summary"))
+    selector_summary = cast(Mapping[str, Any] | None, payload.get("selector_summary"))
+    transfer_summary = cast(Mapping[str, Any] | None, payload.get("transfer_summary"))
     resolved = cast(Mapping[str, Any], target["resolved"])
     model = cast(Mapping[str, Any], resolved["model"])
     data = cast(Mapping[str, Any] | None, resolved.get("data"))
@@ -44,6 +47,17 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         contract = navigation.get("contract")
         if isinstance(contract, Mapping):
             lines.append(f"benchmark_manifest_path={contract.get('benchmark_manifest_path')}")
+            if contract.get("uses_default_anchor_benchmark") is not None:
+                lines.append(
+                    "uses_default_anchor_benchmark="
+                    + ("yes" if contract.get("uses_default_anchor_benchmark") else "no")
+                )
+            default_anchor_benchmark = contract.get("default_anchor_benchmark")
+            if isinstance(default_anchor_benchmark, Mapping):
+                lines.append(
+                    "default_anchor_benchmark_manifest_path="
+                    f"{default_anchor_benchmark.get('benchmark_manifest_path')}"
+                )
             lines.append(f"control_baseline_id={contract.get('control_baseline_id')}")
             lines.append(f"carried_in_family_baseline_run_id={contract.get('carried_in_family_baseline_run_id')}")
             if contract.get("corpus_ref") is not None:
@@ -74,6 +88,162 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
             lines.append(
                 "linked_scaling_studies="
                 + ", ".join(str(value) for value in linked_scaling_studies)
+            )
+    if row_summary is not None:
+        lines.append(
+            "pareto_admissible="
+            + (
+                "yes"
+                if row_summary.get("pareto_admissible") is True
+                else ("no" if row_summary.get("pareto_admissible") is False else "n/a")
+            )
+        )
+        lines.append(
+            "geometry_pareto_admissible="
+            + (
+                "yes"
+                if row_summary.get("geometry_pareto_admissible") is True
+                else (
+                    "no"
+                    if row_summary.get("geometry_pareto_admissible") is False
+                    else "n/a"
+                )
+            )
+        )
+        lines.append(
+            f"selector_geometry_label={row_summary.get('selector_geometry_label') or 'n/a'}"
+        )
+        lines.append(
+            f"selector_prescription_label={row_summary.get('selector_prescription_label') or 'n/a'}"
+        )
+        if row_summary.get("end_to_end_wall_seconds") is not None:
+            lines.append(
+                "end_to_end_wall_seconds="
+                f"{float(row_summary['end_to_end_wall_seconds']):.1f}"
+            )
+        if row_summary.get("throughput_tokens_per_second") is not None:
+            lines.append(
+                "throughput_tokens_per_second="
+                f"{float(row_summary['throughput_tokens_per_second']):.1f}"
+            )
+        if row_summary.get("transfer_regime_label") is not None:
+            lines.append(
+                f"transfer_regime_label={row_summary.get('transfer_regime_label')}"
+            )
+        if row_summary.get("transfer_phase") is not None:
+            lines.append(f"transfer_phase={row_summary.get('transfer_phase')}")
+        if row_summary.get("transfer_formula_label") is not None:
+            lines.append(
+                "transfer_formula_label="
+                f"{row_summary.get('transfer_formula_label')}"
+            )
+        if row_summary.get("transfer_target_budget_label") is not None:
+            lines.append(
+                "transfer_target_budget_label="
+                f"{row_summary.get('transfer_target_budget_label')}"
+            )
+        if row_summary.get("transfer_candidate_label") is not None:
+            lines.append(
+                "transfer_candidate_label="
+                f"{row_summary.get('transfer_candidate_label')}"
+            )
+        if row_summary.get("target_effective_batch") is not None:
+            lines.append(
+                "target_effective_batch="
+                f"{float(row_summary['target_effective_batch']):.1f}"
+            )
+        if row_summary.get("realized_effective_batch") is not None:
+            lines.append(
+                "realized_effective_batch="
+                f"{int(row_summary['realized_effective_batch'])}"
+            )
+        if row_summary.get("target_effective_budget") is not None:
+            lines.append(
+                "target_effective_budget="
+                f"{int(row_summary['target_effective_budget'])}"
+            )
+        if row_summary.get("realized_effective_budget") is not None:
+            lines.append(
+                "realized_effective_budget="
+                f"{int(row_summary['realized_effective_budget'])}"
+            )
+        if row_summary.get("budget_drift") is not None:
+            lines.append(f"budget_drift={float(row_summary['budget_drift']):+.6f}")
+        if row_summary.get("batch_drift") is not None:
+            lines.append(f"batch_drift={float(row_summary['batch_drift']):+.6f}")
+        imported_baseline = row_summary.get("imported_baseline_provenance")
+        if isinstance(imported_baseline, Mapping):
+            lines.append(
+                "imported_baseline_provenance="
+                + json.dumps(dict(imported_baseline), sort_keys=True)
+            )
+        shared_anchor = row_summary.get("shared_anchor_provenance")
+        if isinstance(shared_anchor, Mapping):
+            lines.append(
+                "shared_anchor_provenance="
+                + json.dumps(dict(shared_anchor), sort_keys=True)
+            )
+    if selector_summary is not None:
+        best_row = selector_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "selector_best_row="
+                f"order {int(best_row['order']):02d}, "
+                f"geometry={best_row.get('geometry_label') or 'n/a'}, "
+                f"prescription={best_row.get('prescription_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"wall={float(best_row['end_to_end_wall_seconds']):.1f}s"
+            )
+        kept_contract = selector_summary.get("kept_contract")
+        if isinstance(kept_contract, Mapping):
+            lines.append(
+                "selector_kept_contract="
+                f"{kept_contract['prescription_label']} "
+                f"(frontier_geometries={int(kept_contract['geometry_count'])}, "
+                f"mean_wall={float(kept_contract['mean_end_to_end_wall_seconds']):.1f}s, "
+                f"mean_log_loss={float(kept_contract['mean_benchmark_log_loss']):.6f})"
+            )
+        elif selector_summary.get("no_universal_kept_contract") is True:
+            lines.append("selector_kept_contract=none")
+    if transfer_summary is not None:
+        best_row = transfer_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "transfer_best_row="
+                f"order {int(best_row['order']):02d}, "
+                f"regime={best_row.get('regime_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"budget={best_row.get('target_budget_label') or 'n/a'}"
+            )
+        fastest_row = transfer_summary.get("fastest_row")
+        if isinstance(fastest_row, Mapping):
+            lines.append(
+                "transfer_fastest_row="
+                f"order {int(fastest_row['order']):02d}, "
+                f"regime={fastest_row.get('regime_label') or 'n/a'}, "
+                f"wall={float(fastest_row['end_to_end_wall_seconds']):.1f}s"
+            )
+        regime_leaderboard = transfer_summary.get("regime_leaderboard")
+        if isinstance(regime_leaderboard, list) and regime_leaderboard:
+            lines.append(
+                "transfer_regime_leaderboard="
+                + json.dumps(
+                    [dict(cast(Mapping[str, Any], item)) for item in regime_leaderboard if isinstance(item, Mapping)],
+                    sort_keys=True,
+                )
+            )
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "transfer_kept_regime="
+                f"{kept_regime.get('regime_label')}@T2(order {int(kept_regime['t2_order']):02d}, "
+                f"log_loss={float(kept_regime['t2_log_loss']):.6f})"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "transfer_t2_vs_carried_highbatch="
+                f"delta_log_loss={float(t2_vs_highbatch['delta_log_loss']):+.6f}"
             )
     if data is not None:
         lines.append(f"data.surface_label={data.get('surface_label')}")

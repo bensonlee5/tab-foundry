@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from omegaconf import DictConfig, OmegaConf
+from tab_foundry.hashing import sha256_text
+
+
+_WANDB_ARTIFACT_NAME_MAXLEN = 128
+_WANDB_ARTIFACT_NAME_HASH_HEX = 12
+_WANDB_ARTIFACT_INIT_TIMEOUT_SECONDS = 300
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +76,19 @@ def _jsonable_mapping(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None
     return {str(key): item for key, item in value.items()}
+
+
+def _normalize_artifact_name_for_wandb(name: str) -> str:
+    normalized_name = str(name).strip()
+    if not normalized_name:
+        raise RuntimeError("artifact_name must be a non-empty string for W&B checkpoint publication")
+    if len(normalized_name) <= _WANDB_ARTIFACT_NAME_MAXLEN:
+        return normalized_name
+    hash_suffix = sha256_text(normalized_name)[:_WANDB_ARTIFACT_NAME_HASH_HEX]
+    max_prefix_chars = _WANDB_ARTIFACT_NAME_MAXLEN - 1 - len(hash_suffix)
+    if max_prefix_chars <= 0:  # pragma: no cover - defensive guard
+        raise RuntimeError("W&B artifact name budget is too small to encode a checkpoint artifact")
+    return f"{normalized_name[:max_prefix_chars]}-{hash_suffix}"
 
 
 def _wandb_public_path_parts(run: Any | None) -> tuple[str | None, str | None, str | None]:
@@ -327,13 +346,11 @@ def publish_checkpoint_artifact(
         raise RuntimeError(f"checkpoint path does not exist: {resolved_checkpoint}")
     normalized_project = str(project).strip()
     normalized_run_id = str(run_id).strip()
-    normalized_artifact_name = str(artifact_name).strip()
+    normalized_artifact_name = _normalize_artifact_name_for_wandb(artifact_name)
     if not normalized_project:
         raise RuntimeError("project must be a non-empty string for W&B checkpoint publication")
     if not normalized_run_id:
         raise RuntimeError("run_id must be a non-empty string for W&B checkpoint publication")
-    if not normalized_artifact_name:
-        raise RuntimeError("artifact_name must be a non-empty string for W&B checkpoint publication")
     normalized_entity = None if entity is None else str(entity).strip() or None
     normalized_run_name = None if run_name is None else str(run_name).strip() or None
     normalized_aliases = [str(value).strip() for value in (aliases or ["best"]) if str(value).strip()]
@@ -352,6 +369,9 @@ def publish_checkpoint_artifact(
         init_kwargs["entity"] = normalized_entity
     if normalized_run_name is not None:
         init_kwargs["name"] = normalized_run_name
+    settings_ctor = getattr(wandb, "Settings", None)
+    if callable(settings_ctor):
+        init_kwargs["settings"] = settings_ctor(init_timeout=_WANDB_ARTIFACT_INIT_TIMEOUT_SECONDS)
 
     run = wandb.init(**init_kwargs)
     if run is None:  # pragma: no cover - defensive branch

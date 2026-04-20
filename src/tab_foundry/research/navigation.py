@@ -6,9 +6,18 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+from tab_foundry.bench.openml_benchmark import (
+    default_anchor_benchmark_summary,
+    default_anchor_control_baseline_id,
+    default_benchmark_manifest_path,
+)
+from tab_foundry.data.manifest_characteristics import compute_manifest_characteristics
+from tab_foundry.repo_paths import normalize_repo_relative_path
 from tab_foundry.research.scaling.study import ScalingStudyConfig, default_scaling_studies_root, load_scaling_study_config
 from tab_foundry.research.sweep.catalog import load_system_delta_index_payload
 from tab_foundry.research.sweep.materialize import load_system_delta_queue
+
+_BINARY_CLASS_LIMIT = 2
 
 
 def _optional_string(value: Any) -> str | None:
@@ -42,12 +51,75 @@ def _unique_corpus_refs(rows: Sequence[Any]) -> list[str]:
     )
 
 
+def _default_anchor_benchmark_contract() -> dict[str, Any]:
+    summary = default_anchor_benchmark_summary()
+    return {
+        "benchmark_manifest_path": normalize_repo_relative_path(default_benchmark_manifest_path()),
+        "control_baseline_id": default_anchor_control_baseline_id(),
+        "benchmark_bundle": dict(summary),
+    }
+
+
+def _uses_default_anchor_benchmark_contract(
+    *,
+    benchmark_manifest_path: str | Path,
+    control_baseline_id: str | None,
+) -> bool:
+    resolved_manifest_path = Path(str(benchmark_manifest_path)).expanduser().resolve()
+    default_manifest_path = default_benchmark_manifest_path().expanduser().resolve()
+    if resolved_manifest_path != default_manifest_path:
+        return False
+    return _optional_string(control_baseline_id) == default_anchor_control_baseline_id()
+
+
+def _default_anchor_manifest_contract_issues(manifest_path: Path) -> list[str]:
+    if manifest_path.expanduser().resolve() != default_benchmark_manifest_path().expanduser().resolve():
+        return []
+    if not manifest_path.exists():
+        return ["default anchor benchmark manifest is not materialized locally"]
+    characteristics = compute_manifest_characteristics(manifest_path)
+    expected_summary = default_anchor_benchmark_summary()
+    expected_task_count = int(expected_summary["task_count"])
+    issues: list[str] = []
+    if int(characteristics["record_count"]) != expected_task_count:
+        issues.append(
+            "default anchor benchmark manifest record_count mismatch: "
+            f"expected={expected_task_count} actual={int(characteristics['record_count'])}"
+        )
+    expected_allow_missing = bool(expected_summary.get("allow_missing_values"))
+    actual_missing_policy = characteristics.get("missing_value_policy")
+    if expected_allow_missing and str(actual_missing_policy) != "allow_any":
+        issues.append(
+            "default anchor benchmark manifest should preserve natural missingness: "
+            f"expected missing_value_policy='allow_any' actual={actual_missing_policy!r}"
+        )
+    expected_selection = cast(Mapping[str, Any], expected_summary.get("selection", {}))
+    expected_max_classes = expected_selection.get("max_classes")
+    class_distribution = characteristics.get("class_count_distribution")
+    if isinstance(class_distribution, Mapping):
+        actual_max_classes = int(class_distribution["max"])
+        if (
+            expected_max_classes is not None
+            and actual_max_classes <= _BINARY_CLASS_LIMIT
+            and int(expected_max_classes) > _BINARY_CLASS_LIMIT
+        ):
+            issues.append(
+                "default anchor benchmark manifest collapsed to a binary-only surface: "
+                f"expected multiclass max_classes={int(expected_max_classes)} actual_max_classes={actual_max_classes}"
+            )
+    else:
+        issues.append("default anchor benchmark manifest did not report class-count distribution")
+    return issues
+
+
 def _winner_from_rows(rows: Sequence[Any]) -> dict[str, Any] | None:
     candidates: list[Mapping[str, Any]] = []
     for row in rows:
         if not isinstance(row, Mapping):
             continue
-        if str(row.get("status", "")).strip() != "completed":
+        status = str(row.get("status", "")).strip()
+        imported_baseline = isinstance(row.get("imported_baseline_provenance"), Mapping)
+        if status != "completed" and not imported_baseline:
             continue
         metrics = row.get("benchmark_metrics")
         if not isinstance(metrics, Mapping):
@@ -235,6 +307,11 @@ def validate_sweep_contract(
                 f"{sweep_id}: anchor_context.run_id {anchor_context_run_id!r} does not match "
                 f"anchor_run_id {queue_anchor_run_id!r}"
             )
+    benchmark_manifest_path = Path(str(queue["benchmark_manifest_path"]))
+    issues.extend(
+        f"{sweep_id}: {issue}"
+        for issue in _default_anchor_manifest_contract_issues(benchmark_manifest_path)
+    )
     return issues
 
 
@@ -254,6 +331,11 @@ def build_sweep_navigation_payload(
         ),
         "contract": {
             "benchmark_manifest_path": str(queue["benchmark_manifest_path"]),
+            "default_anchor_benchmark": _default_anchor_benchmark_contract(),
+            "uses_default_anchor_benchmark": _uses_default_anchor_benchmark_contract(
+                benchmark_manifest_path=str(queue["benchmark_manifest_path"]),
+                control_baseline_id=_optional_string(queue.get("control_baseline_id")),
+            ),
             "control_baseline_id": str(queue["control_baseline_id"]),
             "external_benchmarks": list(cast(Sequence[Any], queue.get("external_benchmarks", []))),
             "training_experiment": str(queue["training_experiment"]),
@@ -300,6 +382,7 @@ def build_scaling_navigation_payload(
     catalog_path: Path,
     sweeps_root: Path,
 ) -> dict[str, Any]:
+    index = load_system_delta_index_payload(index_path)
     queues: dict[str, Mapping[str, Any]] = {}
     for sweep_ref in config.sweeps:
         queues[sweep_ref.sweep_id] = load_system_delta_queue(
@@ -325,6 +408,9 @@ def build_scaling_navigation_payload(
         if corpus_ref is not None
     }
     issues: list[str] = []
+    for sweep_ref in config.sweeps:
+        queue = queues[sweep_ref.sweep_id]
+        issues.extend(validate_sweep_contract(queue=queue, index_path=index_path))
     if len(benchmark_paths) != 1:
         issues.append(f"scaling study {config.study_id}: benchmark manifest mismatch across sweeps {sorted(benchmark_paths)!r}")
     if len(control_baselines) != 1:
@@ -381,12 +467,13 @@ def build_scaling_navigation_payload(
     linked_sweeps: list[dict[str, Any]] = []
     for sweep_ref in config.sweeps:
         queue = queues[sweep_ref.sweep_id]
+        index_entry = index.sweeps.get(sweep_ref.sweep_id)
         linked_sweeps.append(
             {
                 "name": sweep_ref.name,
                 "family": sweep_ref.family,
                 "sweep_id": sweep_ref.sweep_id,
-                "status": str(queue.get("status", "unknown")),
+                "status": "unknown" if index_entry is None else str(index_entry.status),
                 "lineage": sweep_lineage_entries(sweep_id=sweep_ref.sweep_id, index_path=index_path),
                 "winner": _winner_from_rows(cast(Sequence[Any], queue.get("rows", []))),
             }
@@ -396,6 +483,15 @@ def build_scaling_navigation_payload(
         "linked_sweeps": linked_sweeps,
         "contract": {
             "benchmark_manifest_path": next(iter(benchmark_paths)) if len(benchmark_paths) == 1 else None,
+            "default_anchor_benchmark": _default_anchor_benchmark_contract(),
+            "uses_default_anchor_benchmark": (
+                len(benchmark_paths) == 1
+                and len(control_baselines) == 1
+                and _uses_default_anchor_benchmark_contract(
+                    benchmark_manifest_path=next(iter(benchmark_paths)),
+                    control_baseline_id=next(iter(control_baselines)),
+                )
+            ),
             "control_baseline_id": next(iter(control_baselines)) if len(control_baselines) == 1 else None,
             "training_experiment": next(iter(training_experiments)) if len(training_experiments) == 1 else None,
             "training_config_profile": next(iter(training_profiles)) if len(training_profiles) == 1 else None,

@@ -1,0 +1,4442 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1/matrix.md
+sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+parent_sweep_id: tf_rd_009_muon_batch_critical_one_epoch_medium_v1
+sweep_status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+training_config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+surface_role: classification_training_dynamics_transfer
+comparison_policy: anchor_only
+upstream_reference:
+  name: Deriving Hyperparameter Scaling Laws via Modern Optimization Theory
+  model_source: https://arxiv.org/abs/2603.15958
+anchor_surface:
+  notes:
+  - 'This sweep is the active #284 strict shared-anchor LMO transfer study; the earlier
+    screen-based transfer sweeps are superseded context only.'
+  - Keep geometry fixed at 144x4, reuse one carried low-batch Muon T0 artifact as
+    the shared anchor, and derive Regime B and Regime D deterministically from that
+    anchor.
+  - 'Do not perform any T0 hyperparameter search in the canonical #284 path; T0 is
+    the shared carried anchor and the regime comparison happens at T1/T2.'
+  - Primary decision criterion is corrected benchmark log loss on openml_classification_medium_v1
+    with a T2-first, T1 tie-break winner rule; runtime remains diagnostic only.
+  dimension_table: []
+anchor_context:
+  run_id: sd_tf_rd_009_muon_width_screen_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl128_v1_v1
+  experiment: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  config_profile: cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the strict shared-anchor
+    LMO transfer study without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 09 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  - This imported low-batch row is also the shared T0 anchor for the strict LMO transfer
+    regimes.
+  dynamic_model_overrides: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: 4fc459d869ad4846c6cfae41b5c03ff051b4d47a924f1126afbec3d8ee4a7c5a
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 625
+    max_grad_norm: 3.595210751679737
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 563.5871033887379
+    wall_elapsed_seconds: 572.867870552931
+    peak_vram_allocated: 3068066304
+    peak_vram_reserved: 7589593088
+    end_to_end_wall_seconds: 593.1992791611701
+    loader_setup_seconds: 20.120247365906835
+    throughput_examples_per_second: 70.97394486049788
+    throughput_tokens_per_second: 424133.93522087584
+    non_train_overhead_seconds: 9.431410214398056
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 635
+    tokens_per_step: 382458.2656
+    tokens_seen: 239036416
+    token_budget: 239036416
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.6461466098688694
+    final_log_loss: 0.6461466098688694
+    best_brier_score: 0.4025780370601524
+    final_brier_score: 0.4025780370601524
+    best_roc_auc: 0.6658360736913753
+    final_roc_auc: 0.6658360736913753
+    best_bpc: 2.1886389592728532
+    final_bpc: 2.1886389592728532
+    best_bpf: 2.1886385221739073
+    final_bpf: 2.1886385221739073
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.3674210980534554
+    final_train_loss_ema: 1.2829152672163924
+    final_tail_mean_train_loss: 1.3081061603531006
+    final_tail_mean_train_loss_ema: 1.3118983355389424
+    final_tail_record_count: 63
+    one_family_step_count: 580
+    mixed_family_step_count: 45
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 575
+    family_block_count: 580
+    estimated_family_switch_count: 579
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the first fresh-Muon interpolated TF-RD-009 width-depth row
+    at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target
+    between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
+  upstream_delta: TF-RD-009 rederives the Muon Phase-1 diagonal from the landed width
+    screen plus the frozen RTX 8000 planning formulas, then uses log-space parameter
+    interpolation instead of inheriting the historical schedulefree ladder.
+  entangled_legacy_stage: none
+  expected_effect: If the fresh Muon fixed-budget law stays smooth beyond the upper
+    seed, `144x4` should provide the first interior Phase-1 measurement between the
+    carried `128x2` baseline and the retained ceiling probe.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - carried post-#271 packed Muon runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget
+    reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the `72x1` and `112x3` fresh-Muon seed rows so the rederived family
+      stays an ordered diagonal around the landed width screen.
+    - Compare directly against the carried `128x2` Muon baseline at matched regime
+      budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Treat this row as interior fresh-Muon Phase-1 evidence rather than as an upper-family
+      reopen selector output.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: de7f9bcc50164afee6aecb2ab285aa3712199e2515bc802f34e5d22b9a50fa24
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 9
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+- order: 2
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the strict shared-anchor
+    LMO transfer study without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 11 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  - This imported low-batch row is also the shared T0 anchor for the strict LMO transfer
+    regimes.
+  dynamic_model_overrides: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: a4c7d3c6553c38115717e1178045a9b795c21c50d5104cbea7c9e02b3125eb6f
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 4.271018091022219
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 1961.8925335267559
+    wall_elapsed_seconds: 1980.4997803838924
+    peak_vram_allocated: 3068090368
+    peak_vram_reserved: 7765753856
+    end_to_end_wall_seconds: 2001.2573917103
+    loader_setup_seconds: 20.55282300291583
+    throughput_examples_per_second: 81.55390637650233
+    throughput_tokens_per_second: 487893.3089567956
+    non_train_overhead_seconds: 18.75265457155183
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 2520
+    tokens_per_step: 382877.696
+    tokens_seen: 957194240
+    token_budget: 957194240
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.507891654839319
+    final_log_loss: 0.507891654839319
+    best_brier_score: 0.30953249632666074
+    final_brier_score: 0.30953249632666074
+    best_roc_auc: 0.7718923833213517
+    final_roc_auc: 0.7718923833213517
+    best_bpc: 2.396527912263809
+    final_bpc: 2.396527912263809
+    best_bpf: 2.396453592980478
+    final_bpf: 2.396453592980478
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0272985249757767
+    final_train_loss_ema: 1.095487027726373
+    final_tail_mean_train_loss: 1.1281592704206704
+    final_tail_mean_train_loss_ema: 1.1312624687628345
+    final_tail_record_count: 250
+    one_family_step_count: 147
+    mixed_family_step_count: 2353
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 139
+    family_block_count: 147
+    estimated_family_switch_count: 146
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the first fresh-Muon interpolated TF-RD-009 width-depth row
+    at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target
+    between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
+  upstream_delta: TF-RD-009 rederives the Muon Phase-1 diagonal from the landed width
+    screen plus the frozen RTX 8000 planning formulas, then uses log-space parameter
+    interpolation instead of inheriting the historical schedulefree ladder.
+  entangled_legacy_stage: none
+  expected_effect: If the fresh Muon fixed-budget law stays smooth beyond the upper
+    seed, `144x4` should provide the first interior Phase-1 measurement between the
+    carried `128x2` baseline and the retained ceiling probe.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - carried post-#271 packed Muon runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget
+    reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the `72x1` and `112x3` fresh-Muon seed rows so the rederived family
+      stays an ordered diagonal around the landed width screen.
+    - Compare directly against the carried `128x2` Muon baseline at matched regime
+      budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Treat this row as interior fresh-Muon Phase-1 evidence rather than as an upper-family
+      reopen selector output.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: f03fac3f7e2535a3c9453c64156e55cdc99235f322da2785e3f6b87ef0aa7091
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 160000
+    realized_effective_budget: 160000
+    budget_drift: 0.0
+    batch_drift: 0.0
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 11
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_11_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+- order: 3
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+  status: ready
+  rationale: Import the corrected 144x4 low-batch Muon baseline from the completed
+    NS sweep without retraining.
+  hypothesis: The carried low-batch 144x4 baseline anchors the faithful transfer study
+    and should remain a valid corrected benchmark reference at the matching budget
+    rung.
+  anchor_delta: Reuse the completed NS low-batch train artifact and benchmark it into
+    the transfer study without retraining.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Do not retrain the carried low-batch baseline; benchmark only from the preserved
+    NS train artifact.
+  - Keep the corrected medium anchor benchmark fixed so the low-batch baseline remains
+    directly comparable to the transfer regimes.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Benchmark this imported low-batch baseline into the strict shared-anchor
+    LMO transfer study without retraining.
+  notes:
+  - Import low-batch baseline provenance from tf_rd_009_muon_ns_one_epoch_medium_v1
+    order 12 (sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1).
+  - This baseline remains corrected-medium multiclass only and should not drift to
+    any binary benchmark surface.
+  - This imported low-batch row is also the shared T0 anchor for the strict LMO transfer
+    regimes.
+  dynamic_model_overrides: null
+  reuse_train_artifact:
+    run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+    training_surface_fingerprint: 7ced1d99f22a54bfcb426e1cfb57b5f40bfc925b674839077baadc1b8d838e40
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000
+    max_grad_norm: 2.936327000965149
+    clipped_step_fraction: 0.0
+    train_elapsed_seconds: 3780.5150319170207
+    wall_elapsed_seconds: 3812.982417874038
+    peak_vram_allocated: 3068100608
+    peak_vram_reserved: 8241807360
+    end_to_end_wall_seconds: 3833.3359849727713
+    loader_setup_seconds: 20.149004251230508
+    throughput_examples_per_second: 84.64455168102708
+    throughput_tokens_per_second: 506299.0158326164
+    non_train_overhead_seconds: 32.61169299064204
+    loader_effective_num_workers: 8
+    loader_effective_prefetch_factor: 4
+    compile_shape_dispatch_max_families: 16
+    loader_task_batch_cache_mode: bounded_streaming
+    compile_shape_dispatch_mode: signature_family
+    compile_dispatch_compiled_family_count: 16
+    compile_dispatch_family_switch_count: 5024
+    tokens_per_step: 382814.208
+    tokens_seen: 1914071040
+    token_budget: 1914071040
+    unique_task_budget: 1343408
+    objective_metric: final_log_loss_at_matched_regime_budget
+    curriculum_id: tf_rd_010_dagzoo_medium_control
+    best_log_loss: 0.49140312704015116
+    final_log_loss: 0.49140312704015116
+    best_brier_score: 0.29893815856001277
+    final_brier_score: 0.29893815856001277
+    best_roc_auc: 0.78658115657993
+    final_roc_auc: 0.78658115657993
+    best_bpc: 3.032832350861403
+    final_bpc: 3.032832350861403
+    best_bpf: 3.0327029591538555
+    final_bpf: 3.0327029591538555
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    final_train_loss: 1.0004463642835617
+    final_train_loss_ema: 1.026697086549313
+    final_tail_mean_train_loss: 1.0992620735913514
+    final_tail_mean_train_loss_ema: 1.1018730984280445
+    final_tail_record_count: 500
+    one_family_step_count: 225
+    mixed_family_step_count: 4775
+    consecutive_repeated_family_step_count: 0
+    consecutive_switched_family_step_count: 217
+    family_block_count: 225
+    estimated_family_switch_count: 224
+  parent_delta_ref: null
+  dimension_family: model
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Execute the first fresh-Muon interpolated TF-RD-009 width-depth row
+    at `d_icl=144`, `sandwich_layers=4`, using the rederived log-space interior target
+    between the `112x3` seed and the retained `264x6` Phase-1 ceiling probe.
+  upstream_delta: TF-RD-009 rederives the Muon Phase-1 diagonal from the landed width
+    screen plus the frozen RTX 8000 planning formulas, then uses log-space parameter
+    interpolation instead of inheriting the historical schedulefree ladder.
+  entangled_legacy_stage: none
+  expected_effect: If the fresh Muon fixed-budget law stays smooth beyond the upper
+    seed, `144x4` should provide the first interior Phase-1 measurement between the
+    carried `128x2` baseline and the retained ceiling probe.
+  adequacy_knobs:
+  - fixed TF-RD-010 curated medium benchmark contract
+  - carried post-#271 packed Muon runtime and optimizer surface
+  - carried TF-RD-024 heads1 architecture with non-scaling sandwich knobs frozen
+  - joint width-depth movement only; no optimizer retune, curriculum slice, or token-budget
+    reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the `72x1` and `112x3` fresh-Muon seed rows so the rederived family
+      stays an ordered diagonal around the landed width screen.
+    - Compare directly against the carried `128x2` Muon baseline at matched regime
+      budget using `final_log_loss_at_matched_regime_budget` as the primary metric.
+    - Treat this row as interior fresh-Muon Phase-1 evidence rather than as an upper-family
+      reopen selector output.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 65cdcb0232f5484c99af1b832fdea11d501e5d798d79baab89066514107506a4
+  transfer_context:
+    phase: baseline
+    regime_label: carry_lowbatch
+    formula_label: carried low-batch baseline
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: carry_lowbatch
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 320000
+    realized_effective_budget: 320000
+    budget_drift: 0.0
+    batch_drift: 0.0
+  imported_baseline_provenance:
+    source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+    source_order: 12
+    source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+    source_kind: carry_lowbatch
+- order: 4
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: completed
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 156
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 156
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 39936
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    strict shared-anchor LMO transfer regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  - This row remains a carried high-batch baseline; it is not the source of the shared
+    anchor transfer law.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 156.0
+    max_grad_norm: 2.1787555873344653
+    best_bpc: 2.184311092309804
+    best_bpf: 2.1842998934056475
+    best_roc_auc: 0.5093196839499222
+    best_log_loss: 0.7298796508792347
+    best_brier_score: 0.45752949254776754
+    final_bpc: 2.184311092309804
+    final_bpf: 2.1842998934056475
+    final_roc_auc: 0.5093196839499222
+    final_log_loss: 0.7298796508792347
+    final_brier_score: 0.45752949254776754
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.04604897290569854
+    delta_final_bpf: 0.046037774556003885
+    delta_final_log_loss: 0.33480816663937285
+    delta_final_brier_score: 0.199025584377656
+    delta_final_roc_auc: -0.2489757575477024
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Re-run `144x4` at the fixed 5000-step endpoint with the empirical high-batch
+    `B_eff=256` carry-forward Muon contract and unchanged LR/beta surface.
+  upstream_delta: This is the direct test of whether the corrected Phase-2 batch-side
+    gain also improves the `144x4` NS winner when geometry is held fixed.
+  entangled_legacy_stage: none
+  expected_effect: If batch-side movement generalizes across the compact frontier,
+    this row should improve `144x4` materially enough to challenge the carried low-batch
+    point on the corrected quality/time frontier.
+  adequacy_knobs:
+  - corrected `openml_classification_medium_v1` benchmark contract
+  - fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus
+  - fixed `5000`-step one-epoch endpoint
+  - carried Muon LR, beta, and weight-decay surface
+  - empirical high-batch reference only; no broader optimizer reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute as the empirical high-batch carry-forward row for `144x4`.
+    - Compare directly against the `144x4` low-batch floor and the two literature-backed
+      `144x4` prescriptions.
+    - Keep this contract only if the corrected gain is large enough to offset the
+      extra train time.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 156
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 156
+  resolved_surface_fingerprint: 883ad6e9806e19ebe246186acb97e5ffd74d00571cc47d9dd68f6ff5ad0e2188
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 40000
+    realized_effective_budget: 39936
+    budget_drift: -0.0016000000000000458
+    batch_drift: 0.0
+- order: 5
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: completed
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    strict shared-anchor LMO transfer regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  - This row remains a carried high-batch baseline; it is not the source of the shared
+    anchor transfer law.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 625.0
+    max_grad_norm: 2.2230412473583567
+    best_bpc: 2.2516136214258657
+    best_bpf: 2.2515761408967765
+    best_roc_auc: 0.721340761172418
+    best_log_loss: 0.5847717688819352
+    best_brier_score: 0.35960961081465354
+    final_bpc: 2.2516136214258657
+    final_bpf: 2.2515761408967765
+    final_roc_auc: 0.721340761172418
+    final_log_loss: 0.5847717688819352
+    final_brier_score: 0.35960961081465354
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.11335150202176036
+    delta_final_bpf: 0.11331402204713292
+    delta_final_log_loss: 0.18970028464207334
+    delta_final_brier_score: 0.101105702644542
+    delta_final_roc_auc: -0.03695468032520666
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Re-run `144x4` at the fixed 5000-step endpoint with the empirical high-batch
+    `B_eff=256` carry-forward Muon contract and unchanged LR/beta surface.
+  upstream_delta: This is the direct test of whether the corrected Phase-2 batch-side
+    gain also improves the `144x4` NS winner when geometry is held fixed.
+  entangled_legacy_stage: none
+  expected_effect: If batch-side movement generalizes across the compact frontier,
+    this row should improve `144x4` materially enough to challenge the carried low-batch
+    point on the corrected quality/time frontier.
+  adequacy_knobs:
+  - corrected `openml_classification_medium_v1` benchmark contract
+  - fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus
+  - fixed `5000`-step one-epoch endpoint
+  - carried Muon LR, beta, and weight-decay surface
+  - empirical high-batch reference only; no broader optimizer reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute as the empirical high-batch carry-forward row for `144x4`.
+    - Compare directly against the `144x4` low-batch floor and the two literature-backed
+      `144x4` prescriptions.
+    - Keep this contract only if the corrected gain is large enough to offset the
+      extra train time.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 625
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 625
+  resolved_surface_fingerprint: b3a0260df59fdd126779e4e2c182a40246d1f7c5fbc1f596e1b7720467a451ba
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 160000
+    realized_effective_budget: 160000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 6
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1
+  status: completed
+  rationale: Carry the empirical 144x4 Muon high-batch baseline into the faithful
+    transfer study at the requested budget rung.
+  hypothesis: A pure carry-forward high-batch baseline distinguishes the value of
+    budget-faithful transfer from a simple fixed high-batch contract.
+  anchor_delta: Keep the carried Muon high-batch optimizer surface and adjust only
+    the step budget needed for the requested rung.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 16
+        max_steps: 1250
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1250
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried high-batch Muon contract as a baseline against the paper-derived
+    transfer regimes.
+  - Do not let runtime or wall time override corrected benchmark log loss when deciding
+    whether this baseline still merits a later Phase-2B rerun.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Benchmark this carried high-batch baseline and compare it against the
+    strict shared-anchor LMO transfer regimes on corrected benchmark log loss.
+  notes:
+  - The earlier heuristic selector remains preserved context only; this row is the
+    budget-faithful carried high-batch baseline for the transfer study.
+  - This row remains a carried high-batch baseline; it is not the source of the shared
+    anchor transfer law.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_06_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_carry_highbatch_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 1250.0
+    max_grad_norm: 2.2298717852516687
+    best_bpc: 2.28665255111064
+    best_bpf: 2.2866216081921955
+    best_roc_auc: 0.7708654001511831
+    best_log_loss: 0.5135392584680872
+    best_brier_score: 0.31292361206477665
+    final_bpc: 2.28665255111064
+    final_bpf: 2.2866216081921955
+    final_roc_auc: 0.7708654001511831
+    final_log_loss: 0.5135392584680872
+    final_brier_score: 0.31292361206477665
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.14839043170653454
+    delta_final_bpf: 0.14835948934255194
+    delta_final_log_loss: 0.11846777422822541
+    delta_final_brier_score: 0.054419703894665106
+    delta_final_roc_auc: 0.012569958653558477
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Re-run `144x4` at the fixed 5000-step endpoint with the empirical high-batch
+    `B_eff=256` carry-forward Muon contract and unchanged LR/beta surface.
+  upstream_delta: This is the direct test of whether the corrected Phase-2 batch-side
+    gain also improves the `144x4` NS winner when geometry is held fixed.
+  entangled_legacy_stage: none
+  expected_effect: If batch-side movement generalizes across the compact frontier,
+    this row should improve `144x4` materially enough to challenge the carried low-batch
+    point on the corrected quality/time frontier.
+  adequacy_knobs:
+  - corrected `openml_classification_medium_v1` benchmark contract
+  - fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus
+  - fixed `5000`-step one-epoch endpoint
+  - carried Muon LR, beta, and weight-decay surface
+  - empirical high-batch reference only; no broader optimizer reopen
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute as the empirical high-batch carry-forward row for `144x4`.
+    - Compare directly against the `144x4` low-batch floor and the two literature-backed
+      `144x4` prescriptions.
+    - Keep this contract only if the corrected gain is large enough to offset the
+      extra train time.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 1250
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 16
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 1250
+  resolved_surface_fingerprint: 33f0bf64bd3ff793f33c07ea319ab9088030c4018330e2a1830e92f8bb011a23
+  transfer_context:
+    phase: baseline
+    regime_label: carry_highbatch
+    formula_label: carried high-batch baseline
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: carry_highbatch
+    target_effective_batch: 256
+    realized_effective_batch: 256
+    target_effective_budget: 320000
+    realized_effective_budget: 320000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 7
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: completed
+  rationale: Apply faithful paper-derived transfer regime B at 144x4 on the T1 rung.
+  hypothesis: Regime B should extrapolate from its winning T0 anchor to T1 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime B and apply pure paper-derived
+    transfer to T1.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 3.5355339059327384e-07
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.0003535533905932738
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried low-batch 144x4 Muon T0 artifact as the single shared anchor for
+    LMO transfer.
+  - Apply the paper-derived law directly at the requested budget without any regime-specific
+    T0 search or local retuning.
+  - Choose the kept regime by corrected benchmark log loss at T2, using T1 only as
+    a tie-break and stability check.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute the strict shared-anchor LMO transfer row and compare it against
+    the carried high-batch baseline at the matched budget.
+  notes:
+  - 'Strict shared-anchor LMO transfer under issue #284; derive this row from the
+    carried low-batch T0 anchor with no empirical T0 search.'
+  - Use corrected openml_classification_medium_v1 only and keep the T2-first, T1 tie-break
+    regime winner rule.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_07_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Resolved transfer training overrides `transfer_schedule` from shared anchor row
+    `1` in `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.899552555527981
+    best_bpc: 2.2885999257123513
+    best_bpf: 2.288567857187156
+    best_roc_auc: 0.770672013686444
+    best_log_loss: 0.5239001271356958
+    best_brier_score: 0.3181910966301987
+    final_bpc: 2.2885999257123513
+    final_bpf: 2.288567857187156
+    final_roc_auc: 0.770672013686444
+    final_log_loss: 0.5239001271356958
+    final_brier_score: 0.3181910966301987
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.1503378063082459
+    delta_final_bpf: 0.15030573833751237
+    delta_final_log_loss: 0.12882864289583396
+    delta_final_brier_score: 0.05968718846008714
+    delta_final_roc_auc: 0.01237657218881938
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Hold 144x4 fixed and instantiate paper Regime B, which keeps effective
+    batch fixed while transferring Muon momentum and lr with budget.
+  upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
+  entangled_legacy_stage: none
+  expected_effect: If the paper fixed-batch transfer law is the better inductive bias,
+    the strict shared T0 anchor transfer should extrapolate cleanly to T1/T2 without
+    local retuning.
+  adequacy_knobs:
+  - paper-derived budget transfer law
+  - corrected openml_classification_medium_v1 anchor benchmark
+  - 144x4 geometry held fixed
+  parameter_adequacy_policy:
+    default_plan: []
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 3.5355339059327384e-07
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.0003535533905932738
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: e05b59969d4d30ade39ab6c72c6b81af11ae89384b403a4b1bca307839400639
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: shared_anchor_transfer
+      anchor_order: 1
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_label: carry_lowbatch_shared_anchor_t0
+      regime_label: B
+      base_effective_budget: 40000
+      target_effective_budget: 160000
+      fixed_effective_batch: 64
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+      resolved_from_order: 1
+      resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+      resolution_reason: shared_anchor
+  transfer_context:
+    phase: validation
+    regime_label: B
+    formula_label: paper regime B shared-anchor transfer
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: shared_anchor_regime_b
+    target_effective_budget: 160000
+  transfer_resolution:
+    phase: validation
+    regime_label: B
+    formula_label: Theorem 2 fixed-batch transfer
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: shared_anchor_regime_b
+    target_effective_budget: 160000
+    base_effective_budget: 40000
+    realized_effective_budget: 160000
+    base_effective_batch: 64
+    target_effective_batch: 64.0
+    realized_effective_batch: 64
+    base_lr_max: 0.001
+    target_lr_max: 0.0003535533905932738
+    base_momentum: 0.95
+    target_momentum: 0.975
+    base_alpha: 0.050000000000000044
+    target_alpha: 0.025000000000000022
+    grad_accum_steps: 4
+    max_steps: 2500
+    min_lr: 3.5355339059327384e-07
+    budget_drift: 0.0
+    batch_drift: 0.0
+    resolved_from_order: 1
+    resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+    resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+    resolution_reason: shared_anchor
+    shared_anchor_provenance:
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_order: 1
+      anchor_delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+      anchor_run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+      anchor_imported_baseline_provenance:
+        source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+        source_order: 9
+        source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+        source_kind: carry_lowbatch
+      anchor_candidate_label: carry_lowbatch_shared_anchor_t0
+- order: 8
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: completed
+  rationale: Apply faithful paper-derived transfer regime B at 144x4 on the T2 rung.
+  hypothesis: Regime B should extrapolate from its winning T0 anchor to T2 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime B and apply pure paper-derived
+    transfer to T2.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.1022410381342863e-07
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9823223304703363
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 5000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.00021022410381342862
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried low-batch 144x4 Muon T0 artifact as the single shared anchor for
+    LMO transfer.
+  - Apply the paper-derived law directly at the requested budget without any regime-specific
+    T0 search or local retuning.
+  - Choose the kept regime by corrected benchmark log loss at T2, using T1 only as
+    a tie-break and stability check.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute the strict shared-anchor LMO transfer row and compare it against
+    the carried high-batch baseline at the matched budget.
+  notes:
+  - 'Strict shared-anchor LMO transfer under issue #284; derive this row from the
+    carried low-batch T0 anchor with no empirical T0 search.'
+  - Use corrected openml_classification_medium_v1 only and keep the T2-first, T1 tie-break
+    regime winner rule.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_08_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Resolved transfer training overrides `transfer_schedule` from shared anchor row
+    `1` in `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.7097536343045894
+    best_bpc: 2.3096259918651847
+    best_bpf: 2.309570876889483
+    best_roc_auc: 0.7759643347915962
+    best_log_loss: 0.514343743966672
+    best_brier_score: 0.3131309546446974
+    final_bpc: 2.3096259918651847
+    final_bpf: 2.309570876889483
+    final_roc_auc: 0.7759643347915962
+    final_log_loss: 0.514343743966672
+    final_brier_score: 0.3131309546446974
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.17136387246107931
+    delta_final_bpf: 0.17130875803983958
+    delta_final_log_loss: 0.11927225972681021
+    delta_final_brier_score: 0.05462704647458588
+    delta_final_roc_auc: 0.017668893293971588
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Hold 144x4 fixed and instantiate paper Regime B, which keeps effective
+    batch fixed while transferring Muon momentum and lr with budget.
+  upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
+  entangled_legacy_stage: none
+  expected_effect: If the paper fixed-batch transfer law is the better inductive bias,
+    the strict shared T0 anchor transfer should extrapolate cleanly to T1/T2 without
+    local retuning.
+  adequacy_knobs:
+  - paper-derived budget transfer law
+  - corrected openml_classification_medium_v1 anchor benchmark
+  - 144x4 geometry held fixed
+  parameter_adequacy_policy:
+    default_plan: []
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 2.1022410381342863e-07
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.00021022410381342862
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 484026daee134d5be03f54ebcb9f212fdcedc1ddc5410f64151e5b2515df45de
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: shared_anchor_transfer
+      anchor_order: 1
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_label: carry_lowbatch_shared_anchor_t0
+      regime_label: B
+      base_effective_budget: 40000
+      target_effective_budget: 320000
+      fixed_effective_batch: 64
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+      resolved_from_order: 1
+      resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+      resolution_reason: shared_anchor
+  transfer_context:
+    phase: validation
+    regime_label: B
+    formula_label: paper regime B shared-anchor transfer
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: shared_anchor_regime_b
+    target_effective_budget: 320000
+  transfer_resolution:
+    phase: validation
+    regime_label: B
+    formula_label: Theorem 2 fixed-batch transfer
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: shared_anchor_regime_b
+    target_effective_budget: 320000
+    base_effective_budget: 40000
+    realized_effective_budget: 320000
+    base_effective_batch: 64
+    target_effective_batch: 64.0
+    realized_effective_batch: 64
+    base_lr_max: 0.001
+    target_lr_max: 0.00021022410381342862
+    base_momentum: 0.95
+    target_momentum: 0.9823223304703363
+    base_alpha: 0.050000000000000044
+    target_alpha: 0.017677669529663705
+    grad_accum_steps: 4
+    max_steps: 5000
+    min_lr: 2.1022410381342863e-07
+    budget_drift: 0.0
+    batch_drift: 0.0
+    resolved_from_order: 1
+    resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+    resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+    resolution_reason: shared_anchor
+    shared_anchor_provenance:
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_order: 1
+      anchor_delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+      anchor_run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+      anchor_imported_baseline_provenance:
+        source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+        source_order: 9
+        source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+        source_kind: carry_lowbatch
+      anchor_candidate_label: carry_lowbatch_shared_anchor_t0
+- order: 9
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: completed
+  rationale: Apply faithful paper-derived transfer regime D at 144x4 on the T1 rung.
+  hypothesis: Regime D should extrapolate from its winning T0 anchor to T1 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime D and apply pure paper-derived
+    transfer to T1.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 4.4544935907016965e-07
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9685019737526281
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 2000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2000
+          lr_max: 0.00044544935907016964
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 160000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried low-batch 144x4 Muon T0 artifact as the single shared anchor for
+    LMO transfer.
+  - Apply the paper-derived law directly at the requested budget without any regime-specific
+    T0 search or local retuning.
+  - Choose the kept regime by corrected benchmark log loss at T2, using T1 only as
+    a tie-break and stability check.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute the strict shared-anchor LMO transfer row and compare it against
+    the carried high-batch baseline at the matched budget.
+  notes:
+  - 'Strict shared-anchor LMO transfer under issue #284; derive this row from the
+    carried low-batch T0 anchor with no empirical T0 search.'
+  - Use corrected openml_classification_medium_v1 only and keep the T2-first, T1 tie-break
+    regime winner rule.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Resolved transfer training overrides `transfer_schedule` from shared anchor row
+    `1` in `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2000.0
+    max_grad_norm: 2.3512524216580015
+    best_bpc: 2.249432306747282
+    best_bpf: 2.2493988999375354
+    best_roc_auc: 0.7642592678458142
+    best_log_loss: 0.5268794041241825
+    best_brier_score: 0.320864474753584
+    final_bpc: 2.249432306747282
+    final_bpf: 2.2493988999375354
+    final_roc_auc: 0.7642592678458142
+    final_log_loss: 0.5268794041241825
+    final_brier_score: 0.320864474753584
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.11117018734317652
+    delta_final_bpf: 0.11113678108789182
+    delta_final_log_loss: 0.13180791988432072
+    delta_final_brier_score: 0.06236056658347244
+    delta_final_roc_auc: 0.005963826348189594
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Hold 144x4 fixed and instantiate paper Regime D, which jointly transfers
+    effective batch, Muon momentum, and lr with budget.
+  upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
+  entangled_legacy_stage: none
+  expected_effect: If the joint batch+momentum+lr transfer law is the better inductive
+    bias, the strict shared T0 anchor transfer should beat both carried baselines
+    on corrected benchmark log loss.
+  adequacy_knobs:
+  - paper-derived budget transfer law
+  - corrected openml_classification_medium_v1 anchor benchmark
+  - 144x4 geometry held fixed
+  parameter_adequacy_policy:
+    default_plan: []
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 4.4544935907016965e-07
+      schedule_stages:
+      - name: prior_dump
+        steps: 2000
+        lr_max: 0.00044544935907016964
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 5
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 2000
+  resolved_surface_fingerprint: 16a01b331044af04043584bd443a4c6a8c0456de6b235643783d43bfe6663a79
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: shared_anchor_transfer
+      anchor_order: 1
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_label: carry_lowbatch_shared_anchor_t0
+      regime_label: D
+      base_effective_budget: 40000
+      target_effective_budget: 160000
+      fixed_effective_batch: null
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+      resolved_from_order: 1
+      resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+      resolution_reason: shared_anchor
+  transfer_context:
+    phase: validation
+    regime_label: D
+    formula_label: paper regime D shared-anchor transfer
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: shared_anchor_regime_d
+    target_effective_budget: 160000
+  transfer_resolution:
+    phase: validation
+    regime_label: D
+    formula_label: Theorem 3 joint-transfer proxy
+    base_budget_label: T0
+    target_budget_label: T1
+    candidate_label: shared_anchor_regime_d
+    target_effective_budget: 160000
+    base_effective_budget: 40000
+    realized_effective_budget: 160000
+    base_effective_batch: 64
+    target_effective_batch: 80.63494719327188
+    realized_effective_batch: 80
+    base_lr_max: 0.001
+    target_lr_max: 0.00044544935907016964
+    base_momentum: 0.95
+    target_momentum: 0.9685019737526281
+    base_alpha: 0.050000000000000044
+    target_alpha: 0.03149802624737186
+    grad_accum_steps: 5
+    max_steps: 2000
+    min_lr: 4.4544935907016965e-07
+    budget_drift: 0.0
+    batch_drift: -0.007874342519875399
+    resolved_from_order: 1
+    resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+    resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+    resolution_reason: shared_anchor
+    shared_anchor_provenance:
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_order: 1
+      anchor_delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+      anchor_run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+      anchor_imported_baseline_provenance:
+        source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+        source_order: 9
+        source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+        source_kind: carry_lowbatch
+      anchor_candidate_label: carry_lowbatch_shared_anchor_t0
+- order: 10
+  delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: completed
+  rationale: Apply faithful paper-derived transfer regime D at 144x4 on the T2 rung.
+  hypothesis: Regime D should extrapolate from its winning T0 anchor to T2 without
+    local retuning.
+  anchor_delta: Lock the winning T0 anchor for regime D and apply pure paper-derived
+    transfer to T2.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.9730177875068024e-07
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 3333
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 3333
+          lr_max: 0.00029730177875068024
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 320000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use the carried low-batch 144x4 Muon T0 artifact as the single shared anchor for
+    LMO transfer.
+  - Apply the paper-derived law directly at the requested budget without any regime-specific
+    T0 search or local retuning.
+  - Choose the kept regime by corrected benchmark log loss at T2, using T1 only as
+    a tie-break and stability check.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: best_and_final
+  run_id: sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute the strict shared-anchor LMO transfer row and compare it against
+    the carried high-batch baseline at the matched budget.
+  notes:
+  - 'Strict shared-anchor LMO transfer under issue #284; derive this row from the
+    carried low-batch T0 anchor with no empirical T0 search.'
+  - Use corrected openml_classification_medium_v1 only and keep the T2-first, T1 tie-break
+    regime winner rule.
+  - Canonical rerun registered as `sd_tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1_10_delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Resolved transfer training overrides `transfer_schedule` from shared anchor row
+    `1` in `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 3333.0
+    max_grad_norm: 3.202575054521003
+    best_bpc: 2.3645095002861245
+    best_bpf: 2.364467995545142
+    best_roc_auc: 0.7736132557327619
+    best_log_loss: 0.5169818589854734
+    best_brier_score: 0.3143521595864829
+    final_bpc: 2.3645095002861245
+    final_bpf: 2.364467995545142
+    final_roc_auc: 0.7736132557327619
+    final_log_loss: 0.5169818589854734
+    final_brier_score: 0.3143521595864829
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_bpc: 0.22624738088201912
+    delta_final_bpf: 0.22620587669549863
+    delta_final_log_loss: 0.12191037474561162
+    delta_final_brier_score: 0.05584825141637134
+    delta_final_roc_auc: 0.015317814235137228
+  parent_delta_ref: null
+  dimension_family: training
+  family: classification_scaling_law
+  binary_applicable: false
+  description: Hold 144x4 fixed and instantiate paper Regime D, which jointly transfers
+    effective batch, Muon momentum, and lr with budget.
+  upstream_delta: Faithful TF-RD-009 Muon transfer study derived from https://arxiv.org/abs/2603.15958.
+  entangled_legacy_stage: none
+  expected_effect: If the joint batch+momentum+lr transfer law is the better inductive
+    bias, the strict shared T0 anchor transfer should beat both carried baselines
+    on corrected benchmark log loss.
+  adequacy_knobs:
+  - paper-derived budget transfer law
+  - corrected openml_classification_medium_v1 anchor benchmark
+  - 144x4 geometry held fixed
+  parameter_adequacy_policy:
+    default_plan: []
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: tabfoundry_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: tabfoundry_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: tabfoundry_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_latents: 24
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_summary_tokens_per_axis: 3
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+      architecture:
+        initial_input_tokens: full_cell_plus_row_col_summary_stream
+        initial_input_token_count: R_times_C_plus_K_times_(R_plus_C)
+        repeated_input_tokens: row_col_summary_stream
+        repeated_input_token_count: K_times_(R_plus_C)
+        summary_tokens_per_axis: 3
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        pre_column_inducing_tokens: 16
+        label_injection: fused_into_row_summaries_and_feature_cells
+        summary_builder: summary_query_attention
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        latent_core: stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages
+        layer_semantics: stage0_hybrid_then_summary_repeated_stages
+        readout: latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool
+        latents: 24
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        self_attention_per_cross: 4
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 2.9730177875068024e-07
+      schedule_stages:
+      - name: prior_dump
+        steps: 3333
+        lr_max: 0.00029730177875068024
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 6
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 3333
+  resolved_surface_fingerprint: 2c8099dab822992c163bc055c351d4386b1ebf6753b8ee98086c227f7123ede9
+  dynamic_training_overrides:
+    transfer_schedule:
+      kind: shared_anchor_transfer
+      anchor_order: 1
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_label: carry_lowbatch_shared_anchor_t0
+      regime_label: D
+      base_effective_budget: 40000
+      target_effective_budget: 320000
+      fixed_effective_batch: null
+      min_lr_ratio: 0.001
+      max_budget_drift: 0.02
+      resolved_from_order: 1
+      resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+      resolution_reason: shared_anchor
+  transfer_context:
+    phase: validation
+    regime_label: D
+    formula_label: paper regime D shared-anchor transfer
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: shared_anchor_regime_d
+    target_effective_budget: 320000
+  transfer_resolution:
+    phase: validation
+    regime_label: D
+    formula_label: Theorem 3 joint-transfer proxy
+    base_budget_label: T0
+    target_budget_label: T2
+    candidate_label: shared_anchor_regime_d
+    target_effective_budget: 320000
+    base_effective_budget: 40000
+    realized_effective_budget: 319968
+    base_effective_batch: 64
+    target_effective_batch: 90.50966799187808
+    realized_effective_batch: 96
+    base_lr_max: 0.001
+    target_lr_max: 0.00029730177875068024
+    base_momentum: 0.95
+    target_momentum: 0.975
+    base_alpha: 0.050000000000000044
+    target_alpha: 0.025000000000000022
+    grad_accum_steps: 6
+    max_steps: 3333
+    min_lr: 2.9730177875068024e-07
+    budget_drift: -9.999999999998899e-05
+    batch_drift: 0.060660171779821415
+    resolved_from_order: 1
+    resolved_from_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+    resolved_candidate_label: carry_lowbatch_shared_anchor_t0
+    resolution_reason: shared_anchor
+    shared_anchor_provenance:
+      anchor_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+      anchor_order: 1
+      anchor_delta_id: delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1
+      anchor_run_dir: outputs/staged_ladder/research/tf_rd_009_muon_ns_one_epoch_medium_v1/delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1/sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1/train
+      anchor_imported_baseline_provenance:
+        source_sweep_id: tf_rd_009_muon_ns_one_epoch_medium_v1
+        source_order: 9
+        source_run_id: sd_tf_rd_009_muon_ns_one_epoch_medium_v1_09_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1
+        source_kind: carry_lowbatch
+      anchor_candidate_label: carry_lowbatch_shared_anchor_t0
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1/resolved_queue.yaml
+inputs_fingerprint: 3e5b84a48c28a5249692d97cceabdd9e830d83d9698a12925b983bded803d5e4

@@ -10,6 +10,8 @@ from .objective_metrics import (
     is_classification_objective_metric,
     objective_metric_from_queue_metrics,
 )
+from .pareto import annotate_rows_with_pareto
+from .transfer import annotate_rows_with_transfer_context
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
@@ -108,20 +110,11 @@ def _regime_budget_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | None:
     return payload if any(value is not None for value in payload.values()) else None
 
 
-def summarize_sweep(
+def build_sweep_summary_payload(
     *,
-    sweep_id: str | None = None,
+    queue: Mapping[str, Any],
     include_screened: bool = False,
-    index_path: Path | None = None,
-    catalog_path: Path | None = None,
-    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    queue = load_system_delta_queue_for_inspection(
-        sweep_id=sweep_id,
-        index_path=index_path,
-        catalog_path=catalog_path,
-        sweeps_root=sweeps_root,
-    )
     rows_payload: list[dict[str, Any]] = []
     for row in ordered_rows(queue):
         status = str(row.get("status", "")).strip().lower()
@@ -138,6 +131,22 @@ def summarize_sweep(
                 "run_id": None if row.get("run_id") is None else str(row["run_id"]),
                 "stability": _stability_verdict(row, metrics),
                 "objective_metric": objective_metric,
+                "model": None if not isinstance(row.get("model"), Mapping) else dict(cast(Mapping[str, Any], row["model"])),
+                "transfer_context": (
+                    dict(cast(Mapping[str, Any], row["transfer_context"]))
+                    if isinstance(row.get("transfer_context"), Mapping)
+                    else None
+                ),
+                "transfer_resolution": (
+                    dict(cast(Mapping[str, Any], row["transfer_resolution"]))
+                    if isinstance(row.get("transfer_resolution"), Mapping)
+                    else None
+                ),
+                "imported_baseline_provenance": (
+                    dict(cast(Mapping[str, Any], row["imported_baseline_provenance"]))
+                    if isinstance(row.get("imported_baseline_provenance"), Mapping)
+                    else None
+                ),
                 "final_roc_auc": _optional_float(metrics.get("final_roc_auc")),
                 "delta_final_roc_auc": _optional_float(metrics.get("delta_final_roc_auc")),
                 "final_bpc": _optional_float(metrics.get("final_bpc")),
@@ -193,12 +202,40 @@ def summarize_sweep(
                 "regime_budget": _regime_budget_excerpt(metrics),
             }
         )
+    selector_summary = annotate_rows_with_pareto(
+        rows=rows_payload,
+        surface_role=(str(queue.get("surface_role")) if queue.get("surface_role") is not None else None),
+    )
+    transfer_summary = annotate_rows_with_transfer_context(
+        rows=rows_payload,
+        surface_role=(str(queue.get("surface_role")) if queue.get("surface_role") is not None else None),
+    )
     return {
         "sweep_id": str(queue["sweep_id"]),
         "row_count": len(rows_payload),
         "include_screened": bool(include_screened),
+        "surface_role": str(queue.get("surface_role") or ""),
         "rows": rows_payload,
+        "selector_summary": selector_summary,
+        "transfer_summary": transfer_summary,
     }
+
+
+def summarize_sweep(
+    *,
+    sweep_id: str | None = None,
+    include_screened: bool = False,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    queue = load_system_delta_queue_for_inspection(
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    return build_sweep_summary_payload(queue=queue, include_screened=include_screened)
 
 
 def _format_float(value: float | None, *, signed: bool = False) -> str:
@@ -229,6 +266,7 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
         "status",
         "decision",
         "stability",
+        "pareto",
         "d_primary",
         "d_roc_auc",
         "tok/s",
@@ -255,6 +293,11 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
                 str(row["status"]),
                 str(row["decision"] or "n/a"),
                 str(row["stability"]),
+                (
+                    "Y"
+                    if row.get("pareto_admissible") is True
+                    else ("N" if row.get("pareto_admissible") is False else "n/a")
+                ),
                 _format_float(primary_delta, signed=True),
                 _format_float(cast(float | None, row["delta_final_roc_auc"]), signed=True),
                 _format_float(cast(float | None, row.get("throughput_tokens_per_second"))),
@@ -278,4 +321,111 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
         lines.append(
             "  ".join(value.ljust(widths[index]) for index, value in enumerate(rendered_row))
         )
+    selector_summary = payload.get("selector_summary")
+    if isinstance(selector_summary, Mapping):
+        global_frontier_orders = selector_summary.get("global_frontier_orders")
+        if isinstance(global_frontier_orders, list) and global_frontier_orders:
+            lines.extend(
+                [
+                    "",
+                    "Pareto frontier:",
+                    "- global quality/time admissible rows: "
+                    + ", ".join(f"{int(value):02d}" for value in global_frontier_orders),
+                ]
+            )
+        best_row = selector_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- best row: "
+                f"order {int(best_row['order']):02d}, "
+                f"geometry={best_row.get('geometry_label') or 'n/a'}, "
+                f"prescription={best_row.get('prescription_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"wall={float(best_row['end_to_end_wall_seconds']):.1f}s"
+            )
+        kept_contract = selector_summary.get("kept_contract")
+        if isinstance(kept_contract, Mapping):
+            lines.append(
+                "- kept contract: "
+                f"{kept_contract['prescription_label']} "
+                f"(frontier_geometries={int(kept_contract['geometry_count'])}, "
+                f"mean_wall={float(kept_contract['mean_end_to_end_wall_seconds']):.1f}s, "
+                f"mean_log_loss={float(kept_contract['mean_benchmark_log_loss']):.6f})"
+            )
+        elif selector_summary.get("no_universal_kept_contract") is True:
+            lines.append("- kept contract: none (no prescription reached majority frontier coverage)")
+        per_geometry_frontiers = selector_summary.get("per_geometry_frontiers")
+        if isinstance(per_geometry_frontiers, Mapping) and per_geometry_frontiers:
+            for geometry_label, geometry_rows in sorted(per_geometry_frontiers.items()):
+                if not isinstance(geometry_rows, list) or not geometry_rows:
+                    continue
+                lines.append(
+                    f"- {geometry_label} frontier: "
+                    + ", ".join(
+                        f"{cast(Mapping[str, Any], geometry_row).get('prescription_label')}@{int(cast(Mapping[str, Any], geometry_row)['order']):02d}"
+                        for geometry_row in geometry_rows
+                        if isinstance(geometry_row, Mapping)
+                    )
+                )
+    transfer_summary = payload.get("transfer_summary")
+    if isinstance(transfer_summary, Mapping):
+        best_row = transfer_summary.get("best_row")
+        fastest_row = transfer_summary.get("fastest_row")
+        leaderboard = transfer_summary.get("regime_leaderboard")
+        imported_orders = transfer_summary.get("imported_baseline_orders")
+        if best_row or fastest_row or leaderboard or imported_orders:
+            lines.extend(["", "Transfer summary:"])
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- best transfer row: "
+                f"order {int(best_row['order']):02d}, "
+                f"regime={best_row.get('regime_label') or 'n/a'}, "
+                f"log_loss={float(best_row['final_log_loss']):.6f}, "
+                f"budget={best_row.get('target_budget_label') or 'n/a'}"
+            )
+        if isinstance(fastest_row, Mapping):
+            lines.append(
+                "- fastest transfer row: "
+                f"order {int(fastest_row['order']):02d}, "
+                f"regime={fastest_row.get('regime_label') or 'n/a'}, "
+                f"wall={float(fastest_row['end_to_end_wall_seconds']):.1f}s, "
+                f"log_loss={float(fastest_row['final_log_loss']):.6f}"
+            )
+        if isinstance(leaderboard, list) and leaderboard:
+            rendered_leaderboard = ", ".join(
+                (
+                    f"{str(cast(Mapping[str, Any], item)['regime_label'])} "
+                    f"(mean_log_loss={float(cast(Mapping[str, Any], item)['mean_benchmark_log_loss']):.6f}"
+                    + (
+                        ""
+                        if cast(Mapping[str, Any], item).get("mean_end_to_end_wall_seconds") is None
+                        else f", mean_wall={float(cast(Mapping[str, Any], item)['mean_end_to_end_wall_seconds']):.1f}s"
+                    )
+                    + ")"
+                )
+                for item in leaderboard
+                if isinstance(item, Mapping)
+            )
+            if rendered_leaderboard:
+                lines.append(f"- regime leaderboard: {rendered_leaderboard}")
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "- kept regime (T2 then T1): "
+                f"{kept_regime['regime_label']} "
+                f"(T2 order {int(kept_regime['t2_order']):02d}, "
+                f"log_loss={float(kept_regime['t2_log_loss']):.6f})"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "- T2 vs carried high-batch: "
+                f"{t2_vs_highbatch['winning_regime_label']} "
+                f"delta_log_loss={float(t2_vs_highbatch['delta_log_loss']):+.6f}"
+            )
+        if isinstance(imported_orders, list) and imported_orders:
+            lines.append(
+                "- imported baseline orders: "
+                + ", ".join(f"{int(value):02d}" for value in imported_orders)
+            )
     return "\n".join(lines)

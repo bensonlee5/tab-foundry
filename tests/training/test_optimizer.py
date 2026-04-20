@@ -30,6 +30,18 @@ def test_optimizer_unknown_name_raises() -> None:
         )
 
 
+def test_non_muon_optimizer_rejects_momentum_extra_kwarg() -> None:
+    model = nn.Linear(4, 2)
+    with pytest.raises(ValueError, match="optimizer\\.momentum is only supported"):
+        _ = build_optimizer(
+            model,
+            name="adamw",
+            lr=1e-3,
+            weight_decay=0.0,
+            extra_kwargs={"betas": (0.9, 0.95), "momentum": 0.95},
+        )
+
+
 def test_muon_missing_dependency_falls_back_when_not_required(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -349,6 +361,86 @@ def test_muon_step_is_noop_when_all_muon_params_are_inactive(
     assert selection.resolved_name == "muon+adamw"
     assert muon_opt.seen_param_ids_per_step == []
     assert model.unused.weight not in muon_opt.state
+
+
+def test_muon_forwards_real_momentum_kwarg_to_muon_constructor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _FakeMuon:
+        def __init__(self, params, lr: float, weight_decay: float, momentum: float) -> None:
+            captured["params"] = list(params)
+            captured["lr"] = lr
+            captured["weight_decay"] = weight_decay
+            captured["momentum"] = momentum
+            self.param_groups = [{"params": list(params), "lr": lr, "momentum": momentum}]
+
+        def step(self) -> None:
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "muon",
+        SimpleNamespace(Muon=_FakeMuon, SingleDeviceMuon=_FakeMuon),
+    )
+
+    model = nn.Linear(8, 4, bias=False)
+    selection = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.01,
+        extra_kwargs={"betas": (0.9, 0.95), "momentum": 0.975},
+        require_requested=True,
+        muon_per_parameter_lr=False,
+        muon_partition_non2d=False,
+    )
+
+    assert selection.resolved_name == "muon"
+    assert captured["momentum"] == pytest.approx(0.975)
+    assert captured["lr"] == pytest.approx(1e-3)
+    assert captured["weight_decay"] == pytest.approx(0.01)
+
+
+def test_muon_momentum_does_not_leak_into_adamw_tail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _FakeMuon:
+        def __init__(self, params, lr: float, weight_decay: float, momentum: float) -> None:
+            captured["params"] = list(params)
+            captured["lr"] = lr
+            captured["weight_decay"] = weight_decay
+            captured["momentum"] = momentum
+            self.param_groups = [{"params": list(params), "lr": lr, "momentum": momentum}]
+
+        def step(self) -> None:
+            return None
+
+    monkeypatch.setitem(
+        sys.modules,
+        "muon",
+        SimpleNamespace(Muon=_FakeMuon, SingleDeviceMuon=_FakeMuon),
+    )
+
+    model = nn.Linear(8, 4, bias=True)
+    selection = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.01,
+        extra_kwargs={"betas": (0.9, 0.95), "momentum": 0.975},
+        require_requested=True,
+        muon_per_parameter_lr=False,
+        muon_partition_non2d=True,
+    )
+
+    assert selection.resolved_name == "muon+adamw"
+    assert [name for name, _optimizer in selection.optimizers] == ["muon", "adamw"]
+    assert captured["momentum"] == pytest.approx(0.975)
+    assert isinstance(selection.optimizers[1][1], torch.optim.AdamW)
 
 
 def test_partition_muon_params_excludes_embeddings_and_non_2d() -> None:

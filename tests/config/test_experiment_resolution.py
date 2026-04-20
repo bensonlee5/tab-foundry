@@ -545,6 +545,7 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_022_policy_v1_res
     assert bool(cfg.optimizer.require_requested) is True
     assert float(cfg.optimizer.weight_decay) == 0.01
     assert list(cfg.optimizer.betas) == [0.9, 0.95]
+    assert float(cfg.optimizer.momentum) == 0.95
     assert str(cfg.runtime.mixed_precision) == "bf16"
     assert float(cfg.runtime.grad_clip) == 0.0
     assert int(cfg.runtime.grad_accum_steps) == 4
@@ -594,6 +595,7 @@ def test_cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v
     assert bool(cfg.optimizer.require_requested) is True
     assert float(cfg.optimizer.weight_decay) == 0.01
     assert list(cfg.optimizer.betas) == [0.9, 0.95]
+    assert float(cfg.optimizer.momentum) == 0.95
     assert float(cfg.optimizer.min_lr) == 1.0e-6
     assert bool(cfg.optimizer.muon_per_parameter_lr) is True
     assert bool(cfg.optimizer.muon_partition_non2d) is True

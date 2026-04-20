@@ -231,6 +231,9 @@ def _optimizer_kwargs(cfg: DictConfig) -> dict[str, object]:
     raw_betas = getattr(cfg.optimizer, "betas", None)
     if raw_betas is not None:
         kwargs["betas"] = tuple(float(value) for value in raw_betas)
+    raw_momentum = getattr(cfg.optimizer, "momentum", None)
+    if raw_momentum is not None:
+        kwargs["momentum"] = float(raw_momentum)
     return kwargs
 
 

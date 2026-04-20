@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
 from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_LABELS,
     EXTERNAL_BENCHMARK_NANOTABPFN,
@@ -23,6 +25,8 @@ from .objective_metrics import (
     is_classification_objective_metric,
     objective_metric_from_queue_metrics,
 )
+from .paths_io import default_registry_path, repo_root
+from .queue_loading import ordered_rows
 
 
 def research_card_text(
@@ -261,6 +265,186 @@ def _runtime_and_regime_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+def _selector_interpretation_lines(
+    selector_context: Mapping[str, Any] | None,
+) -> list[str]:
+    if not isinstance(selector_context, Mapping):
+        return []
+    row_summary = selector_context.get("row_summary")
+    selector_summary = selector_context.get("summary")
+    if not isinstance(row_summary, Mapping) and not isinstance(selector_summary, Mapping):
+        return []
+    lines = ["", "## Selector interpretation", ""]
+    if isinstance(row_summary, Mapping):
+        pareto_status = (
+            "yes"
+            if row_summary.get("pareto_admissible") is True
+            else ("no" if row_summary.get("pareto_admissible") is False else "n/a")
+        )
+        geometry_pareto_status = (
+            "yes"
+            if row_summary.get("geometry_pareto_admissible") is True
+            else (
+                "no"
+                if row_summary.get("geometry_pareto_admissible") is False
+                else "n/a"
+            )
+        )
+        lines.append(f"- Quality/time Pareto admissible: `{pareto_status}`")
+        lines.append(f"- Geometry-local Pareto admissible: `{geometry_pareto_status}`")
+        if row_summary.get("selector_geometry_label") is not None:
+            lines.append(
+                f"- Selector geometry: `{row_summary['selector_geometry_label']}`"
+            )
+        if row_summary.get("selector_prescription_label") is not None:
+            lines.append(
+                f"- Selector prescription: `{row_summary['selector_prescription_label']}`"
+            )
+    if isinstance(selector_summary, Mapping):
+        best_row = selector_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- Best single selector row: "
+                f"order `{int(best_row['order']):02d}` "
+                f"({best_row.get('geometry_label') or 'n/a'}, "
+                f"{best_row.get('prescription_label') or 'n/a'}, "
+                f"log loss `{float(best_row['final_log_loss']):.6f}`, "
+                f"wall `{float(best_row['end_to_end_wall_seconds']):.1f}s`)"
+            )
+        kept_contract = selector_summary.get("kept_contract")
+        if isinstance(kept_contract, Mapping):
+            lines.append(
+                "- Kept contract: "
+                f"`{kept_contract['prescription_label']}` "
+                f"(frontier geometries `{int(kept_contract['geometry_count'])}`, "
+                f"mean wall `{float(kept_contract['mean_end_to_end_wall_seconds']):.1f}s`, "
+                f"mean log loss `{float(kept_contract['mean_benchmark_log_loss']):.6f}`)"
+            )
+        elif selector_summary.get("no_universal_kept_contract") is True:
+            lines.append(
+                "- Kept contract: none; no prescription reached the required majority frontier coverage."
+            )
+    return lines
+
+
+def _transfer_interpretation_lines(
+    transfer_context: Mapping[str, Any] | None,
+) -> list[str]:
+    if not isinstance(transfer_context, Mapping):
+        return []
+    row_summary = transfer_context.get("row_summary")
+    transfer_summary = transfer_context.get("summary")
+    if not isinstance(row_summary, Mapping) and not isinstance(transfer_summary, Mapping):
+        return []
+    lines = ["", "## Transfer interpretation", ""]
+    if isinstance(row_summary, Mapping):
+        if row_summary.get("transfer_regime_label") is not None:
+            lines.append(f"- Transfer regime: `{row_summary['transfer_regime_label']}`")
+        if row_summary.get("transfer_phase") is not None:
+            lines.append(f"- Transfer phase: `{row_summary['transfer_phase']}`")
+        if row_summary.get("transfer_formula_label") is not None:
+            lines.append(f"- Transfer formula: `{row_summary['transfer_formula_label']}`")
+        if row_summary.get("transfer_target_budget_label") is not None:
+            lines.append(
+                f"- Target budget label: `{row_summary['transfer_target_budget_label']}`"
+            )
+        if row_summary.get("target_effective_batch") is not None:
+            lines.append(
+                f"- Target effective batch: `{float(row_summary['target_effective_batch']):.1f}`"
+            )
+        if row_summary.get("realized_effective_batch") is not None:
+            lines.append(
+                f"- Realized effective batch: `{int(row_summary['realized_effective_batch'])}`"
+            )
+        if row_summary.get("target_effective_budget") is not None:
+            lines.append(
+                f"- Target effective budget: `{int(row_summary['target_effective_budget'])}`"
+            )
+        if row_summary.get("realized_effective_budget") is not None:
+            lines.append(
+                f"- Realized effective budget: `{int(row_summary['realized_effective_budget'])}`"
+            )
+        if row_summary.get("budget_drift") is not None:
+            lines.append(f"- Budget drift: `{float(row_summary['budget_drift']):+.6f}`")
+        if row_summary.get("batch_drift") is not None:
+            lines.append(f"- Batch drift: `{float(row_summary['batch_drift']):+.6f}`")
+        imported_baseline = row_summary.get("imported_baseline_provenance")
+        if isinstance(imported_baseline, Mapping):
+            source_sweep_id = imported_baseline.get("source_sweep_id")
+            source_order = imported_baseline.get("source_order")
+            source_run_id = imported_baseline.get("source_run_id")
+            rendered_parts = []
+            if source_sweep_id is not None:
+                rendered_parts.append(f"sweep `{source_sweep_id}`")
+            if source_order is not None:
+                rendered_parts.append(f"order `{int(source_order):02d}`")
+            if source_run_id is not None:
+                rendered_parts.append(f"run `{source_run_id}`")
+            if rendered_parts:
+                lines.append("- Imported baseline provenance: " + ", ".join(rendered_parts))
+        shared_anchor = row_summary.get("shared_anchor_provenance")
+        if isinstance(shared_anchor, Mapping):
+            anchor_sweep_id = shared_anchor.get("anchor_sweep_id")
+            anchor_order = shared_anchor.get("anchor_order")
+            anchor_run_dir = shared_anchor.get("anchor_run_dir")
+            rendered_parts = []
+            if anchor_sweep_id is not None:
+                rendered_parts.append(f"sweep `{anchor_sweep_id}`")
+            if anchor_order is not None:
+                rendered_parts.append(f"order `{int(anchor_order):02d}`")
+            if anchor_run_dir is not None:
+                rendered_parts.append(f"run dir `{anchor_run_dir}`")
+            if rendered_parts:
+                lines.append("- Shared anchor provenance: " + ", ".join(rendered_parts))
+    if isinstance(transfer_summary, Mapping):
+        best_row = transfer_summary.get("best_row")
+        if isinstance(best_row, Mapping):
+            lines.append(
+                "- Best transfer row: "
+                f"order `{int(best_row['order']):02d}` "
+                f"(regime `{best_row.get('regime_label') or 'n/a'}`, "
+                f"log loss `{float(best_row['final_log_loss']):.6f}`, "
+                f"budget `{best_row.get('target_budget_label') or 'n/a'}`)"
+            )
+        fastest_row = transfer_summary.get("fastest_row")
+        if isinstance(fastest_row, Mapping):
+            lines.append(
+                "- Fastest transfer row: "
+                f"order `{int(fastest_row['order']):02d}` "
+                f"(regime `{fastest_row.get('regime_label') or 'n/a'}`, "
+                f"wall `{float(fastest_row['end_to_end_wall_seconds']):.1f}s`)"
+            )
+        leaderboard = transfer_summary.get("regime_leaderboard")
+        if isinstance(leaderboard, list) and leaderboard:
+            rendered = "; ".join(
+                (
+                    f"{str(cast(Mapping[str, Any], item)['regime_label'])}: "
+                    f"mean log loss `{float(cast(Mapping[str, Any], item)['mean_benchmark_log_loss']):.6f}`"
+                )
+                for item in leaderboard
+                if isinstance(item, Mapping)
+            )
+            if rendered:
+                lines.append(f"- Regime leaderboard: {rendered}")
+        kept_regime = transfer_summary.get("kept_regime")
+        if isinstance(kept_regime, Mapping):
+            lines.append(
+                "- Kept regime (`T2` then `T1`): "
+                f"`{kept_regime['regime_label']}` "
+                f"(T2 order `{int(kept_regime['t2_order']):02d}`, "
+                f"log loss `{float(kept_regime['t2_log_loss']):.6f}`)"
+            )
+        t2_vs_highbatch = transfer_summary.get("t2_vs_carried_highbatch")
+        if isinstance(t2_vs_highbatch, Mapping):
+            lines.append(
+                "- T2 vs carried high-batch: "
+                f"winning regime `{t2_vs_highbatch['winning_regime_label']}` "
+                f"minus carried high-batch delta log loss "
+                f"`{float(t2_vs_highbatch['delta_log_loss']):+.6f}`"
+            )
+    return lines
+
+
 def result_card_text(
     *,
     row: Mapping[str, Any],
@@ -270,6 +454,8 @@ def result_card_text(
     queue_metrics: Mapping[str, Any],
     decision: str,
     conclusion: str,
+    selector_context: Mapping[str, Any] | None = None,
+    transfer_context: Mapping[str, Any] | None = None,
 ) -> str:
     primary_external_name, primary_external_summary = _primary_external_summary(summary)
     objective_metric = objective_metric_from_queue_metrics(queue_metrics)
@@ -594,6 +780,8 @@ def result_card_text(
     if stage_local_lines:
         lines.extend(["", "## Stage-local stability", ""])
         lines.extend(stage_local_lines)
+    lines.extend(_selector_interpretation_lines(selector_context))
+    lines.extend(_transfer_interpretation_lines(transfer_context))
 
     lines.extend(
         [
@@ -620,3 +808,91 @@ def result_card_text(
         ]
     )
     return "\n".join(lines)
+
+
+def refresh_result_cards_for_queue(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+) -> None:
+    from .summarize import build_sweep_summary_payload
+
+    resolved_registry_path = registry_path or default_registry_path()
+    registry = load_benchmark_run_registry(resolved_registry_path)
+    runs = registry.get("runs")
+    if not isinstance(runs, Mapping):
+        return
+    sweep_id = str(queue["sweep_id"])
+    anchor_run_id = (
+        str(queue["anchor_run_id"])
+        if isinstance(queue.get("anchor_run_id"), str) and str(queue["anchor_run_id"]).strip()
+        else None
+    )
+    summary_payload = build_sweep_summary_payload(queue=queue, include_screened=True)
+    row_summaries = {
+        int(cast(Mapping[str, Any], row)["order"]): cast(Mapping[str, Any], row)
+        for row in cast(list[dict[str, Any]], summary_payload["rows"])
+    }
+    selector_context_summary = cast(
+        Mapping[str, Any] | None,
+        summary_payload.get("selector_summary"),
+    )
+    transfer_context_summary = cast(
+        Mapping[str, Any] | None,
+        summary_payload.get("transfer_summary"),
+    )
+    for row in ordered_rows(queue):
+        if str(row.get("status", "")).strip().lower() != "completed":
+            continue
+        run_id = row.get("run_id")
+        if not isinstance(run_id, str) or not run_id.strip():
+            continue
+        run = runs.get(run_id)
+        if not isinstance(run, Mapping):
+            continue
+        artifacts = run.get("artifacts")
+        if not isinstance(artifacts, Mapping):
+            continue
+        raw_summary_path = artifacts.get("comparison_summary_path")
+        if not isinstance(raw_summary_path, str) or not raw_summary_path.strip():
+            continue
+        summary_path = resolve_registry_path_value(raw_summary_path)
+        if not summary_path.exists():
+            continue
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if not isinstance(summary, dict):
+            continue
+        queue_metrics = row.get("benchmark_metrics")
+        if not isinstance(queue_metrics, Mapping):
+            queue_metrics = row.get("screen_metrics")
+        if not isinstance(queue_metrics, Mapping):
+            continue
+        delta_root = (
+            repo_root()
+            / "outputs"
+            / "staged_ladder"
+            / "research"
+            / sweep_id
+            / str(row["delta_id"])
+        )
+        delta_root.mkdir(parents=True, exist_ok=True)
+        (delta_root / "result_card.md").write_text(
+            result_card_text(
+                row=row,
+                run_id=run_id,
+                anchor_run_id=anchor_run_id,
+                summary=summary,
+                queue_metrics=cast(Mapping[str, Any], queue_metrics),
+                decision=str(row.get("decision") or "defer"),
+                conclusion=str(row.get("conclusion") or "pending"),
+                selector_context={
+                    "row_summary": row_summaries.get(int(row["order"])),
+                    "summary": selector_context_summary,
+                },
+                transfer_context={
+                    "row_summary": row_summaries.get(int(row["order"])),
+                    "summary": transfer_context_summary,
+                },
+            ),
+            encoding="utf-8",
+        )

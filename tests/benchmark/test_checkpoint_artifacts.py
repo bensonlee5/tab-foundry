@@ -51,6 +51,10 @@ def test_publish_checkpoint_artifact_returns_waited_ref(
         Artifact = FakeArtifact
 
         @staticmethod
+        def Settings(**kwargs):
+            return {"kind": "settings", **kwargs}
+
+        @staticmethod
         def init(**kwargs):
             captured["init_kwargs"] = kwargs
             return FakeRun()
@@ -78,10 +82,103 @@ def test_publish_checkpoint_artifact_returns_waited_ref(
         "job_type": "benchmark-checkpoint-publish",
         "mode": "online",
         "name": "run_001",
+        "settings": {
+            "kind": "settings",
+            "init_timeout": 300,
+        },
     }
     assert captured["aliases"] == ["best"]
     assert captured["files"] == [(str(checkpoint_path.resolve()), "best.pt")]
     assert captured["finished"] is True
+
+
+def test_publish_checkpoint_artifact_shortens_long_artifact_names(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    checkpoint_path = tmp_path / "best.pt"
+    checkpoint_path.write_bytes(b"checkpoint")
+    captured: dict[str, object] = {}
+
+    class FakeArtifact:
+        def __init__(self, name: str, type: str, metadata=None, **_: object) -> None:
+            captured["artifact_name"] = name
+            captured["artifact_type"] = type
+            captured["artifact_metadata"] = metadata
+
+        def add_file(self, path: str, name: str | None = None) -> None:
+            captured["file"] = (path, name)
+
+    class FakeLoggedArtifact:
+        name = "benchmark-checkpoint-shortened:v1"
+
+        def wait(self, timeout: int | None = None):
+            captured["wait_timeout"] = timeout
+            return self
+
+    class FakeRun:
+        def log_artifact(self, artifact: FakeArtifact, aliases=None):
+            captured["aliases"] = list(aliases or [])
+            captured["logged_artifact"] = artifact
+            return FakeLoggedArtifact()
+
+        def finish(self) -> None:
+            captured["finished"] = True
+
+    class FakeWandb:
+        Artifact = FakeArtifact
+
+        @staticmethod
+        def Settings(**kwargs):
+            return {"kind": "settings", **kwargs}
+
+        @staticmethod
+        def init(**kwargs):
+            captured["init_kwargs"] = kwargs
+            return FakeRun()
+
+    monkeypatch.setattr(wandb_module, "_require_wandb_sdk", lambda: FakeWandb)
+
+    long_name = (
+        "benchmark-checkpoint-"
+        "sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_"
+        "delta_tf_rd_009_cls_sandwich_dicl128_layers2_muon_carry_lowbatch_v1_v1"
+    )
+    published = wandb_module.publish_checkpoint_artifact(
+        checkpoint_path=checkpoint_path,
+        artifact_name=long_name,
+        entity="bensonlee55-none",
+        project="tab-foundry",
+        run_id="bbmhj6c4",
+        run_name="run_001",
+        metadata={"benchmark_run_id": "run_001"},
+        aliases=["best"],
+    )
+
+    assert len(captured["artifact_name"]) <= 128
+    assert str(captured["artifact_name"]).startswith("benchmark-checkpoint-sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_")
+    assert str(captured["artifact_name"]).endswith("-2d4132350884")
+    assert published.artifact_name == captured["artifact_name"]
+
+
+def test_artifact_name_for_run_id_keeps_short_names_stable() -> None:
+    assert checkpoint_artifacts_module.artifact_name_for_run_id("run_001") == "benchmark-checkpoint-run_001"
+
+
+def test_artifact_name_for_run_id_shortens_long_names_deterministically() -> None:
+    run_id = (
+        "sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_"
+        "delta_tf_rd_009_cls_sandwich_dicl128_layers2_muon_carry_lowbatch_v1_v1"
+    )
+
+    artifact_name = checkpoint_artifacts_module.artifact_name_for_run_id(run_id)
+
+    assert len(artifact_name) <= 128
+    assert artifact_name.startswith(
+        "benchmark-checkpoint-sd_tf_rd_009_muon_training_dynamics_endpoint_medium_v1_01_"
+    )
+    assert artifact_name.endswith("-aee36847774b")
+    assert checkpoint_artifacts_module.artifact_name_for_run_id(run_id) == artifact_name
 
 
 def test_download_checkpoint_artifact_downloads_best_pt(

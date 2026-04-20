@@ -279,21 +279,24 @@ tab-foundry bench compare \
   --tabicl-root <path-to-tabicl>
 ```
 
-The canonical medium benchmark surface is
-`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. The
-canonical frozen control baseline id is `cls_benchmark_linear_v2`.
+The repo-wide default anchor benchmark is the medium multiclass surface with
+natural missingness preserved:
+`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`. Until
+that default is intentionally changed, this is the anchor benchmark that sweep
+inspection, scaling inspection, and contract validation expect. The paired
+frozen control baseline id is `cls_benchmark_linear_multiclass_medium_v1`.
 
 Benchmark comparison and sweep execution consume manifest paths only. Use the
 repo-tracked bundle JSON only as a materialization input:
 
 ```bash
 tab-foundry bench materialize-openml-bundle \
-  --bundle-path src/tab_foundry/bench/openml_binary_medium_v1.json \
+  --bundle-path src/tab_foundry/bench/openml_classification_medium_v1.json \
   --out-root data/manifests/bench/openml_classification_medium_v1
 ```
 
-The checked-in `cls_benchmark_linear_v2` entry freezes the prior-trained staged
-anchor run at:
+The checked-in `cls_benchmark_linear_multiclass_medium_v1` entry freezes the
+prior-trained staged anchor run at:
 
 - `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
 - `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`
@@ -302,7 +305,7 @@ Re-freeze that control baseline from the current anchor when needed:
 
 ```bash
 tab-foundry bench registry freeze-baseline \
-  --baseline-id cls_benchmark_linear_v2 \
+  --baseline-id cls_benchmark_linear_multiclass_medium_v1 \
   --experiment cls_benchmark_staged_prior \
   --config-profile cls_benchmark_staged_prior \
   --run-dir outputs/staged_ladder/01_nano_exact_md/prior_parity_fix \
@@ -436,7 +439,7 @@ Train-only `screen_only` rows still need:
 `result_card.md`. `screen_only` rows are diagnostic only.
 
 Benchmark-facing writeups should cite the locked manifest path,
-`cls_benchmark_linear_v2`, `training_surface_record.json`,
+`cls_benchmark_linear_multiclass_medium_v1`, `training_surface_record.json`,
 `research_card.md`, `campaign.yaml`, and `result_card.md`.
 
 For scaling studies whose benchmark-only runs were executed with
@@ -491,8 +494,15 @@ tab-foundry research sweep list-sweeps
 tab-foundry dev resolve-config \
   experiment=cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
 tab-foundry research sweep inspect \
-  --sweep-id tf_rd_009_muon_training_dynamics_endpoint_medium_v1 \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
   --order 1 \
+  --json
+tab-foundry research sweep inspect \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
+  --order 7 \
+  --json
+tab-foundry research sweep summarize \
+  --sweep-id tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1 \
   --json
 tab-foundry research scaling inspect \
   --study tf_rd_009_muon_phase2_one_epoch_v1 \
@@ -520,7 +530,8 @@ The active Muon lineage is:
 - `tf_rd_009_muon_ns_one_epoch_medium_v1`
 - `tf_rd_009_muon_batch_critical_one_epoch_medium_v1`
 - `tf_rd_009_muon_phase2_one_epoch_v1`
-- next selector sweep: `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
+- completed `#284` strict LMO transfer:
+  `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
 
 `tf_rd_009_muon_width_screen_medium_v1` completed the fresh Muon width screen
 on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
@@ -528,18 +539,78 @@ on the full 2500-step `v6` contract, with `60x2=0.4172`, `48x2=0.4147`,
 as the formal external Muon anchor, but carry `128x2` forward as the current
 in-family baseline. The corrected Muon Phase-2 closeout in merged PR
 [#280](https://github.com/bensonlee5/tab-foundry/pull/280) keeps `L(N,S)` as a
-directional signal only, so the next defended execution lane is the compact
-training-dynamics selector `tf_rd_009_muon_training_dynamics_endpoint_medium_v1`
-over `128x2`, `144x4`, and `264x6` at the fixed 5000-step endpoint.
+directional signal only. The completed faithful paper-derived strict
+shared-anchor LMO transfer study for
+[#284](https://github.com/bensonlee5/tab-foundry/issues/284) kept geometry
+fixed at `144x4`, kept the default anchor benchmark
+`openml_classification_medium_v1`, and compared the carried baselines against
+paper-derived Regime `B` and Regime `D` across the reused budget ladder
+`T0/T1/T2 = {625×64, 2500×64, 5000×64}`.
 
-The selector keeps the corrected `openml_classification_medium_v1` benchmark,
-the fixed `tf_rd_010_dagzoo_medium_control_curated_v6` corpus, and ranks rows
-on a quality/time Pareto frontier across four prescriptions per geometry:
+The completed `#284` sweep is the single shared-anchor transfer surface:
 
-- carried low-batch baseline
-- carried high-batch empirical reference
-- linear LR/batch prescription
-- momentum-timescale prescription
+- `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
+  - strict `10`-row comparison surface at `144x4`
+  - imported carried low-batch baselines at `T0/T1/T2`
+  - carried high-batch baselines at `T0/T1/T2`
+  - law-derived Regime `B` rows at `T1/T2`
+  - law-derived Regime `D` rows at `T1/T2`
+  - no regime-specific `T0` rows, because both regimes share the same carried
+    low-batch `T0` anchor by construction
+  - no T0 hyperparameter search in the canonical `#284` path
+  - winner rule: lower corrected benchmark log loss at `T2`, then lower log
+    loss at `T1`
+
+The earlier screen-based transfer sweeps
+`tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1` and
+`tf_rd_009_muon_training_dynamics_transfer_medium_v1` remain preserved
+historical context only; they are no longer the active operator route for
+`#284`.
+
+The carried model architecture for the completed `#284` sweep is the fixed
+`tabfoundry_sandwich` surface:
+
+- geometry: `144x4`
+- frozen non-scaling architecture knobs:
+  - `sandwich_latents=24`
+  - `sandwich_heads=1`
+  - `sandwich_ff_expansion=2`
+  - `sandwich_summary_tokens_per_axis=3`
+  - `sandwich_self_attention_per_cross=4`
+  - `sandwich_pre_row_attention_layers=1`
+  - `sandwich_pre_column_attention_layers=1`
+  - `sandwich_pre_column_inducing_tokens=16`
+  - `feature_type_conditioning=film`
+  - `floating_likelihood=single_gaussian`
+  - `integer_likelihood=hybrid_mixture`
+
+The paper-derived transfer laws are implemented directly:
+
+- Regime `B`
+  - `B(T)=64`
+  - `alpha(T)=alpha0*(T/T0)^(-1/2)`
+  - `lr_max(T)=lr0*(T/T0)^(-3/4)`
+- Regime `D`
+  - `B(T)=B0*(T/T0)^(1/6)`
+  - `alpha(T)=alpha0*(T/T0)^(-1/3)`
+  - `lr_max(T)=lr0*(T/T0)^(-7/12)`
+- `momentum(T)=1-alpha(T)`
+- `min_lr=lr_max*1e-3`
+- with `task_batch_size=16`, `weight_decay=0.01`, and warmup/cosine schedule
+  shape held fixed
+
+The completed result kept Regime `B` over Regime `D` by the tracked `T2`-then-
+`T1` rule, but `B@T2=0.5143437440` did not beat carried high-batch
+`T2=0.5135392585`, so `#284` closes with no later Phase-2B rerun issue from
+this lane. The earlier endpoint selector
+`tf_rd_009_muon_training_dynamics_endpoint_medium_v1` and the screen-based
+transfer pair remain tracked superseded context only.
+
+Treat `openml_classification_medium_v1` as the repo-wide default anchor
+benchmark until explicitly changed. Validation and inspection now fail fast if a
+default-anchor sweep resolves to the wrong manifest hash or to any binary
+benchmark surface, which closes the loophole that previously let stale binary
+contracts sneak back into TF-RD-009 recovery work.
 
 For the historical corrected one-epoch schedulefree rerun, materialize
 `tf_rd_010_dagzoo_medium_control_curated_v6` remotely first rather than

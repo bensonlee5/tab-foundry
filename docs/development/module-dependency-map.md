@@ -19,7 +19,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.benchmark_registry`,
   `tab_foundry.hardware_architecture_registry`,
   `tab_foundry.hardware_profiles`,
-  `tab_foundry.checkpoint_state`,
+  `tab_foundry.checkpoint_state`, `tab_foundry.hashing`,
   `tab_foundry.input_normalization`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.registry`,
   `tab_foundry.repo_paths`, `tab_foundry.task_batching`,
@@ -124,7 +124,7 @@ Observed cycle status:
   `tab_foundry.benchmark_registry`, `tab_foundry.device`,
   `tab_foundry.external_benchmarks`,
   `tab_foundry.hardware_architecture_registry`,
-  `tab_foundry.hardware_profiles`, and
+  `tab_foundry.hardware_profiles`, `tab_foundry.hashing`, and
   `tab_foundry.control_baseline_registry`, but lower layers should not depend
   on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on

@@ -41,6 +41,37 @@ Key code paths:
 - `tabfoundry_staged` is still useful as a historical comparison surface, but
   it is no longer the center of the roadmap or architecture docs.
 
+## Active TF-RD-009 Carried Surface
+
+The generic sandwich defaults below are not the current TF-RD-009 study
+surface. The active Muon training-dynamics study under
+`tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1` carries one fixed
+`tabfoundry_sandwich` geometry while testing optimizer and batch transfer laws:
+
+- geometry: `144x4` (`d_icl=144`, `sandwich_layers=4`)
+- architecture knobs held fixed:
+  - `sandwich_latents=24`
+  - `sandwich_heads=1`
+  - `sandwich_ff_expansion=2`
+  - `sandwich_summary_tokens_per_axis=3`
+  - `sandwich_self_attention_per_cross=4`
+  - `sandwich_pre_row_attention_layers=1`
+  - `sandwich_pre_column_attention_layers=1`
+  - `sandwich_pre_column_inducing_tokens=16`
+- non-geometry surface held fixed:
+  - `input_normalization=train_zscore_clip`
+  - `feature_type_conditioning=film`
+  - `floating_likelihood=single_gaussian`
+  - `integer_likelihood=hybrid_mixture`
+  - corrected anchor benchmark `openml_classification_medium_v1`
+  - corpus `tf_rd_010_dagzoo_medium_control_curated_v6`
+
+Interpret this as the current carried architecture contract for TF-RD-009:
+`128x2` remains the formal in-family baseline lineage, `264x6` remains later
+planning context, but the active optimizer-transfer question is being tested at
+fixed `144x4` in the strict shared-anchor LMO transfer sweep. The earlier
+screen-based transfer sweeps remain preserved superseded context only.
+
 ## Intent Map
 
 This diagram summarizes the design intent behind the current sandwich architecture.

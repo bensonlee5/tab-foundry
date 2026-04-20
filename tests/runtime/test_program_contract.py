@@ -119,7 +119,7 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
         "Treat [program.md](../program.md) as the policy owner.",
         "`reference/system_delta_catalog.yaml`",
         "`reference/system_delta_sweeps/index.yaml`",
-        "`cls_benchmark_linear_v2`",
+        "`cls_benchmark_linear_multiclass_medium_v1`",
         "`data/manifests/bench/openml_classification_medium_v1/manifest.parquet`",
         "`training_surface_record.json`",
         "`research_card.md`",

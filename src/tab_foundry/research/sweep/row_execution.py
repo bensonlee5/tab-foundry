@@ -252,6 +252,16 @@ def run_row(
         queue_row=queue_row,
         materialized_row=materialized_row,
     )
+    _row_dependencies.resolve_dynamic_training_overrides(
+        queue=queue,
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+    )
+    _row_dependencies.resolve_dynamic_reuse_train_artifact(
+        queue=queue,
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+    )
     resolved_sweep_meta = sweep if sweep is not None else sweep_meta
     sweep_semantics = resolve_sweep_semantics(resolved_sweep_meta)
     training_surface = sweep_semantics.training_surface

@@ -1,0 +1,3753 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_009_muon_training_dynamics_transfer_screen_medium_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.001, momentum=0.9, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.001_m0.9_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 2
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.001, momentum=0.95, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.001_m0.95_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 3
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.001, momentum=0.975, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.001_m0.975_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 4
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.002, momentum=0.9, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.002_m0.9_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 5
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.002, momentum=0.95, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.002_m0.95_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 6
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_b_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime B at 144x4 on T0.
+  hypothesis: Regime B candidate with lr_max=0.002, momentum=0.975, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime B on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: B
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_b_lr0.002_m0.975_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 7
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.9, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.9_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 8
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.95, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.95_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 9
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.975, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.975_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 10
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.9, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.9_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 11
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.95, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.95_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 12
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.975, B_eff=64 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 4
+        max_steps: 625
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 625
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.975_beff64
+    target_effective_batch: 64
+    realized_effective_batch: 64
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 13
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.9, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.9_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 14
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.95, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.95_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 15
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.975, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.975_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 16
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.9, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.9_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 17
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.95, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.95_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 18
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.975, B_eff=80 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 5
+        max_steps: 500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 500
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40000
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.975_beff80
+    target_effective_batch: 80
+    realized_effective_batch: 80
+    target_effective_budget: 40000
+    realized_effective_budget: 40000
+    budget_drift: 0.0
+    batch_drift: 0.0
+- order: 19
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.9, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.9_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 20
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.95, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.95_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 21
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.975, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.975_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 22
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.9, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.9_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 23
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.95, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.95_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 24
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.975, B_eff=96 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 6
+        max_steps: 417
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 417
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40032
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.975_beff96
+    target_effective_batch: 96
+    realized_effective_batch: 96
+    target_effective_budget: 40000
+    realized_effective_budget: 40032
+    budget_drift: 0.0007999999999999119
+    batch_drift: 0.0
+- order: 25
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.9, B_eff=128 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.9_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
+- order: 26
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.95, B_eff=128 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.95_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
+- order: 27
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.001, momentum=0.975, B_eff=128 may
+    be the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.001_m0.975_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
+- order: 28
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.9, B_eff=128 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.9
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.9_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
+- order: 29
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.95, B_eff=128 may be
+    the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.95
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.95_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
+- order: 30
+  delta_ref: delta_tf_rd_009_cls_sandwich_dicl144_layers4_muon_transfer_regime_d_v1
+  status: ready
+  rationale: Paper-derived Muon transfer screen row for regime D at 144x4 on T0.
+  hypothesis: Regime D candidate with lr_max=0.002, momentum=0.975, B_eff=128 may
+    be the best T0 anchor for faithful transfer.
+  anchor_delta: Hold 144x4 fixed and screen the paper-derived T0 anchor before any
+    extrapolation.
+  model:
+    arch: tabfoundry_sandwich
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    feature_type_conditioning: film
+    floating_likelihood: single_gaussian
+    integer_likelihood: hybrid_mixture
+    d_icl: 144
+    sandwich_layers: 4
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 2.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+        momentum: 0.975
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+        grad_accum_steps: 8
+        max_steps: 313
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 313
+          lr_max: 0.002
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    one_epoch_contract:
+      enabled: true
+      scope: train_manifest_unique_tasks
+      required_train_tasks_expression: max_steps * task_batch_size * grad_accum_steps
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      largest_required_train_tasks: 40064
+      expected_train_records_available: 1344081
+  parameter_adequacy_plan:
+  - Use train-only screen metrics to choose exactly one T0 anchor per paper regime
+    before any benchmark or larger-budget transfer.
+  - Rank candidates by lower upper_block_final_window_mean, then upper_block_post_warmup_mean_slope,
+    then clipped_step_fraction, then final_train_loss_ema.
+  execution_policy: screen_only
+  benchmark_checkpoint_selection: best_and_final
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Screen regime D on T0 and keep only the winning candidate for benchmark-backed
+    transfer validation.
+  notes:
+  - 'Faithful paper-derived transfer screen under issue #284; hold geometry fixed
+    at 144x4.'
+  - This row is train-only and exists solely to choose the T0 anchor for its regime.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  transfer_context:
+    phase: screen
+    regime_label: D
+    formula_label: paper T0 screen anchor
+    base_budget_label: T0
+    target_budget_label: T0
+    candidate_label: regime_d_lr0.002_m0.975_beff128
+    target_effective_batch: 128
+    realized_effective_batch: 128
+    target_effective_budget: 40000
+    realized_effective_budget: 40064
+    budget_drift: 0.0016000000000000458
+    batch_drift: 0.0
