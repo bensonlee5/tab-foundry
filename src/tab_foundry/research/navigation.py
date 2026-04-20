@@ -117,7 +117,9 @@ def _winner_from_rows(rows: Sequence[Any]) -> dict[str, Any] | None:
     for row in rows:
         if not isinstance(row, Mapping):
             continue
-        if str(row.get("status", "")).strip() != "completed":
+        status = str(row.get("status", "")).strip()
+        imported_baseline = isinstance(row.get("imported_baseline_provenance"), Mapping)
+        if status != "completed" and not imported_baseline:
             continue
         metrics = row.get("benchmark_metrics")
         if not isinstance(metrics, Mapping):
@@ -380,6 +382,7 @@ def build_scaling_navigation_payload(
     catalog_path: Path,
     sweeps_root: Path,
 ) -> dict[str, Any]:
+    index = load_system_delta_index_payload(index_path)
     queues: dict[str, Mapping[str, Any]] = {}
     for sweep_ref in config.sweeps:
         queues[sweep_ref.sweep_id] = load_system_delta_queue(
@@ -464,12 +467,13 @@ def build_scaling_navigation_payload(
     linked_sweeps: list[dict[str, Any]] = []
     for sweep_ref in config.sweeps:
         queue = queues[sweep_ref.sweep_id]
+        index_entry = index.sweeps.get(sweep_ref.sweep_id)
         linked_sweeps.append(
             {
                 "name": sweep_ref.name,
                 "family": sweep_ref.family,
                 "sweep_id": sweep_ref.sweep_id,
-                "status": str(queue.get("status", "unknown")),
+                "status": "unknown" if index_entry is None else str(index_entry.status),
                 "lineage": sweep_lineage_entries(sweep_id=sweep_ref.sweep_id, index_path=index_path),
                 "winner": _winner_from_rows(cast(Sequence[Any], queue.get("rows", []))),
             }
