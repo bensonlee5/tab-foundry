@@ -42,7 +42,7 @@ def _batched_inputs() -> tuple[torch.Tensor, torch.Tensor, int, list[str]]:
     return x_all, y_train, int(batch.x_train.shape[0]), list(_FEATURE_TYPES)
 
 
-def _routed_model() -> RoutedSandwichClassifier:
+def _routed_model(*, routed_direct_cell_bypass: bool = False) -> RoutedSandwichClassifier:
     return RoutedSandwichClassifier(
         d_icl=32,
         input_normalization="train_zscore_clip",
@@ -55,7 +55,32 @@ def _routed_model() -> RoutedSandwichClassifier:
         routed_row_summary_tokens=2,
         routed_column_summary_tokens=1,
         routed_evidence_tokens=4,
+        routed_direct_cell_bypass=routed_direct_cell_bypass,
     )
+
+
+def _routed_classification_state(
+    model: RoutedSandwichClassifier,
+    batch: TaskBatch,
+):
+    num_classes = model._task_num_classes(batch)
+    x_all, y_train, y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = model._feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    raw_state = model._build_raw_input_state(
+        x_all=x_all,
+        y_train=y_train,
+        y_test=y_test,
+        train_test_split_index=train_test_split_index,
+        num_classes=num_classes,
+        feature_type_ids=feature_type_ids,
+    )
+    feature_state = model._build_feature_state(raw_state)
+    return model._build_classification_state(feature_state)
 
 
 def _grid_model(
@@ -119,6 +144,151 @@ def test_routed_sandwich_rejects_non_classification_loss_surface() -> None:
 
     with pytest.raises(ValueError, match="classification"):
         model.set_loss_surface("cell_bpc")
+
+
+@pytest.mark.parametrize("routed_direct_cell_bypass", [False, True])
+def test_routed_sandwich_stage_inputs_follow_direct_cell_bypass(
+    monkeypatch: pytest.MonkeyPatch,
+    routed_direct_cell_bypass: bool,
+) -> None:
+    model = _routed_model(routed_direct_cell_bypass=routed_direct_cell_bypass)
+    batch = _task_batch()
+    classification_state = _routed_classification_state(model, batch)
+    stage0_block = model.perceiver_stages[0].input_read
+    stage1_block = model.perceiver_stages[1].input_read
+    recorded_inputs: dict[str, torch.Tensor] = {}
+    original_routed_cross_block = model._routed_cross_block
+
+    def _recording_routed_cross_block(
+        block,
+        query_streams: torch.Tensor,
+        key_value: torch.Tensor,
+    ) -> torch.Tensor:
+        if block is stage0_block and "stage0" not in recorded_inputs:
+            recorded_inputs["stage0"] = key_value.detach().clone()
+        if block is stage1_block and "stage1" not in recorded_inputs:
+            recorded_inputs["stage1"] = key_value.detach().clone()
+        return original_routed_cross_block(block, query_streams, key_value)
+
+    monkeypatch.setattr(model, "_routed_cross_block", _recording_routed_cross_block)
+
+    _ = model(batch)
+
+    expected_stage0 = classification_state.stage0_input
+    assert torch.allclose(recorded_inputs["stage0"], expected_stage0)
+    assert torch.allclose(recorded_inputs["stage1"], classification_state.context_bank)
+    if routed_direct_cell_bypass:
+        assert int(recorded_inputs["stage0"].shape[1]) == (
+            int(classification_state.full_cell_stream.shape[1])
+            + int(classification_state.context_bank.shape[1])
+        )
+    else:
+        assert int(recorded_inputs["stage0"].shape[1]) == int(classification_state.context_bank.shape[1])
+
+
+@pytest.mark.parametrize(
+    ("routed_direct_cell_bypass", "expect_same_source"),
+    [(False, True), (True, False)],
+)
+def test_routed_sandwich_forward_passes_expected_pool_sources(
+    monkeypatch: pytest.MonkeyPatch,
+    routed_direct_cell_bypass: bool,
+    expect_same_source: bool,
+) -> None:
+    model = _routed_model(routed_direct_cell_bypass=routed_direct_cell_bypass)
+    batch = _task_batch()
+    recorded_sources: dict[str, int] = {}
+
+    def _recording_pool(
+        *,
+        latent_query_streams: torch.Tensor,
+        value_streams: torch.Tensor,
+        num_test_rows: int,
+    ) -> torch.Tensor:
+        recorded_sources["latent_id"] = id(latent_query_streams)
+        recorded_sources["value_id"] = id(value_streams)
+        recorded_sources["num_test_rows"] = num_test_rows
+        return torch.zeros(
+            (int(latent_query_streams.shape[0]), num_test_rows, model.d_icl),
+            device=latent_query_streams.device,
+            dtype=latent_query_streams.dtype,
+        )
+
+    monkeypatch.setattr(model, "_pool_test_rows", _recording_pool)
+
+    output = model(batch)
+
+    assert output.logits is not None
+    assert tuple(output.logits.shape) == (2, 4)
+    assert recorded_sources["num_test_rows"] == 2
+    assert (recorded_sources["latent_id"] == recorded_sources["value_id"]) is expect_same_source
+
+
+def test_routed_sandwich_pool_test_rows_uses_latent_query_and_value_sources_separately(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _routed_model(routed_direct_cell_bypass=True)
+    num_test_rows = 2
+    latent_query_streams = torch.randn(
+        1,
+        num_test_rows * model.routed_row_summary_tokens,
+        model.routed_residual_streams,
+        model.d_icl,
+    )
+    value_streams = torch.randn_like(latent_query_streams)
+    query_primary = torch.full(
+        (1, num_test_rows * model.routed_row_summary_tokens, model.d_icl),
+        3.0,
+    )
+    value_primary = torch.full(
+        (1, num_test_rows * model.routed_row_summary_tokens, model.d_icl),
+        7.0,
+    )
+    recorded_inputs: dict[str, torch.Tensor] = {}
+
+    def _fake_width_mix(streams: torch.Tensor) -> torch.Tensor:
+        if streams is latent_query_streams:
+            return query_primary
+        if streams is value_streams:
+            return value_primary
+        raise AssertionError("unexpected routed stream input")
+
+    def _fake_cross_block(
+        block,
+        query: torch.Tensor,
+        key_value: torch.Tensor,
+    ) -> torch.Tensor:
+        assert block is model.test_row_pool
+        recorded_inputs["query"] = query.detach().clone()
+        recorded_inputs["key_value"] = key_value.detach().clone()
+        return torch.zeros_like(query)
+
+    monkeypatch.setattr(model.latent_memory_router, "width_mix", _fake_width_mix)
+    monkeypatch.setattr(model, "_cross_block", _fake_cross_block)
+
+    pooled = model._pool_test_rows(
+        latent_query_streams=latent_query_streams,
+        value_streams=value_streams,
+        num_test_rows=num_test_rows,
+    )
+
+    expected_query = query_primary.reshape(
+        1,
+        num_test_rows,
+        model.routed_row_summary_tokens,
+        model.d_icl,
+    ).mean(dim=2, keepdim=True)
+    expected_query = expected_query + model.test_row_pool_query.view(1, 1, 1, model.d_icl)
+    expected_query = expected_query.reshape(1 * num_test_rows, 1, model.d_icl)
+    expected_key_value = value_primary.reshape(
+        1 * num_test_rows,
+        model.routed_row_summary_tokens,
+        model.d_icl,
+    )
+
+    assert tuple(pooled.shape) == (1, num_test_rows, model.d_icl)
+    assert torch.allclose(recorded_inputs["query"], expected_query)
+    assert torch.allclose(recorded_inputs["key_value"], expected_key_value)
 
 
 def test_grid_sandwich_forward_and_forward_batched_shapes_match() -> None:

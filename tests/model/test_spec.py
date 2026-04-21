@@ -276,6 +276,7 @@ def test_routed_sandwich_model_spec_to_dict_includes_routed_fields() -> None:
     assert payload["routed_column_summary_tokens"] == 1
     assert payload["routed_evidence_tokens"] == 7
     assert payload["routed_direct_cell_bypass"] is True
+    assert "sandwich_summary_tokens_per_axis" not in payload
     for unsupported_key in ("stage", "stage_label", "module_overrides", "staged_dropout"):
         assert unsupported_key not in payload
 
@@ -333,33 +334,85 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         )
 
 
-def test_routed_sandwich_model_spec_rejects_legacy_summary_tokens_field() -> None:
-    with pytest.raises(ValueError, match="routed_row_summary_tokens"):
-        _ = model_build_spec_from_mappings(
-            task="classification",
-            primary={
-                "arch": ROUTED_SANDWICH_MODEL_ARCH,
-                "sandwich_summary_tokens_per_axis": 3,
-            },
-        )
+def test_routed_sandwich_model_spec_sanitizes_merged_summary_tokens_field_on_arch_swap() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": ROUTED_SANDWICH_MODEL_ARCH,
+            "sandwich_summary_tokens_per_axis": 3,
+        },
+    )
+
+    assert spec.arch == ROUTED_SANDWICH_MODEL_ARCH
+    assert "sandwich_summary_tokens_per_axis" not in spec.to_dict()
+    assert spec.sandwich_summary_tokens_per_axis == 4
+
+
+def test_grid_sandwich_model_spec_sanitizes_merged_dead_sandwich_fields_on_arch_swap() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": GRID_SANDWICH_MODEL_ARCH,
+            "sandwich_latents": 32,
+            "sandwich_self_attention_per_cross": 2,
+            "sandwich_summary_tokens_per_axis": 3,
+        },
+    )
+
+    payload = spec.to_dict()
+
+    assert spec.arch == GRID_SANDWICH_MODEL_ARCH
+    assert spec.sandwich_latents == 24
+    assert spec.sandwich_self_attention_per_cross == 4
+    assert spec.sandwich_summary_tokens_per_axis == 4
+    for field_name in (
+        "sandwich_latents",
+        "sandwich_self_attention_per_cross",
+        "sandwich_summary_tokens_per_axis",
+    ):
+        assert field_name not in payload
 
 
 @pytest.mark.parametrize(
-    ("field_name", "field_value"),
+    ("primary", "fallback", "match"),
     (
-        ("sandwich_latents", 32),
-        ("sandwich_self_attention_per_cross", 2),
-        ("sandwich_summary_tokens_per_axis", 3),
+        (
+            {"sandwich_summary_tokens_per_axis": 3},
+            {"arch": ROUTED_SANDWICH_MODEL_ARCH},
+            "routed_row_summary_tokens",
+        ),
+        (
+            {},
+            {"arch": ROUTED_SANDWICH_MODEL_ARCH, "sandwich_summary_tokens_per_axis": 3},
+            "routed_row_summary_tokens",
+        ),
+        (
+            {"sandwich_latents": 32},
+            {"arch": GRID_SANDWICH_MODEL_ARCH},
+            "sandwich_latents",
+        ),
+        (
+            {"sandwich_self_attention_per_cross": 2},
+            {"arch": GRID_SANDWICH_MODEL_ARCH},
+            "sandwich_self_attention_per_cross",
+        ),
+        (
+            {},
+            {"arch": GRID_SANDWICH_MODEL_ARCH, "sandwich_summary_tokens_per_axis": 3},
+            "sandwich_summary_tokens_per_axis",
+        ),
     ),
 )
-def test_grid_sandwich_model_spec_rejects_dead_sandwich_fields(
-    field_name: str,
-    field_value: int,
+def test_followon_model_spec_rejects_explicit_layered_dead_sandwich_fields(
+    primary: dict[str, object],
+    fallback: dict[str, object],
+    match: str,
 ) -> None:
-    with pytest.raises(ValueError, match=field_name):
+    with pytest.raises(ValueError, match=match):
         _ = model_build_spec_from_mappings(
             task="classification",
-            primary={"arch": GRID_SANDWICH_MODEL_ARCH, field_name: field_value},
+            primary=primary,
+            fallback=fallback,
         )
 
 

@@ -55,6 +55,7 @@ class _RoutedClassificationState:
     feature_state: SandwichFeatureState
     full_cell_stream: torch.Tensor
     context_bank: torch.Tensor
+    stage0_input: torch.Tensor
     row_tokens: torch.Tensor
 
 
@@ -983,11 +984,17 @@ class RoutedSandwichClassifier(nn.Module):
         column_tokens = self._column_summary_tokens(feature_cells)
         evidence_tokens, full_cell_stream = self._evidence_tokens(feature_cells, y_train=y_train)
         context_bank = torch.cat([row_tokens, column_tokens, evidence_tokens], dim=1)
+        if self.routed_direct_cell_bypass:
+            stage0_input = torch.cat([full_cell_stream, context_bank], dim=1)
+        else:
+            stage0_input = context_bank
         self.trace_activation("post_context_bank", context_bank)
+        self.trace_activation("post_stage0_input", stage0_input)
         return _RoutedClassificationState(
             feature_state=feature_state,
             full_cell_stream=full_cell_stream,
             context_bank=context_bank,
+            stage0_input=stage0_input,
             row_tokens=row_tokens,
         )
 
@@ -997,10 +1004,23 @@ class RoutedSandwichClassifier(nn.Module):
             dtype=primary_tokens.dtype,
         )
 
-    def _pool_test_rows(self, query_streams: torch.Tensor, *, num_test_rows: int) -> torch.Tensor:
-        primary = self.latent_memory_router.width_mix(query_streams)
-        query_tokens = primary.reshape(
-            int(primary.shape[0]),
+    def _pool_test_rows(
+        self,
+        *,
+        latent_query_streams: torch.Tensor,
+        value_streams: torch.Tensor,
+        num_test_rows: int,
+    ) -> torch.Tensor:
+        query_primary = self.latent_memory_router.width_mix(latent_query_streams)
+        value_primary = self.latent_memory_router.width_mix(value_streams)
+        query_tokens = query_primary.reshape(
+            int(query_primary.shape[0]),
+            num_test_rows,
+            self.routed_row_summary_tokens,
+            self.d_icl,
+        )
+        value_tokens = value_primary.reshape(
+            int(value_primary.shape[0]),
             num_test_rows,
             self.routed_row_summary_tokens,
             self.d_icl,
@@ -1011,8 +1031,8 @@ class RoutedSandwichClassifier(nn.Module):
             dtype=query_tokens.dtype,
         )
         flat_query = pool_query.reshape(int(query_tokens.shape[0]) * num_test_rows, 1, self.d_icl)
-        flat_kv = query_tokens.reshape(
-            int(query_tokens.shape[0]) * num_test_rows,
+        flat_kv = value_tokens.reshape(
+            int(value_tokens.shape[0]) * num_test_rows,
             self.routed_row_summary_tokens,
             self.d_icl,
         )
@@ -1048,7 +1068,12 @@ class RoutedSandwichClassifier(nn.Module):
         latents = self.latent_seed.expand(int(x_all.shape[0]), -1, -1, -1)
         for index, stage in enumerate(self.perceiver_stages):
             stage = cast(_RoutedPerceiverStage, stage)
-            latents = self._routed_cross_block(stage.input_read, latents, classification_state.context_bank)
+            key_value = (
+                classification_state.stage0_input
+                if index == 0
+                else classification_state.context_bank
+            )
+            latents = self._routed_cross_block(stage.input_read, latents, key_value)
             self.trace_activation(f"post_stage_{index}_cross", latents)
             for self_index, self_block in enumerate(stage.self_blocks):
                 self_block = cast(_RoutedSelfAttentionBlock, self_block)
@@ -1071,16 +1096,25 @@ class RoutedSandwichClassifier(nn.Module):
         )
         query_streams = self._build_routed_query_streams(test_queries)
         latent_memory = self.latent_memory_router.width_mix(latents)
-        query_streams = self._routed_cross_block(self.latent_readout, query_streams, latent_memory)
-        self.trace_activation("post_latent_readout", query_streams)
+        latent_readout_streams = self._routed_cross_block(
+            self.latent_readout,
+            query_streams,
+            latent_memory,
+        )
+        self.trace_activation("post_latent_readout", latent_readout_streams)
+        value_streams = latent_readout_streams
         if self.routed_direct_cell_bypass:
-            query_streams = self._routed_cross_block(
+            value_streams = self._routed_cross_block(
                 self.cell_readout,
-                query_streams,
+                latent_readout_streams,
                 classification_state.full_cell_stream,
             )
-            self.trace_activation("post_cell_readout", query_streams)
-        pooled_test_rows = self._pool_test_rows(query_streams, num_test_rows=num_test_rows)
+            self.trace_activation("post_cell_readout", value_streams)
+        pooled_test_rows = self._pool_test_rows(
+            latent_query_streams=latent_readout_streams,
+            value_streams=value_streams,
+            num_test_rows=num_test_rows,
+        )
         return self.direct_head(pooled_test_rows)
 
     def forward_batched(

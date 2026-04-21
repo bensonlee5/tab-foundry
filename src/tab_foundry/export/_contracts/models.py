@@ -541,8 +541,6 @@ class ExportModelSpec:
                 "sandwich_latents",
                 "sandwich_summary_tokens_per_axis",
                 "sandwich_self_attention_per_cross",
-                "sandwich_pre_row_attention_layers",
-                "sandwich_pre_column_attention_layers",
                 "floating_likelihood",
                 "integer_likelihood",
                 "routed_residual_mode",

@@ -374,3 +374,60 @@ def test_manifest_validation_accepts_routed_sandwich_fields() -> None:
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "routed_sandwich"
     assert roundtrip.to_dict() == manifest.model.to_dict()
+
+
+def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    model_payload = dict(payload["model"])
+    model_payload["arch"] = "grid_sandwich"
+    model_payload["input_normalization"] = "train_zscore_clip"
+    model_payload["many_class_base"] = 4
+    model_payload["head_hidden_dim"] = 128
+    model_payload["pre_encoder_clip"] = 10.0
+    model_payload["sandwich_layers"] = 2
+    model_payload["sandwich_heads"] = 4
+    model_payload["sandwich_ff_expansion"] = 2
+    model_payload["sandwich_activation"] = "gelu"
+    model_payload["sandwich_block_norm"] = "layernorm"
+    model_payload["sandwich_pre_row_attention_layers"] = 3
+    model_payload["sandwich_pre_column_attention_layers"] = 2
+    model_payload["sandwich_pre_column_inducing_tokens"] = 16
+    model_payload["feature_type_conditioning"] = "film"
+    model_payload.pop("sandwich_latents", None)
+    model_payload.pop("sandwich_summary_tokens_per_axis", None)
+    model_payload.pop("sandwich_self_attention_per_cross", None)
+    model_payload.pop("floating_likelihood", None)
+    model_payload.pop("integer_likelihood", None)
+    model_payload.pop("routed_residual_mode", None)
+    model_payload.pop("routed_residual_streams", None)
+    model_payload.pop("routed_residual_scale", None)
+    model_payload.pop("routed_row_summary_tokens", None)
+    model_payload.pop("routed_column_summary_tokens", None)
+    model_payload.pop("routed_evidence_tokens", None)
+    model_payload.pop("routed_direct_cell_bypass", None)
+    model_payload.pop("stage", None)
+    model_payload.pop("stage_label", None)
+    model_payload.pop("module_overrides", None)
+    model_payload.pop("staged_dropout", None)
+    payload["model"] = model_payload
+
+    inference_payload = dict(payload["inference"])
+    inference_payload["model_arch"] = "grid_sandwich"
+    inference_payload.pop("model_stage", None)
+    payload["inference"] = inference_payload
+    payload["manifest_sha256"] = compute_v3_manifest_sha256(payload)
+
+    manifest = validate_manifest_dict(payload)
+    rebuilt = manifest.model.to_build_spec(task=manifest.task)
+    roundtrip = ExportModelSpec.from_build_spec(rebuilt)
+
+    assert manifest.model.arch == "grid_sandwich"
+    assert manifest.model.pre_encoder_clip == pytest.approx(10.0)
+    assert manifest.model.sandwich_pre_row_attention_layers == 3
+    assert manifest.model.sandwich_pre_column_attention_layers == 2
+    assert manifest.model.sandwich_pre_column_inducing_tokens == 16
+    assert rebuilt.sandwich_pre_row_attention_layers == 3
+    assert rebuilt.sandwich_pre_column_attention_layers == 2
+    assert manifest.inference is not None
+    assert manifest.inference.model_arch == "grid_sandwich"
+    assert roundtrip.to_dict() == manifest.model.to_dict()

@@ -145,55 +145,89 @@ def _reject_legacy_sandwich_fields(
     )
 
 
-def _effective_mapping_value(
-    *,
-    key: str,
-    primary_map: Mapping[str, Any],
-    fallback_map: Mapping[str, Any],
-) -> Any:
-    if primary_map.get(key) is not None:
-        return primary_map.get(key)
-    return fallback_map.get(key)
+def _arch_specific_sandwich_dead_fields(*, arch: str) -> tuple[str, ...]:
+    if arch == ROUTED_SANDWICH_MODEL_ARCH:
+        return _ROUTED_SANDWICH_DEAD_FIELDS
+    if arch == GRID_SANDWICH_MODEL_ARCH:
+        return _GRID_SANDWICH_DEAD_FIELDS
+    return ()
 
 
-def _reject_arch_specific_sandwich_fields(
+def _invalid_arch_specific_sandwich_fields(
     *,
     arch: str,
-    primary_map: Mapping[str, Any],
-    fallback_map: Mapping[str, Any],
-) -> None:
-    if arch == ROUTED_SANDWICH_MODEL_ARCH:
-        routed_default = SANDWICH_DEFAULTS["sandwich_summary_tokens_per_axis"]
-        routed_value = _effective_mapping_value(
-            key="sandwich_summary_tokens_per_axis",
-            primary_map=primary_map,
-            fallback_map=fallback_map,
-        )
-        if routed_value is not None and int(routed_value) != int(routed_default):
-            raise ValueError(
-                "routed_sandwich does not support model.sandwich_summary_tokens_per_axis; "
-                "use model.routed_row_summary_tokens and model.routed_column_summary_tokens."
-            )
-        return
-    if arch != GRID_SANDWICH_MODEL_ARCH:
-        return
+    mapping: Mapping[str, Any],
+) -> list[str]:
     invalid_fields: list[str] = []
-    for field_name in _GRID_SANDWICH_DEAD_FIELDS:
-        field_value = _effective_mapping_value(
-            key=field_name,
-            primary_map=primary_map,
-            fallback_map=fallback_map,
-        )
+    for field_name in _arch_specific_sandwich_dead_fields(arch=arch):
+        field_value = mapping.get(field_name)
         field_default = SANDWICH_DEFAULTS[field_name]
         if field_value is not None and int(field_value) != int(field_default):
             invalid_fields.append(f"model.{field_name}")
+    return invalid_fields
+
+
+def _raise_arch_specific_sandwich_field_error(
+    *,
+    arch: str,
+    invalid_fields: list[str],
+) -> None:
     if not invalid_fields:
         return
+    if arch == ROUTED_SANDWICH_MODEL_ARCH:
+        raise ValueError(
+            "routed_sandwich does not support model.sandwich_summary_tokens_per_axis; "
+            "use model.routed_row_summary_tokens and model.routed_column_summary_tokens."
+        )
     invalid_fields_text = ", ".join(invalid_fields)
     raise ValueError(
         "grid_sandwich does not support "
         f"{invalid_fields_text}; it keeps an explicit grid core without latent or summary-stream knobs."
     )
+
+
+def _mapping_explicitly_targets_arch(*, mapping: Mapping[str, Any], arch: str) -> bool:
+    raw_arch = mapping.get("arch")
+    if raw_arch is None:
+        return False
+    return str(raw_arch).strip().lower() == arch
+
+
+def _reject_layered_arch_specific_sandwich_fields(
+    *,
+    arch: str,
+    primary_map: Mapping[str, Any],
+    fallback_map: Mapping[str, Any],
+) -> None:
+    if arch not in {ROUTED_SANDWICH_MODEL_ARCH, GRID_SANDWICH_MODEL_ARCH}:
+        return
+    _raise_arch_specific_sandwich_field_error(
+        arch=arch,
+        invalid_fields=_invalid_arch_specific_sandwich_fields(
+            arch=arch,
+            mapping=primary_map,
+        ),
+    )
+    if not _mapping_explicitly_targets_arch(mapping=fallback_map, arch=arch):
+        return
+    _raise_arch_specific_sandwich_field_error(
+        arch=arch,
+        invalid_fields=_invalid_arch_specific_sandwich_fields(
+            arch=arch,
+            mapping=fallback_map,
+        ),
+    )
+
+
+def _sanitize_arch_specific_sandwich_fields(
+    *,
+    arch: str,
+    mapping: Mapping[str, Any],
+) -> dict[str, Any]:
+    sanitized = {str(key): value for key, value in mapping.items()}
+    for field_name in _arch_specific_sandwich_dead_fields(arch=arch):
+        sanitized.pop(field_name, None)
+    return sanitized
 
 
 # ---------------------------------------------------------------------------
@@ -618,11 +652,7 @@ def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, 
         primary_map=mapping,
         fallback_map={},
     )
-    _reject_arch_specific_sandwich_fields(
-        arch=arch,
-        primary_map=mapping,
-        fallback_map={},
-    )
+    mapping = _sanitize_arch_specific_sandwich_fields(arch=arch, mapping=mapping)
     if arch != STAGED_MODEL_ARCH and mapping.get("stage") is not None:
         _ = resolve_model_stage(arch=arch, stage=mapping.get("stage"))
     if arch != STAGED_MODEL_ARCH and mapping.get("stage_label") is not None:
@@ -696,6 +726,8 @@ def _serialized_dict_from_payload(payload: _ModelBuildSpecPayload) -> dict[str, 
     serialized.update(payload.params.model_dump(exclude_none=False))
     serialized["arch"] = payload.arch
     serialized["task"] = payload.task
+    for field_name in _arch_specific_sandwich_dead_fields(arch=payload.arch):
+        serialized.pop(field_name, None)
     return serialized
 
 
@@ -760,11 +792,12 @@ def model_build_spec_from_mappings(
         primary_map=primary_map,
         fallback_map=fallback_map,
     )
-    _reject_arch_specific_sandwich_fields(
-        arch=arch_value,
-        primary_map=primary_map,
-        fallback_map=fallback_map,
-    )
+    if fallback_map:
+        _reject_layered_arch_specific_sandwich_fields(
+            arch=arch_value,
+            primary_map=primary_map,
+            fallback_map=fallback_map,
+        )
 
     merged: dict[str, Any] = {}
     for key, value in fallback_map.items():
