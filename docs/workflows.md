@@ -134,7 +134,7 @@ tab-foundry train run \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet
 tab-foundry train run \
-  experiment=cls_workstation_sandwich \
+  experiment=cls_workstation_grid_sandwich \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
@@ -148,14 +148,12 @@ PYTHONPATH=src .venv/bin/python -m tab_foundry train profile \
   runtime.output_dir=outputs/profile_speedrun_cached_packed
 ```
 
-`cls_workstation_sandwich` is the default sandwich training surface for new
-development work. The carried packed speed lane remains the Muon variant after
-the 1000-step, family-block-2 optimizer A/B on the TF-RD-010 v5 medium corpus;
-use `cls_benchmark_sandwich_speedrun_cached_packed_v1` as the
-`schedulefree_adamw` comparator and
-`cls_benchmark_sandwich_speedrun_cached_packed_muon_v1` as the kept packed
-benchmark surface. Regression remains intentionally removed in the current repo
-state.
+`cls_workstation_grid_sandwich` is the default training surface for new
+architecture work. It carries the April 20-21, 2026 grid-preserving anchor on
+the `144x4` / `tf_rd_010_dagzoo_medium_control_curated_v6` medium multiclass
+surface. `cls_workstation_sandwich` remains available as the previous
+tabfoundry-sandwich comparison surface. Regression remains intentionally
+removed in the current repo state.
 
 The prior-trained staged control surface is still available:
 
@@ -567,8 +565,8 @@ The earlier screen-based transfer sweeps
 historical context only; they are no longer the active operator route for
 `#284`.
 
-The carried model architecture for the completed `#284` sweep is the fixed
-`tabfoundry_sandwich` surface:
+The historical comparison architecture for the completed `#284` sweep was the
+fixed `tabfoundry_sandwich` surface:
 
 - geometry: `144x4`
 - frozen non-scaling architecture knobs:

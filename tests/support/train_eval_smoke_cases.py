@@ -2265,6 +2265,15 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert "train/train_elapsed_seconds" in train_logs[1][0]
     assert "train/grad_clip_threshold" in train_logs[1][0]
     assert "train/grad_clip_triggered" in train_logs[1][0]
+    assert "train/grad_clip_count_so_far" in train_logs[1][0]
+    assert "train/grad_clip_fraction_so_far" in train_logs[1][0]
+    assert "train/nan_skip_count" in train_logs[1][0]
+    assert "train/examples_seen" in train_logs[1][0]
+    assert "train/tokens_seen" in train_logs[1][0]
+    assert "train/examples_per_step" in train_logs[1][0]
+    assert "train/tokens_per_step" in train_logs[1][0]
+    assert "train/throughput_examples_per_second" in train_logs[1][0]
+    assert "train/throughput_tokens_per_second" in train_logs[1][0]
     assert "train/lr_adamw" in train_logs[1][0]
     val_logs = [
         (payload, step)

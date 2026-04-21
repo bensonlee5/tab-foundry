@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from torch import nn
 
+from .architectures.grid_sandwich import GridSandwichClassifier
+from .architectures.routed_sandwich import RoutedSandwichClassifier
 from .architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from .architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from .architectures.tabfoundry_staged import TabFoundryStagedClassifier
-from .spec import ModelBuildSpec, SANDWICH_MODEL_ARCH, STAGED_MODEL_ARCH
+from .spec import (
+    GRID_SANDWICH_MODEL_ARCH,
+    ModelBuildSpec,
+    ROUTED_SANDWICH_MODEL_ARCH,
+    SANDWICH_MODEL_ARCH,
+    STAGED_MODEL_ARCH,
+)
 
 
 def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
@@ -24,7 +32,8 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
     if normalized_arch == "tabfoundry":
         raise ValueError(
             "Legacy model arch 'tabfoundry' is no longer supported; "
-            "use 'tabfoundry_staged', 'tabfoundry_simple', or 'tabfoundry_sandwich'."
+            "use 'tabfoundry_staged', 'tabfoundry_simple', 'tabfoundry_sandwich', "
+            "'routed_sandwich', or 'grid_sandwich'."
         )
 
     if normalized_arch == "tabfoundry_simple":
@@ -103,6 +112,57 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             feature_type_conditioning=str(spec.feature_type_conditioning),
             floating_likelihood=str(spec.floating_likelihood),
             integer_likelihood=str(spec.integer_likelihood),
+        )
+
+    if normalized_arch == ROUTED_SANDWICH_MODEL_ARCH:
+        return RoutedSandwichClassifier(
+            d_icl=int(spec.d_icl),
+            input_normalization=str(spec.input_normalization),
+            many_class_base=int(spec.many_class_base),
+            norm_type=str(spec.norm_type),
+            head_hidden_dim=int(spec.head_hidden_dim),
+            pre_encoder_clip=spec.pre_encoder_clip,
+            sandwich_latents=int(spec.sandwich_latents),
+            sandwich_layers=int(spec.sandwich_layers),
+            sandwich_heads=int(spec.sandwich_heads),
+            sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
+            sandwich_activation=str(spec.sandwich_activation),
+            sandwich_block_norm=str(spec.sandwich_block_norm),
+            sandwich_self_attention_per_cross=int(spec.sandwich_self_attention_per_cross),
+            sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
+            sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
+            sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
+            sandwich_packed_attention=bool(spec.sandwich_packed_attention),
+            feature_type_conditioning=str(spec.feature_type_conditioning),
+            routed_residual_mode=str(spec.routed_residual_mode),
+            routed_residual_streams=int(spec.routed_residual_streams),
+            routed_residual_scale=str(spec.routed_residual_scale),
+            routed_row_summary_tokens=int(spec.routed_row_summary_tokens),
+            routed_column_summary_tokens=int(spec.routed_column_summary_tokens),
+            routed_evidence_tokens=int(spec.routed_evidence_tokens),
+            routed_direct_cell_bypass=bool(spec.routed_direct_cell_bypass),
+            floating_likelihood=str(spec.floating_likelihood),
+            integer_likelihood=str(spec.integer_likelihood),
+        )
+
+    if normalized_arch == GRID_SANDWICH_MODEL_ARCH:
+        return GridSandwichClassifier(
+            d_icl=int(spec.d_icl),
+            input_normalization=str(spec.input_normalization),
+            many_class_base=int(spec.many_class_base),
+            norm_type=str(spec.norm_type),
+            head_hidden_dim=int(spec.head_hidden_dim),
+            pre_encoder_clip=spec.pre_encoder_clip,
+            sandwich_layers=int(spec.sandwich_layers),
+            sandwich_heads=int(spec.sandwich_heads),
+            sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
+            sandwich_activation=str(spec.sandwich_activation),
+            sandwich_block_norm=str(spec.sandwich_block_norm),
+            sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
+            sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
+            sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
+            sandwich_packed_attention=bool(spec.sandwich_packed_attention),
+            feature_type_conditioning=str(spec.feature_type_conditioning),
         )
 
     raise ValueError(f"Unsupported model arch: {spec.arch!r}")

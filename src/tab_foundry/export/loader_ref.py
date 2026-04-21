@@ -17,6 +17,7 @@ from tab_foundry.device import resolve_torch_device
 from tab_foundry.feature_types import normalize_feature_types, resolve_feature_types
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
+from tab_foundry.model.spec import SANDWICH_FAMILY_MODEL_ARCHES
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.task_batching import move_batch
 from tab_foundry.types import TaskBatch
@@ -150,10 +151,10 @@ def _reference_batch(
     )
     num_classes = processed.num_classes
     model_arch = str(manifest.model.arch).strip().lower()
-    if model_arch == "tabfoundry_sandwich":
+    if model_arch in SANDWICH_FAMILY_MODEL_ARCHES:
         if feature_types is None:
             raise RuntimeError(
-                "tabfoundry_sandwich reference consumer requires explicit feature_types"
+                "sandwich-family reference consumer requires explicit feature_types"
             )
         resolved_feature_types = normalize_feature_types(
             feature_types,

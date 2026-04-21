@@ -1,0 +1,33 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_classification_evolution_tf_rd_009_muon_medium_v1
+  - _self_
+
+model:
+  arch: grid_sandwich
+  d_icl: 144
+  head_hidden_dim: 96
+  sandwich_latents: null
+  sandwich_layers: 4
+  sandwich_heads: 1
+  sandwich_summary_tokens_per_axis: null
+  sandwich_self_attention_per_cross: null
+  floating_likelihood: null
+  integer_likelihood: null
+
+runtime:
+  output_dir: outputs/cls_workstation_grid_sandwich
+  max_steps: 5000
+
+schedule:
+  stages:
+    - name: prior_dump
+      steps: 5000
+      lr_max: 1.0e-3
+      lr_schedule: linear
+      warmup_ratio: 0.10
+
+logging:
+  run_name: cls-workstation-grid-sandwich
+  history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

@@ -11,6 +11,7 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch import nn
 
+from tab_foundry.model.spec import ROUTED_SANDWICH_MODEL_ARCH, SANDWICH_FAMILY_MODEL_ARCHES
 from tab_foundry.task_batching import parse_task_batch_signature_text
 from tab_foundry.timestamps import utc_now as _shared_utc_now
 from tab_foundry.types import TaskBatch
@@ -77,6 +78,27 @@ _SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS = (
     "pre_column_attention_blocks",
     "perceiver_stages",
 )
+_ROUTED_SANDWICH_CLASSIFICATION_GRADIENT_MODULES = (
+    *_SANDWICH_CLASSIFICATION_GRADIENT_MODULES,
+    "evidence_builder",
+    "latent_memory_router",
+)
+_ROUTED_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS = _SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS
+_GRID_SANDWICH_CLASSIFICATION_GRADIENT_MODULES = (
+    "tokenizer",
+    "feature_encoder",
+    "feature_type_film",
+    "feature_type_embedding",
+    "y_conditioner",
+    "y_role_embedding",
+    "row_pool",
+    "direct_head",
+)
+_GRID_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS = (
+    "pre_row_attention_blocks",
+    "pre_column_attention_blocks",
+    "grid_layers",
+)
 _SANDWICH_CELL_BPC_GRADIENT_MODULES = (
     "tokenizer",
     "feature_encoder",
@@ -96,7 +118,7 @@ _SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = (
     "cell_decoder_blocks",
 )
 _GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
-_SANDWICH_STAGE_SELF_RE = re.compile(r"post_stage_(\d+)_self\Z")
+_SANDWICH_STAGE_SELF_RE = re.compile(r"post_stage_(\d+)_self(?:_\d+)?\Z")
 
 
 def _utc_now() -> str:
@@ -325,11 +347,34 @@ def _sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
     return modules
 
 
+def _routed_sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
+    modules: dict[str, nn.Module] = {}
+    for name in _ROUTED_SANDWICH_CLASSIFICATION_GRADIENT_MODULES:
+        _append_named_module(modules, model, name=name)
+    for name in _ROUTED_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS:
+        _append_module_list(modules, model, name=name)
+    return modules
+
+
+def _grid_sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
+    modules: dict[str, nn.Module] = {}
+    for name in _GRID_SANDWICH_CLASSIFICATION_GRADIENT_MODULES:
+        _append_named_module(modules, model, name=name)
+    for name in _GRID_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS:
+        _append_module_list(modules, model, name=name)
+    return modules
+
+
 def gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
     """Resolve the stable module names used in per-step gradient telemetry."""
 
-    if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+    arch = str(getattr(model, "arch", "")).strip().lower()
+    if arch == "tabfoundry_sandwich":
         return _sandwich_gradient_module_map(model)
+    if arch == ROUTED_SANDWICH_MODEL_ARCH:
+        return _routed_sandwich_gradient_module_map(model)
+    if arch == "grid_sandwich":
+        return _grid_sandwich_gradient_module_map(model)
 
     modules: dict[str, nn.Module] = {}
     for name in _TOP_LEVEL_GRADIENT_MODULES:
@@ -803,7 +848,7 @@ def _training_surface_loss_surface(training_surface_record: Mapping[str, Any] | 
 
 
 def _is_sandwich_classification_surface(training_surface_record: Mapping[str, Any] | None) -> bool:
-    return _training_surface_model_arch(training_surface_record) == "tabfoundry_sandwich" and (
+    return _training_surface_model_arch(training_surface_record) in SANDWICH_FAMILY_MODEL_ARCHES and (
         _training_surface_loss_surface(training_surface_record) != "cell_bpc"
     )
 

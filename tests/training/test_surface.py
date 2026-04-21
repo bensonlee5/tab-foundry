@@ -285,6 +285,83 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
     assert record["training"]["loss_surface"] == "cell_bpc"
 
 
+def test_build_training_surface_record_includes_routed_bypass_architecture_metadata(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_routed.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "routed_sandwich",
+                "d_icl": 96,
+                "head_hidden_dim": 128,
+                "sandwich_latents": 24,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+                "sandwich_pre_row_attention_layers": 1,
+                "sandwich_pre_column_attention_layers": 1,
+                "routed_row_summary_tokens": 4,
+                "routed_column_summary_tokens": 2,
+                "routed_evidence_tokens": 16,
+                "routed_direct_cell_bypass": True,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_routed",
+    )
+
+    assert record["model"]["arch"] == "routed_sandwich"
+    assert record["model"]["architecture"]["direct_cell_bypass"] is True
+    assert record["model"]["architecture"]["initial_input_tokens"] == (
+        "full_cell_plus_row_col_summary_plus_evidence_bank"
+    )
+    assert record["model"]["architecture"]["initial_input_token_count"] == (
+        "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+    )
+    assert record["model"]["architecture"]["readout"] == (
+        "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+    )
+
+
+def test_build_training_surface_record_includes_grid_pre_mixer_depth_metadata(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_grid.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "grid_sandwich",
+                "d_icl": 96,
+                "head_hidden_dim": 128,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+                "sandwich_pre_row_attention_layers": 2,
+                "sandwich_pre_column_attention_layers": 1,
+                "sandwich_pre_column_inducing_tokens": 8,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_grid",
+    )
+
+    assert record["model"]["arch"] == "grid_sandwich"
+    assert record["model"]["architecture"]["pre_row_attention_layers"] == 2
+    assert record["model"]["architecture"]["pre_column_attention_layers"] == 1
+    assert record["model"]["architecture"]["column_inducing_tokens"] == 8
+
+
 def test_build_training_surface_record_includes_compile_runtime_flags(
     tmp_path: Path,
 ) -> None:

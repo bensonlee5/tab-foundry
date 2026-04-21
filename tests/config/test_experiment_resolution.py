@@ -4,13 +4,22 @@ from pathlib import Path
 
 from hydra.errors import MissingConfigException
 from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf
 import pytest
+
+from tab_foundry.model.spec import model_build_spec_from_mappings
 
 
 def _compose(*overrides: str):
     cfg_dir = Path(__file__).resolve().parents[2] / "configs"
     with initialize_config_dir(config_dir=str(cfg_dir), version_base=None):
         return compose(config_name="config", overrides=list(overrides))
+
+
+def _resolved_model_spec(cfg: object):
+    model_cfg = OmegaConf.to_container(getattr(cfg, "model"), resolve=True)
+    assert isinstance(model_cfg, dict)
+    return model_build_spec_from_mappings(task=str(getattr(cfg, "task")), primary=model_cfg)
 
 
 def test_cls_workstation_task_resolution() -> None:
@@ -64,6 +73,65 @@ def test_cls_workstation_sandwich_resolution() -> None:
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich"
 
 
+def test_cls_workstation_sandwich_followon_arch_swaps_resolve() -> None:
+    routed_cfg = _compose("experiment=cls_workstation_sandwich", "model.arch=routed_sandwich")
+    routed_spec = _resolved_model_spec(routed_cfg)
+
+    assert str(routed_cfg.model.sandwich_summary_tokens_per_axis) == "3"
+    assert routed_spec.arch == "routed_sandwich"
+    assert "sandwich_summary_tokens_per_axis" not in routed_spec.to_dict()
+
+    grid_cfg = _compose("experiment=cls_workstation_sandwich", "model.arch=grid_sandwich")
+    grid_spec = _resolved_model_spec(grid_cfg)
+
+    assert str(grid_cfg.model.sandwich_summary_tokens_per_axis) == "3"
+    assert grid_spec.arch == "grid_sandwich"
+    assert "sandwich_summary_tokens_per_axis" not in grid_spec.to_dict()
+    assert "sandwich_latents" not in grid_spec.to_dict()
+    assert "sandwich_self_attention_per_cross" not in grid_spec.to_dict()
+
+
+def test_cls_workstation_routed_sandwich_resolution() -> None:
+    cfg = _compose("experiment=cls_workstation_routed_sandwich")
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "routed_sandwich"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.model.d_icl) == 144
+    assert int(cfg.model.head_hidden_dim) == 96
+    assert int(cfg.model.sandwich_layers) == 4
+    assert int(cfg.model.sandwich_heads) == 1
+    assert cfg.model.sandwich_summary_tokens_per_axis is None
+    assert int(cfg.model.routed_row_summary_tokens) == 4
+    assert int(cfg.model.routed_column_summary_tokens) == 2
+    assert int(cfg.model.routed_evidence_tokens) == 16
+    assert int(cfg.runtime.max_steps) == 5000
+    assert int(cfg.schedule.stages[0].steps) == 5000
+    assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_routed_sandwich"
+    assert str(cfg.logging.run_name) == "cls-workstation-routed-sandwich"
+
+
+def test_cls_workstation_grid_sandwich_resolution() -> None:
+    cfg = _compose("experiment=cls_workstation_grid_sandwich")
+
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "grid_sandwich"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.model.d_icl) == 144
+    assert int(cfg.model.head_hidden_dim) == 96
+    assert int(cfg.model.sandwich_layers) == 4
+    assert int(cfg.model.sandwich_heads) == 1
+    assert cfg.model.sandwich_latents is None
+    assert cfg.model.sandwich_summary_tokens_per_axis is None
+    assert cfg.model.sandwich_self_attention_per_cross is None
+    assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
+    assert int(cfg.runtime.max_steps) == 5000
+    assert int(cfg.schedule.stages[0].steps) == 5000
+    assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"
+    assert str(cfg.logging.run_name) == "cls-workstation-grid-sandwich"
+
+
 def test_cls_workstation_sandwich_legacy_resolution() -> None:
     cfg = _compose("experiment=cls_workstation_sandwich_legacy_v1")
 
@@ -78,10 +146,16 @@ def test_cls_workstation_sandwich_legacy_resolution() -> None:
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich-legacy-v1"
 
 
-def test_default_config_follows_packed_muon_surface() -> None:
+def test_default_config_follows_grid_architecture_anchor() -> None:
     cfg = _compose()
 
     assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "grid_sandwich"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.model.d_icl) == 144
+    assert int(cfg.model.sandwich_layers) == 4
+    assert int(cfg.model.sandwich_heads) == 1
+    assert int(cfg.model.head_hidden_dim) == 96
     assert bool(cfg.model.sandwich_packed_attention) is True
     assert str(cfg.optimizer.name) == "muon"
     assert str(cfg.runtime.device) == "cuda"

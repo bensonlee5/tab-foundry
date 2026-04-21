@@ -13,7 +13,7 @@ it.
 
 **tab-foundry** takes a different approach. It uses
 [dagzoo](https://github.com/bensonlee5/dagzoo) to generate synthetic tabular
-datasets, trains them with an active sandwich lane plus a frozen PFN control
+datasets, trains them with an active grid lane plus a frozen PFN control
 and historical staged reference lane, benchmarks against real-world tasks, and
 exports inference bundles you can deploy. You control the full pipeline: what
 data gets generated, which model surface is active, how training runs, and
@@ -47,7 +47,7 @@ graph LR
 
 1. **Generate** synthetic tabular datasets with dagzoo, or bring your own
    real-data manifests
-1. **Train** the active sandwich lane while preserving frozen and historical
+1. **Train** the active grid lane while preserving frozen and historical
    comparison surfaces
 1. **Benchmark** against pinned OpenML evaluation manifests with tracked
    source-bundle provenance and baselines
@@ -125,13 +125,13 @@ for package ownership and entry points.
   shape, complexity, and regime coverage. You decide what the model trains on
   rather than hoping a fixed corpus covers your use case.
 
-- **Modular architecture family.** The repo keeps an active sandwich lane, a
+- **Modular architecture family.** The repo keeps an active grid lane, a
   frozen PFN control, and a historical staged reference surface so subsystems
   and regimes can be compared without losing attribution.
 
 ## What Works Today
 
-- **Active sandwich architecture**, with a frozen nanoTabPFN-style control lane
+- **Active grid architecture**, with a frozen nanoTabPFN-style control lane
   for trusted comparison and a historical staged family retained as a reference
   surface
 - **Dagzoo integration** for synthetic corpus generation, manifests, and
@@ -158,32 +158,33 @@ for package ownership and entry points.
 
 ## Architecture at a Glance
 
-The active development family (`tabfoundry_sandwich`) is a fixed-latent hybrid
-full-cell / summary-stream Perceiver classifier:
+The active development family (`grid_sandwich`) is a grid-preserving
+classification transformer that keeps row-feature cell states explicit deeper
+into the encoder:
 
 ```mermaid
 graph TD
     A[input table] --> B[shared normalization +<br>cell tokenizer]
-    B --> C[full cell stream]
-    B --> D[row + column<br>summary streams]
-    C --> E[stage 0 latent read]
-    D --> F[later latent refinement]
-    E --> F
-    F --> G[test-row readout]
+    B --> C[row-feature<br>cell grid]
+    C --> D[row-wise<br>feature mixing]
+    D --> E[column-wise<br>row mixing]
+    E --> F[alternating<br>grid core]
+    F --> G[test-row feature<br>bundle pool]
     G --> H[class head]
 
     classDef default fill:#f8f9fa,stroke:#495057,stroke-width:1.5px,color:#212529
 ```
 
 A frozen nanoTabPFN control lane (`tabfoundry_simple`) preserves benchmark
-comparability, and `tabfoundry_staged` remains loadable as the historical
+comparability, `tabfoundry_sandwich` remains the previous carried in-family
+comparison surface, and `tabfoundry_staged` remains loadable as the historical
 reference family. For the full architecture reference, see
 [docs/development/model-architecture.md](docs/development/model-architecture.md).
 
-At the cell level, the active sandwich lane uses a missingness-aware tokenizer
-over `value`, `is_nan`, `is_posinf`, and `is_neginf`, then applies a shared
-value projection with feature-type conditioning plus Fourier row and column
-enrichment before the task-level attention stack.
+At the cell level, the active grid lane uses the same missingness-aware
+tokenizer over `value`, `is_nan`, `is_posinf`, and `is_neginf`, then applies a
+shared value projection with feature-type conditioning plus Fourier row and
+column enrichment before grid-preserving row/column mixing.
 
 The current architecture-development lane is classification-only. By default,
 training is ranked by matched-budget final log loss

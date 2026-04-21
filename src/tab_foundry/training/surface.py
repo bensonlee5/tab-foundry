@@ -13,6 +13,8 @@ from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
+    GRID_SANDWICH_MODEL_ARCH,
+    ROUTED_SANDWICH_MODEL_ARCH,
     SANDWICH_MODEL_ARCH,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
@@ -308,6 +310,70 @@ def build_training_surface_record(
             "heads": int(model_spec.sandwich_heads),
             "ff_expansion": int(model_spec.sandwich_ff_expansion),
             "self_attention_per_cross": int(model_spec.sandwich_self_attention_per_cross),
+        }
+    elif model_spec.arch == ROUTED_SANDWICH_MODEL_ARCH:
+        if bool(model_spec.routed_direct_cell_bypass):
+            initial_input_tokens = "full_cell_plus_row_col_summary_plus_evidence_bank"
+            initial_input_token_count = (
+                "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+            )
+            readout = "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+        else:
+            initial_input_tokens = "row_col_summary_plus_evidence_bank"
+            initial_input_token_count = "K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+            readout = "latent_conditioned_routed_query_pool"
+        model_payload["architecture"] = {
+            "initial_input_tokens": initial_input_tokens,
+            "initial_input_token_count": initial_input_token_count,
+            "repeated_input_tokens": "row_col_summary_plus_evidence_bank",
+            "repeated_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
+            "summary_tokens_per_row": int(model_spec.routed_row_summary_tokens),
+            "summary_tokens_per_column": int(model_spec.routed_column_summary_tokens),
+            "evidence_tokens": int(model_spec.routed_evidence_tokens),
+            "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+            "pre_row_attention_layers": int(model_spec.sandwich_pre_row_attention_layers),
+            "pre_column_attention_layers": int(model_spec.sandwich_pre_column_attention_layers),
+            "pre_column_inducing_tokens": int(model_spec.sandwich_pre_column_inducing_tokens),
+            "label_injection": "fused_into_row_summaries_and_evidence_builder",
+            "summary_builder": "summary_query_attention",
+            "evidence_builder": "learned_evidence_query_attention",
+            "position_encoding": "shared_fourier_row_col",
+            "feature_type_encoding": str(model_spec.feature_type_conditioning),
+            "sandwich_activation": str(model_spec.sandwich_activation),
+            "sandwich_block_norm": str(model_spec.sandwich_block_norm),
+            "sandwich_packed_attention": bool(model_spec.sandwich_packed_attention),
+            "latent_core": "routed_cross_self_stages_over_latent_streams",
+            "residual_routing": str(model_spec.routed_residual_mode),
+            "residual_streams": int(model_spec.routed_residual_streams),
+            "residual_scaling": str(model_spec.routed_residual_scale),
+            "readout": readout,
+            "direct_cell_bypass": bool(model_spec.routed_direct_cell_bypass),
+            "latents": int(model_spec.sandwich_latents),
+            "layers": int(model_spec.sandwich_layers),
+            "heads": int(model_spec.sandwich_heads),
+            "ff_expansion": int(model_spec.sandwich_ff_expansion),
+            "self_attention_per_cross": int(model_spec.sandwich_self_attention_per_cross),
+        }
+    elif model_spec.arch == GRID_SANDWICH_MODEL_ARCH:
+        model_payload["architecture"] = {
+            "input_tokens": "row_feature_cell_grid",
+            "input_token_count": "R_times_C",
+            "grid_core": "alternating_row_self_attention_and_column_row_isab",
+            "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+            "pre_row_attention_layers": int(model_spec.sandwich_pre_row_attention_layers),
+            "pre_column_attention_layers": int(model_spec.sandwich_pre_column_attention_layers),
+            "grid_preservation": "explicit_row_feature_grid_through_core",
+            "label_injection": "train_row_feature_tokens_only",
+            "position_encoding": "shared_fourier_row_col",
+            "feature_type_encoding": str(model_spec.feature_type_conditioning),
+            "sandwich_activation": str(model_spec.sandwich_activation),
+            "sandwich_block_norm": str(model_spec.sandwich_block_norm),
+            "sandwich_packed_attention": bool(model_spec.sandwich_packed_attention),
+            "layers": int(model_spec.sandwich_layers),
+            "heads": int(model_spec.sandwich_heads),
+            "ff_expansion": int(model_spec.sandwich_ff_expansion),
+            "column_inducing_tokens": int(model_spec.sandwich_pre_column_inducing_tokens),
+            "readout": "per_test_row_feature_bundle_pool",
         }
 
     data_label = str(data_surface.surface_label)

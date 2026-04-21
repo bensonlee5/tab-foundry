@@ -4,9 +4,13 @@ import pytest
 import torch
 
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.architectures.grid_sandwich import GridSandwichClassifier
+from tab_foundry.model.architectures.routed_sandwich import RoutedSandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
+    GRID_SANDWICH_MODEL_ARCH,
+    ROUTED_SANDWICH_MODEL_ARCH,
     SANDWICH_MODEL_ARCH,
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
@@ -76,6 +80,52 @@ def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
     assert model.pre_column_inducing_tokens == 8
 
 
+def test_build_model_supports_routed_sandwich_classification() -> None:
+    model = _build_model(
+        task="classification",
+        arch="routed_sandwich",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=4,
+        head_hidden_dim=128,
+        sandwich_latents=16,
+        sandwich_layers=2,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+        routed_residual_streams=2,
+        routed_row_summary_tokens=3,
+        routed_column_summary_tokens=2,
+        routed_evidence_tokens=5,
+    )
+
+    assert isinstance(model, RoutedSandwichClassifier)
+    assert model.latent_seed.shape == (1, 16, 2, 96)
+    assert model.evidence_query.shape == (1, 5, 96)
+
+
+def test_build_model_supports_grid_sandwich_classification() -> None:
+    model = _build_model(
+        task="classification",
+        arch="grid_sandwich",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=4,
+        head_hidden_dim=128,
+        sandwich_layers=2,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+        sandwich_pre_row_attention_layers=2,
+        sandwich_pre_column_attention_layers=1,
+        sandwich_pre_column_inducing_tokens=8,
+    )
+
+    assert isinstance(model, GridSandwichClassifier)
+    assert len(model.grid_layers) == 2
+    assert len(model.pre_row_attention_blocks) == 2
+    assert len(model.pre_column_attention_blocks) == 1
+    assert model.pre_column_inducing_tokens == 8
+
+
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
     constructor_model = TabFoundrySandwichClassifier()
     factory_model = _build_model(task="classification", arch="tabfoundry_sandwich")
@@ -107,6 +157,53 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.feature_type_conditioning == "film"
     assert spec.floating_likelihood == "single_gaussian"
     assert spec.integer_likelihood == "hybrid_mixture"
+
+
+def test_routed_sandwich_model_spec_defaults_include_routed_fields() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": ROUTED_SANDWICH_MODEL_ARCH},
+    )
+
+    assert spec.arch == ROUTED_SANDWICH_MODEL_ARCH
+    assert spec.routed_residual_mode == "dynamic_hyper"
+    assert spec.routed_residual_streams == 2
+    assert spec.routed_residual_scale == "deepnorm"
+    assert spec.routed_row_summary_tokens == 4
+    assert spec.routed_column_summary_tokens == 2
+    assert spec.routed_evidence_tokens == 16
+    assert spec.routed_direct_cell_bypass is False
+
+
+def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": GRID_SANDWICH_MODEL_ARCH},
+    )
+
+    assert spec.arch == GRID_SANDWICH_MODEL_ARCH
+    assert spec.d_icl == 60
+    assert spec.sandwich_layers == 2
+    assert spec.sandwich_heads == 4
+    assert spec.sandwich_pre_row_attention_layers == 1
+    assert spec.sandwich_pre_column_attention_layers == 1
+    assert spec.sandwich_pre_column_inducing_tokens == 16
+
+
+def test_grid_sandwich_model_spec_round_trips_pre_perceiver_mixer_fields() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": GRID_SANDWICH_MODEL_ARCH,
+            "sandwich_pre_row_attention_layers": 2,
+            "sandwich_pre_column_attention_layers": 3,
+        },
+    )
+
+    assert spec.sandwich_pre_row_attention_layers == 2
+    assert spec.sandwich_pre_column_attention_layers == 3
+    assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
+    assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -156,6 +253,34 @@ def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
         assert unsupported_key not in payload
 
 
+def test_routed_sandwich_model_spec_to_dict_includes_routed_fields() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "routed_sandwich",
+            "routed_residual_streams": 3,
+            "routed_row_summary_tokens": 2,
+            "routed_column_summary_tokens": 1,
+            "routed_evidence_tokens": 7,
+            "routed_direct_cell_bypass": True,
+        },
+    )
+
+    payload = spec.to_dict()
+
+    assert payload["arch"] == "routed_sandwich"
+    assert payload["routed_residual_mode"] == "dynamic_hyper"
+    assert payload["routed_residual_streams"] == 3
+    assert payload["routed_residual_scale"] == "deepnorm"
+    assert payload["routed_row_summary_tokens"] == 2
+    assert payload["routed_column_summary_tokens"] == 1
+    assert payload["routed_evidence_tokens"] == 7
+    assert payload["routed_direct_cell_bypass"] is True
+    assert "sandwich_summary_tokens_per_axis" not in payload
+    for unsupported_key in ("stage", "stage_label", "module_overrides", "staged_dropout"):
+        assert unsupported_key not in payload
+
+
 def test_sandwich_checkpoint_spec_infers_legacy_additive_feature_type_conditioning() -> None:
     spec = checkpoint_model_build_spec_from_mappings(
         task="classification",
@@ -191,6 +316,104 @@ def test_sandwich_model_spec_accepts_packed_attention_flag() -> None:
 
     assert spec.sandwich_packed_attention is True
     assert spec.to_dict()["sandwich_packed_attention"] is True
+
+
+def test_routed_sandwich_model_spec_rejects_unsupported_residual_mode() -> None:
+    with pytest.raises(ValueError, match="routed_residual_mode"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "routed_sandwich", "routed_residual_mode": "static"},
+        )
+
+
+def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None:
+    with pytest.raises(ValueError, match="routed_residual_scale"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "routed_sandwich", "routed_residual_scale": "prenorm"},
+        )
+
+
+def test_routed_sandwich_model_spec_sanitizes_merged_summary_tokens_field_on_arch_swap() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": ROUTED_SANDWICH_MODEL_ARCH,
+            "sandwich_summary_tokens_per_axis": 3,
+        },
+    )
+
+    assert spec.arch == ROUTED_SANDWICH_MODEL_ARCH
+    assert "sandwich_summary_tokens_per_axis" not in spec.to_dict()
+    assert spec.sandwich_summary_tokens_per_axis == 4
+
+
+def test_grid_sandwich_model_spec_sanitizes_merged_dead_sandwich_fields_on_arch_swap() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": GRID_SANDWICH_MODEL_ARCH,
+            "sandwich_latents": 32,
+            "sandwich_self_attention_per_cross": 2,
+            "sandwich_summary_tokens_per_axis": 3,
+        },
+    )
+
+    payload = spec.to_dict()
+
+    assert spec.arch == GRID_SANDWICH_MODEL_ARCH
+    assert spec.sandwich_latents == 24
+    assert spec.sandwich_self_attention_per_cross == 4
+    assert spec.sandwich_summary_tokens_per_axis == 4
+    for field_name in (
+        "sandwich_latents",
+        "sandwich_self_attention_per_cross",
+        "sandwich_summary_tokens_per_axis",
+    ):
+        assert field_name not in payload
+
+
+@pytest.mark.parametrize(
+    ("primary", "fallback", "match"),
+    (
+        (
+            {"sandwich_summary_tokens_per_axis": 3},
+            {"arch": ROUTED_SANDWICH_MODEL_ARCH},
+            "routed_row_summary_tokens",
+        ),
+        (
+            {},
+            {"arch": ROUTED_SANDWICH_MODEL_ARCH, "sandwich_summary_tokens_per_axis": 3},
+            "routed_row_summary_tokens",
+        ),
+        (
+            {"sandwich_latents": 32},
+            {"arch": GRID_SANDWICH_MODEL_ARCH},
+            "sandwich_latents",
+        ),
+        (
+            {"sandwich_self_attention_per_cross": 2},
+            {"arch": GRID_SANDWICH_MODEL_ARCH},
+            "sandwich_self_attention_per_cross",
+        ),
+        (
+            {},
+            {"arch": GRID_SANDWICH_MODEL_ARCH, "sandwich_summary_tokens_per_axis": 3},
+            "sandwich_summary_tokens_per_axis",
+        ),
+    ),
+)
+def test_followon_model_spec_rejects_explicit_layered_dead_sandwich_fields(
+    primary: dict[str, object],
+    fallback: dict[str, object],
+    match: str,
+) -> None:
+    with pytest.raises(ValueError, match=match):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary=primary,
+            fallback=fallback,
+        )
 
 
 @pytest.mark.parametrize(

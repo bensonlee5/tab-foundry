@@ -14,7 +14,13 @@ from tab_foundry.types import TaskBatch
 from .accounting import compute_accounting_from_model, parameter_accounting_from_model
 from .architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from .factory import build_model_from_spec
-from .spec import ModelBuildSpec, SANDWICH_MODEL_ARCH
+from .spec import (
+    GRID_SANDWICH_MODEL_ARCH,
+    ModelBuildSpec,
+    ROUTED_SANDWICH_MODEL_ARCH,
+    SANDWICH_FAMILY_MODEL_ARCHES,
+    SANDWICH_MODEL_ARCH,
+)
 
 
 @dataclass(slots=True, frozen=True)
@@ -122,6 +128,70 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "ff_expansion": int(spec.sandwich_ff_expansion),
                 "self_attention_per_cross": int(spec.sandwich_self_attention_per_cross),
             }
+        elif spec.arch == ROUTED_SANDWICH_MODEL_ARCH:
+            if bool(spec.routed_direct_cell_bypass):
+                initial_input_tokens = "full_cell_plus_row_col_summary_plus_evidence_bank"
+                initial_input_token_count = (
+                    "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+                )
+                readout = "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+            else:
+                initial_input_tokens = "row_col_summary_plus_evidence_bank"
+                initial_input_token_count = "K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+                readout = "latent_conditioned_routed_query_pool"
+            payload["architecture"] = {
+                "initial_input_tokens": initial_input_tokens,
+                "initial_input_token_count": initial_input_token_count,
+                "repeated_input_tokens": "row_col_summary_plus_evidence_bank",
+                "repeated_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
+                "summary_tokens_per_row": int(spec.routed_row_summary_tokens),
+                "summary_tokens_per_column": int(spec.routed_column_summary_tokens),
+                "evidence_tokens": int(spec.routed_evidence_tokens),
+                "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+                "pre_row_attention_layers": int(spec.sandwich_pre_row_attention_layers),
+                "pre_column_attention_layers": int(spec.sandwich_pre_column_attention_layers),
+                "pre_column_inducing_tokens": int(spec.sandwich_pre_column_inducing_tokens),
+                "label_injection": "fused_into_row_summaries_and_evidence_builder",
+                "summary_builder": "summary_query_attention",
+                "evidence_builder": "learned_evidence_query_attention",
+                "position_encoding": "shared_fourier_row_col",
+                "feature_type_encoding": str(spec.feature_type_conditioning),
+                "sandwich_activation": str(spec.sandwich_activation),
+                "sandwich_block_norm": str(spec.sandwich_block_norm),
+                "sandwich_packed_attention": bool(spec.sandwich_packed_attention),
+                "latent_core": "routed_cross_self_stages_over_latent_streams",
+                "residual_routing": str(spec.routed_residual_mode),
+                "residual_streams": int(spec.routed_residual_streams),
+                "residual_scaling": str(spec.routed_residual_scale),
+                "readout": readout,
+                "direct_cell_bypass": bool(spec.routed_direct_cell_bypass),
+                "latents": int(spec.sandwich_latents),
+                "layers": int(spec.sandwich_layers),
+                "heads": int(spec.sandwich_heads),
+                "ff_expansion": int(spec.sandwich_ff_expansion),
+                "self_attention_per_cross": int(spec.sandwich_self_attention_per_cross),
+            }
+        elif spec.arch == GRID_SANDWICH_MODEL_ARCH:
+            payload["architecture"] = {
+                "input_tokens": "row_feature_cell_grid",
+                "input_token_count": "R_times_C",
+                "grid_core": "alternating_row_self_attention_and_column_row_isab",
+                "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+                "pre_row_attention_layers": int(spec.sandwich_pre_row_attention_layers),
+                "pre_column_attention_layers": int(spec.sandwich_pre_column_attention_layers),
+                "grid_preservation": "explicit_row_feature_grid_through_core",
+                "label_injection": "train_row_feature_tokens_only",
+                "position_encoding": "shared_fourier_row_col",
+                "feature_type_encoding": str(spec.feature_type_conditioning),
+                "sandwich_activation": str(spec.sandwich_activation),
+                "sandwich_block_norm": str(spec.sandwich_block_norm),
+                "sandwich_packed_attention": bool(spec.sandwich_packed_attention),
+                "layers": int(spec.sandwich_layers),
+                "heads": int(spec.sandwich_heads),
+                "ff_expansion": int(spec.sandwich_ff_expansion),
+                "column_inducing_tokens": int(spec.sandwich_pre_column_inducing_tokens),
+                "readout": "per_test_row_feature_bundle_pool",
+            }
         return payload
 
     surface = resolve_staged_surface(spec)
@@ -198,7 +268,7 @@ def synthetic_reference_arrays(
     y_train = y_train + 100
     feature_types = (
         [DEFAULT_FEATURE_TYPE] * feature_count
-        if str(spec.arch).strip().lower() == SANDWICH_MODEL_ARCH
+        if str(spec.arch).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES
         else None
     )
     return SyntheticReferenceArrays(
@@ -213,7 +283,7 @@ def synthetic_reference_arrays(
 def _resolved_forward_shape(spec: ModelBuildSpec) -> tuple[int, str]:
     if spec.arch == "tabfoundry_simple":
         return 2, "logits"
-    if spec.arch == SANDWICH_MODEL_ARCH:
+    if spec.arch in SANDWICH_FAMILY_MODEL_ARCHES:
         return int(spec.many_class_base), "logits"
 
     surface = resolve_staged_surface(spec)

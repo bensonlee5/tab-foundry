@@ -20,8 +20,9 @@ Use these alongside this page:
 
 `tab-foundry` should not fragment across multiple live model families.
 
-The active architecture surface is now `tabfoundry_sandwich`, with
-`tabfoundry_simple` retained only as the frozen exact anchor and
+The active architecture surface is now `grid_sandwich`, with
+`tabfoundry_sandwich` retained as the previous carried in-family comparison,
+`tabfoundry_simple` retained only as the frozen exact anchor, and
 `tabfoundry_staged` retained only as the historical reference line. The repo
 should evolve through:
 
@@ -33,7 +34,7 @@ should evolve through:
 Near-term architecture direction is now explicit:
 
 - keep a frozen PFN-style control lane for benchmark trust
-- evolve `tabfoundry_sandwich` as the coherent primary classification family
+- evolve `grid_sandwich` as the coherent primary classification family
 - keep `tabfoundry_staged` available only for historical comparison and
   compatibility
 - remain free to borrow specific components from TabPFN or other references
@@ -63,21 +64,23 @@ intentionally deferred further still.
 ### Single Active Architecture Surface
 
 - Internal code should optimize for one active model-development surface:
-  `tabfoundry_sandwich`.
+  `grid_sandwich`.
 - `tabfoundry_simple` remains only as the frozen compatibility anchor.
 - `tabfoundry_staged` remains only as a historical comparison or
   compatibility surface.
 - New feature work should not create a second live family unless it is planned
-  as an explicit replacement of `tabfoundry_sandwich`.
+  as an explicit replacement of `grid_sandwich`.
 
 ### PFN Control, Row-First Target
 
 - `tabfoundry_simple` and `stage=nano_exact` are the frozen PFN-style control
   lane.
-- `tabfoundry_sandwich` is the active architecture target.
+- `grid_sandwich` is the active architecture target.
+- `tabfoundry_sandwich` remains the previous carried in-family comparison
+  surface.
 - `tabfoundry_staged` remains the historical row-first reference line rather
   than the active development destination.
-- Architecture promotion should prefer coherent sandwich surfaces over piling
+- Architecture promotion should prefer coherent grid-preserving surfaces over piling
   structurally unrelated deltas onto the PFN control path or extending the
   staged reference line indefinitely.
 
@@ -176,9 +179,9 @@ Use the live owner docs for implementation-time boundaries:
 ## Naming And Compatibility Guidance
 
 - Prefer family ids that reflect current ownership and scope.
-- `tabfoundry_sandwich` is the active development family,
-  `tabfoundry_simple` is the frozen anchor, and `tabfoundry_staged` is the
-  historical reference family.
+- `grid_sandwich` is the active development family, `tabfoundry_sandwich` is
+  the previous carried in-family comparison family, `tabfoundry_simple` is the
+  frozen anchor, and `tabfoundry_staged` is the historical reference family.
 - Export and inference compatibility changes still require explicit schema
   migration planning.
 - Optimize naming for clear role separation, not for keeping retired families

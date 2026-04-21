@@ -15,6 +15,7 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     resolve_staged_surface,
 )
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import SANDWICH_FAMILY_MODEL_ARCHES
 from tab_foundry.training.prior.settings import (
     DEFAULT_BATCH_SIZE,
     PriorBackendSurfaceConfig,
@@ -251,9 +252,11 @@ def _model_spec_from_cfg(cfg: DictConfig):
 def _validate_prior_training_model_spec(
     spec: ModelBuildSpec,
 ) -> ResolvedStageSurface | None:
-    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged", "tabfoundry_sandwich"}:
+    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged", *SANDWICH_FAMILY_MODEL_ARCHES}:
         raise ValueError(
-            "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged', 'tabfoundry_sandwich'}, "
+            "prior-dump training requires model.arch in "
+            "{'tabfoundry_simple', 'tabfoundry_staged', 'tabfoundry_sandwich', "
+            "'routed_sandwich', 'grid_sandwich'}, "
             f"got {spec.arch!r}"
         )
     if spec.arch != "tabfoundry_staged":

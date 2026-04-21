@@ -836,7 +836,7 @@ def test_tab_foundry_classifier_requires_explicit_feature_types_for_sandwich(
     classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
     with pytest.raises(
         RuntimeError,
-        match="tabfoundry_sandwich benchmark evaluation requires explicit feature_types",
+        match="sandwich-family benchmark evaluation requires explicit feature_types",
     ):
         classifier.fit(
             np.asarray([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32),

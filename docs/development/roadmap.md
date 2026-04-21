@@ -1,13 +1,15 @@
 # Roadmap (202604)
 
 Use this roadmap to understand which questions are active now, which surfaces
-are frozen, and what evidence the repo still needs before promotion.
+are frozen, and what evidence the repo still needs for follow-up validation.
 
-The repo-wide plan is now sandwich-first:
+The repo-wide plan is now grid-anchor first:
 
 - keep one frozen PFN-style control lane for trust and comparison
-- treat `tabfoundry_sandwich` as the active classification architecture target
-  and scaling-prep family
+- treat `grid_sandwich` as the active classification architecture target and
+  carried repo anchor after the April 20-21, 2026 medium benchmark
+- preserve `tabfoundry_sandwich` as the previous carried in-family comparison
+  and scaling-evidence lane
 - use the closed TF-RD-010 classification benchmark contract as the fixed
   anti-saturation regime before the first scaling fit
 - treat steering-derived dagzoo fronts and other synthetic-surface expansion
@@ -63,28 +65,29 @@ The roadmap now has one active architecture-development lane:
   - useful as a comparison surface, but no longer the focus of roadmap
     sequencing
 - active development lane:
-  - `tabfoundry_sandwich`
-  - fixed-latent `y` / byte-array `x` Perceiver-style classifier
-  - owns the current architecture simplification, dagzoo transfer,
-    many-class/missingness, runtime, and scaling work
+  - `grid_sandwich`
+  - grid-preserving row-feature classifier promoted from the April 20-21, 2026
+    medium multiclass sidecar benchmark
+  - owns new architecture work; `tabfoundry_sandwich` remains the previous
+    carried in-family comparison and scaling-evidence lane
 
 Important non-goals for this roadmap:
 
 - do not treat the current `nano_exact + prenorm + row_cls` hybrid line as the
   long-term destination
 - do not assume the incumbent staged reference line is the final architecture
-  destination either; it is the current benchmark carry-forward surface
+  destination either; it is retained as a historical reference surface
 - do not bundle regression into the first row-first promotion push
 - do not make QASS structurally mandatory
 - do not proliferate many parallel live architecture families beyond the frozen
-  control, the incumbent staged reference line, and the current sandwich
-  candidate line
+  control, the historical staged reference line, the `tabfoundry_sandwich`
+  comparison surface, and the current grid anchor line
 
 ## Prioritization Lens
 
-- Classification remains the anchor workload while the sandwich family is
-  tested on harder post-008 regimes.
-- The next useful architecture evidence should come from coherent sandwich
+- Classification remains the anchor workload while the grid family is tested on
+  harder post-008 regimes.
+- The next useful architecture evidence should come from coherent grid
   surfaces, not from extending the older staged line.
 - After TF-RD-016 closeout, the next deliberate front should make the research
   surface less saturating and more realistic: a benchmark-defined
@@ -229,7 +232,7 @@ Current path: **TF-RD-009** on the closed TF-RD-010 benchmark contract, with TF-
   control `0.8974410961` remains better than `mcar=0.9155278224`,
   `mar=0.9418792099`, and `mnar=0.9411754209`, so TF-RD-010 does not promote
   missingness exposure from the first medium/large package.
-- TF-RD-010 continues to rank the active sandwich benchmark path by
+- TF-RD-010 continues to rank the active grid benchmark path by
   `final_log_loss_at_matched_regime_budget`, interpreted explicitly as
   label-target log loss per test cell. The older `cell_bpc` / BPC lane is
   preserved only for historical reruns while calibration, runtime, and
@@ -268,11 +271,11 @@ Parallel/later lanes are intentionally off that main path:
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, and the prior-trained PFN-facing benchmark lane are all stable | Keep that lane clearly separate from the architecture target | `TF-RD-001` |
-| Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
+| Grid is the primary classification candidate | `implemented` | `grid_sandwich` is the carried architecture anchor after the April 20-21, 2026 medium benchmark; `tabfoundry_sandwich` remains the previous carried comparison family and retains its compact hybrid, knob-screen, width/head, and direct-head evidence | Replicate the grid anchor and validate it on larger or harder rungs rather than reopening simplification-first sandwich work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010`, `TF-RD-009` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, TF-RD-020 settled harder-front winners that can seed the sandwich benchmark program, and dagzoo epics [#249](https://github.com/bensonlee5/dagzoo/issues/249) and [#247](https://github.com/bensonlee5/dagzoo/issues/247) define later surface-expansion work | Keep TF-RD-021 and dagzoo RD-002/RD-005 as sidecar synthetic-data context while TF-RD-009 executes on the closed TF-RD-010 benchmark contract | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `implemented` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, `tab-foundry dev run-inspect` now exposes compact runtime and regime-budget summaries, sweep summaries now carry compact runtime columns, and TF-RD-022 closed on the kept bf16 plus activation-checkpointing `compile_eager_dynamic` runtime surface with an A100 wall-time improvement from `3848.0996s` to `3586.6358s` and matched-budget log loss improvement from `0.6820820744` to `0.6810689708` | Carry the kept TF-RD-022 runtime surface unchanged into TF-RD-009; any later runtime changes now need a new dedicated lane rather than reopening the closed gate | `TF-RD-022` |
 | Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, `medium_v5` now records the sorted-control replay, and `large_v2` now records the local large-rung replay | `implemented` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` now records the completed sorted-order control replay under [#202](https://github.com/bensonlee5/tab-foundry/issues/202) at `0.6849303354`, and `large_v2` now records the completed local all-rows benchmark-only large replay under [#203](https://github.com/bensonlee5/tab-foundry/issues/203) with control `0.8974410961`, `mcar=0.9155278224`, `mar=0.9418792099`, and `mnar=0.9411754209` | TF-RD-010 now explicitly keeps the original `medium_v4` control (`0.6811727401`) over the worse sorted-order `medium_v5` replay (`0.6849303354`), and the completed `large_v2` replay preserves the same ordering with control best on the harder rung. Later lanes inherit that closed benchmark contract and the no-missingness-promotion read, while the canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-022`, `TF-RD-024`, `TF-RD-014`, `TF-RD-017` |
-| Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains the next follow-on missingness lane after the first scaling pass, while TF-RD-017 still needs an explicit later imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
+| Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains the next follow-on missingness lane after the first scaling pass, while TF-RD-017 still needs an explicit later imbalance ladder on the same grid family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
 | Scaling-law work has the needed metadata path | `implemented` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata, TF-RD-010 fixed the first benchmark-defined classification contract, TF-RD-022 closed on the carried compile-eager-dynamic runtime surface, and TF-RD-024 closed on medium-only architecture evidence with `sandwich_heads=1` as the handoff winner | The remaining gap is the actual TF-RD-009 design note and scaling execution, not another prerequisite architecture or runtime screen | `TF-RD-009`, `TF-RD-010`, `TF-RD-022`, `TF-RD-024` |
 
@@ -282,10 +285,10 @@ This roadmap assumes the following repo truths:
 
 - `tabfoundry_simple` and `tabfoundry_staged` with `stage=nano_exact` remain
   the frozen PFN-style control lane.
-- `tabfoundry_sandwich` exists as the primary classification architecture
-  candidate; the initial replay, knob screen, bounded width/head follow-up,
-  and removal-first package are complete, and the compact hybrid anchor remains
-  the kept parent after [#184](https://github.com/bensonlee5/tab-foundry/issues/184).
+- `grid_sandwich` exists as the primary classification architecture candidate
+  and carried repo anchor; `tabfoundry_sandwich` remains the previous carried
+  comparison family with initial replay, knob screen, bounded width/head
+  follow-up, and removal-first evidence preserved.
 - dagzoo manifest identity, export/reference preprocessing fidelity, and the
   one-way data boundary are part of the baseline rather than active blockers.
 - the representative post-008 synthetic training-data surface is
@@ -306,14 +309,14 @@ This roadmap assumes the following repo truths:
   partial training-surface closeout plus harder dagzoo corpus-front winners.
 - The detailed historical record remains in completed issues, sweep artifacts,
   and [reference/evidence.md](../../reference/evidence.md); the sections below
-  focus on active sandwich development and later follow-up lanes.
+  focus on active grid development and later follow-up lanes.
 
 Legacy wording note:
 
 - some TF-RD item titles still use earlier row-first or promoted-anchor
   phrasing so existing roadmap links remain stable
 - the dependency order, current-state bullets, and required-work bullets below
-  are the authoritative description of the active sandwich-first path
+  are the authoritative description of the active grid-first path
 
 ### TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target
 
@@ -566,7 +569,7 @@ Legacy wording note:
 - Exit criteria:
   - satisfied: the repo retains one explicit partial training-surface record on
     the staged-control line
-  - satisfied: the active path now moves to sandwich simplification and dagzoo
+  - satisfied: the active path now moves to grid-anchor validation and dagzoo
     carry-forward instead of continuing TF-RD-018
 
 ### TF-RD-022: Kernel-Level Training Acceleration On The Settled Sandwich Runtime Surface Before Classification Scaling
@@ -595,7 +598,7 @@ Legacy wording note:
     [#241](https://github.com/bensonlee5/tab-foundry/issues/241), and closed
     kernel-acceleration child
     [#247](https://github.com/bensonlee5/tab-foundry/issues/247)
-  - the sandwich architecture lane still lives under issue
+  - the `tabfoundry_sandwich` comparison lane still lives under issue
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178), with issue
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) recording the
     keep-current-anchor decision before the current benchmark-only follow-up
@@ -936,8 +939,8 @@ Legacy wording note:
   - satisfied: the repo has an explicit keep/defer decision that the sandwich
     architecture surface is adequate enough to move into benchmark-defined
     multiclass evaluation
-  - satisfied: later work now reuses one coherent sandwich family instead of
-    reopening general simplification or staged-family divergence
+  - satisfied: later work now reuses one coherent carried architecture family
+    instead of reopening general simplification or staged-family divergence
 
 ### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
@@ -1227,6 +1230,13 @@ Legacy wording note:
     beat carried high-batch at `T2`
     (`0.5143437440` vs `0.5135392585`, delta `+0.0008044855` log loss), so
     close `#284` without opening any later Phase-2B rerun issue from this lane
+  - the April 20-21, 2026 routed/grid sidecar on the carried `144x4` medium
+    surface (`head_hidden_dim=96`) is complete: `routed_control=0.5120092736`
+    and `routed_rebalance=0.5661516574` are negative evidence for the first
+    routed-residual/evidence-bank design, while `grid_pilot=0.4221534937` beats
+    the `144x4` sidecar anchor `0.4914031270` and is now the repo's carried
+    architecture anchor through `cls_workstation_grid_sandwich` and
+    `tf_rd_009_a100_80gb_classification_medium_grid_v1`
   - only after the completed cleanup child and negative faithful transfer study
     closeout should
     [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited
@@ -1280,7 +1290,7 @@ hold:
 - TabICLv2 is the strongest directional reference for the active architecture
   target, but not a literal reproduction target.
 - Dagzoo synthetic-data efficacy is already established historically; the
-  active sandwich path now runs: keep-current-anchor decision, first
+  active grid path now runs: grid-anchor promotion, first
   benchmark-defined many-class plus missingness gate, bounded kernel/runtime
   tuning, bounded post-performance architecture sweep, then scaling-law work.
 - The current large-anchor hybrid line is diagnostic evidence, not the intended

@@ -24,7 +24,7 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.model.spec import (
     ModelBuildSpec,
-    SANDWICH_MODEL_ARCH,
+    SANDWICH_FAMILY_MODEL_ARCHES,
     checkpoint_model_build_spec_from_mappings,
 )
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
@@ -158,7 +158,7 @@ def _checkpoint_preprocessing_surface(checkpoint_path: Path) -> Any:
 
 def _checkpoint_preserves_non_finite_benchmark_inputs(spec: Any) -> bool:
     arch = str(getattr(spec, "arch", "")).strip().lower()
-    if arch == SANDWICH_MODEL_ARCH:
+    if arch in SANDWICH_FAMILY_MODEL_ARCHES:
         return True
     if arch != "tabfoundry_staged":
         return False
@@ -194,7 +194,7 @@ class TabFoundryClassifier:
         self._preprocessor_state: FittedPreprocessorState | None = None
         self._raw_x_train: np.ndarray | None = None
         self._raw_y_train: np.ndarray | None = None
-        if str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH:
+        if str(getattr(self.model_spec, "arch", "")).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES:
             self.evaluate_benchmark_folds_batched = self._evaluate_benchmark_folds_batched_impl
 
     def set_benchmark_feature_types(self, feature_types: list[str] | None) -> None:
@@ -214,11 +214,11 @@ class TabFoundryClassifier:
         if classes.size < 2:
             raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
         if (
-            str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH
+            str(getattr(self.model_spec, "arch", "")).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES
             and self._benchmark_feature_types is None
         ):
             raise RuntimeError(
-                "tabfoundry_sandwich benchmark evaluation requires explicit "
+                "sandwich-family benchmark evaluation requires explicit "
                 "feature_types for each dataset"
             )
         self._classes = classes
@@ -331,11 +331,11 @@ class TabFoundryClassifier:
         if classes.size < 2:
             raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
         if (
-            str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH
+            str(getattr(self.model_spec, "arch", "")).strip().lower() in SANDWICH_FAMILY_MODEL_ARCHES
             and feature_types is None
         ):
             raise RuntimeError(
-                "tabfoundry_sandwich benchmark evaluation requires explicit "
+                "sandwich-family benchmark evaluation requires explicit "
                 "feature_types for each dataset"
             )
         preprocessor_state = fit_fitted_preprocessor(

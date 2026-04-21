@@ -190,6 +190,7 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "program.md",
         "docs/development/roadmap.md",
         "docs/development/model-architecture.md",
+        "grid_sandwich",
         "tabfoundry_sandwich",
         "tabfoundry_simple",
         "tabfoundry_staged",
@@ -301,21 +302,22 @@ def test_model_config_documents_staged_override_surface() -> None:
         assert statement in contents
 
 
-def test_model_architecture_doc_covers_current_sandwich_surface() -> None:
+def test_model_architecture_doc_covers_current_grid_surface() -> None:
     contents = (REPO_ROOT / "docs" / "development" / "model-architecture.md").read_text(
         encoding="utf-8"
     )
 
     required_statements = [
-        "`tabfoundry_sandwich` is the active small-class, classification-only",
-        "hybrid full-cell / summary-stream",
-        "full-cell stream",
-        "summary stream",
-        "stage `0`",
-        "read final latents first",
-        "the full cell stream",
+        "`grid_sandwich` is the active model family and carried architecture anchor.",
+        "`tabfoundry_sandwich` remains the previous carried family.",
+        "Grid Design Summary",
+        "Grid Forward Path",
+        "row-feature grid",
         "row-wise feature attention",
-        "ISAB",
+        "column-wise ISAB row mixing",
+        "`row_pool_query`",
+        "test-row feature bundle",
+        "train labels are added to train rows only",
         "`model.arch`",
         "`d_icl`",
         "`input_normalization`",
@@ -337,9 +339,7 @@ def test_model_architecture_doc_covers_current_sandwich_surface() -> None:
         "`TaskBatch.metadata[\"feature_types\"]`",
         "`run_reference_consumer(..., feature_types=[...])`",
         "`forward_batched(..., feature_types=[...])`",
-        "`latent_seed`",
-        "truncated normal",
-        "Repeated Perceiver stages",
+        "alternating row-wise and column-wise mixers",
         "`2 <= num_classes <= many_class_base`",
     ]
     for statement in required_statements:

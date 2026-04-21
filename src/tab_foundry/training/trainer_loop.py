@@ -65,6 +65,7 @@ class TrainingLoopState:
     grad_norm_count: int = 0
     max_grad_norm: float = 0.0
     final_grad_norm: float = 0.0
+    clipped_step_count: int = 0
     nan_skip_count: int = 0
     previous_train_loss: float | None = None
     loss_ema: float | None = None
@@ -732,6 +733,8 @@ def run_training_loop(
                 and math.isfinite(grad_norm_value)
                 and float(grad_norm_value) > grad_clip_threshold
             )
+            if grad_clip_triggered:
+                state.clipped_step_count += 1
             global_grad_norm_kind = _global_grad_norm_kind(float(grad_norm_value))
             train_log["train/loss_delta"] = loss_delta_value
             train_log["train/loss_ema"] = state.loss_ema
@@ -739,6 +742,22 @@ def run_training_loop(
             train_log["train/train_elapsed_seconds"] = state.train_elapsed_seconds
             train_log["train/grad_clip_threshold"] = grad_clip_threshold
             train_log["train/grad_clip_triggered"] = grad_clip_triggered
+            train_log["train/grad_clip_count_so_far"] = int(state.clipped_step_count)
+            train_log["train/grad_clip_fraction_so_far"] = float(
+                state.clipped_step_count / state.global_step
+            )
+            train_log["train/nan_skip_count"] = float(state.nan_skip_count)
+            train_log["train/examples_seen"] = int(state.examples_seen)
+            train_log["train/tokens_seen"] = int(state.tokens_seen)
+            train_log["train/examples_per_step"] = float(state.examples_seen / state.global_step)
+            train_log["train/tokens_per_step"] = float(state.tokens_seen / state.global_step)
+            if state.train_elapsed_seconds > 0.0:
+                train_log["train/throughput_examples_per_second"] = float(
+                    state.examples_seen / state.train_elapsed_seconds
+                )
+                train_log["train/throughput_tokens_per_second"] = float(
+                    state.tokens_seen / state.train_elapsed_seconds
+                )
             train_log["train/task_batch_size_requested"] = int(step_batch_payload["task_batch_size_requested"])
             train_log["train/task_batch_size_actual"] = int(step_batch_payload["task_batch_size_actual"])
             train_log["train/task_batch_batched_count"] = int(step_batch_payload["task_batch_batched_count"])

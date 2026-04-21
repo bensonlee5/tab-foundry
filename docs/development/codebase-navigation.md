@@ -74,7 +74,8 @@ into the canonical library modules.
 - `src/tab_foundry/model/architectures/`: the current active-plus-reference
   model surface:
   - `tabfoundry_simple`: the frozen exact nanoTabPFN-style benchmark anchor
-  - `tabfoundry_sandwich`: the primary classification architecture target
+  - `grid_sandwich`: the primary classification architecture target
+  - `tabfoundry_sandwich`: the previous carried in-family comparison surface
   - `tabfoundry_staged`: the historical staged reference family retained for
     compatibility and comparison
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
@@ -205,9 +206,10 @@ not absorb new orchestration logic.
   `anchor.py`) instead of recreating wrapper or barrel modules, and row-level
   helper logic should stay factored under the dedicated sweep helper modules
   instead of regrowing a monolithic `row_execution.py`.
-- `tabfoundry_sandwich` is the only active architecture surface. Shared logic
-  should continue to move into `model/components/`, `model/spec.py`, and
-  family-neutral helpers instead of reintroducing parallel model pathways.
+- `grid_sandwich` is the active architecture surface. `tabfoundry_sandwich`
+  remains the previous carried comparison surface. Shared logic should continue
+  to move into `model/components/`, `model/spec.py`, and family-neutral helpers
+  instead of reintroducing parallel model pathways.
 - The active system-delta aliases are generated views. Docs and scripts should
   describe them as such and should resolve canonical state through the sweep
   index and per-sweep sources.
