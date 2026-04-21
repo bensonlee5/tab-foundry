@@ -38,6 +38,9 @@ SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
 SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
 SUPPORTED_ROUTED_RESIDUAL_MODES = ("dynamic_hyper",)
 SUPPORTED_ROUTED_RESIDUAL_SCALES = ("deepnorm",)
+SUPPORTED_GRID_RESIDUAL_MODES = ("prenorm", "hyper_connection_lite")
+SUPPORTED_GRID_ATTENTION_MODES = ("standard", "differential")
+SUPPORTED_GRID_FFN_MODES = ("gelu", "swiglu")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -465,7 +468,57 @@ class _RoutedSandwichModelParams(_SandwichModelParams):
 
 
 class _GridSandwichModelParams(_SandwichModelParams):
-    pass
+    grid_residual_mode: str = "prenorm"
+    grid_attention_mode: str = "standard"
+    grid_ffn_mode: str = "gelu"
+    grid_recurrence_steps: int | None = Field(default=None, gt=0)
+
+    @field_validator("grid_residual_mode", mode="before")
+    @classmethod
+    def _validate_grid_residual_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_RESIDUAL_MODES:
+            raise ValueError(
+                "grid_residual_mode must be one of "
+                f"{SUPPORTED_GRID_RESIDUAL_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_attention_mode", mode="before")
+    @classmethod
+    def _validate_grid_attention_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_ATTENTION_MODES:
+            raise ValueError(
+                "grid_attention_mode must be one of "
+                f"{SUPPORTED_GRID_ATTENTION_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_ffn_mode", mode="before")
+    @classmethod
+    def _validate_grid_ffn_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_FFN_MODES:
+            raise ValueError(
+                "grid_ffn_mode must be one of "
+                f"{SUPPORTED_GRID_FFN_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_recurrence_steps", mode="before")
+    @classmethod
+    def _validate_grid_recurrence_steps(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "none", "null"}:
+                return None
+        steps = int(value)
+        if steps <= 0:
+            raise ValueError("grid_recurrence_steps must be null or a positive integer")
+        return steps
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +634,9 @@ def _build_flat_defaults() -> dict[str, Any]:
         if name not in defaults:
             defaults[name] = info.default
     for name, info in _RoutedSandwichModelParams.model_fields.items():
+        if name not in defaults:
+            defaults[name] = info.default
+    for name, info in _GridSandwichModelParams.model_fields.items():
         if name not in defaults:
             defaults[name] = info.default
     return defaults

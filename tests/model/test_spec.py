@@ -117,6 +117,8 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         sandwich_pre_row_attention_layers=2,
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
+        grid_attention_mode="differential",
+        grid_ffn_mode="swiglu",
     )
 
     assert isinstance(model, GridSandwichClassifier)
@@ -124,6 +126,8 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
     assert len(model.pre_row_attention_blocks) == 2
     assert len(model.pre_column_attention_blocks) == 1
     assert model.pre_column_inducing_tokens == 8
+    assert model.grid_attention_mode == "differential"
+    assert model.grid_ffn_mode == "swiglu"
 
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
@@ -188,22 +192,38 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.sandwich_pre_row_attention_layers == 1
     assert spec.sandwich_pre_column_attention_layers == 1
     assert spec.sandwich_pre_column_inducing_tokens == 16
+    assert spec.grid_residual_mode == "prenorm"
+    assert spec.grid_attention_mode == "standard"
+    assert spec.grid_ffn_mode == "gelu"
+    assert spec.grid_recurrence_steps is None
 
 
-def test_grid_sandwich_model_spec_round_trips_pre_perceiver_mixer_fields() -> None:
+def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     spec = model_build_spec_from_mappings(
         task="classification",
         primary={
             "arch": GRID_SANDWICH_MODEL_ARCH,
             "sandwich_pre_row_attention_layers": 2,
             "sandwich_pre_column_attention_layers": 3,
+            "grid_residual_mode": "hyper_connection_lite",
+            "grid_attention_mode": "differential",
+            "grid_ffn_mode": "swiglu",
+            "grid_recurrence_steps": 8,
         },
     )
 
     assert spec.sandwich_pre_row_attention_layers == 2
     assert spec.sandwich_pre_column_attention_layers == 3
+    assert spec.grid_residual_mode == "hyper_connection_lite"
+    assert spec.grid_attention_mode == "differential"
+    assert spec.grid_ffn_mode == "swiglu"
+    assert spec.grid_recurrence_steps == 8
     assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
+    assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
+    assert spec.to_dict()["grid_attention_mode"] == "differential"
+    assert spec.to_dict()["grid_ffn_mode"] == "swiglu"
+    assert spec.to_dict()["grid_recurrence_steps"] == 8
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -331,6 +351,26 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         _ = model_build_spec_from_mappings(
             task="classification",
             primary={"arch": "routed_sandwich", "routed_residual_scale": "prenorm"},
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "bad_value"),
+    (
+        ("grid_residual_mode", "dynamic_hyper"),
+        ("grid_attention_mode", "flash"),
+        ("grid_ffn_mode", "geglu"),
+        ("grid_recurrence_steps", 0),
+    ),
+)
+def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(
+    field_name: str,
+    bad_value: object,
+) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "grid_sandwich", field_name: bad_value},
         )
 
 

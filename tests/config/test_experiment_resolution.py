@@ -126,10 +126,63 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert cfg.model.sandwich_self_attention_per_cross is None
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
+    assert str(cfg.model.grid_residual_mode) == "prenorm"
+    assert str(cfg.model.grid_attention_mode) == "standard"
+    assert str(cfg.model.grid_ffn_mode) == "gelu"
+    assert cfg.model.grid_recurrence_steps is None
     assert int(cfg.runtime.max_steps) == 5000
     assert int(cfg.schedule.stages[0].steps) == 5000
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"
     assert str(cfg.logging.run_name) == "cls-workstation-grid-sandwich"
+
+
+@pytest.mark.parametrize(
+    ("experiment", "field_name", "expected_value"),
+    (
+        (
+            "cls_workstation_grid_sandwich_tf_rd_026_01_hyper_connection_lite",
+            "grid_residual_mode",
+            "hyper_connection_lite",
+        ),
+        (
+            "cls_workstation_grid_sandwich_tf_rd_026_02_differential_attention",
+            "grid_attention_mode",
+            "differential",
+        ),
+        (
+            "cls_workstation_grid_sandwich_tf_rd_026_03_swiglu_ffn",
+            "grid_ffn_mode",
+            "swiglu",
+        ),
+        (
+            "cls_workstation_grid_sandwich_tf_rd_026_04_recurrent_grid_8",
+            "grid_recurrence_steps",
+            8,
+        ),
+    ),
+)
+def test_tf_rd_026_grid_sandwich_experiment_rows_resolve(
+    experiment: str,
+    field_name: str,
+    expected_value: object,
+) -> None:
+    cfg = _compose(f"experiment={experiment}")
+    spec = _resolved_model_spec(cfg)
+
+    assert spec.arch == "grid_sandwich"
+    assert getattr(spec, field_name) == expected_value
+    assert str(cfg.logging.group) == "tf_rd_026_grid_sandwich_broad_ml_v1"
+    assert str(cfg.runtime.output_dir).startswith(
+        "outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/"
+    )
+
+
+def test_tf_rd_026_grid_sandwich_combo_row_resolves() -> None:
+    cfg = _compose("experiment=cls_workstation_grid_sandwich_tf_rd_026_05_hc_swiglu_combo")
+    spec = _resolved_model_spec(cfg)
+
+    assert spec.grid_residual_mode == "hyper_connection_lite"
+    assert spec.grid_ffn_mode == "swiglu"
 
 
 def test_cls_workstation_sandwich_legacy_resolution() -> None:

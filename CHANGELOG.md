@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
+  architecture gates for opt-in performance sweeps: `grid_residual_mode`,
+  `grid_attention_mode`, `grid_ffn_mode`, and `grid_recurrence_steps`.
+  Defaults preserve the carried grid anchor, while non-default values enable
+  hyper-connection-lite cell residual streams, differential grid attention,
+  parameter-matched SwiGLU grid FFNs, or recurrent shared-layer grid
+  refinement. Export manifests and training/model surface records now preserve
+  these grid fields, and the repo includes first-wave TF-RD-026 workstation
+  experiment configs.
 - User-facing note: `grid_sandwich` is now the carried repo architecture
   anchor. The root config defaults to `cls_workstation_grid_sandwich`, the
   benchmark registry records the April 20-21, 2026 `grid_pilot` run

@@ -228,6 +228,10 @@ def test_parameter_counts_and_surface_payload_include_grid_sandwich_metadata() -
     assert payload["architecture"]["pre_row_attention_layers"] == 2
     assert payload["architecture"]["pre_column_attention_layers"] == 1
     assert payload["architecture"]["column_inducing_tokens"] == 8
+    assert payload["architecture"]["grid_residual_mode"] == "prenorm"
+    assert payload["architecture"]["grid_attention_mode"] == "standard"
+    assert payload["architecture"]["grid_ffn_mode"] == "gelu"
+    assert payload["architecture"]["grid_recurrence_steps"] is None
     assert batch.expected_output_kind == "logits"
     assert batch.expected_num_classes == 4
 

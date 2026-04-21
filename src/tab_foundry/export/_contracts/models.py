@@ -117,6 +117,10 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     routed_column_summary_tokens: StrictInt | None = None
     routed_evidence_tokens: StrictInt | None = None
     routed_direct_cell_bypass: StrictBool | None = None
+    grid_residual_mode: StrictStr | None = None
+    grid_attention_mode: StrictStr | None = None
+    grid_ffn_mode: StrictStr | None = None
+    grid_recurrence_steps: StrictInt | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -358,6 +362,10 @@ class ExportModelSpec:
     routed_column_summary_tokens: int
     routed_evidence_tokens: int
     routed_direct_cell_bypass: bool
+    grid_residual_mode: str
+    grid_attention_mode: str
+    grid_ffn_mode: str
+    grid_recurrence_steps: int | None
 
     @classmethod
     def from_build_spec(
@@ -416,6 +424,12 @@ class ExportModelSpec:
             routed_column_summary_tokens=int(spec.routed_column_summary_tokens),
             routed_evidence_tokens=int(spec.routed_evidence_tokens),
             routed_direct_cell_bypass=bool(spec.routed_direct_cell_bypass),
+            grid_residual_mode=str(spec.grid_residual_mode),
+            grid_attention_mode=str(spec.grid_attention_mode),
+            grid_ffn_mode=str(spec.grid_ffn_mode),
+            grid_recurrence_steps=None
+            if spec.grid_recurrence_steps is None
+            else int(spec.grid_recurrence_steps),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -471,6 +485,10 @@ class ExportModelSpec:
                 "routed_column_summary_tokens": self.routed_column_summary_tokens,
                 "routed_evidence_tokens": self.routed_evidence_tokens,
                 "routed_direct_cell_bypass": self.routed_direct_cell_bypass,
+                "grid_residual_mode": self.grid_residual_mode,
+                "grid_attention_mode": self.grid_attention_mode,
+                "grid_ffn_mode": self.grid_ffn_mode,
+                "grid_recurrence_steps": self.grid_recurrence_steps,
             },
         )
 
@@ -509,6 +527,10 @@ class ExportModelSpec:
                 "routed_column_summary_tokens",
                 "routed_evidence_tokens",
                 "routed_direct_cell_bypass",
+                "grid_residual_mode",
+                "grid_attention_mode",
+                "grid_ffn_mode",
+                "grid_recurrence_steps",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -525,13 +547,23 @@ class ExportModelSpec:
                 "routed_column_summary_tokens",
                 "routed_evidence_tokens",
                 "routed_direct_cell_bypass",
+                "grid_residual_mode",
+                "grid_attention_mode",
+                "grid_ffn_mode",
+                "grid_recurrence_steps",
             ):
                 payload.pop(field_name, None)
             return payload
         if self.arch == ROUTED_SANDWICH_MODEL_ARCH:
             if self.pre_encoder_clip is None:
                 payload.pop("pre_encoder_clip", None)
-            for field_name in ("sandwich_summary_tokens_per_axis",):
+            for field_name in (
+                "sandwich_summary_tokens_per_axis",
+                "grid_residual_mode",
+                "grid_attention_mode",
+                "grid_ffn_mode",
+                "grid_recurrence_steps",
+            ):
                 payload.pop(field_name, None)
             return payload
         if self.arch == GRID_SANDWICH_MODEL_ARCH:
@@ -577,6 +609,10 @@ class ExportModelSpec:
                 "routed_column_summary_tokens",
                 "routed_evidence_tokens",
                 "routed_direct_cell_bypass",
+                "grid_residual_mode",
+                "grid_attention_mode",
+                "grid_ffn_mode",
+                "grid_recurrence_steps",
             ):
                 payload.pop(field_name, None)
             return payload

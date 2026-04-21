@@ -369,6 +369,15 @@ def build_training_surface_record(
             "sandwich_activation": str(model_spec.sandwich_activation),
             "sandwich_block_norm": str(model_spec.sandwich_block_norm),
             "sandwich_packed_attention": bool(model_spec.sandwich_packed_attention),
+            "grid_residual_mode": str(model_spec.grid_residual_mode),
+            "grid_attention_mode": str(model_spec.grid_attention_mode),
+            "grid_ffn_mode": str(model_spec.grid_ffn_mode),
+            "grid_recurrence_steps": None
+            if model_spec.grid_recurrence_steps is None
+            else int(model_spec.grid_recurrence_steps),
+            "grid_core_iterations": int(
+                model_spec.grid_recurrence_steps or model_spec.sandwich_layers
+            ),
             "layers": int(model_spec.sandwich_layers),
             "heads": int(model_spec.sandwich_heads),
             "ff_expansion": int(model_spec.sandwich_ff_expansion),

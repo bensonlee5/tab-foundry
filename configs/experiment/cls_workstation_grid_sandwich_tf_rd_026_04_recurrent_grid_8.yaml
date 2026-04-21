@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+  - cls_workstation_grid_sandwich
+  - _self_
+
+model:
+  grid_recurrence_steps: 8
+
+runtime:
+  output_dir: outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/04_recurrent_grid_8
+
+logging:
+  group: tf_rd_026_grid_sandwich_broad_ml_v1
+  run_name: tf-rd-026-grid-sandwich-04-recurrent-grid-8
+  history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

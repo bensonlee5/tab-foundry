@@ -155,6 +155,15 @@ surface. `cls_workstation_sandwich` remains available as the previous
 tabfoundry-sandwich comparison surface. Regression remains intentionally
 removed in the current repo state.
 
+The TF-RD-026 first-wave Grid Sandwich architecture campaign has explicit row
+configs for control replay and the opt-in grid-core variants:
+`cls_workstation_grid_sandwich_tf_rd_026_00_control_replay`,
+`cls_workstation_grid_sandwich_tf_rd_026_01_hyper_connection_lite`,
+`cls_workstation_grid_sandwich_tf_rd_026_02_differential_attention`,
+`cls_workstation_grid_sandwich_tf_rd_026_03_swiglu_ffn`,
+`cls_workstation_grid_sandwich_tf_rd_026_04_recurrent_grid_8`, and
+`cls_workstation_grid_sandwich_tf_rd_026_05_hc_swiglu_combo`.
+
 The prior-trained staged control surface is still available:
 
 ```bash
