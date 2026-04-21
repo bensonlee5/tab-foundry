@@ -42,7 +42,7 @@ def _perturb_checkpoint_command(
     benchmark_manifest_path: Path | None,
     out_dir: Path | None,
     device: str,
-    repeat_count: int,
+    repeat_count: tuple[int, ...],
     chunk_scope: str,
     mode: tuple[str, ...],
     json_mode: bool,
@@ -57,7 +57,7 @@ def _perturb_checkpoint_command(
         benchmark_manifest_path=benchmark_manifest_path,
         out_dir=out_dir,
         device=device,
-        repeat_count=repeat_count,
+        repeat_counts=repeat_count,
         chunk_scope=chunk_scope,
         modes=modes,
     )
@@ -94,7 +94,14 @@ def _perturb_checkpoint_command(
     help="Output directory for JSON and Markdown diagnostic artifacts",
 )
 @device_option()
-@click.option("--repeat-count", default=2, show_default=True, type=POSITIVE_INT)
+@click.option(
+    "--repeat-count",
+    default=(2, 4),
+    show_default=True,
+    multiple=True,
+    type=POSITIVE_INT,
+    help="Total repeat applications to evaluate for repeat_chunk; repeat the flag for multiple values.",
+)
 @click.option(
     "--chunk-scope",
     default="all",
@@ -116,7 +123,7 @@ def PERTURB_CHECKPOINT_COMMAND(
     benchmark_manifest_path: Path | None,
     out_dir: Path | None,
     device: str,
-    repeat_count: int,
+    repeat_count: tuple[int, ...],
     chunk_scope: str,
     mode: tuple[str, ...],
     json_mode: bool,

@@ -22,6 +22,7 @@ from tab_foundry.repo_paths import repo_root
 
 GRID_CORE_INTERVENTION_MODES = ("ablate_chunk", "repeat_chunk")
 GRID_CORE_CHUNK_SCOPES = ("all", "middle")
+DEFAULT_REPEAT_COUNTS = (2, 4)
 _CLASSIFICATION_TASK_TYPE = "supervised_classification"
 _BENCHMARK_SURFACE_TUPLE_SIZE = 3
 
@@ -181,8 +182,13 @@ def _candidate_record(
 ) -> dict[str, Any]:
     metrics = cast(Mapping[str, float | None], evaluation["metrics"])
     baseline_metrics = cast(Mapping[str, float | None], baseline["metrics"])
+    candidate_id = (
+        f"{mode}_r{repeat_count}_{start_layer}_{end_layer}"
+        if mode == "repeat_chunk"
+        else f"{mode}_{start_layer}_{end_layer}"
+    )
     return {
-        "id": f"{mode}_{start_layer}_{end_layer}",
+        "id": candidate_id,
         "mode": mode,
         "chunk": {
             "start_layer": int(start_layer),
@@ -239,31 +245,59 @@ def _rankings(candidates: Sequence[Mapping[str, Any]]) -> dict[str, list[str]]:
 
 
 def _chunk_decisions(candidates: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    by_chunk: dict[tuple[int, int], dict[str, Mapping[str, Any]]] = {}
+    by_chunk: dict[tuple[int, int], dict[str, Any]] = {}
     for record in candidates:
         chunk = cast(Mapping[str, Any], record["chunk"])
         key = (int(chunk["start_layer"]), int(chunk["end_layer"]))
-        by_chunk.setdefault(key, {})[str(record["mode"])] = record
+        bucket = by_chunk.setdefault(key, {"ablate_chunk": None, "repeat_chunk": []})
+        if str(record["mode"]) == "ablate_chunk":
+            bucket["ablate_chunk"] = record
+        if str(record["mode"]) == "repeat_chunk":
+            cast(list[Mapping[str, Any]], bucket["repeat_chunk"]).append(record)
 
     decisions: list[dict[str, Any]] = []
     for (start, end), records in sorted(by_chunk.items()):
-        ablation = records.get("ablate_chunk")
-        repeat = records.get("repeat_chunk")
+        ablation = cast(Mapping[str, Any] | None, records.get("ablate_chunk"))
+        repeat_records = cast(list[Mapping[str, Any]], records.get("repeat_chunk", []))
+        best_repeat = (
+            None
+            if not repeat_records
+            else min(
+                repeat_records,
+                key=lambda record: _finite_sort_key(
+                    cast(Mapping[str, Any], record["deltas"]).get("log_loss")
+                ),
+            )
+        )
         ablation_log_loss_delta = (
             None
             if ablation is None
             else cast(Mapping[str, Any], ablation["deltas"]).get("log_loss")
         )
-        repeat_log_loss_delta = (
+        best_repeat_log_loss_delta = (
             None
-            if repeat is None
-            else cast(Mapping[str, Any], repeat["deltas"]).get("log_loss")
+            if best_repeat is None
+            else cast(Mapping[str, Any], best_repeat["deltas"]).get("log_loss")
         )
-        if ablation_log_loss_delta is None or repeat_log_loss_delta is None:
+        repeat_deltas = [
+            {
+                "repeat_count": record.get("repeat_count"),
+                "log_loss_delta": cast(Mapping[str, Any], record["deltas"]).get("log_loss"),
+                "brier_score_delta": cast(Mapping[str, Any], record["deltas"]).get(
+                    "brier_score"
+                ),
+                "roc_auc_delta": cast(Mapping[str, Any], record["deltas"]).get("roc_auc"),
+            }
+            for record in sorted(
+                repeat_records,
+                key=lambda record: int(cast(int, record.get("repeat_count") or 0)),
+            )
+        ]
+        if ablation_log_loss_delta is None or best_repeat_log_loss_delta is None:
             label = "insufficient_metrics"
         elif float(ablation_log_loss_delta) <= 0.0:
             label = "efficiency_or_pruning_candidate"
-        elif float(repeat_log_loss_delta) <= 0.0:
+        elif float(best_repeat_log_loss_delta) <= 0.0:
             label = "recurrence_promising"
         else:
             label = "necessary_not_recurrence_friendly"
@@ -276,7 +310,9 @@ def _chunk_decisions(candidates: Sequence[Mapping[str, Any]]) -> list[dict[str, 
                 },
                 "decision_label": label,
                 "ablation_log_loss_delta": ablation_log_loss_delta,
-                "repeat_log_loss_delta": repeat_log_loss_delta,
+                "best_repeat_count": None if best_repeat is None else best_repeat.get("repeat_count"),
+                "best_repeat_log_loss_delta": best_repeat_log_loss_delta,
+                "repeat_deltas": repeat_deltas,
             }
         )
     return decisions
@@ -306,8 +342,8 @@ def render_grid_core_perturbation_markdown(payload: Mapping[str, Any]) -> str:
         "",
         "## Perturbation Ranking",
         "",
-        "| rank | mode | chunk | log loss | d log loss | Brier | d Brier | ROC AUC | d ROC AUC | elapsed | d elapsed |",
-        "| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| rank | mode | repeats | chunk | log loss | d log loss | Brier | d Brier | ROC AUC | d ROC AUC | elapsed | d elapsed |",
+        "| ---: | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     ranked_candidates = sorted(
         candidates,
@@ -321,8 +357,9 @@ def render_grid_core_perturbation_markdown(payload: Mapping[str, Any]) -> str:
         deltas = cast(Mapping[str, Any], record["deltas"])
         chunk = cast(Mapping[str, Any], record["chunk"])
         chunk_label = f"{chunk['start_layer']}..{chunk['end_layer']}"
+        repeat_label = "n/a" if record.get("repeat_count") is None else str(record["repeat_count"])
         lines.append(
-            f"| {rank} | `{record['mode']}` | `{chunk_label}` "
+            f"| {rank} | `{record['mode']}` | {repeat_label} | `{chunk_label}` "
             f"| {_format_metric(metrics.get('log_loss'))} "
             f"| {_format_metric(deltas.get('log_loss'), signed=True)} "
             f"| {_format_metric(metrics.get('brier_score'))} "
@@ -337,8 +374,8 @@ def render_grid_core_perturbation_markdown(payload: Mapping[str, Any]) -> str:
             "",
             "## Decision Labels",
             "",
-            "| chunk | label | ablation d log loss | repeat d log loss |",
-            "| --- | --- | ---: | ---: |",
+            "| chunk | label | ablation d log loss | best repeats | best repeat d log loss |",
+            "| --- | --- | ---: | ---: | ---: |",
         ]
     )
     for decision in cast(Sequence[Mapping[str, Any]], payload["chunk_decisions"]):
@@ -347,7 +384,8 @@ def render_grid_core_perturbation_markdown(payload: Mapping[str, Any]) -> str:
             f"| `{chunk['start_layer']}..{chunk['end_layer']}` "
             f"| `{decision['decision_label']}` "
             f"| {_format_metric(decision.get('ablation_log_loss_delta'), signed=True)} "
-            f"| {_format_metric(decision.get('repeat_log_loss_delta'), signed=True)} |"
+            f"| {decision.get('best_repeat_count') or 'n/a'} "
+            f"| {_format_metric(decision.get('best_repeat_log_loss_delta'), signed=True)} |"
         )
     lines.append("")
     return "\n".join(lines)
@@ -386,7 +424,8 @@ def run_grid_core_perturbation_diagnostic(
     benchmark_manifest_path: Path | None = None,
     out_dir: Path | None = None,
     device: str = "auto",
-    repeat_count: int = 2,
+    repeat_count: int | None = None,
+    repeat_counts: Sequence[int] | None = None,
     chunk_scope: str = "all",
     modes: Sequence[str] = GRID_CORE_INTERVENTION_MODES,
     layer_count: int | None = None,
@@ -394,9 +433,18 @@ def run_grid_core_perturbation_diagnostic(
     checkpoint = checkpoint_path.expanduser().resolve()
     if not checkpoint.exists():
         raise RuntimeError(f"checkpoint does not exist: {checkpoint}")
-    repeat_count_int = int(repeat_count)
-    if repeat_count_int <= 0:
-        raise ValueError("repeat_count must be positive")
+    normalized_repeat_counts: tuple[int, ...]
+    if repeat_counts is None:
+        normalized_repeat_counts = (
+            DEFAULT_REPEAT_COUNTS if repeat_count is None else (int(repeat_count),)
+        )
+    else:
+        normalized_repeat_counts = tuple(int(value) for value in repeat_counts)
+    if not normalized_repeat_counts:
+        raise ValueError("repeat_counts must include at least one value")
+    if any(value <= 0 for value in normalized_repeat_counts):
+        raise ValueError("repeat_counts must be positive")
+    normalized_repeat_counts = tuple(sorted(set(normalized_repeat_counts)))
     normalized_modes = tuple(str(mode).strip().lower() for mode in modes)
     unsupported_modes = [mode for mode in normalized_modes if mode not in GRID_CORE_INTERVENTION_MODES]
     if unsupported_modes:
@@ -420,35 +468,40 @@ def run_grid_core_perturbation_diagnostic(
     candidates: list[dict[str, Any]] = []
     for start_layer, end_layer in chunks:
         for mode in normalized_modes:
-            evaluation = _evaluate_checkpoint_metrics(
-                checkpoint_path=checkpoint,
-                datasets=datasets,
-                device=device,
-                allow_missing_values=allow_missing_values,
-                intervention={
-                    "mode": mode,
-                    "start_layer": start_layer,
-                    "end_layer": end_layer,
-                    "repeat_count": repeat_count_int,
-                },
+            current_repeat_counts = (
+                normalized_repeat_counts if mode == "repeat_chunk" else (0,)
             )
-            if int(evaluation["parameter_count"]) != int(baseline["parameter_count"]):
-                raise RuntimeError(
-                    "grid-core perturbation changed parameter count: "
-                    f"baseline={baseline['parameter_count']}, "
-                    f"candidate={evaluation['parameter_count']}, "
-                    f"mode={mode}, chunk={start_layer}..{end_layer}"
+            for current_repeat_count in current_repeat_counts:
+                evaluation = _evaluate_checkpoint_metrics(
+                    checkpoint_path=checkpoint,
+                    datasets=datasets,
+                    device=device,
+                    allow_missing_values=allow_missing_values,
+                    intervention={
+                        "mode": mode,
+                        "start_layer": start_layer,
+                        "end_layer": end_layer,
+                        "repeat_count": current_repeat_count,
+                    },
                 )
-            candidates.append(
-                _candidate_record(
-                    mode=mode,
-                    start_layer=start_layer,
-                    end_layer=end_layer,
-                    repeat_count=repeat_count_int,
-                    evaluation=evaluation,
-                    baseline=baseline,
+                if int(evaluation["parameter_count"]) != int(baseline["parameter_count"]):
+                    raise RuntimeError(
+                        "grid-core perturbation changed parameter count: "
+                        f"baseline={baseline['parameter_count']}, "
+                        f"candidate={evaluation['parameter_count']}, "
+                        f"mode={mode}, chunk={start_layer}..{end_layer}, "
+                        f"repeat_count={current_repeat_count}"
+                    )
+                candidates.append(
+                    _candidate_record(
+                        mode=mode,
+                        start_layer=start_layer,
+                        end_layer=end_layer,
+                        repeat_count=current_repeat_count,
+                        evaluation=evaluation,
+                        baseline=baseline,
+                    )
                 )
-            )
 
     resolved_out_dir = (
         default_grid_core_diagnostic_out_dir(checkpoint)
@@ -465,7 +518,7 @@ def run_grid_core_perturbation_diagnostic(
         "allow_missing_values": allow_missing_values,
         "layer_count": int(resolved_layer_count),
         "chunk_scope": str(chunk_scope).strip().lower(),
-        "repeat_count": repeat_count_int,
+        "repeat_counts": list(normalized_repeat_counts),
         "modes": list(normalized_modes),
         "chunks": [
             {"start_layer": start, "end_layer": end, "layers": list(range(start, end + 1))}

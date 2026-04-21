@@ -11065,8 +11065,8 @@ deltas:
     expected_effect: Should preserve the full four-layer grid-core parameter count
       while adding repeated compute only around the best diagnostic chunk.
     adequacy_knobs:
-    - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
-      chunks against row `01`
+    - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+      4` ranks contiguous repeat chunks against row `01`
     - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
     - add only the selected chunk-repeat training gate after the diagnostic selects
       a concrete chunk
@@ -11100,8 +11100,8 @@ deltas:
     expected_effect: Should preserve the full four-layer grid-core parameter count
       while testing whether the runner-up localized repeat is robust.
     adequacy_knobs:
-    - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
-      chunks against row `01`
+    - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+      4` ranks contiguous repeat chunks against row `01`
     - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
     - skip this row if the diagnostic yields only one credible repeat candidate
     parameter_adequacy_policy:

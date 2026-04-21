@@ -73,7 +73,7 @@ def test_grid_core_perturbation_diagnostic_writes_json_and_markdown(
             if mode == "ablate_chunk":
                 log_loss = 1.0 + 0.01 * chunk_width
             else:
-                log_loss = 1.0 - 0.01 * chunk_width
+                log_loss = 1.0 - 0.01 * chunk_width - 0.001 * int(intervention["repeat_count"])
             brier = 0.25 + (log_loss - 1.0)
             roc_auc = 0.7 - (log_loss - 1.0)
             elapsed = 11.0 + float(chunk_width)
@@ -98,17 +98,19 @@ def test_grid_core_perturbation_diagnostic_writes_json_and_markdown(
         benchmark_manifest_path=manifest,
         out_dir=tmp_path / "diagnostic",
         device="cpu",
-        repeat_count=2,
+        repeat_counts=(2, 4),
         chunk_scope="all",
         layer_count=2,
     )
 
     assert payload["layer_count"] == 2
     assert len(payload["chunks"]) == 3
-    assert len(payload["candidates"]) == 6
+    assert payload["repeat_counts"] == [2, 4]
+    assert len(payload["candidates"]) == 9
     assert payload["baseline"]["parameter_count"] == 1234
-    assert payload["rankings"]["repeat_by_log_loss_delta"][0] == "repeat_chunk_0_1"
+    assert payload["rankings"]["repeat_by_log_loss_delta"][0] == "repeat_chunk_r4_0_1"
     assert payload["chunk_decisions"][0]["decision_label"] == "recurrence_promising"
+    assert payload["chunk_decisions"][0]["best_repeat_count"] == 4
 
     json_path = Path(str(payload["artifacts"]["json"]))
     markdown_path = Path(str(payload["artifacts"]["markdown"]))

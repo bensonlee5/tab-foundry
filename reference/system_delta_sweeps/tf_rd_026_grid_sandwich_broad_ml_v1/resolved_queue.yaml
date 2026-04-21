@@ -2313,8 +2313,8 @@ rows:
     task_batch_size: 16
     prior_dump_batch_size: 64
   parameter_adequacy_plan:
-  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint`
-    writes JSON/Markdown diagnostic artifacts.
+  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint
+    --repeat-count 2 --repeat-count 4` writes JSON/Markdown diagnostic artifacts.
   - Fill in the selected contiguous repeat chunk before execution; do not use the
     current placeholder as an executable training row.
   execution_policy: benchmark_full
@@ -2344,8 +2344,8 @@ rows:
   expected_effect: Should preserve the full four-layer grid-core parameter count while
     adding repeated compute only around the best diagnostic chunk.
   adequacy_knobs:
-  - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
-    chunks against row `01`
+  - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+    4` ranks contiguous repeat chunks against row `01`
   - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
   - add only the selected chunk-repeat training gate after the diagnostic selects
     a concrete chunk
@@ -2675,7 +2675,8 @@ rows:
     task_batch_size: 16
     prior_dump_batch_size: 64
   parameter_adequacy_plan:
-  - Keep blocked unless the diagnostic surfaces a second credible repeat chunk.
+  - Keep blocked unless the multi-repeat diagnostic surfaces a second credible repeat
+    chunk.
   - Fill in the selected contiguous repeat chunk before execution; do not use the
     current placeholder as an executable training row.
   execution_policy: benchmark_full
@@ -2706,8 +2707,8 @@ rows:
   expected_effect: Should preserve the full four-layer grid-core parameter count while
     testing whether the runner-up localized repeat is robust.
   adequacy_knobs:
-  - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
-    chunks against row `01`
+  - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+    4` ranks contiguous repeat chunks against row `01`
   - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
   - skip this row if the diagnostic yields only one credible repeat candidate
   parameter_adequacy_policy:
@@ -2948,4 +2949,4 @@ rows:
       max_steps: 5000
   resolved_surface_fingerprint: 39df1026f2d055e6cf6aafecbedd0f7b9f0e09b1a9eb4f13cca77bf2c054d02e
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/resolved_queue.yaml
-inputs_fingerprint: 0b8344f8d9389989a4f172ead86754de566ea921c9d3c917463c38157bb81086
+inputs_fingerprint: d0ec37e058999eac006dce6345bc0fd767765cdb74ba6966986436e856e0ff99

@@ -200,8 +200,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint`
-    writes JSON/Markdown diagnostic artifacts.
+  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint
+    --repeat-count 2 --repeat-count 4` writes JSON/Markdown diagnostic artifacts.
   - Fill in the selected contiguous repeat chunk before execution; do not use the
     current placeholder as an executable training row.
   execution_policy: benchmark_full
@@ -309,7 +309,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Keep blocked unless the diagnostic surfaces a second credible repeat chunk.
+  - Keep blocked unless the multi-repeat diagnostic surfaces a second credible repeat
+    chunk.
   - Fill in the selected contiguous repeat chunk before execution; do not use the
     current placeholder as an executable training row.
   execution_policy: benchmark_full

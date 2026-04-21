@@ -20,8 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   experiment configs.
 - User-facing note: TF-RD-026 now includes `tab-foundry research grid-core
   perturb-checkpoint`, a checkpoint-time diagnostic that ablates and repeats
-  contiguous grid-sandwich core chunks on a manifest benchmark surface before
-  selecting localized recurrence candidates.
+  contiguous grid-sandwich core chunks across multiple repeat counts on a
+  manifest benchmark surface before selecting localized recurrence candidates.
 - User-facing note: `grid_sandwich` is now the carried repo architecture
   anchor. The root config defaults to `cls_workstation_grid_sandwich`, the
   benchmark registry records the April 20-21, 2026 `grid_pilot` run

@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_026_grid_sandwic
 - Parent sweep id: `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `0b8344f8d9389989a4f172ead86754de566ea921c9d3c917463c38157bb81086`
+- Resolved queue inputs fingerprint: `d0ec37e058999eac006dce6345bc0fd767765cdb74ba6966986436e856e0ff99`
 
 ## Locked Surface
 
@@ -258,10 +258,10 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
-  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint` writes JSON/Markdown diagnostic artifacts.
+  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count 4` writes JSON/Markdown diagnostic artifacts.
   - Fill in the selected contiguous repeat chunk before execution; do not use the current placeholder as an executable training row.
 - Adequacy knobs to dimension explicitly:
-  - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat chunks against row `01`
+  - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count 4` ranks contiguous repeat chunks against row `01`
   - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
   - add only the selected chunk-repeat training gate after the diagnostic selects a concrete chunk
 - Execution policy: `benchmark_full`
@@ -293,10 +293,10 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
-  - Keep blocked unless the diagnostic surfaces a second credible repeat chunk.
+  - Keep blocked unless the multi-repeat diagnostic surfaces a second credible repeat chunk.
   - Fill in the selected contiguous repeat chunk before execution; do not use the current placeholder as an executable training row.
 - Adequacy knobs to dimension explicitly:
-  - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat chunks against row `01`
+  - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count 4` ranks contiguous repeat chunks against row `01`
   - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
   - skip this row if the diagnostic yields only one credible repeat candidate
 - Execution policy: `benchmark_full`
