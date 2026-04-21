@@ -1,0 +1,641 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_026_grid_control_replay_v1
+  status: ready
+  rationale: Establish a local executable control replay for the grid sandwich surface
+    before evaluating broad-ML architecture changes.
+  hypothesis: Replaying the current `cls_workstation_grid_sandwich` surface should
+    reproduce the carried medium anchor closely enough to serve as the sweep-local
+    anchor for rows `02` through `05`.
+  anchor_delta: Replays the default grid sandwich surface with `d_icl=144`,
+    `sandwich_layers=4`, `sandwich_heads=1`, Muon, medium v6 corpus, and 5000
+    prior-dump steps.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute this row first with `--promote-first-executed-row-to-anchor`.
+  - Treat this as the local anchor replay, then compare its final log loss against
+    the carried `0.4221534937` reference before interpreting candidate gains.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Carried checkpoint is not locally executable, so row `01` replaces it as the
+    active sweep anchor only after successful promotion.
+  next_action: Execute row `01` with `--promote-first-executed-row-to-anchor`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_026_grid_hyper_connection_lite_v1
+  status: ready
+  rationale: Test whether deeper row/column grid mixing benefits from a lightweight
+    two-stream residual topology.
+  hypothesis: Maintaining two residual streams per cell token should improve optimization
+    or representation flow through the grid core without reopening routed evidence-bank
+    behavior.
+  anchor_delta: Changes only `model.grid_residual_mode` from `prenorm` to
+    `hyper_connection_lite`.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: hyper_connection_lite
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Inspect train stability and final benchmark metrics before combining this with
+    any other architecture gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_026_grid_differential_attention_v1
+  status: ready
+  rationale: Test whether row and column grid attention benefit from subtractive
+    distractor suppression at fixed width, depth, and optimizer budget.
+  hypothesis: Differential attention should help if tabular grid mixing currently
+    over-attends to common-mode or noisy cross-feature distractors.
+  anchor_delta: Changes only `model.grid_attention_mode` from `standard` to
+    `differential`.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: differential
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Check shape/runtime stability before reading benchmark quality because this is
+    the most attention-kernel-sensitive row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_026_grid_swiglu_ffn_v1
+  status: ready
+  rationale: Test whether gated FFN capacity improves cell-token transformations
+    under the existing grid sandwich topology.
+  hypothesis: Parameter-matched SwiGLU should improve the grid core if the current
+    GELU FFNs are limiting per-cell feature transformations rather than attention
+    routing.
+  anchor_delta: Changes only `model.grid_ffn_mode` from `gelu` to `swiglu`.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: swiglu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - If this row is clean and row `02` is also clean, unblock the combined row `06`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_026_grid_recurrent_8_v1
+  status: ready
+  rationale: Test whether a shared recurrent grid core benefits from additional
+    refinement iterations without adding distinct layer parameters.
+  hypothesis: Sharing one grid mixer for eight iterations should help if the grid
+    sandwich needs iterative row/column refinement more than additional independent
+    layer parameters.
+  anchor_delta: Sets `model.grid_recurrence_steps=8`; `sandwich_layers=4` remains
+    present in the config but is ignored for the recurrent core layer count.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: 8
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Interpret quality alongside runtime because this row trades fewer parameters
+    for more shared-core iterations.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_026_grid_hc_swiglu_combo_v1
+  status: blocked
+  rationale: Combine the two least entangled first-wave mechanisms only after both
+    standalone rows prove trainable.
+  hypothesis: Hyper-connection-lite residual topology and SwiGLU token FFNs may
+    stack if one improves gradient/state routing and the other improves per-cell
+    capacity.
+  anchor_delta: Combines only `model.grid_residual_mode=hyper_connection_lite` and
+    `model.grid_ffn_mode=swiglu`.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: hyper_connection_lite
+    grid_attention_mode: standard
+    grid_ffn_mode: swiglu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Keep blocked until rows `02` and `04` both train cleanly.
+  - Execute only if both standalone mechanisms are stable enough to make an interaction
+    read meaningful.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Interaction row is uninterpretable until the standalone hyper-connection-lite
+    and SwiGLU rows are clean.
+  next_action: Unblock only after rows `02` and `04` both train cleanly.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

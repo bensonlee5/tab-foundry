@@ -1,0 +1,79 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
+parent_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+status: ready
+complexity_level: classification_md
+anchor_run_id: null
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_broad_ml_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Broad-ML grid sandwich architecture follow-ons
+  model_source: Hyper-Connections, Differential Transformer, SwiGLU gated FFNs,
+    and recurrent refinement
+anchor_surface:
+  notes:
+  - The carried grid sandwich anchor is registered as
+    `sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1`,
+    but its local executable checkpoint is not present and the registry entry lacks
+    persisted remote artifact metadata.
+  - Row `01` is therefore the formal control replay for this sweep. Execute it first
+    with `--promote-first-executed-row-to-anchor`; subsequent rows compare against
+    that freshly promoted sweep anchor.
+  - The carried anchor target remains `final_log_loss_at_matched_regime_budget=0.4221534937`
+    on the medium surface; promotion from this sweep still requires beating that
+    level without material Brier or ROC-AUC regression.
+  - Keep the medium v6 corpus, Muon optimizer, 5000-step prior-dump budget, W&B
+    logging, and A100 80GB runtime profile fixed across rows.
+  - Rows `02` through `05` isolate one broad-ML architecture mechanism at a time.
+    Row `06` is blocked until the standalone hyper-connection-lite and SwiGLU rows
+    both train cleanly.
+  dimension_table:
+  - dimension: residual topology
+    upstream: Hyper-Connection-style multi-stream residual routing can improve deep
+      transformer optimization by giving mixers more stable state paths.
+    anchor: The grid sandwich control uses ordinary prenorm residuals in each row
+      and column mixer block.
+    interpretation: Read `hyper_connection_lite` as a topology test inside the grid
+      row/column blocks, not as a return to routed evidence-bank behavior.
+  - dimension: distractor suppression
+    upstream: Differential attention subtracts a learned fraction of a second attention
+      map from the primary map to suppress common-mode distractors.
+    anchor: The grid sandwich control uses standard attention in row and column mixing.
+    interpretation: Read this as an attention-form test at fixed width, depth, data,
+      and optimizer budget.
+  - dimension: gated token capacity
+    upstream: SwiGLU-style gated FFNs often improve transformer quality at matched
+      or near-matched parameter budgets.
+    anchor: The grid sandwich control uses GELU FFNs.
+    interpretation: Read this as a cell-token FFN capacity test without changing
+      the surrounding grid topology.
+  - dimension: recurrent refinement
+    upstream: Sharing a transformation across recurrent iterations can improve iterative
+      reasoning while controlling parameter count.
+    anchor: The grid sandwich control instantiates four distinct grid mixer layers.
+    interpretation: Read `grid_recurrence_steps=8` as a shared-core refinement test
+      rather than a depth scaling result.
+anchor_context:
+  run_id: null
+  carried_run_id: sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    sandwich_layers: 4
+    sandwich_heads: 1
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v6
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

@@ -1,0 +1,2221 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/matrix.md
+sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
+parent_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+sweep_status: ready
+complexity_level: classification_md
+anchor_run_id: null
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_broad_ml_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Broad-ML grid sandwich architecture follow-ons
+  model_source: Hyper-Connections, Differential Transformer, SwiGLU gated FFNs, and
+    recurrent refinement
+anchor_surface:
+  notes:
+  - The carried grid sandwich anchor is registered as `sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1`,
+    but its local executable checkpoint is not present and the registry entry lacks
+    persisted remote artifact metadata.
+  - Row `01` is therefore the formal control replay for this sweep. Execute it first
+    with `--promote-first-executed-row-to-anchor`; subsequent rows compare against
+    that freshly promoted sweep anchor.
+  - The carried anchor target remains `final_log_loss_at_matched_regime_budget=0.4221534937`
+    on the medium surface; promotion from this sweep still requires beating that level
+    without material Brier or ROC-AUC regression.
+  - Keep the medium v6 corpus, Muon optimizer, 5000-step prior-dump budget, W&B logging,
+    and A100 80GB runtime profile fixed across rows.
+  - Rows `02` through `05` isolate one broad-ML architecture mechanism at a time.
+    Row `06` is blocked until the standalone hyper-connection-lite and SwiGLU rows
+    both train cleanly.
+  dimension_table:
+  - dimension: residual topology
+    upstream: Hyper-Connection-style multi-stream residual routing can improve deep
+      transformer optimization by giving mixers more stable state paths.
+    anchor: The grid sandwich control uses ordinary prenorm residuals in each row
+      and column mixer block.
+    interpretation: Read `hyper_connection_lite` as a topology test inside the grid
+      row/column blocks, not as a return to routed evidence-bank behavior.
+  - dimension: distractor suppression
+    upstream: Differential attention subtracts a learned fraction of a second attention
+      map from the primary map to suppress common-mode distractors.
+    anchor: The grid sandwich control uses standard attention in row and column mixing.
+    interpretation: Read this as an attention-form test at fixed width, depth, data,
+      and optimizer budget.
+  - dimension: gated token capacity
+    upstream: SwiGLU-style gated FFNs often improve transformer quality at matched
+      or near-matched parameter budgets.
+    anchor: The grid sandwich control uses GELU FFNs.
+    interpretation: Read this as a cell-token FFN capacity test without changing the
+      surrounding grid topology.
+  - dimension: recurrent refinement
+    upstream: Sharing a transformation across recurrent iterations can improve iterative
+      reasoning while controlling parameter count.
+    anchor: The grid sandwich control instantiates four distinct grid mixer layers.
+    interpretation: Read `grid_recurrence_steps=8` as a shared-core refinement test
+      rather than a depth scaling result.
+anchor_context:
+  run_id: null
+  carried_run_id: sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    sandwich_layers: 4
+    sandwich_heads: 1
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control_curated_v6
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_026_grid_control_replay_v1
+  status: ready
+  rationale: Establish a local executable control replay for the grid sandwich surface
+    before evaluating broad-ML architecture changes.
+  hypothesis: Replaying the current `cls_workstation_grid_sandwich` surface should
+    reproduce the carried medium anchor closely enough to serve as the sweep-local
+    anchor for rows `02` through `05`.
+  anchor_delta: Replays the default grid sandwich surface with `d_icl=144`, `sandwich_layers=4`,
+    `sandwich_heads=1`, Muon, medium v6 corpus, and 5000 prior-dump steps.
+  model:
+    arch: grid_sandwich
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute this row first with `--promote-first-executed-row-to-anchor`.
+  - Treat this as the local anchor replay, then compare its final log loss against
+    the carried `0.4221534937` reference before interpreting candidate gains.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Carried checkpoint is not locally executable, so row `01` replaces it as the active
+    sweep anchor only after successful promotion.
+  next_action: Execute row `01` with `--promote-first-executed-row-to-anchor`.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Replay the default grid sandwich control surface as the local executable
+    anchor for the TF-RD-026 broad-ML architecture campaign.
+  upstream_delta: Local control replay; no upstream architecture change.
+  entangled_legacy_stage: none
+  expected_effect: Should reproduce the carried grid sandwich medium behavior closely
+    enough to anchor isolated broad-ML follow-up rows.
+  adequacy_knobs:
+  - medium v6 corpus held fixed
+  - Muon optimizer and 5000-step prior-dump budget held fixed
+  - grid sandwich architecture held at `d_icl=144`, `sandwich_layers=4`, `sandwich_heads=1`
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute first with `--promote-first-executed-row-to-anchor`.
+    - Compare the replay against the carried `0.4221534937` medium log-loss target
+      before interpreting candidate rows.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+        grid_core_iterations: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 08a336c3461868262f721c97bb1626360ebf69b3ea03c15579b228da232ca355
+- order: 2
+  delta_id: delta_tf_rd_026_grid_hyper_connection_lite_v1
+  status: ready
+  rationale: Test whether deeper row/column grid mixing benefits from a lightweight
+    two-stream residual topology.
+  hypothesis: Maintaining two residual streams per cell token should improve optimization
+    or representation flow through the grid core without reopening routed evidence-bank
+    behavior.
+  anchor_delta: Changes only `model.grid_residual_mode` from `prenorm` to `hyper_connection_lite`.
+  model:
+    grid_residual_mode: hyper_connection_lite
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Inspect train stability and final benchmark metrics before combining this with
+    any other architecture gate.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Replace standard grid mixer residuals with the lightweight two-stream
+    hyper-connection residual topology.
+  upstream_delta: Inspired by Hyper-Connections-style residual state mixing, adapted
+    to the grid sandwich row/column blocks without reintroducing routed evidence banks.
+  entangled_legacy_stage: none
+  expected_effect: May improve optimization and information flow through deeper row/column
+    grid mixing at fixed data, width, depth, and optimizer budget.
+  adequacy_knobs:
+  - isolated `grid_residual_mode` change only
+  - medium v6 corpus, Muon, and 5000-step budget fixed
+  - no routed evidence-bank behavior or batch/runtime retune
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the control replay is promoted.
+    - Inspect train stability before combining with any other first-wave mechanism.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: hyper_connection_lite
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: hyper_connection_lite
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+        grid_core_iterations: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: b7e85d062d559fd990c9ed5bc1cdf77d46761e18e03f42a00ad1e4bc29832ea1
+- order: 3
+  delta_id: delta_tf_rd_026_grid_differential_attention_v1
+  status: ready
+  rationale: Test whether row and column grid attention benefit from subtractive distractor
+    suppression at fixed width, depth, and optimizer budget.
+  hypothesis: Differential attention should help if tabular grid mixing currently
+    over-attends to common-mode or noisy cross-feature distractors.
+  anchor_delta: Changes only `model.grid_attention_mode` from `standard` to `differential`.
+  model:
+    grid_attention_mode: differential
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Check shape/runtime stability before reading benchmark quality because this is
+    the most attention-kernel-sensitive row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Switch grid row/column attention from standard attention to the differential
+    attention variant.
+  upstream_delta: Inspired by Differential Transformer attention, using subtractive
+    attention maps to suppress common-mode distractors.
+  entangled_legacy_stage: none
+  expected_effect: May improve grid mixing if the current attention blocks over-attend
+    to noisy or redundant feature/task context.
+  adequacy_knobs:
+  - isolated `grid_attention_mode` change only
+  - shape and attention-kernel behavior verified before quality interpretation
+  - medium v6 corpus, Muon, and 5000-step budget fixed
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the control replay is promoted.
+    - Treat any shape/runtime issue as a blocker before reading benchmark metrics.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: differential
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: differential
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+        grid_core_iterations: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 715c162a2318a6ffd1c141ff5ba0d33cc93c47fd65bf7204d76a2a87086c768b
+- order: 4
+  delta_id: delta_tf_rd_026_grid_swiglu_ffn_v1
+  status: ready
+  rationale: Test whether gated FFN capacity improves cell-token transformations under
+    the existing grid sandwich topology.
+  hypothesis: Parameter-matched SwiGLU should improve the grid core if the current
+    GELU FFNs are limiting per-cell feature transformations rather than attention
+    routing.
+  anchor_delta: Changes only `model.grid_ffn_mode` from `gelu` to `swiglu`.
+  model:
+    grid_ffn_mode: swiglu
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - If this row is clean and row `02` is also clean, unblock the combined row `06`.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Replace grid mixer GELU FFNs with the parameter-matched SwiGLU FFN
+    variant.
+  upstream_delta: Inspired by broad transformer gains from gated FFN blocks such as
+    SwiGLU.
+  entangled_legacy_stage: none
+  expected_effect: May improve per-cell token transformations if the grid core is
+    FFN-capacity-limited rather than attention-limited.
+  adequacy_knobs:
+  - isolated `grid_ffn_mode` change only
+  - hidden size remains parameter-matched by the implementation rule
+  - medium v6 corpus, Muon, and 5000-step budget fixed
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the control replay is promoted.
+    - Combine with hyper-connection-lite only if both standalone rows train cleanly.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: null
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: null
+        grid_core_iterations: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: be2e04e417182e340f3c72adcb57bbdb0252f78420367f70b4ab6cbf1b3d2348
+- order: 5
+  delta_id: delta_tf_rd_026_grid_recurrent_8_v1
+  status: ready
+  rationale: Test whether a shared recurrent grid core benefits from additional refinement
+    iterations without adding distinct layer parameters.
+  hypothesis: Sharing one grid mixer for eight iterations should help if the grid
+    sandwich needs iterative row/column refinement more than additional independent
+    layer parameters.
+  anchor_delta: Sets `model.grid_recurrence_steps=8`; `sandwich_layers=4` remains
+    present in the config but is ignored for the recurrent core layer count.
+  model:
+    grid_recurrence_steps: 8
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute after row `01` is promoted to the active sweep anchor.
+  - Interpret quality alongside runtime because this row trades fewer parameters for
+    more shared-core iterations.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute against the promoted row `01` sweep anchor.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Share one grid mixer layer across eight recurrent refinement steps.
+  upstream_delta: Inspired by recurrent/refinement-style transformer computation,
+    where repeated shared computation can improve iterative reasoning without adding
+    distinct layer parameters.
+  entangled_legacy_stage: none
+  expected_effect: May improve grid reasoning if repeated row/column refinement is
+    more useful than the control's four independent grid mixer layers.
+  adequacy_knobs:
+  - isolated `grid_recurrence_steps=8` change only
+  - '`sandwich_layers=4` remains configured but the recurrent core uses one shared
+    layer'
+  - interpret quality together with runtime and parameter count
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the control replay is promoted.
+    - Compare quality, throughput, and parameter count before considering promotion.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: 8
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: 8
+        grid_core_iterations: 8
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 8a34bac2d6d12d62d315b11ebc949a075f850be515683e57efcb18a87a8dbe73
+- order: 6
+  delta_id: delta_tf_rd_026_grid_hc_swiglu_combo_v1
+  status: blocked
+  rationale: Combine the two least entangled first-wave mechanisms only after both
+    standalone rows prove trainable.
+  hypothesis: Hyper-connection-lite residual topology and SwiGLU token FFNs may stack
+    if one improves gradient/state routing and the other improves per-cell capacity.
+  anchor_delta: Combines only `model.grid_residual_mode=hyper_connection_lite` and
+    `model.grid_ffn_mode=swiglu`.
+  model:
+    grid_residual_mode: hyper_connection_lite
+    grid_ffn_mode: swiglu
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_attention_mode: standard
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Keep blocked until rows `02` and `04` both train cleanly.
+  - Execute only if both standalone mechanisms are stable enough to make an interaction
+    read meaningful.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Interaction row is uninterpretable until the standalone hyper-connection-lite
+    and SwiGLU rows are clean.
+  next_action: Unblock only after rows `02` and `04` both train cleanly.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Combine hyper-connection-lite residual topology with SwiGLU grid FFNs
+    after both standalone mechanisms train cleanly.
+  upstream_delta: Interaction row for the two least entangled first-wave broad-ML
+    mechanisms.
+  entangled_legacy_stage: none
+  expected_effect: May stack if residual topology improves state flow while SwiGLU
+    improves per-cell FFN capacity.
+  adequacy_knobs:
+  - combination row only; no attention or recurrence change
+  - blocked until the standalone hyper-connection-lite and SwiGLU rows are clean
+  - medium v6 corpus, Muon, and 5000-step budget fixed
+  parameter_adequacy_policy:
+    default_plan:
+    - Keep blocked until rows `02` and `04` both train cleanly.
+    - Execute only after the standalone results make an interaction read meaningful.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: hyper_connection_lite
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: null
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: hyper_connection_lite
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: null
+        grid_core_iterations: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/corpus_record.json
+      manifest:
+        manifest_path: /workspace/tab-foundry/outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953/manifest.parquet
+      dagzoo_provenance:
+        acceptance_rate: 0.9985836421932587
+        accepted_datasets: 1729454
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b6ad26d9c953
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 11214.598361142067
+          cumulative_filter_elapsed_seconds: 795.7731741687458
+          cumulative_generate_elapsed_seconds: 139096.5615566939
+          cumulative_generated_datasets: 1731907
+          cumulative_invocation_elapsed_seconds: 153944.14504301702
+          cumulative_local_overhead_elapsed_seconds: 2837.2119510123157
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 139892.33473086264
+          invocation_fanout_elapsed_seconds: 6953.243410833005
+          manifest_build_elapsed_seconds: 1068.3320622059982
+          manifest_workers: 32
+          promotion_elapsed_seconds: 13.678867887007073
+          recipe_elapsed_seconds: 8035.271685323009
+          staged_compaction_elapsed_seconds: 39.46334980899701
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2453
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: true
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 6c300a126d515ab4d523f372ddef41f2662f19b547f626f6df1e2eb9ba8db8ef
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/resolved_queue.yaml
+inputs_fingerprint: cd97def11f6edd957094fd8687cb1958f534fa8d3ceba01bd796f4ac430abc58
