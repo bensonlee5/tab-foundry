@@ -59,3 +59,21 @@ def test_benchmark_registry_helpers_roundtrip_known_sibling_paths(tmp_path: Path
 
     assert normalized == "../nanoTabPFN/300k_150x5_2.h5"
     assert benchmark_registry.resolve_registry_path_value(normalized, root=repo_root) == sibling_path
+
+
+def test_checked_in_benchmark_registry_tracks_grid_anchor_run() -> None:
+    entry = benchmark_registry.load_benchmark_run_entry(
+        "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1"
+    )
+
+    assert entry["decision"] == "keep"
+    assert entry["model"]["arch"] == "grid_sandwich"
+    assert entry["model"]["d_icl"] == 144
+    assert entry["model"]["head_hidden_dim"] == 96
+    assert entry["model"]["build_spec"]["sandwich_layers"] == 4
+    assert entry["model_size"]["total_params"] == 3550522
+    assert entry["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.4221534937309171)
+    assert entry["comparisons"]["vs_anchor"]["final_log_loss_delta"] == pytest.approx(
+        -0.06924963330923406
+    )
+    assert entry["wandb"]["run_id"] == "bakmt9op"

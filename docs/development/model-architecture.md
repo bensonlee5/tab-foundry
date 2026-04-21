@@ -1,23 +1,24 @@
 # Model Architecture
 
 Use this reference when you need the live architecture surface, the active
-model family, and the current sandwich forward path.
+model family, and the current grid/sandwich forward paths.
 
-The repo now has one active architecture-development lane:
+The repo now has one carried architecture-development lane:
 
-- `tabfoundry_sandwich`: the primary classification architecture target and
-  scaling-prep family
+- `grid_sandwich`: the current classification architecture anchor after the
+  April 20-21, 2026 grid-preserving follow-on beat the matched `144x4`
+  sandwich anchor on the medium multiclass benchmark
 
-It also keeps two comparison lanes plus two sidecar follow-on lanes:
+It also keeps three comparison lanes plus one sidecar follow-on lane:
 
+- `tabfoundry_sandwich`: the previous carried scaling-prep family and the
+  in-family comparison baseline for the grid promotion
 - `tabfoundry_simple`: the frozen PFN-style control
 - `tabfoundry_staged`: the historical row-first reference line and benchmark
   comparison surface
 - `routed_sandwich`: a sidecar routed-residual / evidence-bank follow-on for
   testing residual-path and token-budget hypotheses against the carried
   sandwich surface
-- `grid_sandwich`: a sidecar grid-preserving pilot for testing whether the
-  row-feature grid is collapsed too early
 
 Regression is still deferred. The active model surface is classification-only.
 
@@ -40,9 +41,13 @@ Key code paths:
 
 ## Architecture Roles
 
-- `tabfoundry_sandwich` is the active model family.
-  It owns the current simplification, dagzoo transfer, many-class plus
-  missingness, runtime, and scaling work.
+- `grid_sandwich` is the active model family and carried architecture anchor.
+  It owns the default workstation surface for new classification architecture
+  work while the next guardrail is replication and larger-rung validation.
+- `tabfoundry_sandwich` remains the previous carried family.
+  It owns the historical simplification, dagzoo transfer, many-class plus
+  missingness, runtime, and scaling evidence and remains the matched in-family
+  comparison line for grid work.
 - `tabfoundry_simple` remains the frozen benchmark-trust lane.
   Use it when you need the exact nanoTabPFN-style control.
 - `tabfoundry_staged` is still useful as a historical comparison surface, but
@@ -51,14 +56,14 @@ Key code paths:
   It keeps the tokenizer, feature encoder, FiLM conditioning, positions, and
   direct head, but replaces the latent/query residual path with two routed
   streams and uses learned row, column, and evidence-bank context tokens.
-- `grid_sandwich` is a minimal pilot family, not the carried baseline. It keeps
-  the encoded `[row, feature]` grid explicit through alternating row-wise and
-  column-wise mixers, then pools each test-row feature bundle directly.
+- `grid_sandwich` keeps the encoded `[row, feature]` grid explicit through
+  alternating row-wise and column-wise mixers, then pools each test-row feature
+  bundle directly.
 
 ## Active TF-RD-009 Carried Surface
 
-The generic sandwich defaults below are not the current TF-RD-009 study
-surface. The active Muon training-dynamics study under
+The generic sandwich defaults below are not the current repo architecture
+anchor. The active Muon training-dynamics study under
 `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1` carries one fixed
 `tabfoundry_sandwich` geometry while testing optimizer and batch transfer laws:
 
@@ -80,13 +85,13 @@ surface. The active Muon training-dynamics study under
   - corrected anchor benchmark `openml_classification_medium_v1`
   - corpus `tf_rd_010_dagzoo_medium_control_curated_v6`
 
-Interpret this as the current carried architecture contract for TF-RD-009:
-`128x2` remains the formal in-family baseline lineage, `264x6` remains later
-planning context, but the active optimizer-transfer question is being tested at
-fixed `144x4` in the strict shared-anchor LMO transfer sweep. The earlier
+Interpret this as the matched in-family comparison contract for the grid
+promotion: `128x2` remains the formal in-family baseline lineage, `264x6`
+remains broader Muon planning context, but the grid sidecar promotion is read
+against the strict shared-anchor `144x4` LMO transfer surface. The earlier
 screen-based transfer sweeps remain preserved superseded context only.
 
-## Sidecar Follow-On Results
+## Grid Anchor Promotion Results
 
 The April 20-21, 2026 routed/grid sidecar benchmark ran the three follow-on rows
 against the same `144x4` / `tf_rd_010_dagzoo_medium_control_curated_v6` medium
@@ -100,43 +105,46 @@ queue rows.
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | `routed_control` | `routed_sandwich`, direct cell bypass on | `0.5120092736` | `0.3123519111` | `0.7705390628` | `5,086,489` | Stable, but worse than the `144x4` anchor by `+0.0206061466` log loss. |
 | `routed_rebalance` | `routed_sandwich`, evidence-bank rebalance | `0.5661516574` | `0.3523550294` | `0.7115569578` | `5,086,489` | Stable enough to finish, but clearly worse than both routed control and the anchor. |
-| `grid_pilot` | `grid_sandwich` | `0.4221534937` | `0.2568076367` | `0.8111876562` | `3,550,522` | Best sidecar row; beats the `144x4` anchor by `-0.0692496333` log loss and warrants a replicated follow-up before promotion. |
+| `grid_pilot` | `grid_sandwich` | `0.4221534937` | `0.2568076367` | `0.8111876562` | `3,550,522` | Promoted carried architecture anchor; beats the `144x4` anchor by `-0.0692496333` log loss with fewer parameters. |
 
 The immediate read is that the routed residual/evidence-bank hypothesis does
 not beat the carried 144x4 surface in this first implementation, while the
-grid-preserving pilot is the only sidecar family with benchmark-positive signal.
-Treat `grid_sandwich` as promising pilot evidence, not a promoted replacement,
-until it is replicated under matched runtime controls and checked against the
-broader Muon winner context.
+grid-preserving model is the only sidecar family with benchmark-positive signal.
+Treat `grid_sandwich` as the carried repo architecture anchor. The next
+guardrail is replication under matched runtime controls and comparison against
+the broader Muon winner context, not another routed-control rerun.
 
 ## Intent Map
 
-This diagram summarizes the design intent behind the current sandwich architecture.
+This diagram summarizes the design intent behind the current grid architecture.
 
 ```mermaid
 flowchart LR
     classDef state fill:#eef5ff,stroke:#3567a6,color:#10233a,stroke-width:1px;
 
     task["Observed task<br/>train rows, test rows, labels"]:::state
-    evidence["Cell evidence<br/>preserve what each feature says"]:::state
-    context["Shared context<br/>repeat K summaries per row and per column"]:::state
-    memory["Task memory<br/>refine L reusable latent slots for the whole table"]:::state
-    queries["Test-row questions<br/>repeat K query slots for each test row"]:::state
+    evidence["Cell evidence<br/>preserve each row-feature value"]:::state
+    grid["Explicit row-feature grid<br/>[row, feature] states stay structured"]:::state
+    rows["Row-wise feature mixing<br/>what does this observation say?"]:::state
+    columns["Column-wise row mixing<br/>how does this feature behave across rows?"]:::state
+    pool["Test-row bundle pooling<br/>ask over each test row's feature set"]:::state
     logits["Row decisions<br/>emit class logits for each test row"]:::state
 
     task -->|normalize and encode raw cells| evidence
-    evidence -->|compress repeated structure into reusable summaries| context
-    context -->|store task-level context in repeated latent slots| memory
-    context -->|form one repeated query bundle per test row| queries
-    evidence -->|keep direct access to detailed cell evidence| logits
-    memory -->|supply reusable context| logits
-    queries -->|ask for a per-row decision| logits
+    evidence -->|attach row/column positions and feature types| grid
+    grid -->|repeat per layer| rows
+    rows -->|repeat per layer| columns
+    columns -->|preserve [row, feature] layout| grid
+    grid -->|slice test rows| pool
+    pool -->|one state per test row| logits
 ```
 
-## Sandwich Design Summary
+## Grid Design Summary
 
-`tabfoundry_sandwich` is the active small-class, classification-only
-hybrid full-cell / summary-stream Perceiver-style classifier.
+`grid_sandwich` is the active small-class, classification-only classifier. It
+uses the same tokenizer, feature encoder, feature-type conditioning, and
+row/column position enrichment as the previous carried family, but it does not
+collapse the table into a latent-memory stream before the core model.
 
 The live design combines:
 
@@ -144,29 +152,27 @@ The live design combines:
   tokenizer
 - shared value projection followed by feature-type FiLM modulation, then row
   Fourier and column Fourier position enrichment
-- an optional axial pre-Perceiver mixer with row-wise feature attention and
+- an optional inherited pre-mixer with row-wise feature attention and
   column-wise ISAB row mixing
-- two context surfaces built from the same encoded cell table:
-  - a high-bandwidth full-cell stream over all observed cells
-  - a compact repeated summary stream with $K$ learned summaries per row and
-    per column
-- a fixed latent bank where stage `0` reads the full cell stream plus
-  summaries, and later stages refine against the summary stream only
-- a dual-source readout where $K$ test-row queries read final latents first
-  and then the full cell stream before the direct classifier head
+- train-label conditioning added only to train-row feature tokens, plus a
+  train/test row-role embedding
+- a grid core that keeps hidden states shaped as `[B, R, C, d_icl]` and
+  alternates row-wise feature self-attention with column-wise row ISAB mixing
+- a learned test-row pool query that attends over each test row's feature
+  bundle directly before the `DirectMulticlassHead`
 
 Mental model:
 
-- full-cell stream = high-bandwidth raw table evidence
-- row and column summary streams = compact repeated context
-- latent array = fixed-capacity memory and refinement state
-- readout = test-row summary queries with both latent memory access and a
-  full-cell bypass
+- cell grid = the primary high-bandwidth evidence surface
+- row mixer = per-observation feature interactions
+- column mixer = per-feature cross-row evidence sharing
+- readout = one learned query per test row attending over that row's feature
+  bundle
 
-## Sandwich Forward Path
+## Grid Forward Path
 
 The implementation lives in
-`src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py`.
+`src/tab_foundry/model/architectures/grid_sandwich/model.py`.
 
 Notation:
 
@@ -175,8 +181,6 @@ Notation:
 - $N_{te}$ = test-row count
 - $R = N_{tr} + N_{te}$
 - $C$ = feature count
-- $K$ = `sandwich_summary_tokens_per_axis`
-- $L$ = `sandwich_latents`
 
 ```mermaid
 flowchart TB
@@ -195,41 +199,23 @@ flowchart TB
     xtok["tokenized cells<br/>[<i>B</i>, <i>R</i>, <i>C</i>, 4]"]:::tensor
     enc(["Shared value projection + Fourier row/col + feature-type embedding"]):::embed
     cells["cell tokens<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
-    pre_row[[Per-row feature self-attention<br/>× sandwich_pre_row_attention_layers]]:::attn
-    pre_col[[Per-column ISAB row mixing<br/>× sandwich_pre_column_attention_layers]]:::attn
-    mixed_cells["mixed cell tokens<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
+    pre_row[[Optional pre-row feature self-attention<br/>× sandwich_pre_row_attention_layers]]:::attn
+    pre_col[[Optional pre-column ISAB row mixing<br/>× sandwich_pre_column_attention_layers]]:::attn
+    premixed["premixed cell grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
 
-    full_cell(["Broadcast label/query + role + cell token type"]):::embed
-    full_stream["full cell stream<br/>[<i>B</i>, <i>R</i> × <i>C</i>, d_icl]"]:::tensor
+    labels(["Train-label conditioning + row-role embedding<br/>test-row label contribution is zeroed"]):::embed
+    conditioned["label-conditioned grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
 
-    row_attn[[Row-summary query attention<br/>PreNorm + residual]]:::attn
-    row_tokens["row summary stream<br/>[<i>B</i>, <i>R</i> × <i>K</i>, d_icl]<br/><i>K</i> repeated summary slots per row"]:::tensor
-
-    col_attn[[Column-summary query attention<br/>PreNorm + residual]]:::attn
-    col_tokens["column summary stream<br/>[<i>B</i>, <i>C</i> × <i>K</i>, d_icl]<br/><i>K</i> repeated summary slots per column"]:::tensor
-
-    summary_stream["summary stream<br/>[<i>B</i>, <i>K</i> × (<i>R</i> + <i>C</i>), d_icl]"]:::tensor
-    stage0_stream["stage-0 input stream<br/>[<i>B</i>, <i>R</i> × <i>C</i> + <i>K</i> × (<i>R</i> + <i>C</i>), d_icl]"]:::tensor
-
-    latent_seed["latent seed<br/>[<i>B</i>, <i>L</i>, d_icl]<br/><i>L</i> repeated latent slots"]:::tensor
-
-    subgraph stages["Repeated Perceiver stages × sandwich_layers"]
-        lat_in["latents in<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
-        cross0[[Stage 0 cross-attention<br/>Q = latents, KV = full cells + summaries]]:::attn
-        lat_mid0["after stage 0 read<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
-        self0[[Latent self-attention stack<br/>× sandwich_self_attention_per_cross]]:::attn
-        lat_out0["after stage 0 self<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
-        crossn[[Later-stage cross-attention<br/>Q = latents, KV = summary stream]]:::attn
-        selfn[[Later latent self-attention stacks<br/>× sandwich_self_attention_per_cross]]:::attn
-        lat_final["final latents<br/>[<i>B</i>, <i>L</i>, d_icl]<br/><i>L</i> refined latent slots"]:::tensor
-
-        lat_in --> cross0 --> lat_mid0 --> self0 --> lat_out0 --> crossn --> selfn --> lat_final
+    subgraph grid_core["Grid core × sandwich_layers"]
+        row_mix[[Row mixer<br/>self-attention over features within each row]]:::attn
+        row_mixed["row-mixed grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
+        col_mix[[Column mixer<br/>ISAB over rows within each feature]]:::attn
+        col_mixed["column-mixed grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
+        row_mix --> row_mixed --> col_mix --> col_mixed
     end
 
-    test_queries["test-row query bank<br/>[<i>B</i>, <i>N</i><sub>te</sub> × <i>K</i>, d_icl]<br/><i>K</i> repeated query slots per test row"]:::tensor
-    latent_readout[[Readout 1<br/>Q = test rows, KV = final latents]]:::attn
-    cell_readout[[Readout 2<br/>Q = updated test rows, KV = full cell stream]]:::attn
-    pool(["Pool K repeated queries per test row"]):::embed
+    test_grid["test-row feature bundles<br/>[<i>B</i>, <i>N</i><sub>te</sub>, <i>C</i>, d_icl]"]:::tensor
+    pool[[Learned row-pool query<br/>cross-attends to each test-row feature bundle]]:::attn
     test_rows["test-row states<br/>[<i>B</i>, <i>N</i><sub>te</sub>, d_icl]"]:::tensor
     head([DirectClassifierHead]):::head
     logits["logits<br/>[<i>B</i>, <i>N</i><sub>te</sub>, many_class_base]"]:::tensor
@@ -237,42 +223,24 @@ flowchart TB
     xtrain --> norm
     xtest --> norm
     norm --> xall
-    xall --> tok --> xtok --> enc --> cells --> pre_row --> pre_col --> mixed_cells
-
-    mixed_cells --> full_cell --> full_stream
-    ytrain --> full_cell
-
-    mixed_cells --> row_attn --> row_tokens
-    ytrain --> row_tokens
-
-    mixed_cells --> col_attn --> col_tokens
-    row_tokens --> summary_stream
-    col_tokens --> summary_stream
-
-    full_stream --> stage0_stream
-    summary_stream --> stage0_stream
-    latent_seed --> lat_in
-    stage0_stream --> cross0
-    summary_stream --> crossn
-
-    row_tokens -->|slice test rows| test_queries
-    test_queries --> latent_readout --> cell_readout --> pool --> test_rows --> head --> logits
-    lat_final --> latent_readout
-    full_stream --> cell_readout
+    xall --> tok --> xtok --> enc --> cells --> pre_row --> pre_col --> premixed
+    premixed --> labels --> conditioned
+    ytrain --> labels
+    conditioned --> row_mix
+    col_mixed -->|next layer input| row_mix
+    col_mixed -->|slice test rows| test_grid --> pool --> test_rows --> head --> logits
 ```
 
 Read the diagram as:
 
-- cell encoding happens once, before any latent stage
-- the axial pre-Perceiver mixer is separate from the later latent refinement
-- row and column summaries each repeat $K$ learned query slots per row or
-  column
-- stage `0` gets the expensive high-bandwidth read from full cells plus
-  summaries
-- later stages reuse only the cheaper repeated summary stream
-- readout uses the repeated $K$ test-row queries twice:
-  - first against final latents
-  - then against the full cell stream
+- cell encoding happens once, before any grid-core layer
+- the optional pre-mixer is still a shallow row/column cell-grid mixer
+- train labels are added to train rows only; test rows receive row-role context
+  but no label value
+- every grid-core layer preserves `[B, R, C, d_icl]`
+- row mixing attends across features inside one row
+- column mixing attends across rows inside one feature using inducing tokens
+- readout slices test rows and pools each row's feature bundle directly
 
 ## Forward-Pass Shape Trace
 
@@ -283,51 +251,50 @@ Read the diagram as:
 | Missingness tokenizer | [$B$, $R$, $C$] | [$B$, $R$, $C$, 4] | channels are `value`, `is_nan`, `is_posinf`, `is_neginf` |
 | Shared feature encoder | [$B$, $R$, $C$, 4] | [$B$, $R$, $C$, `d_icl`] | linear projection only |
 | Positional/type enrichment | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | adds row Fourier, column Fourier, and feature-type embeddings |
-| Pre-Perceiver mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | row self-attn then column ISAB row mixing |
-| Full-cell stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $R * C$, `d_icl`] | adds train/test role, label/query conditioning, and cell token type |
-| Row summary stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $R * K$, `d_icl`] | learned row-summary queries with $K$ repeated slots per row plus label/query and role conditioning |
-| Column summary stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $C * K$, `d_icl`] | learned column-summary queries with $K$ repeated slots per column plus token type |
-| Summary stream | row + column summaries | [$B$, $K * (R + C)$, `d_icl`] | compact repeated context |
-| Latent seed | none | [$B$, $L$, `d_icl`] | learned latent bank with $L$ repeated slots, expanded per task |
-| Perceiver stages | latents + input stream | [$B$, $L$, `d_icl`] | stage `0` reads full-cell + summary; later stages read summary only |
-| Test query bank | test-row summary tokens | [$B$, $N_{te} * K$, `d_icl`] | derived from the row-summary stream with $K$ repeated query slots per test row |
-| Latent readout | queries + final latents | [$B$, $N_{te} * K$, `d_icl`] | first readout pass |
-| Full-cell readout | updated queries + full-cell stream | [$B$, $N_{te}$, $K$, `d_icl`] | second readout pass |
-| Test-row pool | [$B$, $N_{te}$, $K$, `d_icl`] | [$B$, $N_{te}$, `d_icl`] | pool the $K$ repeated query slots down to one state per test row |
+| Pre-grid mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | optional row self-attn then column ISAB row mixing |
+| Label conditioning | [$B$, $R$, $C$, `d_icl`] + `y_train` | [$B$, $R$, $C$, `d_icl`] | train labels are added only to train-row feature tokens; train/test row-role embedding is added to all rows |
+| Row mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | self-attention over features within each row |
+| Column mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | ISAB over rows within each feature column |
+| Grid core | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | repeats row mixer then column mixer for `sandwich_layers` layers |
+| Test-row slice | [$B$, $R$, $C$, `d_icl`] | [$B$, $N_{te}$, $C$, `d_icl`] | keeps only test rows after the grid core |
+| Test-row pool | [$B$, $N_{te}$, $C$, `d_icl`] | [$B$, $N_{te}$, `d_icl`] | a learned row-pool query cross-attends to each test-row feature bundle |
 | Direct head | [$B$, $N_{te}$, `d_icl`] | [$B$, $N_{te}$, `many_class_base`] | small-class classifier head |
 
-## Current Sandwich Defaults
+## Current Grid Defaults
 
-Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
+Resolved grid defaults come from `src/tab_foundry/model/spec.py`. Several
+fields retain `sandwich_*` names because the grid family intentionally reuses
+the shared tokenizer, pre-mixer, attention blocks, and config surface where the
+semantics still match.
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `model.arch` | `tabfoundry_sandwich` when selected | choose the sandwich family |
+| `model.arch` | `grid_sandwich` in the repo default experiment | choose the grid-preserving family |
 | `d_icl` | `60` | shared working width |
 | `input_normalization` | `none` | shared train/test normalization mode |
 | `many_class_base` | `10` | direct-head output width and current small-class ceiling |
 | `head_hidden_dim` | `96` | hidden width inside `DirectClassifierHead` |
 | `pre_encoder_clip` | `null` | optional finite-value clip before encoding |
-| `norm_type` | `layernorm` | only supported norm for sandwich today |
-| `sandwich_latents` | `24` | learned latent slots |
-| `sandwich_layers` | `2` | repeated Perceiver cross-read stages |
-| `sandwich_heads` | `4` | attention heads across sandwich blocks |
-| `sandwich_ff_expansion` | `2` | FFN expansion factor across sandwich blocks |
-| `sandwich_activation` | `gelu` | sandwich core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
-| `sandwich_block_norm` | `layernorm` | sandwich core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
+| `norm_type` | `layernorm` | only supported global norm for grid today |
+| `sandwich_layers` | `2` | repeated row/column grid-mixer layers |
+| `sandwich_heads` | `4` | attention heads across grid blocks |
+| `sandwich_ff_expansion` | `2` | FFN expansion factor across grid blocks |
+| `sandwich_activation` | `gelu` | grid-core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
+| `sandwich_block_norm` | `layernorm` | grid-core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
 | `sandwich_packed_attention` | `false` | opt-in packed-projection SDPA path for speedrun experiments; default preserves the prior attention path |
-| `sandwich_summary_tokens_per_axis` | `4` | learned row summaries per row and column summaries per column |
-| `sandwich_self_attention_per_cross` | `4` | latent self-attention blocks after each cross-read |
-| `sandwich_pre_row_attention_layers` | `1` | pre-Perceiver row-wise feature self-attention blocks |
-| `sandwich_pre_column_attention_layers` | `1` | pre-Perceiver column-wise ISAB row mixers |
-| `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in each pre-column ISAB block |
+| `sandwich_pre_row_attention_layers` | `1` | pre-grid row-wise feature self-attention blocks |
+| `sandwich_pre_column_attention_layers` | `1` | pre-grid column-wise ISAB row mixers |
+| `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in pre-column and grid-column ISAB blocks |
 | `feature_type_conditioning` | `film` | modulate encoded cell states by feature type after the shared feature encoder |
-| `floating_likelihood` | `single_gaussian` | floating-cell likelihood family for the cell-BPC lane |
-| `integer_likelihood` | `hybrid_mixture` | integer-cell learned discrete/Gaussian mixture for the cell-BPC lane |
+| `sandwich_latents` | unsupported | latent-bank knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
+| `sandwich_summary_tokens_per_axis` | unsupported | summary-token knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
+| `sandwich_self_attention_per_cross` | unsupported | latent-self-attention knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
+| `floating_likelihood` | unsupported | generative likelihood lane is not active for `grid_sandwich` |
+| `integer_likelihood` | unsupported | generative likelihood lane is not active for `grid_sandwich` |
 
 ## Feature-Type Metadata Contract
 
-`tabfoundry_sandwich` consumes per-feature type metadata through
+`grid_sandwich` consumes per-feature type metadata through
 `TaskBatch.metadata["feature_types"]`.
 
 Vocabulary:
@@ -342,8 +309,8 @@ Interpretation:
 
 - these are collapsed Parquet or Arrow physical groups, not exact logical type
   strings
-- sandwich requires explicit feature types at runtime; it does not fall back
-  to all `floating`
+- grid requires explicit feature types at runtime; it does not fall back to all
+  `floating`
 - feature types modulate encoded cells through FiLM after the shared feature
   encoder and before row/column position enrichment
 - feature type metadata is conditioning only; it is not emitted as a standalone
@@ -359,19 +326,14 @@ Interpretation:
 
 ## Runtime And Input Contract
 
-The current sandwich implementation has a tighter contract than the older
+The current grid implementation has a tighter contract than the older
 staged family.
 
 - task: classification only
 - class count: `2 <= num_classes <= many_class_base`
 - feature metadata: explicit `feature_types` are required; see
   `Feature-Type Metadata Contract`
-- loss surfaces: `classification` is the canonical active objective, while
-  sandwich-only `cell_bpc` is retained only for legacy generative reruns
-- cell-BPC metric: row-major cell negative log-likelihood in bits with
-  `N_cells = rows * features`
-- integer likelihood: learned per-feature hybrid mixture of dynamic-support
-  discrete likelihood and single-Gaussian continuous likelihood
+- loss surfaces: `classification` is the only supported objective
 - supported tensor layouts:
   - single-task: `x_train [N_tr,C]`, `x_test [N_te,C]`, `y_train [N_tr]`
   - task-batched: `x_train [B,N_tr,C]`, `x_test [B,N_te,C]`,
@@ -379,8 +341,8 @@ staged family.
 - train rows: at least one training row is required
 - labels: at least one training label is required
 - global norm family: only `layernorm` is accepted through `norm_type`
-- sandwich core block norm: `sandwich_block_norm` may be `layernorm` or `none`
-- sandwich core FF activation: `sandwich_activation` may be `gelu` or `rational`
+- grid core block norm: `sandwich_block_norm` may be `layernorm` or `none`
+- grid core FF activation: `sandwich_activation` may be `gelu` or `rational`
 - activation checkpointing: supported and opt-in
 - activation tracing: supported and opt-in
 
@@ -390,13 +352,18 @@ Rejected staged-only fields:
 - `stage_label`
 - `module_overrides`
 
+Rejected inherited sandwich-only fields:
+
+- `sandwich_latents`
+- `sandwich_summary_tokens_per_axis`
+- `sandwich_self_attention_per_cross`
+
 ## Parameterization Notes
 
-- the fixed latent array is stored as `latent_seed` with shape
-  `[1, sandwich_latents, d_icl]`
-- `latent_seed` is initialized from a truncated normal with mean `0.0`,
-  standard deviation `0.02`, and literal truncation bounds `[-2.0, 2.0]`
-- row-summary and column-summary query parameters are separate learned tensors
-  of shape `[1, 1, d_icl]`
-- the full cell encoder pass still happens only once; later repeated stages
-  reuse the summary-token stream rather than recomputing cell summaries
+- `row_pool_query` is a learned tensor of shape `[1, 1, d_icl]`; it expands per
+  test row and attends over that row's feature bundle
+- train labels are injected through `LabelTokenTargetConditioner` and explicitly
+  zeroed for test rows before the grid core
+- row-role embeddings distinguish train and test rows without leaking test
+  labels
+- the encoded cell grid is computed once and preserved through all grid layers

@@ -75,16 +75,19 @@ This factorization matters because the sandwich model does not observe an
 abstract prior. It observes tasks whose geometry and difficulty are induced by
 these blocks.
 
-## Sandwich Model As A Composition
+## Grid Model As A Composition
 
-The active hypothesis class is `tabfoundry_sandwich`, viewed mathematically as
-a composition of maps over one task $T$.
+The active hypothesis class is `grid_sandwich`, viewed mathematically as a
+composition of maps over one task $T$. It inherits the previous
+`tabfoundry_sandwich` tokenizer and feature-conditioning contract, but keeps
+cell states arranged as a `[row, feature]` grid through the core mixers instead
+of collapsing them into compressed context first.
 
 First form the joint table
 
 $$ X = [X\_{\\mathrm{tr}}; X\_{\\mathrm{te}}] \\in \\mathbb{R}^{R \\times C}. $$
 
-Then define the sandwich computation in stages.
+Then define the grid computation in stages.
 
 Cell encoding:
 
@@ -92,33 +95,35 @@ $$ E = e\_{\\theta}(X, \\tau). $$
 
 where $E$ is the tensor of encoded cell states.
 
-Repeated row and column summaries:
+Label-conditioned grid state:
 
-$$ S^{r} = s\_{\\theta}^{r}(E, Y\_{\\mathrm{tr}}), \\qquad S^{c} = s\_{\\theta}^{c}(E). $$
+$$ G^{(0)} = g\_{\\theta}^{(0)}(E, Y\_{\\mathrm{tr}}). $$
 
-Latent-memory construction and refinement:
+Alternating row-wise and column-wise mixing:
 
-$$ Z^{(0)} = z\_{\\theta}^{(0)}(E, S^{r}, S^{c}). $$
+$$ G^{(\\ell+1)} = c\_{\\theta}^{(\\ell)}(r\_{\\theta}^{(\\ell)}(G^{(\\ell)})). $$
 
-$$ Z^{(\\ell)} = z\_{\\theta}^{(\\ell)}(Z^{(\\ell-1)}, S^{r}, S^{c}). $$
+where $r\_{\theta}^{(\ell)}$ mixes feature bundles within each row and
+$c\_{\theta}^{(\ell)}$ mixes row states within each feature column.
 
-Query formation and readout:
+Test-row bundle pooling and readout:
 
-$$ Q = q\_{\\theta}(S^{r}), \\qquad G = h\_{\\theta}(Q, Z^{(L)}, E). $$
+$$ O = h\_{\\theta}(G^{(L)}\_{\\mathrm{te}}). $$
 
-where $G$ denotes the test-row logits. Conceptually:
+where $O$ denotes the test-row logits. Conceptually:
 
 - $E$ preserves high-bandwidth cell evidence
-- $S^{r}$ and $S^{c}$ compress repeated row and column structure
-- $Z^{(\\ell)}$ stores and refines reusable task-level latent memory
-- $Q$ extracts the test-row queries that must be answered
+- $G^{(0)}$ attaches train labels only to train-row feature tokens
+- row mixers let each observation form feature-level context
+- column mixers let each feature share row-level evidence
+- the readout pools each test-row feature bundle directly
 
-The sandwich architecture is therefore a structured map from one task $T$ to
-one matrix of test-row logits $G$.
+The grid architecture is therefore a structured map from one task $T$ to one
+matrix of test-row logits $O$.
 
 ## Inner Objective
 
-For the current classification lane, the sandwich model induces a conditional
+For the current classification lane, the grid model induces a conditional
 distribution over the test labels:
 
 $$ p\_{\\theta}(Y\_{\\mathrm{te}} \\mid X\_{\\mathrm{tr}}, Y\_{\\mathrm{tr}}, X\_{\\mathrm{te}}, \\tau). $$
@@ -218,25 +223,25 @@ which pieces would still have to be built.
   repeatable enough for noisy comparisons, and add search orchestration rather
   than relying on fixed manual sweep rows.
 
-## Interpreting φ Through Sandwich Demands
+## Interpreting φ Through Grid Demands
 
 The factorization of $\\phi$ matters because different parts of the prior alter
-different parts of the sandwich computation.
+different parts of the grid computation.
 
-| Prior block | Effect on the task distribution | Effect on sandwich demands |
+| Prior block | Effect on the task distribution | Effect on grid demands |
 | --- | --- | --- |
 | $\\phi\_{\\mathrm{observation}}$ | changes $C$ and the distribution of $\\tau$ | changes cell-state dimensional burden, type-conditioned encoding burden, and effective token budget |
 | $\\phi\_{\\mathrm{task}}$ | changes $N\_{\\mathrm{tr}}, N\_{\\mathrm{te}}$, class structure, and label noise | changes context size, query count, and classification difficulty |
-| $\\phi\_{\\mathrm{shift}}$ | changes the relation between train and test laws | changes how hard it is for latent memory and readout to transfer from train to test rows |
-| $\\phi\_{\\mathrm{mechanism}}$ | changes interaction order, smoothness, saturation, and noise | changes how much structure must be captured in summaries and latent memory |
-| $\\phi\_{\\mathrm{layout}}$ | changes latent dependency structure and long-range coupling | changes how much multi-step or distributed structure the latent bank must retain |
+| $\\phi\_{\\mathrm{shift}}$ | changes the relation between train and test laws | changes how hard row/column evidence sharing and test-row pooling are |
+| $\\phi\_{\\mathrm{mechanism}}$ | changes interaction order, smoothness, saturation, and noise | changes how much structure row-wise and column-wise grid mixers must preserve |
+| $\\phi\_{\\mathrm{layout}}$ | changes latent dependency structure and long-range coupling | changes how much multi-step or distributed structure the explicit grid must carry |
 | $\\phi\_{\\mathrm{curriculum}}$ | changes which task families are emphasized during training | changes the gradient mixture seen during optimization |
 
 Two especially important derived quantities are:
 
 - $C$, because it controls the width of the observed table
 - $R = N\_{\\mathrm{tr}} + N\_{\\mathrm{te}}$, because it controls the total row
-  budget that the model must summarize and answer over
+  budget that the column mixers must share evidence across
 
 At the mathematical level, `dagzoo` matters because it changes the law of
 these quantities and the conditional structure coupling them to the labels.
@@ -248,7 +253,9 @@ symbols map back to the current repo:
 
 - `dagzoo` is the implementation that parameterizes and samples from
   $p\_{\\phi}(T)$
-- `tabfoundry_sandwich` is the implementation of the map $f\_{\\theta}$
+- `grid_sandwich` is the active implementation of the map $f\_{\\theta}$
+- `tabfoundry_sandwich` remains previous carried comparison evidence, not the
+  current default map
 - corpus ids, manifests, and loader objects are implementation artifacts used
   to materialize samples from $p\_{\\phi}(T)$; they are not part of the
   mathematical statement of the problem

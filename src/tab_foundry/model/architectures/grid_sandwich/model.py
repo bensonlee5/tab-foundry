@@ -1,4 +1,4 @@
-"""Grid-preserving sandwich pilot classifier."""
+"""Grid-preserving sandwich classifier."""
 
 from __future__ import annotations
 
@@ -74,7 +74,7 @@ class _GridMixerLayer(nn.Module):
 
 
 class GridSandwichClassifier(nn.Module):
-    """Classification-only grid-preserving sandwich pilot."""
+    """Classification-only grid-preserving sandwich classifier."""
 
     def __init__(
         self,

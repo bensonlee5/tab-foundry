@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` is now the carried repo architecture
+  anchor. The root config defaults to `cls_workstation_grid_sandwich`, the
+  benchmark registry records the April 20-21, 2026 `grid_pilot` run
+  (`final_log_loss=0.4221534937`, Brier `0.2568076367`, ROC AUC
+  `0.8111876562`), and the hardware architecture registry adds
+  `tf_rd_009_a100_80gb_classification_medium_grid_v1` as the A100 medium
+  classification anchor while preserving `tabfoundry_sandwich` as historical
+  comparison evidence.
 - User-facing note: TF-RD-009 issue [#284](https://github.com/bensonlee5/tab-foundry/issues/284)
   now tracks the faithful paper-derived Muon transfer study rather than the
   earlier heuristic endpoint selector. The repo now ships tracked screen and

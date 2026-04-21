@@ -161,3 +161,27 @@ def test_hardware_architecture_registry_rejects_malformed_payload(tmp_path: Path
 
     with pytest.raises(RuntimeError, match="hardware architecture baseline entry"):
         _ = load_hardware_architecture_registry(registry_path)
+
+
+def test_checked_in_hardware_registry_tracks_grid_architecture_anchor() -> None:
+    entry = load_hardware_architecture_baseline_entry(
+        "tf_rd_009_a100_80gb_classification_medium_grid_v1"
+    )
+
+    assert entry["decision"] == "keep"
+    assert entry["hardware_profile_id"] == "a100_80gb"
+    assert entry["surface_role"] == "classification_architecture_anchor"
+    assert entry["runtime_profile"] == "cls_workstation_grid_sandwich"
+    assert entry["config_profile"] == "cls_workstation_grid_sandwich"
+    assert entry["preferred_run_id"] == (
+        "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1"
+    )
+    assert entry["baseline_run_id"] == (
+        "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1"
+    )
+    assert entry["preferred_architecture"]["arch"] == "grid_sandwich"
+    assert entry["preferred_architecture"]["d_icl"] == 144
+    assert entry["preferred_architecture"]["sandwich_layers"] == 4
+    assert entry["preferred_architecture"]["sandwich_heads"] == 1
+    assert entry["preferred_architecture"]["head_hidden_dim"] == 96
+    assert entry["surface_labels"]["model"] == "grid_sandwich"

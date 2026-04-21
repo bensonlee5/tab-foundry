@@ -439,8 +439,10 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the April 20-21, 2026 routed/grid sidecar on the carried `144x4` medium
     surface recorded negative routed-residual evidence
     (`routed_control=0.5120092736`, `routed_rebalance=0.5661516574`) and positive
-    grid-preserving pilot evidence (`grid_pilot=0.4221534937`) against the
-    `144x4` sidecar anchor `0.4914031270`
+    grid-preserving evidence (`grid_pilot=0.4221534937`) against the `144x4`
+    sidecar anchor `0.4914031270`; `grid_sandwich` is now the carried repo
+    architecture anchor, with replication and larger-rung validation kept as the
+    next guardrails
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

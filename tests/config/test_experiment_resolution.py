@@ -146,10 +146,16 @@ def test_cls_workstation_sandwich_legacy_resolution() -> None:
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich-legacy-v1"
 
 
-def test_default_config_follows_packed_muon_surface() -> None:
+def test_default_config_follows_grid_architecture_anchor() -> None:
     cfg = _compose()
 
     assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "grid_sandwich"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.model.d_icl) == 144
+    assert int(cfg.model.sandwich_layers) == 4
+    assert int(cfg.model.sandwich_heads) == 1
+    assert int(cfg.model.head_hidden_dim) == 96
     assert bool(cfg.model.sandwich_packed_attention) is True
     assert str(cfg.optimizer.name) == "muon"
     assert str(cfg.runtime.device) == "cuda"

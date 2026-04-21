@@ -64,7 +64,8 @@ TF-RD-009 does not start from a blank scaling surface. It inherits a specific
 classification-first benchmark, runtime, and architecture contract that later
 sweeps must respect unless a follow-on issue explicitly reopens them.
 
-- `tabfoundry_sandwich` is now the primary classification scaling family, with
+- `grid_sandwich` is now the primary classification architecture anchor, with
+  `tabfoundry_sandwich` retained as the matched in-family comparison line and
   `tabfoundry_staged` retained only as the incumbent reference line rather than
   the scaling parent.
 - TF-RD-010 is closed on the carried classification benchmark contract. The
@@ -128,13 +129,14 @@ operational rather than cosmetic.
     `72x1=0.4135`, `112x3=0.4137`, `144x4=0.4116`, `192x5=0.4146`, and
     `264x6=0.4009`, with `264x6` as the current preferred Muon candidate
 
-## Routed/Grid Sidecar Architecture Read
+## Routed/Grid Architecture Anchor Read
 
 The April 20-21, 2026 routed/grid sidecar ran after the fixed `144x4` LMO
 transfer surface was established. It intentionally did not mutate
 `tabfoundry_sandwich`; it added `routed_sandwich` for residual-path and
 token-budget hypotheses, and `grid_sandwich` for the token-granularity
-hypothesis.
+hypothesis. The completed `grid_pilot` row is now the carried repo architecture
+anchor.
 
 Shared surface:
 
@@ -155,7 +157,7 @@ Benchmark results:
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | `routed_control` | `routed_sandwich` with direct cell bypass | `0.5120092736` | `+0.0206061466` | `0.3123519111` | `0.7705390628` | `5,086,489` |
 | `routed_rebalance` | `routed_sandwich` evidence-bank rebalance | `0.5661516574` | `+0.0747485304` | `0.3523550294` | `0.7115569578` | `5,086,489` |
-| `grid_pilot` | `grid_sandwich` grid-preserving pilot | `0.4221534937` | `-0.0692496333` | `0.2568076367` | `0.8111876562` | `3,550,522` |
+| `grid_pilot` | `grid_sandwich` grid-preserving anchor | `0.4221534937` | `-0.0692496333` | `0.2568076367` | `0.8111876562` | `3,550,522` |
 
 Interpretation:
 
@@ -165,10 +167,11 @@ Interpretation:
 - `routed_rebalance` is worse than `routed_control`, so replacing the raw
   full-cell path with only the learned evidence bank is not supported by this
   benchmark row.
-- `grid_sandwich` is positive pilot evidence for the token-granularity
-  hypothesis. It beats the `144x4` anchor on log loss, Brier score, and ROC AUC
-  with fewer parameters, but it should be replicated and compared against the
-  broader Muon winner context before any promotion.
+- `grid_sandwich` is promoted to the carried repo architecture anchor for the
+  token-granularity hypothesis. It beats the `144x4` anchor on log loss, Brier
+  score, and ROC AUC with fewer parameters; the next guardrail is replication
+  and comparison against the broader Muon winner context, not another promotion
+  gate.
 
 ## Executive Prescriptions
 
@@ -629,7 +632,7 @@ dynamics on that fixed architecture, not reopening architecture movement.
 The first joint width-depth family should be derived in two layers: paper
 constraints first, then a repo-local integer-row bridge. The papers constrain
 the family shape, but they do not provide a closed-form integer schedule for
-the sandwich architecture used here.
+the carried architecture family used here.
 
 ### Paper Constraints
 

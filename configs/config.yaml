@@ -8,7 +8,7 @@ defaults:
   - runtime: workstation
   - logging: wandb
   - _self_
-  - experiment: cls_workstation_sandwich
+  - experiment: cls_workstation_grid_sandwich
 
 task: classification
 
