@@ -7,7 +7,7 @@ defaults:
 model:
   arch: routed_sandwich
   d_icl: 144
-  head_hidden_dim: 192
+  head_hidden_dim: 96
   sandwich_layers: 4
   sandwich_heads: 1
   sandwich_summary_tokens_per_axis: null

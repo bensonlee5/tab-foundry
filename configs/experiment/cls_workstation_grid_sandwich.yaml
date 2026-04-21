@@ -7,7 +7,7 @@ defaults:
 model:
   arch: grid_sandwich
   d_icl: 144
-  head_hidden_dim: 192
+  head_hidden_dim: 96
   sandwich_latents: null
   sandwich_layers: 4
   sandwich_heads: 1

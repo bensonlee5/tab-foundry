@@ -98,7 +98,7 @@ def test_cls_workstation_routed_sandwich_resolution() -> None:
     assert str(cfg.model.arch) == "routed_sandwich"
     assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
     assert int(cfg.model.d_icl) == 144
-    assert int(cfg.model.head_hidden_dim) == 192
+    assert int(cfg.model.head_hidden_dim) == 96
     assert int(cfg.model.sandwich_layers) == 4
     assert int(cfg.model.sandwich_heads) == 1
     assert cfg.model.sandwich_summary_tokens_per_axis is None
@@ -118,7 +118,7 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert str(cfg.model.arch) == "grid_sandwich"
     assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
     assert int(cfg.model.d_icl) == 144
-    assert int(cfg.model.head_hidden_dim) == 192
+    assert int(cfg.model.head_hidden_dim) == 96
     assert int(cfg.model.sandwich_layers) == 4
     assert int(cfg.model.sandwich_heads) == 1
     assert cfg.model.sandwich_latents is None

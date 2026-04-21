@@ -128,6 +128,48 @@ operational rather than cosmetic.
     `72x1=0.4135`, `112x3=0.4137`, `144x4=0.4116`, `192x5=0.4146`, and
     `264x6=0.4009`, with `264x6` as the current preferred Muon candidate
 
+## Routed/Grid Sidecar Architecture Read
+
+The April 20-21, 2026 routed/grid sidecar ran after the fixed `144x4` LMO
+transfer surface was established. It intentionally did not mutate
+`tabfoundry_sandwich`; it added `routed_sandwich` for residual-path and
+token-budget hypotheses, and `grid_sandwich` for the token-granularity
+hypothesis.
+
+Shared surface:
+
+- corpus: `tf_rd_010_dagzoo_medium_control_curated_v6`
+- benchmark: `openml_classification_medium_v1`
+- geometry: `d_icl=144`, `sandwich_layers=4`, `sandwich_heads=1`,
+  `head_hidden_dim=96`
+- comparison anchor for this sidecar: imported carried `144x4` low-batch row
+  at `final_log_loss=0.4914031270`
+- artifact root:
+  `outputs/benchmarks/sandwich_followons_medium_metadatafix_20260420`
+- W&B runs: `5fid06dm` (`routed_control`), `0w40lc62`
+  (`routed_rebalance`), and `bakmt9op` (`grid_pilot`)
+
+Benchmark results:
+
+| Row | Architecture | Final log loss | Delta vs `144x4` anchor | Final Brier | Final ROC AUC | Params |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `routed_control` | `routed_sandwich` with direct cell bypass | `0.5120092736` | `+0.0206061466` | `0.3123519111` | `0.7705390628` | `5,086,489` |
+| `routed_rebalance` | `routed_sandwich` evidence-bank rebalance | `0.5661516574` | `+0.0747485304` | `0.3523550294` | `0.7115569578` | `5,086,489` |
+| `grid_pilot` | `grid_sandwich` grid-preserving pilot | `0.4221534937` | `-0.0692496333` | `0.2568076367` | `0.8111876562` | `3,550,522` |
+
+Interpretation:
+
+- `routed_sandwich` is negative evidence for this first routed residual/evidence
+  allocation design. Both routed rows completed without NaN skips, but neither
+  beat the carried `144x4` sidecar anchor.
+- `routed_rebalance` is worse than `routed_control`, so replacing the raw
+  full-cell path with only the learned evidence bank is not supported by this
+  benchmark row.
+- `grid_sandwich` is positive pilot evidence for the token-granularity
+  hypothesis. It beats the `144x4` anchor on log loss, Brier score, and ROC AUC
+  with fewer parameters, but it should be replicated and compared against the
+  broader Muon winner context before any promotion.
+
 ## Executive Prescriptions
 
 The literature does not imply one monolithic sweep. It implies three core

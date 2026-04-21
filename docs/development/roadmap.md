@@ -1227,6 +1227,13 @@ Legacy wording note:
     beat carried high-batch at `T2`
     (`0.5143437440` vs `0.5135392585`, delta `+0.0008044855` log loss), so
     close `#284` without opening any later Phase-2B rerun issue from this lane
+  - the April 20-21, 2026 routed/grid sidecar on the carried `144x4` medium
+    surface (`head_hidden_dim=96`) is complete: `routed_control=0.5120092736`
+    and `routed_rebalance=0.5661516574` are negative evidence for the first
+    routed-residual/evidence-bank design, while `grid_pilot=0.4221534937` beats
+    the `144x4` sidecar anchor `0.4914031270` and should be treated as positive
+    pilot evidence for a replicated grid-preserving follow-up rather than an
+    immediate replacement for the carried `tabfoundry_sandwich` family
   - only after the completed cleanup child and negative faithful transfer study
     closeout should
     [#269](https://github.com/bensonlee5/tab-foundry/issues/269) be revisited

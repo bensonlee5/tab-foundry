@@ -8,11 +8,16 @@ The repo now has one active architecture-development lane:
 - `tabfoundry_sandwich`: the primary classification architecture target and
   scaling-prep family
 
-It also keeps two comparison lanes:
+It also keeps two comparison lanes plus two sidecar follow-on lanes:
 
 - `tabfoundry_simple`: the frozen PFN-style control
 - `tabfoundry_staged`: the historical row-first reference line and benchmark
   comparison surface
+- `routed_sandwich`: a sidecar routed-residual / evidence-bank follow-on for
+  testing residual-path and token-budget hypotheses against the carried
+  sandwich surface
+- `grid_sandwich`: a sidecar grid-preserving pilot for testing whether the
+  row-feature grid is collapsed too early
 
 Regression is still deferred. The active model surface is classification-only.
 
@@ -25,6 +30,8 @@ Use these alongside this page:
 Key code paths:
 
 - `src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py`
+- `src/tab_foundry/model/architectures/routed_sandwich/model.py`
+- `src/tab_foundry/model/architectures/grid_sandwich/model.py`
 - `src/tab_foundry/model/components/tabular_primitives.py`
 - `src/tab_foundry/model/components/attention.py`
 - `src/tab_foundry/model/components/normalization.py`
@@ -40,6 +47,13 @@ Key code paths:
   Use it when you need the exact nanoTabPFN-style control.
 - `tabfoundry_staged` is still useful as a historical comparison surface, but
   it is no longer the center of the roadmap or architecture docs.
+- `routed_sandwich` is a follow-on experiment family, not the carried baseline.
+  It keeps the tokenizer, feature encoder, FiLM conditioning, positions, and
+  direct head, but replaces the latent/query residual path with two routed
+  streams and uses learned row, column, and evidence-bank context tokens.
+- `grid_sandwich` is a minimal pilot family, not the carried baseline. It keeps
+  the encoded `[row, feature]` grid explicit through alternating row-wise and
+  column-wise mixers, then pools each test-row feature bundle directly.
 
 ## Active TF-RD-009 Carried Surface
 
@@ -71,6 +85,29 @@ Interpret this as the current carried architecture contract for TF-RD-009:
 planning context, but the active optimizer-transfer question is being tested at
 fixed `144x4` in the strict shared-anchor LMO transfer sweep. The earlier
 screen-based transfer sweeps remain preserved superseded context only.
+
+## Sidecar Follow-On Results
+
+The April 20-21, 2026 routed/grid sidecar benchmark ran the three follow-on rows
+against the same `144x4` / `tf_rd_010_dagzoo_medium_control_curated_v6` medium
+classification surface used for the carried LMO transfer anchor. The comparison
+anchor for this sidecar read is the imported `144x4` low-batch row at
+`final_log_loss=0.4914031270`; the model surface uses `head_hidden_dim=96`, as
+recorded in the completed `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
+queue rows.
+
+| Row | Architecture | Final log loss | Final Brier | Final ROC AUC | Params | Interpretation |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `routed_control` | `routed_sandwich`, direct cell bypass on | `0.5120092736` | `0.3123519111` | `0.7705390628` | `5,086,489` | Stable, but worse than the `144x4` anchor by `+0.0206061466` log loss. |
+| `routed_rebalance` | `routed_sandwich`, evidence-bank rebalance | `0.5661516574` | `0.3523550294` | `0.7115569578` | `5,086,489` | Stable enough to finish, but clearly worse than both routed control and the anchor. |
+| `grid_pilot` | `grid_sandwich` | `0.4221534937` | `0.2568076367` | `0.8111876562` | `3,550,522` | Best sidecar row; beats the `144x4` anchor by `-0.0692496333` log loss and warrants a replicated follow-up before promotion. |
+
+The immediate read is that the routed residual/evidence-bank hypothesis does
+not beat the carried 144x4 surface in this first implementation, while the
+grid-preserving pilot is the only sidecar family with benchmark-positive signal.
+Treat `grid_sandwich` as promising pilot evidence, not a promoted replacement,
+until it is replicated under matched runtime controls and checked against the
+broader Muon winner context.
 
 ## Intent Map
 
