@@ -53,7 +53,7 @@ def _sandwich_spec() -> object:
     )
 
 
-def _routed_sandwich_spec() -> object:
+def _routed_sandwich_spec(*, routed_direct_cell_bypass: bool = False) -> object:
     return model_build_spec_from_mappings(
         task="classification",
         primary={
@@ -68,6 +68,7 @@ def _routed_sandwich_spec() -> object:
             "routed_row_summary_tokens": 2,
             "routed_column_summary_tokens": 1,
             "routed_evidence_tokens": 6,
+            "routed_direct_cell_bypass": routed_direct_cell_bypass,
         },
     )
 
@@ -196,6 +197,21 @@ def test_parameter_counts_and_surface_payload_include_routed_sandwich_metadata()
     assert payload["architecture"]["evidence_tokens"] == 6
     assert payload["architecture"]["direct_cell_bypass"] is False
     assert synthetic.feature_types == ["floating", "floating", "floating"]
+
+
+def test_routed_sandwich_surface_payload_updates_for_direct_cell_bypass() -> None:
+    spec = _routed_sandwich_spec(routed_direct_cell_bypass=True)
+
+    payload = model_surface_payload(spec)
+
+    assert payload["architecture"]["direct_cell_bypass"] is True
+    assert payload["architecture"]["initial_input_tokens"] == "full_cell_plus_row_col_summary_plus_evidence_bank"
+    assert payload["architecture"]["initial_input_token_count"] == (
+        "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+    )
+    assert payload["architecture"]["readout"] == (
+        "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+    )
 
 
 def test_parameter_counts_and_surface_payload_include_grid_sandwich_metadata() -> None:

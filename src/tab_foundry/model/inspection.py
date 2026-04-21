@@ -129,9 +129,19 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "self_attention_per_cross": int(spec.sandwich_self_attention_per_cross),
             }
         elif spec.arch == ROUTED_SANDWICH_MODEL_ARCH:
+            if bool(spec.routed_direct_cell_bypass):
+                initial_input_tokens = "full_cell_plus_row_col_summary_plus_evidence_bank"
+                initial_input_token_count = (
+                    "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+                )
+                readout = "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+            else:
+                initial_input_tokens = "row_col_summary_plus_evidence_bank"
+                initial_input_token_count = "K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+                readout = "latent_conditioned_routed_query_pool"
             payload["architecture"] = {
-                "initial_input_tokens": "row_col_summary_plus_evidence_bank",
-                "initial_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
+                "initial_input_tokens": initial_input_tokens,
+                "initial_input_token_count": initial_input_token_count,
                 "repeated_input_tokens": "row_col_summary_plus_evidence_bank",
                 "repeated_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
                 "summary_tokens_per_row": int(spec.routed_row_summary_tokens),
@@ -153,7 +163,7 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "residual_routing": str(spec.routed_residual_mode),
                 "residual_streams": int(spec.routed_residual_streams),
                 "residual_scaling": str(spec.routed_residual_scale),
-                "readout": "latent_conditioned_routed_query_pool",
+                "readout": readout,
                 "direct_cell_bypass": bool(spec.routed_direct_cell_bypass),
                 "latents": int(spec.sandwich_latents),
                 "layers": int(spec.sandwich_layers),

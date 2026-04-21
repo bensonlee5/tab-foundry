@@ -312,9 +312,19 @@ def build_training_surface_record(
             "self_attention_per_cross": int(model_spec.sandwich_self_attention_per_cross),
         }
     elif model_spec.arch == ROUTED_SANDWICH_MODEL_ARCH:
+        if bool(model_spec.routed_direct_cell_bypass):
+            initial_input_tokens = "full_cell_plus_row_col_summary_plus_evidence_bank"
+            initial_input_token_count = (
+                "R_times_C_plus_K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+            )
+            readout = "latent_then_full_cell_routed_cross_attention_then_latent_conditioned_query_pool"
+        else:
+            initial_input_tokens = "row_col_summary_plus_evidence_bank"
+            initial_input_token_count = "K_row_times_R_plus_K_col_times_C_plus_K_evidence"
+            readout = "latent_conditioned_routed_query_pool"
         model_payload["architecture"] = {
-            "initial_input_tokens": "row_col_summary_plus_evidence_bank",
-            "initial_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
+            "initial_input_tokens": initial_input_tokens,
+            "initial_input_token_count": initial_input_token_count,
             "repeated_input_tokens": "row_col_summary_plus_evidence_bank",
             "repeated_input_token_count": "K_row_times_R_plus_K_col_times_C_plus_K_evidence",
             "summary_tokens_per_row": int(model_spec.routed_row_summary_tokens),
@@ -336,7 +346,7 @@ def build_training_surface_record(
             "residual_routing": str(model_spec.routed_residual_mode),
             "residual_streams": int(model_spec.routed_residual_streams),
             "residual_scaling": str(model_spec.routed_residual_scale),
-            "readout": "latent_conditioned_routed_query_pool",
+            "readout": readout,
             "direct_cell_bypass": bool(model_spec.routed_direct_cell_bypass),
             "latents": int(model_spec.sandwich_latents),
             "layers": int(model_spec.sandwich_layers),
@@ -350,6 +360,8 @@ def build_training_surface_record(
             "input_token_count": "R_times_C",
             "grid_core": "alternating_row_self_attention_and_column_row_isab",
             "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+            "pre_row_attention_layers": int(model_spec.sandwich_pre_row_attention_layers),
+            "pre_column_attention_layers": int(model_spec.sandwich_pre_column_attention_layers),
             "grid_preservation": "explicit_row_feature_grid_through_core",
             "label_injection": "train_row_feature_tokens_only",
             "position_encoding": "shared_fourier_row_col",
