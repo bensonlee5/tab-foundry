@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refinement. Export manifests and training/model surface records now preserve
   these grid fields, and the repo includes first-wave TF-RD-026 workstation
   experiment configs.
+- User-facing note: TF-RD-026 now includes `tab-foundry research grid-core
+  perturb-checkpoint`, a checkpoint-time diagnostic that ablates and repeats
+  contiguous grid-sandwich core chunks on a manifest benchmark surface before
+  selecting localized recurrence candidates.
 - User-facing note: `grid_sandwich` is now the carried repo architecture
   anchor. The root config defaults to `cls_workstation_grid_sandwich`, the
   benchmark registry records the April 20-21, 2026 `grid_pilot` run

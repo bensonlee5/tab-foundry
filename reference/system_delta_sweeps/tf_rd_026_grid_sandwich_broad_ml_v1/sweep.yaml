@@ -32,6 +32,9 @@ anchor_surface:
   - Rows `02` through `05` isolate one broad-ML architecture mechanism at a time.
     Row `06` is blocked until the standalone hyper-connection-lite and SwiGLU rows
     both train cleanly.
+  - Row `05` is now interpreted as a full-shared-layer efficiency baseline. Localized
+    recurrence candidates should be selected by the grid-core perturbation diagnostic
+    against the row `01` checkpoint before training blocked follow-on rows.
   dimension_table:
   - dimension: residual topology
     upstream: Hyper-Connection-style multi-stream residual routing can improve deep
@@ -56,8 +59,9 @@ anchor_surface:
     upstream: Sharing a transformation across recurrent iterations can improve iterative
       reasoning while controlling parameter count.
     anchor: The grid sandwich control instantiates four distinct grid mixer layers.
-    interpretation: Read `grid_recurrence_steps=8` as a shared-core refinement test
-      rather than a depth scaling result.
+    interpretation: Read `grid_recurrence_steps=8` as a full-shared-layer efficiency
+      baseline. Use checkpoint-time contiguous chunk ablation/repeat diagnostics
+      to choose any apples-to-apples localized repeat candidate.
 anchor_context:
   run_id: null
   carried_run_id: sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1

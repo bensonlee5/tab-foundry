@@ -380,6 +380,86 @@ def test_grid_sandwich_recurrent_core_shares_one_grid_layer() -> None:
     assert len(model.grid_layers) == 1
 
 
+def test_grid_sandwich_grid_core_intervention_none_preserves_logits() -> None:
+    torch.manual_seed(7)
+    baseline = _grid_model().eval()
+    intervened = _grid_model().eval()
+    intervened.load_state_dict(baseline.state_dict())
+    intervened.set_grid_core_intervention(mode="none")
+    batch = _task_batch()
+
+    with torch.no_grad():
+        baseline_logits = baseline(batch).logits
+        intervened_logits = intervened(batch).logits
+
+    assert baseline_logits is not None
+    assert intervened_logits is not None
+    assert torch.allclose(baseline_logits, intervened_logits)
+
+
+def test_grid_sandwich_grid_core_intervention_ablate_and_repeat_call_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _grid_model().eval()
+    batch = _task_batch()
+    calls: list[tuple[str, int]] = []
+
+    def _record_row(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("row", id(block)))
+        return hidden
+
+    def _record_column(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("column", id(block)))
+        return hidden
+
+    monkeypatch.setattr(model, "_row_feature_self_attention", _record_row)
+    monkeypatch.setattr(model, "_column_row_isab", _record_column)
+
+    with torch.no_grad():
+        model.set_grid_core_intervention(mode="ablate_chunk", start_layer=0, end_layer=0)
+        _ = model(batch)
+
+    layer1 = model.grid_layers[1]
+    assert calls == [
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
+
+    calls.clear()
+    with torch.no_grad():
+        model.set_grid_core_intervention(
+            mode="repeat_chunk",
+            start_layer=0,
+            end_layer=1,
+            repeat_count=2,
+        )
+        _ = model(batch)
+
+    layer0 = model.grid_layers[0]
+    assert calls == [
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
+
+
+def test_grid_sandwich_grid_core_intervention_rejects_recurrent_checkpoint() -> None:
+    model = _grid_model(grid_recurrence_steps=3)
+
+    with pytest.raises(ValueError, match="distinct grid mixer layers"):
+        model.set_grid_core_intervention(
+            mode="repeat_chunk",
+            start_layer=0,
+            end_layer=0,
+            repeat_count=2,
+        )
+
+
 def test_grid_sandwich_differential_attention_initializes_lambdas() -> None:
     model = _grid_model(grid_attention_mode="differential")
     lambda_values = [

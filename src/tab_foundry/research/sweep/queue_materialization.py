@@ -187,6 +187,28 @@ def _resolved_surface_run_dir(
     )
 
 
+def _portable_resolved_surface_payload(payload: Mapping[str, Any], *, repo_root: Path | None) -> dict[str, Any]:
+    resolved_root = (repo_root or shared_repo_root()).expanduser().resolve()
+    repo_prefixes = (
+        f"{resolved_root}/",
+        "/" + "workspace" + "/tab-foundry/",
+    )
+
+    def _portable(value: Any) -> Any:
+        if isinstance(value, str):
+            for prefix in repo_prefixes:
+                if value.startswith(prefix):
+                    return value[len(prefix) :]
+            return value
+        if isinstance(value, Mapping):
+            return {str(key): _portable(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [_portable(item) for item in value]
+        return value
+
+    return cast(dict[str, Any], _portable(_copy_jsonable(payload)))
+
+
 def _resolved_surface_payload(
     *,
     row: Mapping[str, Any],
@@ -284,7 +306,11 @@ def _resolved_surface_payload(
         )
     except Exception:
         record = _row_fallback_record()
-    return normalize_training_surface_record(record), training_surface_record_fingerprint(record)
+    portable_record = _portable_resolved_surface_payload(record, repo_root=repo_root)
+    return (
+        normalize_training_surface_record(portable_record),
+        training_surface_record_fingerprint(portable_record),
+    )
 
 
 def inspection_row(

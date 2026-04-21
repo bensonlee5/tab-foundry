@@ -11026,12 +11026,14 @@ deltas:
     dimension_family: model
     family: grid_sandwich_broad_ml
     binary_applicable: false
-    description: Share one grid mixer layer across eight recurrent refinement steps.
+    description: Share one grid mixer layer across eight recurrent refinement steps
+      as a full-shared-layer efficiency baseline.
     upstream_delta: Inspired by recurrent/refinement-style transformer computation,
       where repeated shared computation can improve iterative reasoning without adding
       distinct layer parameters.
     expected_effect: May improve grid reasoning if repeated row/column refinement
-      is more useful than the control's four independent grid mixer layers.
+      is more useful than the control's four independent grid mixer layers, but
+      interpret any quality change alongside the smaller parameter count.
     adequacy_knobs:
     - isolated `grid_recurrence_steps=8` change only
     - '`sandwich_layers=4` remains configured but the recurrent core uses one shared layer'
@@ -11051,6 +11053,74 @@ deltas:
       model:
         grid_recurrence_steps: 8
     default_next_action: Execute against the promoted TF-RD-026 control replay.
+    applicability_guards: []
+  delta_tf_rd_026_grid_repeat_candidate_1_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Blocked placeholder for the top contiguous grid-core repeat candidate
+      selected by the checkpoint perturbation diagnostic.
+    upstream_delta: Uses checkpoint-time ablation/repeat evidence to choose a localized
+      recurrent grid-core chunk before training another architecture row.
+    expected_effect: Should preserve the full four-layer grid-core parameter count
+      while adding repeated compute only around the best diagnostic chunk.
+    adequacy_knobs:
+    - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
+      chunks against row `01`
+    - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
+    - add only the selected chunk-repeat training gate after the diagnostic selects
+      a concrete chunk
+    parameter_adequacy_policy:
+      default_plan:
+      - Fill in the selected contiguous chunk from the diagnostic ranking.
+      - Execute only after row `01` has a local checkpoint and the diagnostic artifacts
+        are attached to the sweep evidence.
+      default_negative_decision: defer
+      reject_requires:
+      - diagnostic_selected_chunk
+      - parameter_count_matches_control
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: null
+    default_next_action: Run the grid-core perturbation diagnostic, then replace this
+      placeholder with the top selected repeat chunk before execution.
+    applicability_guards: []
+  delta_tf_rd_026_grid_repeat_candidate_2_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Blocked placeholder for the second contiguous grid-core repeat candidate
+      selected by the checkpoint perturbation diagnostic.
+    upstream_delta: Uses checkpoint-time ablation/repeat evidence to choose a second
+      localized recurrent grid-core chunk only if the diagnostic shows multiple
+      plausible regions.
+    expected_effect: Should preserve the full four-layer grid-core parameter count
+      while testing whether the runner-up localized repeat is robust.
+    adequacy_knobs:
+    - blocked until `research grid-core perturb-checkpoint` ranks contiguous repeat
+      chunks against row `01`
+    - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
+    - skip this row if the diagnostic yields only one credible repeat candidate
+    parameter_adequacy_policy:
+      default_plan:
+      - Fill in the second selected contiguous chunk only if the diagnostic ranking
+        warrants it.
+      - Execute after the top candidate unless the diagnostic shows a clear tie.
+      default_negative_decision: defer
+      reject_requires:
+      - diagnostic_selected_chunk
+      - parameter_count_matches_control
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: null
+    default_next_action: Keep blocked unless the perturbation diagnostic surfaces
+      a second credible repeat chunk.
     applicability_guards: []
   delta_tf_rd_026_grid_hc_swiglu_combo_v1:
     dimension_family: model

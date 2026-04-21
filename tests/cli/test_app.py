@@ -41,6 +41,7 @@ import tab_foundry.cli.research_adequacy as research_adequacy_cli_module
 import tab_foundry.cli.research_diff as research_diff_cli_module
 import tab_foundry.cli.research_execute as research_execute_cli_module
 import tab_foundry.cli.research_graph as research_graph_cli_module
+import tab_foundry.cli.research_grid_core as research_grid_core_cli_module
 import tab_foundry.cli.research_inspect as research_inspect_cli_module
 import tab_foundry.cli.research_promote as research_promote_cli_module
 import tab_foundry.cli.research_summarize as research_summarize_cli_module
@@ -654,6 +655,51 @@ DISPATCH_CASES = (
         DispatchCase(
             argv=(
                 "research",
+                "grid-core",
+                "perturb-checkpoint",
+                "--checkpoint",
+                "/tmp/best.pt",
+                "--benchmark-manifest-path",
+                "/tmp/manifest.parquet",
+                "--out-dir",
+                "/tmp/grid-core",
+                "--device",
+                "cpu",
+                "--repeat-count",
+                "2",
+                "--mode",
+                "ablate_chunk",
+                "--mode",
+                "repeat_chunk",
+                "--json",
+            ),
+            module=research_grid_core_cli_module,
+            attribute="_perturb_checkpoint_command",
+            fields={
+                "checkpoint": _path_attr("checkpoint"),
+                "benchmark_manifest_path": _path_attr("benchmark_manifest_path"),
+                "out_dir": _path_attr("out_dir"),
+                "device": _str_attr("device"),
+                "repeat_count": _int_attr("repeat_count"),
+                "mode": _list_attr("mode"),
+                "json_mode": _bool_attr("json_mode"),
+            },
+            expected={
+                "checkpoint": "/tmp/best.pt",
+                "benchmark_manifest_path": "/tmp/manifest.parquet",
+                "out_dir": "/tmp/grid-core",
+                "device": "cpu",
+                "repeat_count": 2,
+                "mode": ["ablate_chunk", "repeat_chunk"],
+                "json_mode": True,
+            },
+        ),
+        id="research-grid-core-perturb-checkpoint",
+    ),
+    pytest.param(
+        DispatchCase(
+            argv=(
+                "research",
                 "adequacy",
                 "pilot",
                 "--adequacy-id",
@@ -1090,11 +1136,14 @@ def test_cli_groups_register_expected_commands() -> None:
     assert isinstance(diagnose_group, click.Group)
     assert _command_names(diagnose_group) == ["bounce"]
 
-    assert _command_names(research_group.GROUP) == ["adequacy", "scaling", "sweep"]
+    assert _command_names(research_group.GROUP) == ["adequacy", "grid-core", "scaling", "sweep"]
     research_ctx = click.Context(research_group.GROUP)
     adequacy_group = research_group.GROUP.get_command(research_ctx, "adequacy")
     assert isinstance(adequacy_group, click.Group)
     assert _command_names(adequacy_group) == ["finalize", "pilot"]
+    grid_core_group = research_group.GROUP.get_command(research_ctx, "grid-core")
+    assert isinstance(grid_core_group, click.Group)
+    assert _command_names(grid_core_group) == ["perturb-checkpoint"]
     scaling_group = research_group.GROUP.get_command(research_ctx, "scaling")
     assert isinstance(scaling_group, click.Group)
     assert _command_names(scaling_group) == ["audit", "backfill-validation", "fit", "inspect"]

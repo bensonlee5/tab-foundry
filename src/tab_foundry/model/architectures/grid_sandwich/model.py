@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any, cast
 
 import torch
@@ -53,6 +54,19 @@ _GRID_FFN_SWIGLU = "swiglu"
 _GRID_HYPER_STREAMS = 2
 _DIFFERENTIAL_ATTENTION_LAMBDA_INIT = 0.1
 _SWIGLU_HIDDEN_MULTIPLE = 8
+_GRID_INTERVENTION_NONE = "none"
+_GRID_INTERVENTION_ABLATE_CHUNK = "ablate_chunk"
+_GRID_INTERVENTION_REPEAT_CHUNK = "repeat_chunk"
+
+
+@dataclass(frozen=True, slots=True)
+class GridCoreIntervention:
+    """Eval-only grid-core layer intervention for checkpoint diagnostics."""
+
+    mode: str = _GRID_INTERVENTION_NONE
+    start_layer: int | None = None
+    end_layer: int | None = None
+    repeat_count: int = 2
 
 
 def _round_up_to_multiple(value: int, multiple: int) -> int:
@@ -639,6 +653,7 @@ class GridSandwichClassifier(nn.Module):
 
         self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
+        self._grid_core_intervention = GridCoreIntervention()
         self._fourier_position_cache: dict[
             tuple[int, int, torch.device, torch.dtype],
             torch.Tensor,
@@ -658,6 +673,60 @@ class GridSandwichClassifier(nn.Module):
                 f"got {loss_surface!r}"
             )
         self.loss_surface = normalized
+
+    def clear_grid_core_intervention(self) -> None:
+        """Clear eval-only grid-core perturbations."""
+
+        self._grid_core_intervention = GridCoreIntervention()
+
+    def set_grid_core_intervention(
+        self,
+        *,
+        mode: str,
+        start_layer: int | None = None,
+        end_layer: int | None = None,
+        repeat_count: int = 2,
+    ) -> None:
+        """Set an eval-only contiguous grid-layer perturbation."""
+
+        normalized_mode = str(mode).strip().lower()
+        if normalized_mode == _GRID_INTERVENTION_NONE:
+            self.clear_grid_core_intervention()
+            return
+        if normalized_mode not in {
+            _GRID_INTERVENTION_ABLATE_CHUNK,
+            _GRID_INTERVENTION_REPEAT_CHUNK,
+        }:
+            raise ValueError(
+                "grid core intervention mode must be one of "
+                f"{[_GRID_INTERVENTION_NONE, _GRID_INTERVENTION_ABLATE_CHUNK, _GRID_INTERVENTION_REPEAT_CHUNK]}, "
+                f"got {mode!r}"
+            )
+        if self.grid_recurrence_steps is not None:
+            raise ValueError(
+                "grid core interventions require a non-recurrent grid_sandwich checkpoint "
+                "with distinct grid mixer layers"
+            )
+        if start_layer is None or end_layer is None:
+            raise ValueError("grid core interventions require start_layer and end_layer")
+        start = int(start_layer)
+        end = int(end_layer)
+        layer_count = len(self.grid_layers)
+        if start < 0 or end < start or end >= layer_count:
+            raise ValueError(
+                "grid core intervention layer range must satisfy "
+                f"0 <= start_layer <= end_layer < {layer_count}, "
+                f"got start_layer={start}, end_layer={end}"
+            )
+        repeats = int(repeat_count)
+        if normalized_mode == _GRID_INTERVENTION_REPEAT_CHUNK and repeats <= 0:
+            raise ValueError("repeat_chunk grid core interventions require repeat_count > 0")
+        self._grid_core_intervention = GridCoreIntervention(
+            mode=normalized_mode,
+            start_layer=start,
+            end_layer=end,
+            repeat_count=repeats,
+        )
 
     def _apply_activation_checkpoint(
         self,
@@ -997,6 +1066,40 @@ class GridSandwichClassifier(nn.Module):
         )
         return mixed_streams.transpose(1, 2).contiguous()
 
+    def _grid_core_layer_indices(self) -> tuple[int, ...]:
+        intervention = self._grid_core_intervention
+        if intervention.mode == _GRID_INTERVENTION_NONE:
+            return tuple(range(self.grid_core_iterations))
+        if self.grid_recurrence_steps is not None:
+            raise RuntimeError("grid core interventions are not supported for recurrent checkpoints")
+        start = int(cast(int, intervention.start_layer))
+        end = int(cast(int, intervention.end_layer))
+        if intervention.mode == _GRID_INTERVENTION_ABLATE_CHUNK:
+            return tuple(
+                index
+                for index in range(len(self.grid_layers))
+                if index < start or index > end
+            )
+        if intervention.mode == _GRID_INTERVENTION_REPEAT_CHUNK:
+            before = tuple(range(0, start))
+            chunk = tuple(range(start, end + 1))
+            after = tuple(range(end + 1, len(self.grid_layers)))
+            repeated = tuple(
+                layer_index
+                for _repeat_index in range(int(intervention.repeat_count))
+                for layer_index in chunk
+            )
+            return before + repeated + after
+        raise RuntimeError(f"unsupported grid core intervention mode: {intervention.mode!r}")
+
+    def _grid_core_layer(self, logical_index: int) -> _GridMixerLayer:
+        return cast(
+            _GridMixerLayer,
+            self.grid_layers[0]
+            if self.grid_recurrence_steps is not None
+            else self.grid_layers[int(logical_index)],
+        )
+
     def _pre_perceiver_cell_mixer(self, feature_cells: torch.Tensor) -> torch.Tensor:
         return _feature_flow.pre_perceiver_cell_mixer(self, feature_cells)
 
@@ -1075,13 +1178,8 @@ class GridSandwichClassifier(nn.Module):
         hidden = self._label_conditioned_cells(feature_state.feature_cells, y_train=y_train)
         if self.grid_residual_mode == _GRID_RESIDUAL_HYPER_CONNECTION_LITE:
             streams = self._initialize_grid_streams(hidden)
-            for index in range(self.grid_core_iterations):
-                layer = cast(
-                    _GridMixerLayer,
-                    self.grid_layers[0]
-                    if self.grid_recurrence_steps is not None
-                    else self.grid_layers[index],
-                )
+            for index in self._grid_core_layer_indices():
+                layer = self._grid_core_layer(index)
                 streams = self._row_feature_self_attention_streams(layer, streams)
                 self.trace_activation(f"post_grid_row_mixer_{index}", streams.mean(dim=3))
                 streams = self._column_row_isab_streams(layer, streams)
@@ -1089,13 +1187,8 @@ class GridSandwichClassifier(nn.Module):
             hidden = streams.mean(dim=3)
             self.trace_activation("post_grid_hyper_connection_collapse", hidden)
         else:
-            for index in range(self.grid_core_iterations):
-                layer = cast(
-                    _GridMixerLayer,
-                    self.grid_layers[0]
-                    if self.grid_recurrence_steps is not None
-                    else self.grid_layers[index],
-                )
+            for index in self._grid_core_layer_indices():
+                layer = self._grid_core_layer(index)
                 hidden = self._row_feature_self_attention(layer.row_mixer, hidden)
                 self.trace_activation(f"post_grid_row_mixer_{index}", hidden)
                 hidden = self._column_row_isab(layer.column_mixer, hidden)
