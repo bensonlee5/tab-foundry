@@ -124,7 +124,7 @@ flowchart LR
 
     task["Observed task<br/>train rows, test rows, labels"]:::state
     evidence["Cell evidence<br/>preserve each row-feature value"]:::state
-    grid["Explicit row-feature grid<br/>[row, feature] states stay structured"]:::state
+    grid["Explicit row-feature grid<br/>row-feature states stay structured"]:::state
     rows["Row-wise feature mixing<br/>what does this observation say?"]:::state
     columns["Column-wise row mixing<br/>how does this feature behave across rows?"]:::state
     pool["Test-row bundle pooling<br/>ask over each test row's feature set"]:::state
@@ -134,7 +134,7 @@ flowchart LR
     evidence -->|attach row/column positions and feature types| grid
     grid -->|repeat per layer| rows
     rows -->|repeat per layer| columns
-    columns -->|preserve [row, feature] layout| grid
+    columns -->|preserve row-feature layout| grid
     grid -->|slice test rows| pool
     pool -->|one state per test row| logits
 ```
