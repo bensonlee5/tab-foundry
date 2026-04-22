@@ -74,7 +74,8 @@ into the canonical library modules.
 - `src/tab_foundry/model/architectures/`: the current active-plus-reference
   model surface:
   - `tabfoundry_simple`: the frozen exact nanoTabPFN-style benchmark anchor
-  - `grid_sandwich`: the primary classification architecture target
+  - `grid_sandwich`: the primary classification architecture target, currently
+    carried by the TF-RD-026 row `10` recurrent SwiGLU grid core
   - `tabfoundry_sandwich`: the previous carried in-family comparison surface
   - `tabfoundry_staged`: the historical staged reference family retained for
     compatibility and comparison
@@ -206,8 +207,10 @@ not absorb new orchestration logic.
   `anchor.py`) instead of recreating wrapper or barrel modules, and row-level
   helper logic should stay factored under the dedicated sweep helper modules
   instead of regrowing a monolithic `row_execution.py`.
-- `grid_sandwich` is the active architecture surface. `tabfoundry_sandwich`
-  remains the previous carried comparison surface. Shared logic should continue
+- `grid_sandwich` is the active architecture surface. Its current carried
+  workstation shape is the TF-RD-026 row `10` recurrent SwiGLU grid core.
+  `tabfoundry_sandwich` remains the previous carried comparison surface.
+  Shared logic should continue
   to move into `model/components/`, `model/spec.py`, and family-neutral helpers
   instead of reintroducing parallel model pathways.
 - The active system-delta aliases are generated views. Docs and scripts should

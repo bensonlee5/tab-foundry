@@ -5,9 +5,9 @@ model family, and the current grid/sandwich forward paths.
 
 The repo now has one carried architecture-development lane:
 
-- `grid_sandwich`: the current classification architecture anchor after the
-  April 20-21, 2026 grid-preserving follow-on beat the matched `144x4`
-  sandwich anchor on the medium multiclass benchmark
+- `grid_sandwich`: the current classification architecture anchor after
+  TF-RD-026 row `10` promoted a two-layer recurrent SwiGLU grid core on
+  April 22, 2026
 
 It also keeps three comparison lanes plus one sidecar follow-on lane:
 
@@ -16,9 +16,8 @@ It also keeps three comparison lanes plus one sidecar follow-on lane:
 - `tabfoundry_simple`: the frozen PFN-style control
 - `tabfoundry_staged`: the historical row-first reference line and benchmark
   comparison surface
-- `routed_sandwich`: a sidecar routed-residual / evidence-bank follow-on for
-  testing residual-path and token-budget hypotheses against the carried
-  sandwich surface
+- `routed_sandwich`: a sidecar routed-residual / evidence-bank follow-on kept
+  as negative evidence rather than the active development path
 
 Regression is still deferred. The active model surface is classification-only.
 
@@ -57,62 +56,42 @@ Key code paths:
   direct head, but replaces the latent/query residual path with two routed
   streams and uses learned row, column, and evidence-bank context tokens.
 - `grid_sandwich` keeps the encoded `[row, feature]` grid explicit through
-  alternating row-wise and column-wise mixers, then pools each test-row feature
-  bundle directly.
+  alternating row-wise and column-wise mixers. The current anchor uses two
+  distinct grid-mixer layers, cycles them four times for eight total
+  applications, then pools each test-row feature bundle directly.
 
-## Active TF-RD-009 Carried Surface
+## Previous TF-RD-009 Comparison Surface
 
-The generic sandwich defaults below are not the current repo architecture
-anchor. The active Muon training-dynamics study under
-`tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1` carries one fixed
-`tabfoundry_sandwich` geometry while testing optimizer and batch transfer laws:
+The previous matched in-family comparison contract was the `144x4`
+`tabfoundry_sandwich` surface inherited by the Muon training-dynamics study
+under `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`. It used the
+same medium v6 corpus and OpenML medium benchmark surface, which is why the
+grid rows can be read against the older sandwich line.
 
-- geometry: `144x4` (`d_icl=144`, `sandwich_layers=4`)
-- architecture knobs held fixed:
-  - `sandwich_latents=24`
-  - `sandwich_heads=1`
-  - `sandwich_ff_expansion=2`
-  - `sandwich_summary_tokens_per_axis=3`
-  - `sandwich_self_attention_per_cross=4`
-  - `sandwich_pre_row_attention_layers=1`
-  - `sandwich_pre_column_attention_layers=1`
-  - `sandwich_pre_column_inducing_tokens=16`
-- non-geometry surface held fixed:
-  - `input_normalization=train_zscore_clip`
-  - `feature_type_conditioning=film`
-  - `floating_likelihood=single_gaussian`
-  - `integer_likelihood=hybrid_mixture`
-  - corrected anchor benchmark `openml_classification_medium_v1`
-  - corpus `tf_rd_010_dagzoo_medium_control_curated_v6`
+Interpret this as historical comparison context for the current grid anchor,
+not as the active default. The broader Muon winner context remains relevant for
+scaling, but the live architecture lane is now grid-preserving.
 
-Interpret this as the matched in-family comparison contract for the grid
-promotion: `128x2` remains the formal in-family baseline lineage, `264x6`
-remains broader Muon planning context, but the grid sidecar promotion is read
-against the strict shared-anchor `144x4` LMO transfer surface. The earlier
-screen-based transfer sweeps remain preserved superseded context only.
+## Current Grid Anchor
 
-## Grid Anchor Promotion Results
-
-The April 20-21, 2026 routed/grid sidecar benchmark ran the three follow-on rows
-against the same `144x4` / `tf_rd_010_dagzoo_medium_control_curated_v6` medium
-classification surface used for the carried LMO transfer anchor. The comparison
-anchor for this sidecar read is the imported `144x4` low-batch row at
-`final_log_loss=0.4914031270`; the model surface uses `head_hidden_dim=96`, as
-recorded in the completed `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
-queue rows.
+The current carried architecture is TF-RD-026 row `10`,
+`delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1`, registered as
+`sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+It runs on the same medium v6 corpus, Muon optimizer, 5000-step budget, and
+OpenML medium benchmark surface as the control replay.
 
 | Row | Architecture | Final log loss | Final Brier | Final ROC AUC | Params | Interpretation |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| `routed_control` | `routed_sandwich`, direct cell bypass on | `0.5120092736` | `0.3123519111` | `0.7705390628` | `5,086,489` | Stable, but worse than the `144x4` anchor by `+0.0206061466` log loss. |
-| `routed_rebalance` | `routed_sandwich`, evidence-bank rebalance | `0.5661516574` | `0.3523550294` | `0.7115569578` | `5,086,489` | Stable enough to finish, but clearly worse than both routed control and the anchor. |
-| `grid_pilot` | `grid_sandwich` | `0.4221534937` | `0.2568076367` | `0.8111876562` | `3,550,522` | Promoted carried architecture anchor; beats the `144x4` anchor by `-0.0692496333` log loss with fewer parameters. |
+| `01_control_replay` | four distinct GELU grid layers | `0.4223376775` | `0.2575211571` | `0.8118131392` | `3,550,522` | Replayed the previous executable grid control. |
+| `04_swiglu_ffn` | four distinct SwiGLU grid layers | `0.4208939494` | `0.2560712825` | `0.8116368786` | `3,552,058` | Positive standalone FFN-capacity signal. |
+| `10_recurrent_8_unique2_swiglu` | two distinct SwiGLU grid layers cycled four times | `0.4181767299` | `0.2551413012` | `0.8132547851` | `2,205,754` | Promoted anchor; best final log loss and lower parameter count than the control. |
+| `11_recurrent_8_unique4_swiglu` | four distinct SwiGLU grid layers cycled twice | `0.4183364953` | `0.2553847774` | `0.8142223497` | `3,552,058` | Close comparison row with slightly better ROC AUC but worse final log loss and more parameters. |
 
-The immediate read is that the routed residual/evidence-bank hypothesis does
-not beat the carried 144x4 surface in this first implementation, while the
-grid-preserving model is the only sidecar family with benchmark-positive signal.
-Treat `grid_sandwich` as the carried repo architecture anchor. The next
-guardrail is replication under matched runtime controls and comparison against
-the broader Muon winner context, not another routed-control rerun.
+The read is that the useful TF-RD-026 change is not generic recurrent sharing
+alone. The winning shape preserves multiple learned grid transformations, adds
+gated cell-token FFNs, and spends extra compute by cycling a compact two-layer
+core. The one-layer recurrent baseline was smaller but generalized worse, and
+the four-layer recurrent variant was close but less efficient.
 
 ## Intent Map
 
@@ -132,8 +111,8 @@ flowchart LR
 
     task -->|normalize and encode raw cells| evidence
     evidence -->|attach row/column positions and feature types| grid
-    grid -->|repeat per layer| rows
-    rows -->|repeat per layer| columns
+    grid -->|cycle recurrent core| rows
+    rows -->|row then column update| columns
     columns -->|preserve row-feature layout| grid
     grid -->|slice test rows| pool
     pool -->|one state per test row| logits
@@ -156,8 +135,9 @@ The live design combines:
   column-wise ISAB row mixing
 - train-label conditioning added only to train-row feature tokens, plus a
   train/test row-role embedding
-- a grid core that keeps hidden states shaped as `[B, R, C, d_icl]` and
-  alternates row-wise feature self-attention with column-wise row ISAB mixing
+- a recurrent grid core that keeps hidden states shaped as `[B, R, C, d_icl]`,
+  alternates row-wise feature self-attention with column-wise row ISAB mixing,
+  and applies two distinct SwiGLU grid-mixer layers four times each
 - a learned test-row pool query that attends over each test row's feature
   bundle directly before the `DirectMulticlassHead`
 
@@ -166,6 +146,8 @@ Mental model:
 - cell grid = the primary high-bandwidth evidence surface
 - row mixer = per-observation feature interactions
 - column mixer = per-feature cross-row evidence sharing
+- recurrent core = eight row/column refinement applications through two learned
+  grid transformations
 - readout = one learned query per test row attending over that row's feature
   bundle
 
@@ -206,7 +188,7 @@ flowchart TB
     labels(["Train-label conditioning + row-role embedding<br/>test-row label contribution is zeroed"]):::embed
     conditioned["label-conditioned grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
 
-    subgraph grid_core["Grid core × sandwich_layers"]
+    subgraph grid_core["Recurrent grid core: 2 unique layers × 4 cycles"]
         row_mix[[Row mixer<br/>self-attention over features within each row]]:::attn
         row_mixed["row-mixed grid<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
         col_mix[[Column mixer<br/>ISAB over rows within each feature]]:::attn
@@ -227,7 +209,7 @@ flowchart TB
     premixed --> labels --> conditioned
     ytrain --> labels
     conditioned --> row_mix
-    col_mixed -->|next layer input| row_mix
+    col_mixed -->|next recurrent application| row_mix
     col_mixed -->|slice test rows| test_grid --> pool --> test_rows --> head --> logits
 ```
 
@@ -237,9 +219,11 @@ Read the diagram as:
 - the optional pre-mixer is still a shallow row/column cell-grid mixer
 - train labels are added to train rows only; test rows receive row-role context
   but no label value
-- every grid-core layer preserves `[B, R, C, d_icl]`
+- every grid-core application preserves `[B, R, C, d_icl]`
 - row mixing attends across features inside one row
 - column mixing attends across rows inside one feature using inducing tokens
+- the current anchor cycles two unique grid-mixer layers for eight total
+  row/column applications
 - readout slices test rows and pools each row's feature bundle directly
 
 ## Forward-Pass Shape Trace
@@ -255,47 +239,41 @@ Read the diagram as:
 | Label conditioning | [$B$, $R$, $C$, `d_icl`] + `y_train` | [$B$, $R$, $C$, `d_icl`] | train labels are added only to train-row feature tokens; train/test row-role embedding is added to all rows |
 | Row mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | self-attention over features within each row |
 | Column mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | ISAB over rows within each feature column |
-| Grid core | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | repeats row mixer then column mixer for `sandwich_layers` layers |
+| Grid core | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | current anchor cycles two unique row/column grid-mixer layers for eight applications |
 | Test-row slice | [$B$, $R$, $C$, `d_icl`] | [$B$, $N_{te}$, $C$, `d_icl`] | keeps only test rows after the grid core |
 | Test-row pool | [$B$, $N_{te}$, $C$, `d_icl`] | [$B$, $N_{te}$, `d_icl`] | a learned row-pool query cross-attends to each test-row feature bundle |
 | Direct head | [$B$, $N_{te}$, `d_icl`] | [$B$, $N_{te}$, `many_class_base`] | small-class classifier head |
 
-## Current Grid Defaults
+## Current Anchor Config
 
-Resolved grid defaults come from `src/tab_foundry/model/spec.py`. Several
-fields retain `sandwich_*` names because the grid family intentionally reuses
-the shared tokenizer, pre-mixer, attention blocks, and config surface where the
-semantics still match.
+`configs/experiment/cls_workstation_grid_sandwich.yaml` is the current
+architecture-development surface. Several fields retain `sandwich_*` names
+because the grid family reuses shared tokenizer, pre-mixer, attention, and
+runtime wiring.
 
-| Field | Default | Meaning |
+| Field | Anchor value | Meaning |
 | --- | --- | --- |
-| `model.arch` | `grid_sandwich` in the repo default experiment | choose the grid-preserving family |
-| `d_icl` | `60` | shared working width |
-| `input_normalization` | `none` | shared train/test normalization mode |
+| `model.arch` | `grid_sandwich` | grid-preserving classification family |
+| `d_icl` | `144` | cell-token working width |
+| `input_normalization` | `train_zscore_clip` | shared train/test normalization |
 | `many_class_base` | `10` | direct-head output width and current small-class ceiling |
 | `head_hidden_dim` | `96` | hidden width inside `DirectClassifierHead` |
-| `pre_encoder_clip` | `null` | optional finite-value clip before encoding |
-| `norm_type` | `layernorm` | only supported global norm for grid today |
-| `sandwich_layers` | `2` | repeated row/column grid-mixer layers |
-| `sandwich_heads` | `4` | attention heads across grid blocks |
-| `sandwich_ff_expansion` | `2` | FFN expansion factor across grid blocks |
-| `sandwich_activation` | `gelu` | grid-core FF activation; `rational` selects the local version-A `5/4` GELU-initialized rational |
-| `sandwich_block_norm` | `layernorm` | grid-core pre-norm module; `none` disables those block-local norms while global `norm_type` stays `layernorm` |
-| `sandwich_packed_attention` | `false` | opt-in packed-projection SDPA path for speedrun experiments; default preserves the prior attention path |
-| `grid_residual_mode` | `prenorm` | default pre-norm residual topology; `hyper_connection_lite` keeps two residual streams per cell token inside the grid core, width-mixes before each row/column mixer, depth-mixes after it, and collapses the streams by mean before test-row pooling |
-| `grid_attention_mode` | `standard` | default shared attention blocks; `differential` uses two query/key maps and computes `softmax(Q1K1^T)V - lambda * softmax(Q2K2^T)V` with one learned scalar `lambda` initialized to `0.1` per grid attention block |
-| `grid_ffn_mode` | `gelu` | default FFN path preserves `sandwich_activation`; `swiglu` replaces grid-core FFNs with a parameter-matched SwiGLU hidden width of `round_up(ceil((2/3) * sandwich_ff_expansion * d_icl), 8)` |
-| `grid_recurrence_steps` | `null` | default uses `sandwich_layers` distinct grid layers; a positive value runs that many recurrent row/column refinements |
-| `grid_recurrence_unique_layers` | `null` | recurrent cycle size; null shares one grid layer when `grid_recurrence_steps` is set, while a positive value cycles that many distinct grid layers |
+| `sandwich_layers` | `4` | historical control depth; the recurrent anchor uses two unique grid layers cycled across eight applications |
+| `sandwich_heads` | `1` | attention heads across row mixers, column mixers, and row pooling |
+| `sandwich_ff_expansion` | `2` | FFN expansion factor before the SwiGLU gate sizing rule |
 | `sandwich_pre_row_attention_layers` | `1` | pre-grid row-wise feature self-attention blocks |
 | `sandwich_pre_column_attention_layers` | `1` | pre-grid column-wise ISAB row mixers |
 | `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in pre-column and grid-column ISAB blocks |
-| `feature_type_conditioning` | `film` | modulate encoded cell states by feature type after the shared feature encoder |
-| `sandwich_latents` | unsupported | latent-bank knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
-| `sandwich_summary_tokens_per_axis` | unsupported | summary-token knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
-| `sandwich_self_attention_per_cross` | unsupported | latent-self-attention knob from `tabfoundry_sandwich`; rejected when explicitly supplied to `grid_sandwich` |
-| `floating_likelihood` | unsupported | generative likelihood lane is not active for `grid_sandwich` |
-| `integer_likelihood` | unsupported | generative likelihood lane is not active for `grid_sandwich` |
+| `sandwich_packed_attention` | `true` | packed-projection attention path used by the Muon runtime surface |
+| `grid_ffn_mode` | `swiglu` | gated FFN path inside grid-core row and column mixers |
+| `grid_recurrence_steps` | `8` | total row/column grid-core applications |
+| `grid_recurrence_unique_layers` | `2` | two distinct grid-mixer layers, cycled four times |
+| `feature_type_conditioning` | `film` | feature-type modulation after the shared feature encoder |
+| `runtime.activation_checkpointing` | `false` | disabled for the current recurrent SwiGLU anchor because the checkpointed path trips a TorchDynamo tracing assertion |
+
+Residuals and attention remain the standard prenorm/attention implementation.
+The experiment-only mechanisms that did not win TF-RD-026 are documented in the
+sweep artifacts rather than in this live architecture reference.
 
 ## Feature-Type Metadata Contract
 
@@ -345,23 +323,10 @@ staged family.
     `y_train [B,N_tr]`
 - train rows: at least one training row is required
 - labels: at least one training label is required
-- global norm family: only `layernorm` is accepted through `norm_type`
-- grid core block norm: `sandwich_block_norm` may be `layernorm` or `none`
-- grid core FF activation: `sandwich_activation` may be `gelu` or `rational`
-- activation checkpointing: supported and opt-in
+- normalization: the anchor uses LayerNorm pre-norm blocks
+- activation checkpointing: supported, but disabled for the current recurrent
+  SwiGLU anchor
 - activation tracing: supported and opt-in
-
-Rejected staged-only fields:
-
-- `stage`
-- `stage_label`
-- `module_overrides`
-
-Rejected inherited sandwich-only fields:
-
-- `sandwich_latents`
-- `sandwich_summary_tokens_per_axis`
-- `sandwich_self_attention_per_cross`
 
 ## Parameterization Notes
 
@@ -371,4 +336,5 @@ Rejected inherited sandwich-only fields:
   zeroed for test rows before the grid core
 - row-role embeddings distinguish train and test rows without leaking test
   labels
-- the encoded cell grid is computed once and preserved through all grid layers
+- the encoded cell grid is computed once and preserved through all grid-core
+  applications

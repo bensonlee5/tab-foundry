@@ -15,10 +15,14 @@ model:
   sandwich_self_attention_per_cross: null
   floating_likelihood: null
   integer_likelihood: null
+  grid_ffn_mode: swiglu
+  grid_recurrence_steps: 8
+  grid_recurrence_unique_layers: 2
 
 runtime:
   output_dir: outputs/cls_workstation_grid_sandwich
   max_steps: 5000
+  activation_checkpointing: false
 
 schedule:
   stages:

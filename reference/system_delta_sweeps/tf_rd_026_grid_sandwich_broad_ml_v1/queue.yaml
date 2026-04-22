@@ -3,15 +3,10 @@ sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_026_grid_control_replay_v1
-  status: ready
-  rationale: Establish a local executable control replay for the grid sandwich surface
-    before evaluating broad-ML architecture changes.
-  hypothesis: Replaying the current `cls_workstation_grid_sandwich` surface should
-    reproduce the carried medium anchor closely enough to serve as the sweep-local
-    anchor for rows `02` through `05`.
-  anchor_delta: Replays the default grid sandwich surface with `d_icl=144`,
-    `sandwich_layers=4`, `sandwich_heads=1`, Muon, medium v6 corpus, and 5000
-    prior-dump steps.
+  status: completed
+  rationale: Establish a local executable control replay for the grid sandwich surface before evaluating broad-ML architecture changes.
+  hypothesis: Replaying the original pre-TF-RD-026 `cls_workstation_grid_sandwich` surface should reproduce the carried medium anchor closely enough to serve as the sweep-local anchor for rows `02` through `05`.
+  anchor_delta: Replays the default grid sandwich surface with `d_icl=144`, `sandwich_layers=4`, `sandwich_heads=1`, Muon, medium v6 corpus, and 5000 prior-dump steps.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -91,254 +86,44 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Execute this row first with `--promote-first-executed-row-to-anchor`.
-  - Treat this as the local anchor replay, then compare its final log loss against
-    the carried `0.4221534937` reference before interpreting candidate gains.
+  - Historical execution row; this was the local anchor replay before row `10` was promoted.
+  - Treat this as the pre-TF-RD-026 grid control when interpreting candidate gains.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_01_delta_tf_rd_026_grid_control_replay_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - Carried checkpoint is not locally executable, so row `01` replaces it as the
-    active sweep anchor only after successful promotion.
-  next_action: Execute row `01` with `--promote-first-executed-row-to-anchor`.
-  notes: []
-  dynamic_model_overrides: null
-  reuse_train_artifact: null
-  screen_metrics: null
-  benchmark_metrics: null
-  parent_delta_ref: null
-- order: 7
-  delta_ref: delta_tf_rd_026_grid_repeat_candidate_1_v1
-  status: blocked
-  rationale: Train the top localized repeat chunk only after checkpoint-time ablate/repeat
-    diagnostics identify a concrete contiguous grid-core region.
-  hypothesis: A diagnostic-selected repeat chunk may improve refinement while keeping
-    the full four-layer grid-core parameter count, making it more apples-to-apples
-    than the shared one-layer recurrent baseline.
-  anchor_delta: Placeholder row; after diagnostics, set the selected chunk-repeat
-    training gate while keeping `model.grid_recurrence_steps=null` and the full
-    four distinct grid mixer layers.
-  model:
-    arch: grid_sandwich
-    d_icl: 144
-    input_normalization: train_zscore_clip
-    many_class_base: 10
-    head_hidden_dim: 96
-    sandwich_latents: null
-    sandwich_layers: 4
-    sandwich_heads: 1
-    sandwich_ff_expansion: 2
-    sandwich_summary_tokens_per_axis: null
-    sandwich_self_attention_per_cross: null
-    sandwich_pre_row_attention_layers: 1
-    sandwich_pre_column_attention_layers: 1
-    sandwich_pre_column_inducing_tokens: 16
-    sandwich_packed_attention: true
-    feature_type_conditioning: film
-    floating_likelihood: null
-    integer_likelihood: null
-    grid_residual_mode: prenorm
-    grid_attention_mode: standard
-    grid_ffn_mode: gelu
-    grid_recurrence_steps: null
-  data:
-    surface_label: tf_rd_010_dagzoo_medium_control
-    source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    surface_overrides:
-      source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_cosine_warmup
-    task_batch_size: 16
-    prior_dump_batch_size: 64
-    overrides:
-      optimizer:
-        name: muon
-        require_requested: true
-        weight_decay: 0.01
-        betas:
-        - 0.9
-        - 0.95
-        min_lr: 1.0e-06
-        muon_per_parameter_lr: true
-        muon_lr_scale_base: 0.2
-        muon_partition_non2d: true
-      runtime:
-        mixed_precision: bf16
-        grad_clip: 0.0
-        grad_accum_steps: 4
-        trace_activations: false
-        activation_checkpointing: true
-        eval_every: 25
-        checkpoint_every: 25
-        val_batches: 0
-        max_steps: 5000
-        loader_task_batch_cache: false
-        loader_task_batch_cache_mode: bounded_streaming
-        num_workers: auto
-        loader_pin_memory: true
-        loader_persistent_workers: false
-        loader_prefetch_factor: auto
-        non_blocking_device_transfer: true
-        compile_model: true
-        compile_backend: eager
-        compile_dynamic: true
-        compile_shape_dispatch_mode: signature_family
-        compile_shape_dispatch_max_families: 16
-        signature_family_run_length: 4
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 5000
-          lr_max: 0.001
-          lr_schedule: linear
-          warmup_ratio: 0.1
-  parameter_adequacy_plan:
-  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint
-    --repeat-count 2 --repeat-count 4` writes JSON/Markdown diagnostic artifacts.
-  - Fill in the selected contiguous repeat chunk before execution; do not use the
-    current placeholder as an executable training row.
-  execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
-  run_id: null
-  followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - Placeholder has no concrete repeat chunk until diagnostic artifacts select one.
-  next_action: Run the grid-core perturbation diagnostic after row `01` promotion.
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed as the pre-TF-RD-026 control replay; row `10` is now the promoted sweep anchor.
   notes:
-  - Candidate must preserve the full four-layer grid-core parameter count.
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_01_delta_tf_rd_026_grid_control_replay_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
-  parent_delta_ref: null
-- order: 8
-  delta_ref: delta_tf_rd_026_grid_repeat_candidate_2_v1
-  status: blocked
-  rationale: Train a second localized repeat chunk only if checkpoint diagnostics
-    show more than one credible contiguous repeat candidate.
-  hypothesis: A runner-up repeat chunk can test whether localized recurrence is robust
-    or whether the diagnostic points to a single fragile region.
-  anchor_delta: Placeholder row; after diagnostics, set the second selected chunk-repeat
-    training gate while keeping `model.grid_recurrence_steps=null` and the full
-    four distinct grid mixer layers.
-  model:
-    arch: grid_sandwich
-    d_icl: 144
-    input_normalization: train_zscore_clip
-    many_class_base: 10
-    head_hidden_dim: 96
-    sandwich_latents: null
-    sandwich_layers: 4
-    sandwich_heads: 1
-    sandwich_ff_expansion: 2
-    sandwich_summary_tokens_per_axis: null
-    sandwich_self_attention_per_cross: null
-    sandwich_pre_row_attention_layers: 1
-    sandwich_pre_column_attention_layers: 1
-    sandwich_pre_column_inducing_tokens: 16
-    sandwich_packed_attention: true
-    feature_type_conditioning: film
-    floating_likelihood: null
-    integer_likelihood: null
-    grid_residual_mode: prenorm
-    grid_attention_mode: standard
-    grid_ffn_mode: gelu
-    grid_recurrence_steps: null
-  data:
-    surface_label: tf_rd_010_dagzoo_medium_control
-    source: manifest
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-    surface_overrides:
-      source: manifest
-      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_cosine_warmup
-    task_batch_size: 16
-    prior_dump_batch_size: 64
-    overrides:
-      optimizer:
-        name: muon
-        require_requested: true
-        weight_decay: 0.01
-        betas:
-        - 0.9
-        - 0.95
-        min_lr: 1.0e-06
-        muon_per_parameter_lr: true
-        muon_lr_scale_base: 0.2
-        muon_partition_non2d: true
-      runtime:
-        mixed_precision: bf16
-        grad_clip: 0.0
-        grad_accum_steps: 4
-        trace_activations: false
-        activation_checkpointing: true
-        eval_every: 25
-        checkpoint_every: 25
-        val_batches: 0
-        max_steps: 5000
-        loader_task_batch_cache: false
-        loader_task_batch_cache_mode: bounded_streaming
-        num_workers: auto
-        loader_pin_memory: true
-        loader_persistent_workers: false
-        loader_prefetch_factor: auto
-        non_blocking_device_transfer: true
-        compile_model: true
-        compile_backend: eager
-        compile_dynamic: true
-        compile_shape_dispatch_mode: signature_family
-        compile_shape_dispatch_max_families: 16
-        signature_family_run_length: 4
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 5000
-          lr_max: 0.001
-          lr_schedule: linear
-          warmup_ratio: 0.1
-  parameter_adequacy_plan:
-  - Keep blocked unless the multi-repeat diagnostic surfaces a second credible repeat
-    chunk.
-  - Fill in the selected contiguous repeat chunk before execution; do not use the
-    current placeholder as an executable training row.
-  execution_policy: benchmark_full
-  benchmark_checkpoint_selection: all
-  run_id: null
-  followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - Placeholder has no concrete repeat chunk until diagnostic artifacts select one.
-  next_action: Keep blocked until the top candidate has been selected and reviewed.
-  notes:
-  - Candidate must preserve the full four-layer grid-core parameter count.
-  dynamic_model_overrides: null
-  reuse_train_artifact: null
-  screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4950.0
+    max_grad_norm: 2.3718594722327087
+    best_roc_auc: 0.8119767383252557
+    best_log_loss: 0.4222750922122558
+    best_brier_score: 0.2574774380387875
+    final_roc_auc: 0.8118131391744553
+    final_log_loss: 0.422337677509588
+    final_brier_score: 0.2575211571073518
+    final_minus_best_roc_auc: -0.00016359915080044196
+    final_minus_best_log_loss: 6.258529733221829e-05
+    final_minus_best_brier_score: 4.371906856431851e-05
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 6.258529733221829e-05
+    row_pool_final_window_mean_grad_norm: 0.045411934040256084
   parent_delta_ref: null
 - order: 2
   delta_ref: delta_tf_rd_026_grid_hyper_connection_lite_v1
-  status: ready
-  rationale: Test whether deeper row/column grid mixing benefits from a lightweight
-    two-stream residual topology.
-  hypothesis: Maintaining two residual streams per cell token should improve optimization
-    or representation flow through the grid core without reopening routed evidence-bank
-    behavior.
-  anchor_delta: Changes only `model.grid_residual_mode` from `prenorm` to
-    `hyper_connection_lite`.
+  status: completed
+  rationale: Test whether deeper row/column grid mixing benefits from a lightweight two-stream residual topology.
+  hypothesis: Maintaining two residual streams per cell token should improve optimization or representation flow through the grid core without reopening routed evidence-bank behavior.
+  anchor_delta: Changes only `model.grid_residual_mode` from `prenorm` to `hyper_connection_lite`.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -419,31 +204,46 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after row `01` is promoted to the active sweep anchor.
-  - Inspect train stability and final benchmark metrics before combining this with
-    any other architecture gate.
+  - Inspect train stability and final benchmark metrics before combining this with any other architecture gate.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_02_delta_tf_rd_026_grid_hyper_connection_lite_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute against the promoted row `01` sweep anchor.
-  notes: []
+  next_action: Completed against the row `01` control replay; not promoted because it was slower and did not improve enough.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_02_delta_tf_rd_026_grid_hyper_connection_lite_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4875.0
+    max_grad_norm: 2.6550280891162994
+    best_roc_auc: 0.8121334293736567
+    best_log_loss: 0.4237277926520073
+    best_brier_score: 0.2581606404418603
+    final_roc_auc: 0.8122267425074842
+    final_log_loss: 0.424088760380554
+    final_brier_score: 0.25831488804497976
+    final_minus_best_roc_auc: 9.331313382743289e-05
+    final_minus_best_log_loss: 0.0003609677285467128
+    final_minus_best_brier_score: 0.00015424760311943952
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0003609677285467128
+    delta_final_log_loss: 0.001751082870965981
+    delta_final_brier_score: 0.0007937309376279678
+    delta_final_roc_auc: 0.00041360333302886687
+    row_pool_final_window_mean_grad_norm: 0.04950133934797577
   parent_delta_ref: null
 - order: 3
   delta_ref: delta_tf_rd_026_grid_differential_attention_v1
-  status: ready
-  rationale: Test whether row and column grid attention benefit from subtractive
-    distractor suppression at fixed width, depth, and optimizer budget.
-  hypothesis: Differential attention should help if tabular grid mixing currently
-    over-attends to common-mode or noisy cross-feature distractors.
-  anchor_delta: Changes only `model.grid_attention_mode` from `standard` to
-    `differential`.
+  status: completed
+  rationale: Test whether row and column grid attention benefit from subtractive distractor suppression at fixed width, depth, and optimizer budget.
+  hypothesis: Differential attention should help if tabular grid mixing currently over-attends to common-mode or noisy cross-feature distractors.
+  anchor_delta: Changes only `model.grid_attention_mode` from `standard` to `differential`.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -524,30 +324,45 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after row `01` is promoted to the active sweep anchor.
-  - Check shape/runtime stability before reading benchmark quality because this is
-    the most attention-kernel-sensitive row.
+  - Check shape/runtime stability before reading benchmark quality because this is the most attention-kernel-sensitive row.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_03_delta_tf_rd_026_grid_differential_attention_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute against the promoted row `01` sweep anchor.
-  notes: []
+  next_action: Completed against the row `01` control replay; not promoted.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_03_delta_tf_rd_026_grid_differential_attention_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4650.0
+    max_grad_norm: 2.248025535851865
+    best_roc_auc: 0.8136782051761658
+    best_log_loss: 0.4217620809858985
+    best_brier_score: 0.25705745143776226
+    final_roc_auc: 0.8126735262571702
+    final_log_loss: 0.42200381733817094
+    final_brier_score: 0.25710660795593143
+    final_minus_best_roc_auc: -0.001004678918995694
+    final_minus_best_log_loss: 0.00024173635227242585
+    final_minus_best_brier_score: 4.9156518169168884e-05
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.00024173635227242585
+    delta_final_log_loss: -0.00033386017141706636
+    delta_final_brier_score: -0.00041454915142036253
+    delta_final_roc_auc: 0.000860387082714853
+    row_pool_final_window_mean_grad_norm: 0.04839068629751285
   parent_delta_ref: null
 - order: 4
   delta_ref: delta_tf_rd_026_grid_swiglu_ffn_v1
-  status: ready
-  rationale: Test whether gated FFN capacity improves cell-token transformations
-    under the existing grid sandwich topology.
-  hypothesis: Parameter-matched SwiGLU should improve the grid core if the current
-    GELU FFNs are limiting per-cell feature transformations rather than attention
-    routing.
+  status: completed
+  rationale: Test whether gated FFN capacity improves cell-token transformations under the existing grid sandwich topology.
+  hypothesis: Parameter-matched SwiGLU should improve the grid core if the current GELU FFNs are limiting per-cell feature transformations rather than attention routing.
   anchor_delta: Changes only `model.grid_ffn_mode` from `gelu` to `swiglu`.
   model:
     arch: grid_sandwich
@@ -632,28 +447,43 @@ rows:
   - If this row is clean and row `02` is also clean, unblock the combined row `06`.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_04_delta_tf_rd_026_grid_swiglu_ffn_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute against the promoted row `01` sweep anchor.
-  notes: []
+  next_action: Completed against the row `01` control replay; useful standalone evidence but superseded by row `10`.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_04_delta_tf_rd_026_grid_swiglu_ffn_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4925.0
+    max_grad_norm: 2.1841440466726674
+    best_roc_auc: 0.8117332471282894
+    best_log_loss: 0.42073329740847476
+    best_brier_score: 0.2559393828040104
+    final_roc_auc: 0.8116368785624545
+    final_log_loss: 0.42089394936176894
+    final_brier_score: 0.25607128251575345
+    final_minus_best_roc_auc: -9.63685658349478e-05
+    final_minus_best_log_loss: 0.00016065195329417747
+    final_minus_best_brier_score: 0.00013189971174304427
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.00016065195329417747
+    delta_final_log_loss: -0.0014437281478190678
+    delta_final_brier_score: -0.0014498745915983435
+    delta_final_roc_auc: -0.00017626061200082255
+    row_pool_final_window_mean_grad_norm: 0.04459776479121017
   parent_delta_ref: null
 - order: 5
   delta_ref: delta_tf_rd_026_grid_recurrent_8_v1
-  status: ready
-  rationale: Test whether a shared recurrent grid core benefits from additional
-    refinement iterations without adding distinct layer parameters.
-  hypothesis: Sharing one grid mixer for eight iterations should help if the grid
-    sandwich needs iterative row/column refinement more than additional independent
-    layer parameters.
-  anchor_delta: Sets `model.grid_recurrence_steps=8`; `sandwich_layers=4` remains
-    present in the config but is ignored for the recurrent core layer count.
+  status: completed
+  rationale: Test whether a shared recurrent grid core benefits from additional refinement iterations without adding distinct layer parameters.
+  hypothesis: Sharing one grid mixer for eight iterations should help if the grid sandwich needs iterative row/column refinement more than additional independent layer parameters.
+  anchor_delta: Sets `model.grid_recurrence_steps=8`; `sandwich_layers=4` remains present in the config but is ignored for the recurrent core layer count.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -734,32 +564,46 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Execute after row `01` is promoted to the active sweep anchor.
-  - Interpret quality alongside runtime because this row trades fewer parameters
-    for more shared-core iterations.
+  - Interpret quality alongside runtime because this row trades fewer parameters for more shared-core iterations.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_05_delta_tf_rd_026_grid_recurrent_8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute against the promoted row `01` sweep anchor.
-  notes: []
+  next_action: Completed as the shared-layer recurrent efficiency baseline; not promoted.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_05_delta_tf_rd_026_grid_recurrent_8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4950.0
+    max_grad_norm: 3.855476743644788
+    best_roc_auc: 0.8110453453192756
+    best_log_loss: 0.422882635602824
+    best_brier_score: 0.2575123268974014
+    final_roc_auc: 0.8107992401574523
+    final_log_loss: 0.42298963622395735
+    final_brier_score: 0.25764352231114857
+    final_minus_best_roc_auc: -0.000246105161823329
+    final_minus_best_log_loss: 0.0001070006211333352
+    final_minus_best_brier_score: 0.00013119541374717603
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0001070006211333352
+    delta_final_log_loss: 0.0006519587143693495
+    delta_final_brier_score: 0.0001223652037967704
+    delta_final_roc_auc: -0.001013899017002995
+    row_pool_final_window_mean_grad_norm: 0.048375342045174755
   parent_delta_ref: null
 - order: 6
   delta_ref: delta_tf_rd_026_grid_hc_swiglu_combo_v1
   status: blocked
-  rationale: Combine the two least entangled first-wave mechanisms only after both
-    standalone rows prove trainable.
-  hypothesis: Hyper-connection-lite residual topology and SwiGLU token FFNs may
-    stack if one improves gradient/state routing and the other improves per-cell
-    capacity.
-  anchor_delta: Combines only `model.grid_residual_mode=hyper_connection_lite` and
-    `model.grid_ffn_mode=swiglu`.
+  rationale: Combine the two least entangled first-wave mechanisms only after both standalone rows prove trainable.
+  hypothesis: Hyper-connection-lite residual topology and SwiGLU token FFNs may stack if one improves gradient/state routing and the other improves per-cell capacity.
+  anchor_delta: Combines only `model.grid_residual_mode=hyper_connection_lite` and `model.grid_ffn_mode=swiglu`.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -840,8 +684,7 @@ rows:
           warmup_ratio: 0.1
   parameter_adequacy_plan:
   - Keep blocked until rows `02` and `04` both train cleanly.
-  - Execute only if both standalone mechanisms are stable enough to make an interaction
-    read meaningful.
+  - Execute only if both standalone mechanisms are stable enough to make an interaction read meaningful.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
   run_id: null
@@ -849,8 +692,7 @@ rows:
   decision: null
   interpretation_status: pending
   confounders:
-  - Interaction row is uninterpretable until the standalone hyper-connection-lite
-    and SwiGLU rows are clean.
+  - Interaction row is uninterpretable until the standalone hyper-connection-lite and SwiGLU rows are clean.
   next_action: Unblock only after rows `02` and `04` both train cleanly.
   notes: []
   dynamic_model_overrides: null
@@ -858,16 +700,218 @@ rows:
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
+- order: 7
+  delta_ref: delta_tf_rd_026_grid_repeat_candidate_1_v1
+  status: blocked
+  rationale: Train the top localized repeat chunk only after checkpoint-time ablate/repeat diagnostics identify a concrete contiguous grid-core region.
+  hypothesis: A diagnostic-selected repeat chunk may improve refinement while keeping the full four-layer grid-core parameter count, making it more apples-to-apples than the shared one-layer recurrent baseline.
+  anchor_delta: Placeholder row; after diagnostics, set the selected chunk-repeat training gate while keeping `model.grid_recurrence_steps=null` and the full four distinct grid mixer layers.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Keep blocked until row `01` has a local checkpoint and `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count 4` writes JSON/Markdown diagnostic artifacts.
+  - Fill in the selected contiguous repeat chunk before execution; do not use the current placeholder as an executable training row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Placeholder has no concrete repeat chunk until diagnostic artifacts select one.
+  next_action: Run the grid-core perturbation diagnostic after row `01` promotion.
+  notes:
+  - Candidate must preserve the full four-layer grid-core parameter count.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 8
+  delta_ref: delta_tf_rd_026_grid_repeat_candidate_2_v1
+  status: blocked
+  rationale: Train a second localized repeat chunk only if checkpoint diagnostics show more than one credible contiguous repeat candidate.
+  hypothesis: A runner-up repeat chunk can test whether localized recurrence is robust or whether the diagnostic points to a single fragile region.
+  anchor_delta: Placeholder row; after diagnostics, set the second selected chunk-repeat training gate while keeping `model.grid_recurrence_steps=null` and the full four distinct grid mixer layers.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: gelu
+    grid_recurrence_steps: null
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Keep blocked unless the multi-repeat diagnostic surfaces a second credible repeat chunk.
+  - Fill in the selected contiguous repeat chunk before execution; do not use the current placeholder as an executable training row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - Placeholder has no concrete repeat chunk until diagnostic artifacts select one.
+  next_action: Keep blocked until the top candidate has been selected and reviewed.
+  notes:
+  - Candidate must preserve the full four-layer grid-core parameter count.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
 - order: 9
   delta_ref: delta_tf_rd_026_grid_recurrent_8_swiglu_v1
-  status: ready
-  rationale: Test whether row `05`'s shared recurrent grid-core hypothesis benefits
-    from the SwiGLU FFN capacity that was the strongest standalone TF-RD-026 signal.
-  hypothesis: A one-layer grid core applied eight times may need stronger gated
-    per-cell transformations to turn its better prior-train loss into benchmark
-    generalization.
-  anchor_delta: Combines only `model.grid_recurrence_steps=8` and
-    `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+  status: blocked
+  rationale: Test whether row `05`'s shared recurrent grid-core hypothesis benefits from the SwiGLU FFN capacity that was the strongest standalone TF-RD-026 signal.
+  hypothesis: A one-layer grid core applied eight times may need stronger gated per-cell transformations to turn its better prior-train loss into benchmark generalization.
+  anchor_delta: Combines only `model.grid_recurrence_steps=8` and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -947,30 +991,22 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Execute only after row `05` inference is verified to apply the shared grid core
-    eight times and its benchmark-best/final metrics reproduce from recorded step
-    checkpoints.
-  - Interpret quality alongside runtime and parameter count because this row keeps
-    row `05`'s shared one-layer recurrent core while adding SwiGLU FFN capacity.
+  - Execute only after row `05` inference is verified to apply the shared grid core eight times and its benchmark-best/final metrics reproduce from recorded step checkpoints.
+  - Interpret quality alongside runtime and parameter count because this row keeps row `05`'s shared one-layer recurrent core while adding SwiGLU FFN capacity.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
   run_id: null
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: blocked
   confounders:
-  - This row combines two mechanisms, so compare against both row `05` recurrent
-    and row `04` SwiGLU before treating it as additive.
-  - Activation checkpointing is disabled for this row because the recurrent+SwiGLU
-    combination trips a TorchDynamo activation-checkpoint tracing assertion before
-    the first training step; compile remains enabled.
-  next_action: Execute against the promoted row `01` sweep anchor after row `05`
-    inference verification passes.
+  - This row combines two mechanisms, so compare against both row `05` recurrent and row `04` SwiGLU before treating it as additive.
+  - Activation checkpointing is disabled for this row because the recurrent+SwiGLU combination trips a TorchDynamo activation-checkpoint tracing assertion before the first training step; compile remains enabled.
+  next_action: Do not run; row was stopped early and superseded by rows `10` and `11`.
   notes:
-  - Expected construction is one shared grid mixer layer, eight grid-core applications,
-    SwiGLU grid FFNs, and roughly 1.53M trainable parameters.
-  - Runtime differs from rows `01`-`05` only by disabling activation checkpointing
-    to avoid the TorchDynamo checkpoint tracing failure observed on the VM.
+  - Expected construction is one shared grid mixer layer, eight grid-core applications, SwiGLU grid FFNs, and roughly 1.53M trainable parameters.
+  - Runtime differs from rows `01`-`05` only by disabling activation checkpointing to avoid the TorchDynamo checkpoint tracing failure observed on the VM.
+  - Row `09` is not planned as a canonical completed row because early training was not promising and row `10`/`11` directly tested the requested unique-layer recurrent SwiGLU follow-ups.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -978,16 +1014,10 @@ rows:
   parent_delta_ref: delta_tf_rd_026_grid_recurrent_8_v1
 - order: 10
   delta_ref: delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1
-  status: ready
-  rationale: Test whether row `09`'s recurrent+SwiGLU signal improves when the recurrent
-    grid core has two distinct row/column mixer layers to alternate across the same
-    eight total grid-core applications.
-  hypothesis: Two unique SwiGLU grid layers repeated four times may preserve the
-    iterative refinement benefit of row `05` while avoiding the representational
-    bottleneck of sharing a single layer for all eight passes.
-  anchor_delta: Combines `model.grid_recurrence_steps=8`,
-    `model.grid_recurrence_unique_layers=2`, and `model.grid_ffn_mode=swiglu`;
-    residual topology and attention remain standard.
+  status: completed
+  rationale: Test whether row `09`'s recurrent+SwiGLU signal improves when the recurrent grid core has two distinct row/column mixer layers to alternate across the same eight total grid-core applications.
+  hypothesis: Two unique SwiGLU grid layers repeated four times may preserve the iterative refinement benefit of row `05` while avoiding the representational bottleneck of sharing a single layer for all eight passes.
+  anchor_delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=2`, and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -1068,45 +1098,49 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Execute after row `09` to check whether recurrent+SwiGLU benefits from more
-    unique grid-layer capacity.
-  - Compare against row `04` SwiGLU, row `05` recurrent, and row `09` one-layer
-    recurrent+SwiGLU before deciding whether recurrent depth needs more unique
-    layer capacity.
+  - Execute after row `09` to check whether recurrent+SwiGLU benefits from more unique grid-layer capacity.
+  - Compare against row `04` SwiGLU, row `05` recurrent, and row `09` one-layer recurrent+SwiGLU before deciding whether recurrent depth needs more unique layer capacity.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - This row changes both recurrent parameter count and repeated compute relative
-    to row `09`, so interpret it as a capacity/bottleneck follow-up rather than
-    an isolated architecture mechanism.
-  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU
-    TorchDynamo checkpoint tracing assertion observed on the VM.
-  next_action: Execute after row `09` to test whether its recurrent+SwiGLU signal
-    scales with two unique grid mixer layers.
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Promoted as the current grid sandwich anchor; use as the default workstation grid surface pending larger-rung validation.
   notes:
-  - Expected construction is two distinct grid mixer layers cycled four times for
-    eight total grid-core applications, with SwiGLU grid FFNs.
+  - Expected construction is two distinct grid mixer layers cycled four times for eight total grid-core applications, with SwiGLU grid FFNs.
+  - Row `09` was stopped early and is not a canonical completed prerequisite; interpret this row as a direct recurrent-cycle SwiGLU follow-up against rows `04` and `05`.
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  - Promoted sweep winner at final log loss `0.4181767299466772`, final Brier `0.25514130121027057`, final ROC AUC `0.8132547850793914`, and `2,205,754` parameters.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
-  parent_delta_ref: delta_tf_rd_026_grid_recurrent_8_swiglu_v1
+  benchmark_metrics:
+    best_step: 4925.0
+    max_grad_norm: 2.6267718001680587
+    best_roc_auc: 0.8134868763554411
+    best_log_loss: 0.41809812584203404
+    best_brier_score: 0.2551457896037526
+    final_roc_auc: 0.8132547850793914
+    final_log_loss: 0.4181767299466772
+    final_brier_score: 0.25514130121027057
+    final_minus_best_roc_auc: -0.00023209127604972846
+    final_minus_best_log_loss: 7.860410464316514e-05
+    final_minus_best_brier_score: -4.488393482049435e-06
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 7.860410464316514e-05
+    delta_final_log_loss: -0.0041609475629107995
+    delta_final_brier_score: -0.002379855897081229
+    delta_final_roc_auc: 0.0014416459049361174
+    row_pool_final_window_mean_grad_norm: 0.0469599055292291
+  parent_delta_ref: null
 - order: 11
   delta_ref: delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1
-  status: ready
-  rationale: Test an apples-to-apples-parameter recurrent compute scale-up by keeping
-    four distinct SwiGLU grid mixer layers and applying the full four-layer core
-    twice.
-  hypothesis: Four unique SwiGLU grid layers repeated twice may expose whether the
-    gain comes from additional iterative compute after a full-depth grid core rather
-    than from compressing the core into fewer shared layers.
-  anchor_delta: Combines `model.grid_recurrence_steps=8`,
-    `model.grid_recurrence_unique_layers=4`, and `model.grid_ffn_mode=swiglu`;
-    residual topology and attention remain standard.
+  status: completed
+  rationale: Test an apples-to-apples-parameter recurrent compute scale-up by keeping four distinct SwiGLU grid mixer layers and applying the full four-layer core twice.
+  hypothesis: Four unique SwiGLU grid layers repeated twice may expose whether the gain comes from additional iterative compute after a full-depth grid core rather than from compressing the core into fewer shared layers.
+  anchor_delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=4`, and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
   model:
     arch: grid_sandwich
     d_icl: 144
@@ -1187,28 +1221,40 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Execute alongside row `10` to separate recurrent unique-layer capacity from
-    repeated grid-core compute at the same eight total applications.
-  - Compare primarily against row `04` because this row keeps the same four unique
-    grid layers as the SwiGLU control while adding a second full recurrent pass.
+  - Execute alongside row `10` to separate recurrent unique-layer capacity from repeated grid-core compute at the same eight total applications.
+  - Compare primarily against row `04` because this row keeps the same four unique grid layers as the SwiGLU control while adding a second full recurrent pass.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_11_delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders:
-  - This row has the same grid-core parameter count as row `04` but more compute,
-    so a gain would support recurrence-as-compute rather than parameter efficiency.
-  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU
-    TorchDynamo checkpoint tracing assertion observed on the VM.
-  next_action: Execute after row `09` to test the same four unique SwiGLU grid layers
-    as row `04`, repeated twice.
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Executed with row `10` to compare two-layer and four-layer recurrent cycle sizes at eight total applications.
   notes:
-  - Expected construction is four distinct grid mixer layers cycled twice for eight
-    total grid-core applications, with SwiGLU grid FFNs.
+  - Expected construction is four distinct grid mixer layers cycled twice for eight total grid-core applications, with SwiGLU grid FFNs.
+  - Row `09` was stopped early and is not a canonical completed prerequisite; compare this row primarily against row `04`, row `10`, and the promoted row `10` anchor.
+  - Canonical rerun registered as `sd_tf_rd_026_grid_sandwich_broad_ml_v1_11_delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 4975.0
+    max_grad_norm: 2.387439550298116
+    best_roc_auc: 0.8142626457364859
+    best_log_loss: 0.4182002411698454
+    best_brier_score: 0.25527495307383785
+    final_roc_auc: 0.814222349683815
+    final_log_loss: 0.41833649534556283
+    final_brier_score: 0.25538477741803745
+    final_minus_best_roc_auc: -4.029605267086289e-05
+    final_minus_best_log_loss: 0.00013625417571744292
+    final_minus_best_brier_score: 0.00010982434419959386
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.00013625417571744292
+    delta_final_log_loss: -0.004001182164025174
+    delta_final_brier_score: -0.0021363796893143494
+    delta_final_roc_auc: 0.002409210509359716
+    row_pool_final_window_mean_grad_norm: 0.04720059562005411
   parent_delta_ref: delta_tf_rd_026_grid_swiglu_ffn_v1

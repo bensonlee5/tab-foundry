@@ -128,9 +128,10 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
     assert str(cfg.model.grid_residual_mode) == "prenorm"
     assert str(cfg.model.grid_attention_mode) == "standard"
-    assert str(cfg.model.grid_ffn_mode) == "gelu"
-    assert cfg.model.grid_recurrence_steps is None
-    assert cfg.model.grid_recurrence_unique_layers is None
+    assert str(cfg.model.grid_ffn_mode) == "swiglu"
+    assert int(cfg.model.grid_recurrence_steps) == 8
+    assert int(cfg.model.grid_recurrence_unique_layers) == 2
+    assert bool(cfg.runtime.activation_checkpointing) is False
     assert int(cfg.runtime.max_steps) == 5000
     assert int(cfg.schedule.stages[0].steps) == 5000
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"

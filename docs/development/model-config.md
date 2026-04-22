@@ -380,7 +380,8 @@ tab-foundry train run \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
-Current grid-anchor workstation run:
+Current grid-anchor workstation run. This resolves to the TF-RD-026 row `10`
+two-layer recurrent SwiGLU grid core:
 
 ```bash
 tab-foundry train run \

@@ -7,9 +7,12 @@ defaults:
 model:
   grid_residual_mode: hyper_connection_lite
   grid_ffn_mode: swiglu
+  grid_recurrence_steps: null
+  grid_recurrence_unique_layers: null
 
 runtime:
   output_dir: outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/05_hc_swiglu_combo
+  activation_checkpointing: true
 
 logging:
   group: tf_rd_026_grid_sandwich_broad_ml_v1

@@ -10,7 +10,8 @@
       "decision": "keep",
       "evidence_run_ids": [
         "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
-        "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1"
+        "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1",
+        "sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2"
       ],
       "formal_anchor_run_id": "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1",
       "gpu_class": "a100",
@@ -18,12 +19,25 @@
       "objective_metric": "final_log_loss_at_matched_regime_budget",
       "preferred_architecture": {
         "arch": "grid_sandwich",
+        "d_icl": 144,
+        "head_hidden_dim": 96,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12,
+        "sandwich_heads": 1,
+        "sandwich_layers": 4,
         "architecture": {
           "column_inducing_tokens": 16,
           "feature_type_encoding": "film",
           "ff_expansion": 2,
+          "grid_attention_mode": "standard",
           "grid_core": "alternating_row_self_attention_and_column_row_isab",
+          "grid_core_iterations": 8,
+          "grid_core_unique_layers": 2,
+          "grid_ffn_mode": "swiglu",
           "grid_preservation": "explicit_row_feature_grid_through_core",
+          "grid_recurrence_steps": 8,
+          "grid_recurrence_unique_layers": 2,
+          "grid_residual_mode": "prenorm",
           "heads": 1,
           "input_token_count": "R_times_C",
           "input_tokens": "row_feature_cell_grid",
@@ -45,6 +59,11 @@
           "feature_group_size": 1,
           "feature_type_conditioning": "film",
           "floating_likelihood": "single_gaussian",
+          "grid_attention_mode": "standard",
+          "grid_ffn_mode": "swiglu",
+          "grid_recurrence_steps": 8,
+          "grid_recurrence_unique_layers": 2,
+          "grid_residual_mode": "prenorm",
           "head_hidden_dim": 96,
           "input_normalization": "train_zscore_clip",
           "integer_likelihood": "hybrid_mixture",
@@ -63,22 +82,52 @@
           "sandwich_pre_column_inducing_tokens": 16,
           "sandwich_pre_row_attention_layers": 1,
           "task": "classification"
-        },
-        "d_icl": 144,
-        "head_hidden_dim": 96,
-        "sandwich_heads": 1,
-        "sandwich_layers": 4,
-        "tficl_n_heads": 8,
-        "tficl_n_layers": 12
+        }
       },
-      "preferred_benchmark_timing": null,
-      "preferred_delta_ref": "grid_pilot",
-      "preferred_inference_timing": null,
-      "preferred_run_id": "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1",
-      "preferred_runtime_summary": null,
-      "rationale": "A100 medium classification carried architecture anchor promoted from the April 20-21, 2026 grid_pilot run. The row-feature-grid-preserving 144x4 model on tf_rd_010_dagzoo_medium_control_curated_v6 beat the imported 144x4 tabfoundry_sandwich sidecar anchor on final log loss, Brier score, and ROC AUC with fewer parameters; routed rows remain negative sidecar evidence.",
+      "preferred_benchmark_timing": {
+        "attempted_checkpoint_count": 200,
+        "failed_checkpoint_count": 0,
+        "host_fingerprint": "10fe00fb8518|linux|x86_64",
+        "max_checkpoint_elapsed_seconds": 3.967301747063175,
+        "mean_checkpoint_elapsed_seconds": 3.491985436207615,
+        "requested_device": "cuda",
+        "resolved_device": "cuda",
+        "successful_checkpoint_count": 200,
+        "wall_elapsed_seconds": 699.0357585498132
+      },
+      "preferred_delta_ref": "delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1",
+      "preferred_inference_timing": {
+        "device_type": "cuda",
+        "fixture_id": "classification_medium_reference_v1",
+        "gpu_class": "l40s",
+        "hardware_profile_id": "l40s_44gb",
+        "max_ms": 17.79359602369368,
+        "mean_ms": 17.53760550636798,
+        "measured_iterations": 10,
+        "n_features": 10,
+        "n_test": 40,
+        "n_train": 160,
+        "num_classes": 10,
+        "p50_ms": 17.553826444782317,
+        "p95_ms": 17.752645502332598,
+        "raw_device_name": "NVIDIA L40S",
+        "requested_device": "cuda",
+        "resolved_device": "cuda",
+        "total_measured_seconds": 0.17537605506367981,
+        "vram_class_gb": 44,
+        "warmup_iterations": 3
+      },
+      "preferred_run_id": "sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2",
+      "preferred_runtime_summary": {
+        "peak_vram_allocated": 31218128896,
+        "peak_vram_reserved": 33827061760,
+        "throughput_examples_per_second": 78.55952808044687,
+        "throughput_tokens_per_second": 467525.4746362743,
+        "non_train_overhead_seconds": 29.740636605070904
+      },
+      "rationale": "A100 medium classification carried architecture anchor promoted from TF-RD-026 row 10. The two-layer recurrent SwiGLU grid core cycles two distinct grid mixer layers across eight total grid-core applications, beating the previous grid_pilot anchor on final log loss and Brier score with fewer parameters; row 11 remains close comparison evidence with higher ROC AUC but worse final log loss and more parameters.",
       "runtime_profile": "cls_workstation_grid_sandwich",
-      "selection_rule": "promote_best_completed_followon_if_final_log_loss_beats_carried_144x4_anchor",
+      "selection_rule": "promote_best_completed_tf_rd_026_medium_grid_followon_by_final_log_loss",
       "surface_labels": {
         "data": "tf_rd_010_dagzoo_medium_control",
         "model": "grid_sandwich",
@@ -86,7 +135,7 @@
         "training": "prior_cosine_warmup"
       },
       "surface_role": "classification_architecture_anchor",
-      "sweep_id": "sandwich_followons_medium_metadatafix_20260420",
+      "sweep_id": "tf_rd_026_grid_sandwich_broad_ml_v1",
       "track": "system_delta_classification_medium_v1",
       "vram_class_gb": 80
     },
@@ -111,7 +160,7 @@
           "benchmark_wall_seconds": {
             "coefficients": {
               "intercept": 1226.7976975049141,
-              "slope": 3.533970796892984e-05
+              "slope": 0.00003533970796892984
             },
             "evidence_run_ids": [
               "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
@@ -122,13 +171,13 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "benchmark_wall_seconds \u2248 1226.80 + 3.534e-05 * params",
+            "expression": "benchmark_wall_seconds ≈ 1226.80 + 3.534e-05 * params",
             "fit_kind": "linear"
           },
           "inference_mean_ms": {
             "coefficients": {
               "intercept": 15.2005108974451,
-              "slope": 1.1599956147180623e-06
+              "slope": 0.0000011599956147180623
             },
             "evidence_run_ids": [
               "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
@@ -139,13 +188,13 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "inference_mean_ms \u2248 15.20 + 1.160e-06 * params",
+            "expression": "inference_mean_ms ≈ 15.20 + 1.160e-06 * params",
             "fit_kind": "linear"
           },
           "inference_p50_ms": {
             "coefficients": {
               "intercept": 15.207659851113638,
-              "slope": 1.1499748758041767e-06
+              "slope": 0.0000011499748758041767
             },
             "evidence_run_ids": [
               "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
@@ -156,13 +205,13 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "inference_p50_ms \u2248 15.21 + 1.150e-06 * params",
+            "expression": "inference_p50_ms ≈ 15.21 + 1.150e-06 * params",
             "fit_kind": "linear"
           },
           "inference_p95_ms": {
             "coefficients": {
               "intercept": 15.215905188791128,
-              "slope": 1.1969575833418802e-06
+              "slope": 0.0000011969575833418802
             },
             "evidence_run_ids": [
               "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
@@ -173,7 +222,7 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "inference_p95_ms \u2248 15.22 + 1.197e-06 * params",
+            "expression": "inference_p95_ms ≈ 15.22 + 1.197e-06 * params",
             "fit_kind": "linear"
           },
           "parameter_count": {
@@ -191,13 +240,13 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "P_local(d, L) \u2248 18638.80 + 77.94 * d^2 + 47.93 * L * d^2",
+            "expression": "P_local(d, L) ≈ 18638.80 + 77.94 * d^2 + 47.93 * L * d^2",
             "fit_kind": "affine_depth_aware_least_squares"
           },
           "reserved_vram_gb": {
             "coefficients": {
               "intercept": 8.693003510381923,
-              "slope": 9.271353357607912e-07
+              "slope": 9.271353357607912E-7
             },
             "evidence_run_ids": [
               "sd_tf_rd_009_anchor_replay_heads1_medium_v1_01_delta_tf_rd_024_followup_cls_sandwich_heads1_v1_v2",
@@ -208,7 +257,7 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "reserved_vram_gb \u2248 8.69 + 9.271e-07 * params",
+            "expression": "reserved_vram_gb ≈ 8.69 + 9.271e-07 * params",
             "fit_kind": "linear"
           },
           "train_wall_seconds": {
@@ -225,7 +274,7 @@
               "sd_tf_rd_009_width_depth_medium_v1_04_delta_tf_rd_009_cls_sandwich_dicl152_layers5_v1_v1",
               "sd_tf_rd_009_width_depth_medium_v1_05_delta_tf_rd_009_cls_sandwich_dicl176_layers6_v1_v1"
             ],
-            "expression": "train_wall_seconds \u2248 8298.45 + 2.275e-04 * params",
+            "expression": "train_wall_seconds ≈ 8298.45 + 2.275e-04 * params",
             "fit_kind": "linear"
           }
         },

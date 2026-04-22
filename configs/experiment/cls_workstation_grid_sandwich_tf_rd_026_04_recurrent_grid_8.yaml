@@ -6,9 +6,12 @@ defaults:
 
 model:
   grid_recurrence_steps: 8
+  grid_recurrence_unique_layers: null
+  grid_ffn_mode: gelu
 
 runtime:
   output_dir: outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/04_recurrent_grid_8
+  activation_checkpointing: true
 
 logging:
   group: tf_rd_026_grid_sandwich_broad_ml_v1

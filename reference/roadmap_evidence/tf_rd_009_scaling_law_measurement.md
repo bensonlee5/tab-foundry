@@ -64,9 +64,10 @@ TF-RD-009 does not start from a blank scaling surface. It inherits a specific
 classification-first benchmark, runtime, and architecture contract that later
 sweeps must respect unless a follow-on issue explicitly reopens them.
 
-- `grid_sandwich` is now the primary classification architecture anchor, with
-  `tabfoundry_sandwich` retained as the matched in-family comparison line and
-  `tabfoundry_staged` retained only as the incumbent reference line rather than
+- `grid_sandwich` is now the primary classification architecture anchor. The
+  current carried shape is TF-RD-026 row `10`, a two-layer recurrent SwiGLU grid
+  core; `tabfoundry_sandwich` remains the matched in-family comparison line and
+  `tabfoundry_staged` remains only as the incumbent reference line rather than
   the scaling parent.
 - TF-RD-010 is closed on the carried classification benchmark contract. The
   live ranking metric is `final_log_loss_at_matched_regime_budget`,
@@ -135,7 +136,8 @@ The April 20-21, 2026 routed/grid sidecar ran after the fixed `144x4` LMO
 transfer surface was established. It intentionally did not mutate
 `tabfoundry_sandwich`; it added `routed_sandwich` for residual-path and
 token-budget hypotheses, and `grid_sandwich` for the token-granularity
-hypothesis. The completed `grid_pilot` row is now the carried repo architecture
+hypothesis. The completed `grid_pilot` row established the grid-preserving
+family; TF-RD-026 row `10` later superseded it as the carried repo architecture
 anchor.
 
 Shared surface:
@@ -159,6 +161,12 @@ Benchmark results:
 | `routed_rebalance` | `routed_sandwich` evidence-bank rebalance | `0.5661516574` | `+0.0747485304` | `0.3523550294` | `0.7115569578` | `5,086,489` |
 | `grid_pilot` | `grid_sandwich` grid-preserving anchor | `0.4221534937` | `-0.0692496333` | `0.2568076367` | `0.8111876562` | `3,550,522` |
 
+Current TF-RD-026 update:
+
+| Row | Architecture | Final log loss | Delta vs `grid_pilot` | Final Brier | Final ROC AUC | Params |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `10_recurrent_8_unique2_swiglu` | two distinct SwiGLU grid mixer layers cycled four times | `0.4181767299` | `-0.0039767638` | `0.2551413012` | `0.8132547851` | `2,205,754` |
+
 Interpretation:
 
 - `routed_sandwich` is negative evidence for this first routed residual/evidence
@@ -167,11 +175,11 @@ Interpretation:
 - `routed_rebalance` is worse than `routed_control`, so replacing the raw
   full-cell path with only the learned evidence bank is not supported by this
   benchmark row.
-- `grid_sandwich` is promoted to the carried repo architecture anchor for the
-  token-granularity hypothesis. It beats the `144x4` anchor on log loss, Brier
-  score, and ROC AUC with fewer parameters; the next guardrail is replication
-  and comparison against the broader Muon winner context, not another promotion
-  gate.
+- `grid_pilot` promoted the grid-preserving family for the token-granularity
+  hypothesis. TF-RD-026 row `10` is the current carried grid anchor because it
+  improves final log loss and Brier over `grid_pilot` with fewer parameters;
+  the next guardrail is larger-rung validation and comparison against the
+  broader Muon winner context, not another routed-control rerun.
 
 ## Executive Prescriptions
 

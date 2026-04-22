@@ -160,7 +160,9 @@ for package ownership and entry points.
 
 The active development family (`grid_sandwich`) is a grid-preserving
 classification transformer that keeps row-feature cell states explicit deeper
-into the encoder:
+into the encoder. The current anchor is the TF-RD-026 row `10` recurrent
+SwiGLU grid core: two distinct grid-mixer layers cycled four times for eight
+total applications, with final OpenML medium log loss `0.4181767299`.
 
 ```mermaid
 graph TD
@@ -168,7 +170,7 @@ graph TD
     B --> C[row-feature<br>cell grid]
     C --> D[row-wise<br>feature mixing]
     D --> E[column-wise<br>row mixing]
-    E --> F[alternating<br>grid core]
+    E --> F[2-layer recurrent<br>grid core x8]
     F --> G[test-row feature<br>bundle pool]
     G --> H[class head]
 
@@ -184,7 +186,7 @@ reference family. For the full architecture reference, see
 At the cell level, the active grid lane uses the same missingness-aware
 tokenizer over `value`, `is_nan`, `is_posinf`, and `is_neginf`, then applies a
 shared value projection with feature-type conditioning plus Fourier row and
-column enrichment before grid-preserving row/column mixing.
+column enrichment before recurrent grid-preserving row/column mixing.
 
 The current architecture-development lane is classification-only. By default,
 training is ranked by matched-budget final log loss
