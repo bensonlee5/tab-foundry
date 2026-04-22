@@ -35,6 +35,9 @@ anchor_surface:
   - Row `05` is now interpreted as a full-shared-layer efficiency baseline. Localized
     recurrence candidates should be selected by the grid-core perturbation diagnostic
     against the row `01` checkpoint before training blocked follow-on rows.
+  - Row `09` follows up row `05` by combining the shared recurrent grid core with
+    SwiGLU FFN capacity while keeping row `06` and diagnostic placeholder rows
+    blocked.
   dimension_table:
   - dimension: residual topology
     upstream: Hyper-Connection-style multi-stream residual routing can improve deep

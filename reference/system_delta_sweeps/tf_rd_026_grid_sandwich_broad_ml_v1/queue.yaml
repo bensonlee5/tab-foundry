@@ -858,3 +858,116 @@ rows:
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
+- order: 9
+  delta_ref: delta_tf_rd_026_grid_recurrent_8_swiglu_v1
+  status: ready
+  rationale: Test whether row `05`'s shared recurrent grid-core hypothesis benefits
+    from the SwiGLU FFN capacity that was the strongest standalone TF-RD-026 signal.
+  hypothesis: A one-layer grid core applied eight times may need stronger gated
+    per-cell transformations to turn its better prior-train loss into benchmark
+    generalization.
+  anchor_delta: Combines only `model.grid_recurrence_steps=8` and
+    `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+  model:
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+    grid_ffn_mode: swiglu
+    grid_recurrence_steps: 8
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+    overrides:
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      runtime:
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        activation_checkpointing: true
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after row `05` inference is verified to apply the shared grid core
+    eight times and its benchmark-best/final metrics reproduce from recorded step
+    checkpoints.
+  - Interpret quality alongside runtime and parameter count because this row keeps
+    row `05`'s shared one-layer recurrent core while adding SwiGLU FFN capacity.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - This row combines two mechanisms, so compare against both row `05` recurrent
+    and row `04` SwiGLU before treating it as additive.
+  next_action: Execute against the promoted row `01` sweep anchor after row `05`
+    inference verification passes.
+  notes:
+  - Expected construction is one shared grid mixer layer, eight grid-core applications,
+    SwiGLU grid FFNs, and roughly 1.53M trainable parameters.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: delta_tf_rd_026_grid_recurrent_8_v1

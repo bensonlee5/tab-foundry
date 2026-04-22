@@ -11054,6 +11054,41 @@ deltas:
         grid_recurrence_steps: 8
     default_next_action: Execute against the promoted TF-RD-026 control replay.
     applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Combine the shared eight-step recurrent grid core with SwiGLU
+      grid FFNs.
+    upstream_delta: Follow-up to the full-shared-layer recurrence baseline and the
+      standalone SwiGLU gain in TF-RD-026.
+    expected_effect: May preserve row `05`'s better prior-train behavior while
+      adding the gated FFN capacity that improved row `04` benchmark quality.
+    adequacy_knobs:
+    - combination row only; no hyper-connection or differential-attention change
+    - one shared grid mixer layer applied for eight grid-core iterations
+    - interpret quality alongside the smaller recurrent parameter count and extra
+      repeated compute
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute only after row `05` inference verification reproduces benchmark-best
+        and final metrics from the recorded step checkpoints.
+      - Compare against both row `05` recurrent and row `04` SwiGLU before considering
+        the combination additive.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_combo_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_ffn_mode: swiglu
+    default_next_action: Execute against the promoted TF-RD-026 control replay after
+      row `05` inference verification passes.
+    applicability_guards: []
   delta_tf_rd_026_grid_repeat_candidate_1_v1:
     dimension_family: model
     family: grid_sandwich_broad_ml
