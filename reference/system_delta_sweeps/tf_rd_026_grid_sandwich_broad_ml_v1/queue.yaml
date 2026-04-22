@@ -921,7 +921,7 @@ rows:
         grad_clip: 0.0
         grad_accum_steps: 4
         trace_activations: false
-        activation_checkpointing: true
+        activation_checkpointing: false
         eval_every: 25
         checkpoint_every: 25
         val_batches: 0
@@ -961,11 +961,16 @@ rows:
   confounders:
   - This row combines two mechanisms, so compare against both row `05` recurrent
     and row `04` SwiGLU before treating it as additive.
+  - Activation checkpointing is disabled for this row because the recurrent+SwiGLU
+    combination trips a TorchDynamo activation-checkpoint tracing assertion before
+    the first training step; compile remains enabled.
   next_action: Execute against the promoted row `01` sweep anchor after row `05`
     inference verification passes.
   notes:
   - Expected construction is one shared grid mixer layer, eight grid-core applications,
     SwiGLU grid FFNs, and roughly 1.53M trainable parameters.
+  - Runtime differs from rows `01`-`05` only by disabling activation checkpointing
+    to avoid the TorchDynamo checkpoint tracing failure observed on the VM.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
