@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_026_grid_sandwic
 - Parent sweep id: `tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `bd4a5e87d73dbd1c07973314e9a82ef84ac6d4e49481d4728ef8a032aa20979c`
+- Resolved queue inputs fingerprint: `b826deb1663269923811b7393733a1e9e92f4ac325a58d67f1f876b57b7944b4`
 
 ## Locked Surface
 
@@ -34,7 +34,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 | residual topology | Hyper-Connection-style multi-stream residual routing can improve deep transformer optimization by giving mixers more stable state paths. | The grid sandwich control uses ordinary prenorm residuals in each row and column mixer block. | Read `hyper_connection_lite` as a topology test inside the grid row/column blocks, not as a return to routed evidence-bank behavior. |
 | distractor suppression | Differential attention subtracts a learned fraction of a second attention map from the primary map to suppress common-mode distractors. | The grid sandwich control uses standard attention in row and column mixing. | Read this as an attention-form test at fixed width, depth, data, and optimizer budget. |
 | gated token capacity | SwiGLU-style gated FFNs often improve transformer quality at matched or near-matched parameter budgets. | The grid sandwich control uses GELU FFNs. | Read this as a cell-token FFN capacity test without changing the surrounding grid topology. |
-| recurrent refinement | Sharing a transformation across recurrent iterations can improve iterative reasoning while controlling parameter count. | The grid sandwich control instantiates four distinct grid mixer layers. | Read `grid_recurrence_steps=8` as a full-shared-layer efficiency baseline. Use checkpoint-time contiguous chunk ablation/repeat diagnostics to choose any apples-to-apples localized repeat candidate. |
+| recurrent refinement | Sharing a transformation across recurrent iterations can improve iterative reasoning while controlling parameter count. | The grid sandwich control instantiates four distinct grid mixer layers. | Read `grid_recurrence_steps=8` with no unique-layer override as a full-shared-layer efficiency baseline. Read `grid_recurrence_unique_layers` as the recurrent cycle size for follow-ups that test whether recurrence needs more distinct transformations before running localized chunk-repeat candidates. |
 
 ## Queue Summary
 
@@ -49,6 +49,8 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 | 7 | `delta_tf_rd_026_grid_repeat_candidate_1_v1` | grid_sandwich_broad_ml | no | blocked | none | Blocked placeholder for the top contiguous grid-core repeat candidate selected by the checkpoint perturbation diagnostic. | Run the grid-core perturbation diagnostic after row `01` promotion. |
 | 8 | `delta_tf_rd_026_grid_repeat_candidate_2_v1` | grid_sandwich_broad_ml | no | blocked | none | Blocked placeholder for the second contiguous grid-core repeat candidate selected by the checkpoint perturbation diagnostic. | Keep blocked until the top candidate has been selected and reviewed. |
 | 9 | `delta_tf_rd_026_grid_recurrent_8_swiglu_v1` | grid_sandwich_broad_ml | no | ready | none | Combine the shared eight-step recurrent grid core with SwiGLU grid FFNs. | Execute against the promoted row `01` sweep anchor after row `05` inference verification passes. |
+| 10 | `delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1` | grid_sandwich_broad_ml | no | ready | none | Cycle two distinct SwiGLU grid mixer layers across eight recurrent grid-core applications. | Execute after row `09` to test whether its recurrent+SwiGLU signal scales with two unique grid mixer layers. |
+| 11 | `delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1` | grid_sandwich_broad_ml | no | ready | none | Cycle four distinct SwiGLU grid mixer layers twice for eight recurrent grid-core applications. | Execute after row `09` to test the same four unique SwiGLU grid layers as row `04`, repeated twice. |
 
 ## Detailed Rows
 
@@ -65,7 +67,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Replays the default grid sandwich surface with `d_icl=144`, `sandwich_layers=4`, `sandwich_heads=1`, Muon, medium v6 corpus, and 5000 prior-dump steps.
 - Expected effect: Should reproduce the carried grid sandwich medium behavior closely enough to anchor isolated broad-ML follow-up rows.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a`
+- Resolved surface fingerprint: `d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'arch': 'grid_sandwich', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film'}`
 - Parameter adequacy plan:
@@ -82,7 +84,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Confounders:
   - Carried checkpoint is not locally executable, so row `01` replaces it as the active sweep anchor only after successful promotion.
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_control_replay_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_control_replay_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 2. `delta_tf_rd_026_grid_hyper_connection_lite_v1`
@@ -98,7 +100,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Changes only `model.grid_residual_mode` from `prenorm` to `hyper_connection_lite`.
 - Expected effect: May improve optimization and information flow through deeper row/column grid mixing at fixed data, width, depth, and optimizer budget.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `ad2b151950aa00cb214d192f1ea5e4da9a191ce23fe8236f951cecdeb39c147d`
+- Resolved surface fingerprint: `4c59fa2da2a7094c518183088e82d6d8e00e017e4f623916c7e2352935208394`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_residual_mode': 'hyper_connection_lite', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
@@ -113,7 +115,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_hyper_connection_lite_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_hyper_connection_lite_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 3. `delta_tf_rd_026_grid_differential_attention_v1`
@@ -129,7 +131,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Changes only `model.grid_attention_mode` from `standard` to `differential`.
 - Expected effect: May improve grid mixing if the current attention blocks over-attend to noisy or redundant feature/task context.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `aea39453bbc77886018892631c1d8b92204c0cc275b1278aa7160f3c66fedf5f`
+- Resolved surface fingerprint: `341f8a8e5970302fcb3bc77b4c2012f07ca3f997e1147933e314bcf61ef22692`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_attention_mode': 'differential', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
@@ -144,7 +146,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_differential_attention_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_differential_attention_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 4. `delta_tf_rd_026_grid_swiglu_ffn_v1`
@@ -160,7 +162,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Changes only `model.grid_ffn_mode` from `gelu` to `swiglu`.
 - Expected effect: May improve per-cell token transformations if the grid core is FFN-capacity-limited rather than attention-limited.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `8b6983675a1d2afdcc6ad7e05e7ac52c4d08c30c1eb78572b505a248cee794a3`
+- Resolved surface fingerprint: `b29f01fe39fa923954dc5e7be3590f172bfa3e36dc66337af9145ee5dcc480a1`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_ffn_mode': 'swiglu', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard'}`
 - Parameter adequacy plan:
@@ -175,7 +177,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_swiglu_ffn_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_swiglu_ffn_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 5. `delta_tf_rd_026_grid_recurrent_8_v1`
@@ -191,7 +193,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Sets `model.grid_recurrence_steps=8`; `sandwich_layers=4` remains present in the config but is ignored for the recurrent core layer count.
 - Expected effect: May improve grid reasoning if repeated row/column refinement is more useful than the control's four independent grid mixer layers, but interpret any quality change alongside the smaller parameter count.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `db670e4234758a26e92c44c4edad8e7165b1d6cff4f2293cbb43d6b0db9bdca2`
+- Resolved surface fingerprint: `fc0ea4f77d2e7ef4bdc6101d8763ae18ece9ef6b9f8b80c4db31ba6845b06652`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_recurrence_steps': 8, 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
@@ -206,7 +208,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 6. `delta_tf_rd_026_grid_hc_swiglu_combo_v1`
@@ -222,7 +224,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Combines only `model.grid_residual_mode=hyper_connection_lite` and `model.grid_ffn_mode=swiglu`.
 - Expected effect: May stack if residual topology improves state flow while SwiGLU improves per-cell FFN capacity.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `d20d2a45745a731f5696eb1f99b12f31703a804acbb1142b8624c255d5e5ca71`
+- Resolved surface fingerprint: `e2388b60ed62b114cfe6d1d0e83c5992d68e81d173bae7e50655b2fa12f490b0`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_residual_mode': 'hyper_connection_lite', 'grid_ffn_mode': 'swiglu', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_attention_mode': 'standard'}`
 - Parameter adequacy plan:
@@ -239,7 +241,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Confounders:
   - Interaction row is uninterpretable until the standalone hyper-connection-lite and SwiGLU rows are clean.
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_hc_swiglu_combo_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_hc_swiglu_combo_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 7. `delta_tf_rd_026_grid_repeat_candidate_1_v1`
@@ -255,7 +257,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Placeholder row; after diagnostics, set the selected chunk-repeat training gate while keeping `model.grid_recurrence_steps=null` and the full four distinct grid mixer layers.
 - Expected effect: Should preserve the full four-layer grid-core parameter count while adding repeated compute only around the best diagnostic chunk.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a`
+- Resolved surface fingerprint: `d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
@@ -274,7 +276,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Notes:
   - Candidate must preserve the full four-layer grid-core parameter count.
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_repeat_candidate_1_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_repeat_candidate_1_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 8. `delta_tf_rd_026_grid_repeat_candidate_2_v1`
@@ -290,7 +292,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Placeholder row; after diagnostics, set the second selected chunk-repeat training gate while keeping `model.grid_recurrence_steps=null` and the full four distinct grid mixer layers.
 - Expected effect: Should preserve the full four-layer grid-core parameter count while testing whether the runner-up localized repeat is robust.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a`
+- Resolved surface fingerprint: `d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': True, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard', 'grid_ffn_mode': 'gelu'}`
 - Parameter adequacy plan:
@@ -309,7 +311,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Notes:
   - Candidate must preserve the full four-layer grid-core parameter count.
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_repeat_candidate_2_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_repeat_candidate_2_v1/result_card.md`
 - Benchmark metrics: pending
 
 ### 9. `delta_tf_rd_026_grid_recurrent_8_swiglu_v1`
@@ -325,7 +327,7 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
 - Anchor delta: Combines only `model.grid_recurrence_steps=8` and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
 - Expected effect: May preserve row `05`'s better prior-train behavior while adding the gated FFN capacity that improved row `04` benchmark quality.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `7954582d881c1a2c46dbc7181768ab8e3dba552275df8cf7c75b0735ac6fad51`
+- Resolved surface fingerprint: `d8f25d43c8e53aab8ba91c8956a621f079643d462e2e1672a9e1d36abe6a2104`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
 - Model overrides: `{'grid_recurrence_steps': 8, 'grid_ffn_mode': 'swiglu', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard'}`
 - Parameter adequacy plan:
@@ -346,5 +348,77 @@ Pending trusted rerun: no anchor is registered yet, so this matrix records the l
   - Expected construction is one shared grid mixer layer, eight grid-core applications, SwiGLU grid FFNs, and roughly 1.53M trainable parameters.
   - Runtime differs from rows `01`-`05` only by disabling activation checkpointing to avoid the TorchDynamo checkpoint tracing failure observed on the VM.
 - Follow-up run ids: `[]`
-- Result card path: `/workspace/tab-foundry/outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_swiglu_v1/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_swiglu_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 10. `delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1`
+
+- Dimension family: `model`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Cycle two distinct SwiGLU grid mixer layers across eight recurrent grid-core applications.
+- Rationale: Test whether row `09`'s recurrent+SwiGLU signal improves when the recurrent grid core has two distinct row/column mixer layers to alternate across the same eight total grid-core applications.
+- Hypothesis: Two unique SwiGLU grid layers repeated four times may preserve the iterative refinement benefit of row `05` while avoiding the representational bottleneck of sharing a single layer for all eight passes.
+- Upstream delta: Follow-up to row `09`, which shares one recurrent SwiGLU grid layer across all eight applications.
+- Anchor delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=2`, and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+- Expected effect: Tests whether row `09`'s recurrent+SwiGLU gain improves further when the recurrent core has more than one learned grid transformation.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `dcc581828b423ebbd5439eca0f366c8083cf0e0286fa1b3e3182238afe5a210b`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
+- Model overrides: `{'grid_recurrence_steps': 8, 'grid_recurrence_unique_layers': 2, 'grid_ffn_mode': 'swiglu', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard'}`
+- Parameter adequacy plan:
+  - Execute after row `09` to check whether recurrent+SwiGLU benefits from more unique grid-layer capacity.
+  - Compare against row `04` SwiGLU, row `05` recurrent, and row `09` one-layer recurrent+SwiGLU before deciding whether recurrent depth needs more unique layer capacity.
+- Adequacy knobs to dimension explicitly:
+  - two unique grid mixer layers cycled four times
+  - grid FFNs use SwiGLU; residual topology and attention remain standard
+  - activation checkpointing remains disabled because recurrent+SwiGLU trips the TorchDynamo checkpoint tracing assertion
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Confounders:
+  - This row changes both recurrent parameter count and repeated compute relative to row `09`, so interpret it as a capacity/bottleneck follow-up rather than an isolated architecture mechanism.
+  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU TorchDynamo checkpoint tracing assertion observed on the VM.
+- Notes:
+  - Expected construction is two distinct grid mixer layers cycled four times for eight total grid-core applications, with SwiGLU grid FFNs.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 11. `delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1`
+
+- Dimension family: `model`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Cycle four distinct SwiGLU grid mixer layers twice for eight recurrent grid-core applications.
+- Rationale: Test an apples-to-apples-parameter recurrent compute scale-up by keeping four distinct SwiGLU grid mixer layers and applying the full four-layer core twice.
+- Hypothesis: Four unique SwiGLU grid layers repeated twice may expose whether the gain comes from additional iterative compute after a full-depth grid core rather than from compressing the core into fewer shared layers.
+- Upstream delta: Follow-up to row `04` and row `09`, testing repeated compute after a full four-layer SwiGLU grid core.
+- Anchor delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=4`, and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+- Expected effect: If recurrence helps only when the full four-layer grid core is preserved, this row should beat row `04`; if extra compute alone is not useful, it should land near or below row `04`.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `8392c2b42e4139db8c1370c10c96b53f49d518b09ae3476498c2107725163eb9`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': 25, 'val_batches': 0, 'max_steps': 5000}`
+- Model overrides: `{'grid_recurrence_steps': 8, 'grid_recurrence_unique_layers': 4, 'grid_ffn_mode': 'swiglu', 'arch': 'grid_sandwich', 'd_icl': 144, 'input_normalization': 'train_zscore_clip', 'many_class_base': 10, 'head_hidden_dim': 96, 'sandwich_layers': 4, 'sandwich_heads': 1, 'sandwich_ff_expansion': 2, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1, 'sandwich_pre_column_inducing_tokens': 16, 'sandwich_packed_attention': True, 'feature_type_conditioning': 'film', 'grid_residual_mode': 'prenorm', 'grid_attention_mode': 'standard'}`
+- Parameter adequacy plan:
+  - Execute alongside row `10` to separate recurrent unique-layer capacity from repeated grid-core compute at the same eight total applications.
+  - Compare primarily against row `04` because this row keeps the same four unique grid layers as the SwiGLU control while adding a second full recurrent pass.
+- Adequacy knobs to dimension explicitly:
+  - four unique grid mixer layers cycled twice
+  - same grid-core parameter count as row `04`, but twice the grid-core applications
+  - activation checkpointing remains disabled because recurrent+SwiGLU trips the TorchDynamo checkpoint tracing assertion
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Confounders:
+  - This row has the same grid-core parameter count as row `04` but more compute, so a gain would support recurrence-as-compute rather than parameter efficiency.
+  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU TorchDynamo checkpoint tracing assertion observed on the VM.
+- Notes:
+  - Expected construction is four distinct grid mixer layers cycled twice for eight total grid-core applications, with SwiGLU grid FFNs.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1/result_card.md`
 - Benchmark metrics: pending

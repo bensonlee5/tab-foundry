@@ -43,3 +43,4 @@ grid_residual_mode: prenorm
 grid_attention_mode: standard
 grid_ffn_mode: gelu
 grid_recurrence_steps: null
+grid_recurrence_unique_layers: null

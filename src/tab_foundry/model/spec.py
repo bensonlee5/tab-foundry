@@ -6,7 +6,15 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Annotated, Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
@@ -472,6 +480,7 @@ class _GridSandwichModelParams(_SandwichModelParams):
     grid_attention_mode: str = "standard"
     grid_ffn_mode: str = "gelu"
     grid_recurrence_steps: int | None = Field(default=None, gt=0)
+    grid_recurrence_unique_layers: int | None = Field(default=None, gt=0)
 
     @field_validator("grid_residual_mode", mode="before")
     @classmethod
@@ -519,6 +528,35 @@ class _GridSandwichModelParams(_SandwichModelParams):
         if steps <= 0:
             raise ValueError("grid_recurrence_steps must be null or a positive integer")
         return steps
+
+    @field_validator("grid_recurrence_unique_layers", mode="before")
+    @classmethod
+    def _validate_grid_recurrence_unique_layers(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "none", "null"}:
+                return None
+        layers = int(value)
+        if layers <= 0:
+            raise ValueError("grid_recurrence_unique_layers must be null or a positive integer")
+        return layers
+
+    @model_validator(mode="after")
+    def _validate_grid_recurrence_layer_cycle(self) -> "_GridSandwichModelParams":
+        if self.grid_recurrence_unique_layers is None:
+            return self
+        if self.grid_recurrence_steps is None:
+            raise ValueError(
+                "grid_recurrence_unique_layers requires grid_recurrence_steps to be set"
+            )
+        if int(self.grid_recurrence_unique_layers) > int(self.grid_recurrence_steps):
+            raise ValueError(
+                "grid_recurrence_unique_layers must be less than or equal to "
+                "grid_recurrence_steps"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------

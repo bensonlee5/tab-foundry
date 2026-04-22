@@ -11089,6 +11089,87 @@ deltas:
     default_next_action: Execute against the promoted TF-RD-026 control replay after
       row `05` inference verification passes.
     applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Cycle two distinct SwiGLU grid mixer layers across eight recurrent
+      grid-core applications.
+    upstream_delta: Follow-up to row `09`, which shares one recurrent SwiGLU grid
+      layer across all eight applications.
+    expected_effect: Tests whether row `09`'s recurrent+SwiGLU gain improves further
+      when the recurrent core has more than one learned grid transformation.
+    adequacy_knobs:
+    - two unique grid mixer layers cycled four times
+    - grid FFNs use SwiGLU; residual topology and attention remain standard
+    - activation checkpointing remains disabled because recurrent+SwiGLU trips the
+      TorchDynamo checkpoint tracing assertion
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after row `09` to check whether recurrent+SwiGLU benefits from
+        more unique grid-layer capacity.
+      - Compare against rows `04`, `05`, and `09` to separate gated FFN gains from
+        recurrent unique-layer capacity.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_cycle_size_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        grid_ffn_mode: swiglu
+      training:
+        overrides:
+          runtime:
+            activation_checkpointing: false
+    default_next_action: Execute after row `09` to test whether its recurrent+SwiGLU
+      signal scales with two unique grid mixer layers.
+    applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Cycle four distinct SwiGLU grid mixer layers twice for eight recurrent
+      grid-core applications.
+    upstream_delta: Follow-up to row `04` and row `09`, testing repeated compute
+      after a full four-layer SwiGLU grid core.
+    expected_effect: If recurrence helps only when the full four-layer grid core
+      is preserved, this row should beat row `04`; if extra compute alone is not
+      useful, it should land near or below row `04`.
+    adequacy_knobs:
+    - four unique grid mixer layers cycled twice
+    - same grid-core parameter count as row `04`, but twice the grid-core applications
+    - activation checkpointing remains disabled because recurrent+SwiGLU trips the
+      TorchDynamo checkpoint tracing assertion
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute with row `10` to compare two-layer and four-layer recurrent cycle
+        sizes at the same eight total applications.
+      - Compare primarily against row `04` because both use four unique SwiGLU grid
+        layers, but this row repeats the full grid core.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_compute_scale_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 4
+        grid_ffn_mode: swiglu
+      training:
+        overrides:
+          runtime:
+            activation_checkpointing: false
+    default_next_action: Execute after row `09` to test the same four unique SwiGLU
+      grid layers as row `04`, repeated twice.
+    applicability_guards: []
   delta_tf_rd_026_grid_repeat_candidate_1_v1:
     dimension_family: model
     family: grid_sandwich_broad_ml

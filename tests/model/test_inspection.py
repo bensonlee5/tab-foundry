@@ -232,6 +232,8 @@ def test_parameter_counts_and_surface_payload_include_grid_sandwich_metadata() -
     assert payload["architecture"]["grid_attention_mode"] == "standard"
     assert payload["architecture"]["grid_ffn_mode"] == "gelu"
     assert payload["architecture"]["grid_recurrence_steps"] is None
+    assert payload["architecture"]["grid_recurrence_unique_layers"] is None
+    assert payload["architecture"]["grid_core_unique_layers"] == 2
     assert batch.expected_output_kind == "logits"
     assert batch.expected_num_classes == 4
 

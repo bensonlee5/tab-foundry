@@ -130,6 +130,7 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert str(cfg.model.grid_attention_mode) == "standard"
     assert str(cfg.model.grid_ffn_mode) == "gelu"
     assert cfg.model.grid_recurrence_steps is None
+    assert cfg.model.grid_recurrence_unique_layers is None
     assert int(cfg.runtime.max_steps) == 5000
     assert int(cfg.schedule.stages[0].steps) == 5000
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"

@@ -38,6 +38,9 @@ anchor_surface:
   - Row `09` follows up row `05` by combining the shared recurrent grid core with
     SwiGLU FFN capacity while keeping row `06` and diagnostic placeholder rows
     blocked.
+  - Rows `10` and `11` follow up row `09` by keeping eight recurrent grid-core
+    applications and SwiGLU FFNs, but cycling two or four distinct grid mixer layers
+    instead of sharing one layer across all recurrent passes.
   dimension_table:
   - dimension: residual topology
     upstream: Hyper-Connection-style multi-stream residual routing can improve deep
@@ -62,9 +65,10 @@ anchor_surface:
     upstream: Sharing a transformation across recurrent iterations can improve iterative
       reasoning while controlling parameter count.
     anchor: The grid sandwich control instantiates four distinct grid mixer layers.
-    interpretation: Read `grid_recurrence_steps=8` as a full-shared-layer efficiency
-      baseline. Use checkpoint-time contiguous chunk ablation/repeat diagnostics
-      to choose any apples-to-apples localized repeat candidate.
+    interpretation: Read `grid_recurrence_steps=8` with no unique-layer override
+      as a full-shared-layer efficiency baseline. Read `grid_recurrence_unique_layers`
+      as the recurrent cycle size for follow-ups that test whether recurrence needs
+      more distinct transformations before running localized chunk-repeat candidates.
 anchor_context:
   run_id: null
   carried_run_id: sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1

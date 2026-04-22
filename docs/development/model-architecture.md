@@ -285,7 +285,8 @@ semantics still match.
 | `grid_residual_mode` | `prenorm` | default pre-norm residual topology; `hyper_connection_lite` keeps two residual streams per cell token inside the grid core, width-mixes before each row/column mixer, depth-mixes after it, and collapses the streams by mean before test-row pooling |
 | `grid_attention_mode` | `standard` | default shared attention blocks; `differential` uses two query/key maps and computes `softmax(Q1K1^T)V - lambda * softmax(Q2K2^T)V` with one learned scalar `lambda` initialized to `0.1` per grid attention block |
 | `grid_ffn_mode` | `gelu` | default FFN path preserves `sandwich_activation`; `swiglu` replaces grid-core FFNs with a parameter-matched SwiGLU hidden width of `round_up(ceil((2/3) * sandwich_ff_expansion * d_icl), 8)` |
-| `grid_recurrence_steps` | `null` | default uses `sandwich_layers` distinct grid layers; a positive value shares one `_GridMixerLayer` for that many recurrent row/column refinements |
+| `grid_recurrence_steps` | `null` | default uses `sandwich_layers` distinct grid layers; a positive value runs that many recurrent row/column refinements |
+| `grid_recurrence_unique_layers` | `null` | recurrent cycle size; null shares one grid layer when `grid_recurrence_steps` is set, while a positive value cycles that many distinct grid layers |
 | `sandwich_pre_row_attention_layers` | `1` | pre-grid row-wise feature self-attention blocks |
 | `sandwich_pre_column_attention_layers` | `1` | pre-grid column-wise ISAB row mixers |
 | `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in pre-column and grid-column ISAB blocks |

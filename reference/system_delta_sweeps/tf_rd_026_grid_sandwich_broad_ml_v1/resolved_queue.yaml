@@ -41,6 +41,9 @@ anchor_surface:
     against the row `01` checkpoint before training blocked follow-on rows.
   - Row `09` follows up row `05` by combining the shared recurrent grid core with
     SwiGLU FFN capacity while keeping row `06` and diagnostic placeholder rows blocked.
+  - Rows `10` and `11` follow up row `09` by keeping eight recurrent grid-core applications
+    and SwiGLU FFNs, but cycling two or four distinct grid mixer layers instead of
+    sharing one layer across all recurrent passes.
   dimension_table:
   - dimension: residual topology
     upstream: Hyper-Connection-style multi-stream residual routing can improve deep
@@ -65,9 +68,10 @@ anchor_surface:
     upstream: Sharing a transformation across recurrent iterations can improve iterative
       reasoning while controlling parameter count.
     anchor: The grid sandwich control instantiates four distinct grid mixer layers.
-    interpretation: Read `grid_recurrence_steps=8` as a full-shared-layer efficiency
-      baseline. Use checkpoint-time contiguous chunk ablation/repeat diagnostics to
-      choose any apples-to-apples localized repeat candidate.
+    interpretation: Read `grid_recurrence_steps=8` with no unique-layer override as
+      a full-shared-layer efficiency baseline. Read `grid_recurrence_unique_layers`
+      as the recurrent cycle size for follow-ups that test whether recurrence needs
+      more distinct transformations before running localized chunk-repeat candidates.
 anchor_context:
   run_id: null
   carried_run_id: sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1
@@ -262,6 +266,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -280,7 +285,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -446,7 +453,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a
+  resolved_surface_fingerprint: d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2
 - order: 2
   delta_id: delta_tf_rd_026_grid_hyper_connection_lite_v1
   status: ready
@@ -618,6 +625,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -636,7 +644,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -802,7 +812,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: ad2b151950aa00cb214d192f1ea5e4da9a191ce23fe8236f951cecdeb39c147d
+  resolved_surface_fingerprint: 4c59fa2da2a7094c518183088e82d6d8e00e017e4f623916c7e2352935208394
 - order: 3
   delta_id: delta_tf_rd_026_grid_differential_attention_v1
   status: ready
@@ -973,6 +983,7 @@ rows:
         grid_attention_mode: differential
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -991,7 +1002,9 @@ rows:
         grid_attention_mode: differential
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -1157,7 +1170,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: aea39453bbc77886018892631c1d8b92204c0cc275b1278aa7160f3c66fedf5f
+  resolved_surface_fingerprint: 341f8a8e5970302fcb3bc77b4c2012f07ca3f997e1147933e314bcf61ef22692
 - order: 4
   delta_id: delta_tf_rd_026_grid_swiglu_ffn_v1
   status: ready
@@ -1328,6 +1341,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -1346,7 +1360,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -1512,7 +1528,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 8b6983675a1d2afdcc6ad7e05e7ac52c4d08c30c1eb78572b505a248cee794a3
+  resolved_surface_fingerprint: b29f01fe39fa923954dc5e7be3590f172bfa3e36dc66337af9145ee5dcc480a1
 - order: 5
   delta_id: delta_tf_rd_026_grid_recurrent_8_v1
   status: ready
@@ -1688,6 +1704,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -1706,7 +1723,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 8
+        grid_core_unique_layers: 1
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -1872,7 +1891,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: db670e4234758a26e92c44c4edad8e7165b1d6cff4f2293cbb43d6b0db9bdca2
+  resolved_surface_fingerprint: fc0ea4f77d2e7ef4bdc6101d8763ae18ece9ef6b9f8b80c4db31ba6845b06652
 - order: 6
   delta_id: delta_tf_rd_026_grid_hc_swiglu_combo_v1
   status: blocked
@@ -2046,6 +2065,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -2064,7 +2084,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -2230,7 +2252,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: d20d2a45745a731f5696eb1f99b12f31703a804acbb1142b8624c255d5e5ca71
+  resolved_surface_fingerprint: e2388b60ed62b114cfe6d1d0e83c5992d68e81d173bae7e50655b2fa12f490b0
 - order: 7
   delta_id: delta_tf_rd_026_grid_repeat_candidate_1_v1
   status: blocked
@@ -2410,6 +2432,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -2428,7 +2451,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -2594,7 +2619,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a
+  resolved_surface_fingerprint: d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2
 - order: 8
   delta_id: delta_tf_rd_026_grid_repeat_candidate_2_v1
   status: blocked
@@ -2773,6 +2798,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -2791,7 +2817,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: gelu
         grid_recurrence_steps: null
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 4
+        grid_core_unique_layers: 4
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -2957,7 +2985,7 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 5f4c1c6b7bc1c4899914713f26309b886dd8462b96a3d30170e3569a3e82878a
+  resolved_surface_fingerprint: d98d79e74947b573b080f2110dbd36239fac97bf12abda7211d97b4a321a4af2
 - order: 9
   delta_id: delta_tf_rd_026_grid_recurrent_8_swiglu_v1
   status: ready
@@ -3144,6 +3172,7 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: null
       architecture:
         input_tokens: row_feature_cell_grid
         input_token_count: R_times_C
@@ -3162,7 +3191,9 @@ rows:
         grid_attention_mode: standard
         grid_ffn_mode: swiglu
         grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: null
         grid_core_iterations: 8
+        grid_core_unique_layers: 1
         layers: 4
         heads: 1
         ff_expansion: 2
@@ -3328,6 +3359,753 @@ rows:
       checkpoint_every: 25
       val_batches: 0
       max_steps: 5000
-  resolved_surface_fingerprint: 7954582d881c1a2c46dbc7181768ab8e3dba552275df8cf7c75b0735ac6fad51
+  resolved_surface_fingerprint: d8f25d43c8e53aab8ba91c8956a621f079643d462e2e1672a9e1d36abe6a2104
+- order: 10
+  delta_id: delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1
+  status: ready
+  rationale: Test whether row `09`'s recurrent+SwiGLU signal improves when the recurrent
+    grid core has two distinct row/column mixer layers to alternate across the same
+    eight total grid-core applications.
+  hypothesis: Two unique SwiGLU grid layers repeated four times may preserve the iterative
+    refinement benefit of row `05` while avoiding the representational bottleneck
+    of sharing a single layer for all eight passes.
+  anchor_delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=2`,
+    and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+  model:
+    grid_recurrence_steps: 8
+    grid_recurrence_unique_layers: 2
+    grid_ffn_mode: swiglu
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    overrides:
+      runtime:
+        activation_checkpointing: false
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute after row `09` to check whether recurrent+SwiGLU benefits from more unique
+    grid-layer capacity.
+  - Compare against row `04` SwiGLU, row `05` recurrent, and row `09` one-layer recurrent+SwiGLU
+    before deciding whether recurrent depth needs more unique layer capacity.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - This row changes both recurrent parameter count and repeated compute relative
+    to row `09`, so interpret it as a capacity/bottleneck follow-up rather than an
+    isolated architecture mechanism.
+  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU TorchDynamo
+    checkpoint tracing assertion observed on the VM.
+  next_action: Execute after row `09` to test whether its recurrent+SwiGLU signal
+    scales with two unique grid mixer layers.
+  notes:
+  - Expected construction is two distinct grid mixer layers cycled four times for
+    eight total grid-core applications, with SwiGLU grid FFNs.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: delta_tf_rd_026_grid_recurrent_8_swiglu_v1
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Cycle two distinct SwiGLU grid mixer layers across eight recurrent
+    grid-core applications.
+  upstream_delta: Follow-up to row `09`, which shares one recurrent SwiGLU grid layer
+    across all eight applications.
+  entangled_legacy_stage: none
+  expected_effect: Tests whether row `09`'s recurrent+SwiGLU gain improves further
+    when the recurrent core has more than one learned grid transformation.
+  adequacy_knobs:
+  - two unique grid mixer layers cycled four times
+  - grid FFNs use SwiGLU; residual topology and attention remain standard
+  - activation checkpointing remains disabled because recurrent+SwiGLU trips the TorchDynamo
+    checkpoint tracing assertion
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after row `09` to check whether recurrent+SwiGLU benefits from more
+      unique grid-layer capacity.
+    - Compare against rows `04`, `05`, and `09` to separate gated FFN gains from recurrent
+      unique-layer capacity.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_cycle_size_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: dcc581828b423ebbd5439eca0f366c8083cf0e0286fa1b3e3182238afe5a210b
+- order: 11
+  delta_id: delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1
+  status: ready
+  rationale: Test an apples-to-apples-parameter recurrent compute scale-up by keeping
+    four distinct SwiGLU grid mixer layers and applying the full four-layer core twice.
+  hypothesis: Four unique SwiGLU grid layers repeated twice may expose whether the
+    gain comes from additional iterative compute after a full-depth grid core rather
+    than from compressing the core into fewer shared layers.
+  anchor_delta: Combines `model.grid_recurrence_steps=8`, `model.grid_recurrence_unique_layers=4`,
+    and `model.grid_ffn_mode=swiglu`; residual topology and attention remain standard.
+  model:
+    grid_recurrence_steps: 8
+    grid_recurrence_unique_layers: 4
+    grid_ffn_mode: swiglu
+    arch: grid_sandwich
+    d_icl: 144
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: null
+    sandwich_layers: 4
+    sandwich_heads: 1
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: null
+    sandwich_self_attention_per_cross: null
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    sandwich_pre_column_inducing_tokens: 16
+    sandwich_packed_attention: true
+    feature_type_conditioning: film
+    floating_likelihood: null
+    integer_likelihood: null
+    grid_residual_mode: prenorm
+    grid_attention_mode: standard
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    surface_overrides:
+      source: manifest
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    overrides:
+      runtime:
+        activation_checkpointing: false
+        mixed_precision: bf16
+        grad_clip: 0.0
+        grad_accum_steps: 4
+        trace_activations: false
+        eval_every: 25
+        checkpoint_every: 25
+        val_batches: 0
+        max_steps: 5000
+        loader_task_batch_cache: false
+        loader_task_batch_cache_mode: bounded_streaming
+        num_workers: auto
+        loader_pin_memory: true
+        loader_persistent_workers: false
+        loader_prefetch_factor: auto
+        non_blocking_device_transfer: true
+        compile_model: true
+        compile_backend: eager
+        compile_dynamic: true
+        compile_shape_dispatch_mode: signature_family
+        compile_shape_dispatch_max_families: 16
+        signature_family_run_length: 4
+      optimizer:
+        name: muon
+        require_requested: true
+        weight_decay: 0.01
+        betas:
+        - 0.9
+        - 0.95
+        min_lr: 1.0e-06
+        muon_per_parameter_lr: true
+        muon_lr_scale_base: 0.2
+        muon_partition_non2d: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+    surface_label: prior_cosine_warmup
+    task_batch_size: 16
+    prior_dump_batch_size: 64
+  parameter_adequacy_plan:
+  - Execute alongside row `10` to separate recurrent unique-layer capacity from repeated
+    grid-core compute at the same eight total applications.
+  - Compare primarily against row `04` because this row keeps the same four unique
+    grid layers as the SwiGLU control while adding a second full recurrent pass.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - This row has the same grid-core parameter count as row `04` but more compute,
+    so a gain would support recurrence-as-compute rather than parameter efficiency.
+  - Activation checkpointing stays disabled to avoid the recurrent+SwiGLU TorchDynamo
+    checkpoint tracing assertion observed on the VM.
+  next_action: Execute after row `09` to test the same four unique SwiGLU grid layers
+    as row `04`, repeated twice.
+  notes:
+  - Expected construction is four distinct grid mixer layers cycled twice for eight
+    total grid-core applications, with SwiGLU grid FFNs.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: delta_tf_rd_026_grid_swiglu_ffn_v1
+  dimension_family: model
+  family: grid_sandwich_broad_ml
+  binary_applicable: false
+  description: Cycle four distinct SwiGLU grid mixer layers twice for eight recurrent
+    grid-core applications.
+  upstream_delta: Follow-up to row `04` and row `09`, testing repeated compute after
+    a full four-layer SwiGLU grid core.
+  entangled_legacy_stage: none
+  expected_effect: If recurrence helps only when the full four-layer grid core is
+    preserved, this row should beat row `04`; if extra compute alone is not useful,
+    it should land near or below row `04`.
+  adequacy_knobs:
+  - four unique grid mixer layers cycled twice
+  - same grid-core parameter count as row `04`, but twice the grid-core applications
+  - activation checkpointing remains disabled because recurrent+SwiGLU trips the TorchDynamo
+    checkpoint tracing assertion
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute with row `10` to compare two-layer and four-layer recurrent cycle sizes
+      at the same eight total applications.
+    - Compare primarily against row `04` because both use four unique SwiGLU grid
+      layers, but this row repeats the full grid core.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_compute_scale_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 4
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 4
+        grid_core_iterations: 8
+        grid_core_unique_layers: 4
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: 25
+      val_batches: 0
+      max_steps: 5000
+  resolved_surface_fingerprint: 8392c2b42e4139db8c1370c10c96b53f49d518b09ae3476498c2107725163eb9
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/resolved_queue.yaml
-inputs_fingerprint: bd4a5e87d73dbd1c07973314e9a82ef84ac6d4e49481d4728ef8a032aa20979c
+inputs_fingerprint: b826deb1663269923811b7393733a1e9e92f4ac325a58d67f1f876b57b7944b4

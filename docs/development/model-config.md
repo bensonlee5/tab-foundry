@@ -145,7 +145,8 @@ did not yet serialize every reconstruction field.
 | `grid_residual_mode` | `str` | `"prenorm"` | grid | Grid-core residual topology. `hyper_connection_lite` uses two cell-token residual streams with width/depth mixing around each grid row/column mixer. |
 | `grid_attention_mode` | `str` | `"standard"` | grid | Grid-core attention family. `differential` computes `softmax(Q1K1^T)V - lambda * softmax(Q2K2^T)V` with one learned scalar initialized to `0.1` per attention block. |
 | `grid_ffn_mode` | `str` | `"gelu"` | grid | Grid-core FFN family. `swiglu` uses hidden width `round_up(ceil((2/3) * sandwich_ff_expansion * d_icl), 8)` to stay near the GELU FFN parameter budget. |
-| `grid_recurrence_steps` | `int \| null` | `null` | grid | When null, the grid core uses `sandwich_layers` distinct layers. When positive, one `_GridMixerLayer` is shared for that many recurrent refinement steps. |
+| `grid_recurrence_steps` | `int \| null` | `null` | grid | When null, the grid core uses `sandwich_layers` distinct layers. When positive, the grid core runs for this many recurrent refinement steps. |
+| `grid_recurrence_unique_layers` | `int \| null` | `null` | grid | Optional recurrent-core cycle size. When null with `grid_recurrence_steps` set, one `_GridMixerLayer` is shared; when positive, that many distinct grid layers are cycled through the recurrent steps. |
 | `feature_type_conditioning` | `str` | `"film"` | sandwich, grid | Feature-type conditioning path for cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
 | `floating_likelihood` | `str` | `"single_gaussian"` | sandwich | Floating-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. Active classification benchmarks use `training.loss_surface=classification` instead. |
 | `integer_likelihood` | `str` | `"hybrid_mixture"` | sandwich | Integer-cell likelihood family for the legacy sandwich `cell_bpc` generative lane. `hybrid_mixture` combines dynamic-support discrete likelihood with a single-Gaussian branch. Active classification benchmarks use `training.loss_surface=classification` instead. |
@@ -184,6 +185,7 @@ block width.
 - `grid_attention_mode`
 - `grid_ffn_mode`
 - `grid_recurrence_steps`
+- `grid_recurrence_unique_layers`
 
 These parameters control the active `grid_sandwich` core and the previous
 `tabfoundry_sandwich` comparison family. In `grid_sandwich`, `sandwich_layers`
@@ -263,7 +265,8 @@ removed legacy family.
     `sandwich_pre_column_attention_layers`,
     `sandwich_pre_column_inducing_tokens`, `d_icl`, `head_hidden_dim`,
     `grid_residual_mode`, `grid_attention_mode`, `grid_ffn_mode`,
-    `grid_recurrence_steps`, `input_normalization`, and `pre_encoder_clip`.
+    `grid_recurrence_steps`, `grid_recurrence_unique_layers`,
+    `input_normalization`, and `pre_encoder_clip`.
     `sandwich_layers` counts alternating row/column grid-mixer layers unless
     `grid_recurrence_steps` is positive. `feature_types` are required at
     runtime and on `forward_batched(..., feature_types=...)`. Export-bundle `preprocessor`

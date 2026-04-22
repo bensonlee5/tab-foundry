@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
   architecture gates for opt-in performance sweeps: `grid_residual_mode`,
-  `grid_attention_mode`, `grid_ffn_mode`, and `grid_recurrence_steps`.
+  `grid_attention_mode`, `grid_ffn_mode`, `grid_recurrence_steps`, and
+  `grid_recurrence_unique_layers`.
   Defaults preserve the carried grid anchor, while non-default values enable
   hyper-connection-lite cell residual streams, differential grid attention,
   parameter-matched SwiGLU grid FFNs, or recurrent shared-layer grid
-  refinement. Export manifests and training/model surface records now preserve
-  these grid fields, and the repo includes first-wave TF-RD-026 workstation
-  experiment configs.
+  refinement. The unique-layer recurrence gate cycles multiple distinct grid
+  mixer layers across recurrent passes for TF-RD-026 follow-up rows. Export
+  manifests and training/model surface records now preserve these grid fields,
+  and the repo includes first-wave TF-RD-026 workstation experiment configs.
 - User-facing note: TF-RD-026 now includes `tab-foundry research grid-core
   perturb-checkpoint`, a checkpoint-time diagnostic that ablates and repeats
   contiguous grid-sandwich core chunks across multiple repeat counts on a

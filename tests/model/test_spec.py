@@ -119,10 +119,14 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         sandwich_pre_column_inducing_tokens=8,
         grid_attention_mode="differential",
         grid_ffn_mode="swiglu",
+        grid_recurrence_steps=4,
+        grid_recurrence_unique_layers=2,
     )
 
     assert isinstance(model, GridSandwichClassifier)
     assert len(model.grid_layers) == 2
+    assert model.grid_core_iterations == 4
+    assert model.grid_core_unique_layers == 2
     assert len(model.pre_row_attention_blocks) == 2
     assert len(model.pre_column_attention_blocks) == 1
     assert model.pre_column_inducing_tokens == 8
@@ -196,6 +200,7 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.grid_attention_mode == "standard"
     assert spec.grid_ffn_mode == "gelu"
     assert spec.grid_recurrence_steps is None
+    assert spec.grid_recurrence_unique_layers is None
 
 
 def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
@@ -209,6 +214,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
             "grid_attention_mode": "differential",
             "grid_ffn_mode": "swiglu",
             "grid_recurrence_steps": 8,
+            "grid_recurrence_unique_layers": 2,
         },
     )
 
@@ -218,12 +224,14 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.grid_attention_mode == "differential"
     assert spec.grid_ffn_mode == "swiglu"
     assert spec.grid_recurrence_steps == 8
+    assert spec.grid_recurrence_unique_layers == 2
     assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
     assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
     assert spec.to_dict()["grid_attention_mode"] == "differential"
     assert spec.to_dict()["grid_ffn_mode"] == "swiglu"
     assert spec.to_dict()["grid_recurrence_steps"] == 8
+    assert spec.to_dict()["grid_recurrence_unique_layers"] == 2
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -361,6 +369,7 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         ("grid_attention_mode", "flash"),
         ("grid_ffn_mode", "geglu"),
         ("grid_recurrence_steps", 0),
+        ("grid_recurrence_unique_layers", 0),
     ),
 )
 def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(
@@ -371,6 +380,26 @@ def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(
         _ = model_build_spec_from_mappings(
             task="classification",
             primary={"arch": "grid_sandwich", field_name: bad_value},
+        )
+
+
+def test_grid_sandwich_model_spec_rejects_unique_layers_without_recurrence() -> None:
+    with pytest.raises(ValueError, match="grid_recurrence_unique_layers"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "grid_sandwich", "grid_recurrence_unique_layers": 2},
+        )
+
+
+def test_grid_sandwich_model_spec_rejects_unique_layers_above_recurrence_steps() -> None:
+    with pytest.raises(ValueError, match="grid_recurrence_unique_layers"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "grid_sandwich",
+                "grid_recurrence_steps": 2,
+                "grid_recurrence_unique_layers": 3,
+            },
         )
 
 

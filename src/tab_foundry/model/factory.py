@@ -167,6 +167,7 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             grid_attention_mode=str(spec.grid_attention_mode),
             grid_ffn_mode=str(spec.grid_ffn_mode),
             grid_recurrence_steps=spec.grid_recurrence_steps,
+            grid_recurrence_unique_layers=spec.grid_recurrence_unique_layers,
         )
 
     raise ValueError(f"Unsupported model arch: {spec.arch!r}")

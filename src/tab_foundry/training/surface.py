@@ -375,8 +375,15 @@ def build_training_surface_record(
             "grid_recurrence_steps": None
             if model_spec.grid_recurrence_steps is None
             else int(model_spec.grid_recurrence_steps),
+            "grid_recurrence_unique_layers": None
+            if model_spec.grid_recurrence_unique_layers is None
+            else int(model_spec.grid_recurrence_unique_layers),
             "grid_core_iterations": int(
                 model_spec.grid_recurrence_steps or model_spec.sandwich_layers
+            ),
+            "grid_core_unique_layers": int(
+                model_spec.grid_recurrence_unique_layers
+                or (1 if model_spec.grid_recurrence_steps is not None else model_spec.sandwich_layers)
             ),
             "layers": int(model_spec.sandwich_layers),
             "heads": int(model_spec.sandwich_heads),

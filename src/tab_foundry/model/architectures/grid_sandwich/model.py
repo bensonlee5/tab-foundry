@@ -513,6 +513,7 @@ class GridSandwichClassifier(nn.Module):
         grid_attention_mode: str = _D["grid_attention_mode"],
         grid_ffn_mode: str = _D["grid_ffn_mode"],
         grid_recurrence_steps: int | None = _D["grid_recurrence_steps"],
+        grid_recurrence_unique_layers: int | None = _D["grid_recurrence_unique_layers"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -538,6 +539,7 @@ class GridSandwichClassifier(nn.Module):
             grid_attention_mode=grid_attention_mode,
             grid_ffn_mode=grid_ffn_mode,
             grid_recurrence_steps=grid_recurrence_steps,
+            grid_recurrence_unique_layers=grid_recurrence_unique_layers,
         )
         self.arch = "grid_sandwich"
         self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
@@ -569,7 +571,16 @@ class GridSandwichClassifier(nn.Module):
             if self.model_spec.grid_recurrence_steps is None
             else int(self.model_spec.grid_recurrence_steps)
         )
+        self.grid_recurrence_unique_layers = (
+            None
+            if self.model_spec.grid_recurrence_unique_layers is None
+            else int(self.model_spec.grid_recurrence_unique_layers)
+        )
         self.grid_core_iterations = int(self.grid_recurrence_steps or self.sandwich_layers)
+        self.grid_core_unique_layers = int(
+            self.grid_recurrence_unique_layers
+            or (1 if self.grid_recurrence_steps is not None else self.sandwich_layers)
+        )
         if self.norm_type != "layernorm":
             raise ValueError(
                 "grid_sandwich currently requires norm_type='layernorm', "
@@ -616,7 +627,7 @@ class GridSandwichClassifier(nn.Module):
                 for _ in range(self.pre_column_attention_layers)
             ]
         )
-        grid_layer_count = 1 if self.grid_recurrence_steps is not None else self.sandwich_layers
+        grid_layer_count = int(self.grid_core_unique_layers)
         self.grid_layers = nn.ModuleList(
             [
                 _GridMixerLayer(
@@ -1095,7 +1106,7 @@ class GridSandwichClassifier(nn.Module):
     def _grid_core_layer(self, logical_index: int) -> _GridMixerLayer:
         return cast(
             _GridMixerLayer,
-            self.grid_layers[0]
+            self.grid_layers[int(logical_index) % len(self.grid_layers)]
             if self.grid_recurrence_steps is not None
             else self.grid_layers[int(logical_index)],
         )

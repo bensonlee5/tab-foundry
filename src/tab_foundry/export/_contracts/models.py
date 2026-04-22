@@ -121,6 +121,7 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     grid_attention_mode: StrictStr | None = None
     grid_ffn_mode: StrictStr | None = None
     grid_recurrence_steps: StrictInt | None = None
+    grid_recurrence_unique_layers: StrictInt | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -366,6 +367,7 @@ class ExportModelSpec:
     grid_attention_mode: str
     grid_ffn_mode: str
     grid_recurrence_steps: int | None
+    grid_recurrence_unique_layers: int | None
 
     @classmethod
     def from_build_spec(
@@ -430,6 +432,9 @@ class ExportModelSpec:
             grid_recurrence_steps=None
             if spec.grid_recurrence_steps is None
             else int(spec.grid_recurrence_steps),
+            grid_recurrence_unique_layers=None
+            if spec.grid_recurrence_unique_layers is None
+            else int(spec.grid_recurrence_unique_layers),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -489,6 +494,7 @@ class ExportModelSpec:
                 "grid_attention_mode": self.grid_attention_mode,
                 "grid_ffn_mode": self.grid_ffn_mode,
                 "grid_recurrence_steps": self.grid_recurrence_steps,
+                "grid_recurrence_unique_layers": self.grid_recurrence_unique_layers,
             },
         )
 
@@ -531,6 +537,7 @@ class ExportModelSpec:
                 "grid_attention_mode",
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
+                "grid_recurrence_unique_layers",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -551,6 +558,7 @@ class ExportModelSpec:
                 "grid_attention_mode",
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
+                "grid_recurrence_unique_layers",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -563,6 +571,7 @@ class ExportModelSpec:
                 "grid_attention_mode",
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
+                "grid_recurrence_unique_layers",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -613,6 +622,7 @@ class ExportModelSpec:
                 "grid_attention_mode",
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
+                "grid_recurrence_unique_layers",
             ):
                 payload.pop(field_name, None)
             return payload

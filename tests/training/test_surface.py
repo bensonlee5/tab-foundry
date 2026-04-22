@@ -364,6 +364,8 @@ def test_build_training_surface_record_includes_grid_pre_mixer_depth_metadata(
     assert record["model"]["architecture"]["grid_attention_mode"] == "standard"
     assert record["model"]["architecture"]["grid_ffn_mode"] == "gelu"
     assert record["model"]["architecture"]["grid_recurrence_steps"] is None
+    assert record["model"]["architecture"]["grid_recurrence_unique_layers"] is None
+    assert record["model"]["architecture"]["grid_core_unique_layers"] == 2
 
 
 def test_build_training_surface_record_includes_compile_runtime_flags(

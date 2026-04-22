@@ -91,6 +91,7 @@ def _grid_model(
     grid_attention_mode: str = "standard",
     grid_ffn_mode: str = "gelu",
     grid_recurrence_steps: int | None = None,
+    grid_recurrence_unique_layers: int | None = None,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -107,6 +108,7 @@ def _grid_model(
         grid_attention_mode=grid_attention_mode,
         grid_ffn_mode=grid_ffn_mode,
         grid_recurrence_steps=grid_recurrence_steps,
+        grid_recurrence_unique_layers=grid_recurrence_unique_layers,
     )
 
 
@@ -376,8 +378,51 @@ def test_grid_sandwich_recurrent_core_shares_one_grid_layer() -> None:
     model = _grid_model(grid_recurrence_steps=8)
 
     assert model.grid_recurrence_steps == 8
+    assert model.grid_recurrence_unique_layers is None
     assert model.grid_core_iterations == 8
+    assert model.grid_core_unique_layers == 1
     assert len(model.grid_layers) == 1
+
+
+def test_grid_sandwich_recurrent_core_cycles_unique_layers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _grid_model(
+        grid_recurrence_steps=4,
+        grid_recurrence_unique_layers=2,
+    ).eval()
+    batch = _task_batch()
+    calls: list[tuple[str, int]] = []
+
+    def _record_row(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("row", id(block)))
+        return hidden
+
+    def _record_column(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("column", id(block)))
+        return hidden
+
+    monkeypatch.setattr(model, "_row_feature_self_attention", _record_row)
+    monkeypatch.setattr(model, "_column_row_isab", _record_column)
+
+    with torch.no_grad():
+        _ = model(batch)
+
+    layer0 = model.grid_layers[0]
+    layer1 = model.grid_layers[1]
+    assert model.grid_core_iterations == 4
+    assert model.grid_core_unique_layers == 2
+    assert len(model.grid_layers) == 2
+    assert calls == [
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
 
 
 def test_grid_sandwich_grid_core_intervention_none_preserves_logits() -> None:
