@@ -149,11 +149,24 @@ PYTHONPATH=src .venv/bin/python -m tab_foundry train profile \
 ```
 
 `cls_workstation_grid_sandwich` is the default training surface for new
-architecture work. It carries the April 20-21, 2026 grid-preserving anchor on
-the `144x4` / `tf_rd_010_dagzoo_medium_control_curated_v6` medium multiclass
-surface. `cls_workstation_sandwich` remains available as the previous
+architecture work. It now carries the TF-RD-026 row `10` anchor on the
+`tf_rd_010_dagzoo_medium_control_curated_v6` medium multiclass surface: two
+distinct SwiGLU grid mixer layers cycled four times for eight total grid-core
+applications. `cls_workstation_sandwich` remains available as the previous
 tabfoundry-sandwich comparison surface. Regression remains intentionally
 removed in the current repo state.
+
+The TF-RD-026 sweep is the source of truth for the completed broad-ML grid
+campaign:
+
+```bash
+tab-foundry research sweep inspect \
+  --sweep-id tf_rd_026_grid_sandwich_broad_ml_v1 \
+  --order 10
+```
+
+The older TF-RD-026 row configs remain only as reproducibility entrypoints for
+the completed rows and blocked follow-ups.
 
 The prior-trained staged control surface is still available:
 

@@ -393,6 +393,11 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     model_payload["sandwich_pre_column_attention_layers"] = 2
     model_payload["sandwich_pre_column_inducing_tokens"] = 16
     model_payload["feature_type_conditioning"] = "film"
+    model_payload["grid_residual_mode"] = "hyper_connection_lite"
+    model_payload["grid_attention_mode"] = "differential"
+    model_payload["grid_ffn_mode"] = "swiglu"
+    model_payload["grid_recurrence_steps"] = 8
+    model_payload["grid_recurrence_unique_layers"] = 2
     model_payload.pop("sandwich_latents", None)
     model_payload.pop("sandwich_summary_tokens_per_axis", None)
     model_payload.pop("sandwich_self_attention_per_cross", None)
@@ -426,8 +431,15 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     assert manifest.model.sandwich_pre_row_attention_layers == 3
     assert manifest.model.sandwich_pre_column_attention_layers == 2
     assert manifest.model.sandwich_pre_column_inducing_tokens == 16
+    assert manifest.model.grid_residual_mode == "hyper_connection_lite"
+    assert manifest.model.grid_attention_mode == "differential"
+    assert manifest.model.grid_ffn_mode == "swiglu"
+    assert manifest.model.grid_recurrence_steps == 8
+    assert manifest.model.grid_recurrence_unique_layers == 2
     assert rebuilt.sandwich_pre_row_attention_layers == 3
     assert rebuilt.sandwich_pre_column_attention_layers == 2
+    assert rebuilt.grid_recurrence_steps == 8
+    assert rebuilt.grid_recurrence_unique_layers == 2
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "grid_sandwich"
     assert roundtrip.to_dict() == manifest.model.to_dict()

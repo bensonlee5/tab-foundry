@@ -6,7 +6,15 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Annotated, Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
@@ -38,6 +46,9 @@ SUPPORTED_SANDWICH_ACTIVATIONS = ("gelu", "rational")
 SUPPORTED_SANDWICH_BLOCK_NORMS = ("layernorm", "none")
 SUPPORTED_ROUTED_RESIDUAL_MODES = ("dynamic_hyper",)
 SUPPORTED_ROUTED_RESIDUAL_SCALES = ("deepnorm",)
+SUPPORTED_GRID_RESIDUAL_MODES = ("prenorm", "hyper_connection_lite")
+SUPPORTED_GRID_ATTENTION_MODES = ("standard", "differential")
+SUPPORTED_GRID_FFN_MODES = ("gelu", "swiglu")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -465,7 +476,87 @@ class _RoutedSandwichModelParams(_SandwichModelParams):
 
 
 class _GridSandwichModelParams(_SandwichModelParams):
-    pass
+    grid_residual_mode: str = "prenorm"
+    grid_attention_mode: str = "standard"
+    grid_ffn_mode: str = "gelu"
+    grid_recurrence_steps: int | None = Field(default=None, gt=0)
+    grid_recurrence_unique_layers: int | None = Field(default=None, gt=0)
+
+    @field_validator("grid_residual_mode", mode="before")
+    @classmethod
+    def _validate_grid_residual_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_RESIDUAL_MODES:
+            raise ValueError(
+                "grid_residual_mode must be one of "
+                f"{SUPPORTED_GRID_RESIDUAL_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_attention_mode", mode="before")
+    @classmethod
+    def _validate_grid_attention_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_ATTENTION_MODES:
+            raise ValueError(
+                "grid_attention_mode must be one of "
+                f"{SUPPORTED_GRID_ATTENTION_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_ffn_mode", mode="before")
+    @classmethod
+    def _validate_grid_ffn_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_FFN_MODES:
+            raise ValueError(
+                "grid_ffn_mode must be one of "
+                f"{SUPPORTED_GRID_FFN_MODES}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("grid_recurrence_steps", mode="before")
+    @classmethod
+    def _validate_grid_recurrence_steps(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "none", "null"}:
+                return None
+        steps = int(value)
+        if steps <= 0:
+            raise ValueError("grid_recurrence_steps must be null or a positive integer")
+        return steps
+
+    @field_validator("grid_recurrence_unique_layers", mode="before")
+    @classmethod
+    def _validate_grid_recurrence_unique_layers(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "none", "null"}:
+                return None
+        layers = int(value)
+        if layers <= 0:
+            raise ValueError("grid_recurrence_unique_layers must be null or a positive integer")
+        return layers
+
+    @model_validator(mode="after")
+    def _validate_grid_recurrence_layer_cycle(self) -> "_GridSandwichModelParams":
+        if self.grid_recurrence_unique_layers is None:
+            return self
+        if self.grid_recurrence_steps is None:
+            raise ValueError(
+                "grid_recurrence_unique_layers requires grid_recurrence_steps to be set"
+            )
+        if int(self.grid_recurrence_unique_layers) > int(self.grid_recurrence_steps):
+            raise ValueError(
+                "grid_recurrence_unique_layers must be less than or equal to "
+                "grid_recurrence_steps"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +672,9 @@ def _build_flat_defaults() -> dict[str, Any]:
         if name not in defaults:
             defaults[name] = info.default
     for name, info in _RoutedSandwichModelParams.model_fields.items():
+        if name not in defaults:
+            defaults[name] = info.default
+    for name, info in _GridSandwichModelParams.model_fields.items():
         if name not in defaults:
             defaults[name] = info.default
     return defaults

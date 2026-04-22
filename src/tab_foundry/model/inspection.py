@@ -186,6 +186,20 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "sandwich_activation": str(spec.sandwich_activation),
                 "sandwich_block_norm": str(spec.sandwich_block_norm),
                 "sandwich_packed_attention": bool(spec.sandwich_packed_attention),
+                "grid_residual_mode": str(spec.grid_residual_mode),
+                "grid_attention_mode": str(spec.grid_attention_mode),
+                "grid_ffn_mode": str(spec.grid_ffn_mode),
+                "grid_recurrence_steps": None
+                if spec.grid_recurrence_steps is None
+                else int(spec.grid_recurrence_steps),
+                "grid_recurrence_unique_layers": None
+                if spec.grid_recurrence_unique_layers is None
+                else int(spec.grid_recurrence_unique_layers),
+                "grid_core_iterations": int(spec.grid_recurrence_steps or spec.sandwich_layers),
+                "grid_core_unique_layers": int(
+                    spec.grid_recurrence_unique_layers
+                    or (1 if spec.grid_recurrence_steps is not None else spec.sandwich_layers)
+                ),
                 "layers": int(spec.sandwich_layers),
                 "heads": int(spec.sandwich_heads),
                 "ff_expansion": int(spec.sandwich_ff_expansion),

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass
 from typing import Any, cast
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from tab_foundry.feature_types import (
@@ -13,6 +16,7 @@ from tab_foundry.feature_types import (
     feature_type_ids_from_task_metadata,
     normalize_feature_types,
 )
+from tab_foundry.model.components.attention import _reshape_heads, multihead_attention_sdpa
 from tab_foundry.model.components.tabular_primitives import (
     DirectMulticlassHead,
     FeatureTypeFiLM,
@@ -30,13 +34,379 @@ from ..tabfoundry_sandwich import feature_flow as _feature_flow
 from ..tabfoundry_sandwich.blocks import (
     _CrossAttentionBlock,
     _InducedSetAttentionBlock,
+    _NativePackedCrossAttention,
+    _NativePackedSelfAttention,
     _SelfAttentionBlock,
+    _build_sandwich_activation,
+    _build_sandwich_block_norm,
+    _init_truncated_normal_,
 )
 from ..tabfoundry_sandwich.states import SandwichFeatureState, SandwichRawInputState
 
 
 _CLASSIFICATION_LOSS_SURFACE = "classification"
 _MIN_CLASS_COUNT = 2
+_GRID_RESIDUAL_PRENORM = "prenorm"
+_GRID_RESIDUAL_HYPER_CONNECTION_LITE = "hyper_connection_lite"
+_GRID_ATTENTION_STANDARD = "standard"
+_GRID_ATTENTION_DIFFERENTIAL = "differential"
+_GRID_FFN_SWIGLU = "swiglu"
+_GRID_HYPER_STREAMS = 2
+_DIFFERENTIAL_ATTENTION_LAMBDA_INIT = 0.1
+_SWIGLU_HIDDEN_MULTIPLE = 8
+_GRID_INTERVENTION_NONE = "none"
+_GRID_INTERVENTION_ABLATE_CHUNK = "ablate_chunk"
+_GRID_INTERVENTION_REPEAT_CHUNK = "repeat_chunk"
+
+
+@dataclass(frozen=True, slots=True)
+class GridCoreIntervention:
+    """Eval-only grid-core layer intervention for checkpoint diagnostics."""
+
+    mode: str = _GRID_INTERVENTION_NONE
+    start_layer: int | None = None
+    end_layer: int | None = None
+    repeat_count: int = 2
+
+
+def _round_up_to_multiple(value: int, multiple: int) -> int:
+    return int(math.ceil(float(value) / float(multiple)) * multiple)
+
+
+def _swiglu_hidden_size(*, embedding_size: int, ff_expansion: int) -> int:
+    raw_hidden = math.ceil((2.0 / 3.0) * float(ff_expansion) * float(embedding_size))
+    return _round_up_to_multiple(int(raw_hidden), _SWIGLU_HIDDEN_MULTIPLE)
+
+
+class _SwiGLUFFN(nn.Module):
+    """Parameter-matched gated FFN for opt-in grid-core experiments."""
+
+    def __init__(self, *, embedding_size: int, ff_expansion: int) -> None:
+        super().__init__()
+        hidden_size = _swiglu_hidden_size(
+            embedding_size=embedding_size,
+            ff_expansion=ff_expansion,
+        )
+        self.value = nn.Linear(embedding_size, hidden_size)
+        self.gate = nn.Linear(embedding_size, hidden_size)
+        self.out = nn.Linear(hidden_size, embedding_size)
+
+    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+        return self.out(self.value(hidden) * F.silu(self.gate(hidden)))
+
+
+def _build_grid_ffn(
+    *,
+    embedding_size: int,
+    ff_expansion: int,
+    activation: str,
+    ffn_mode: str,
+) -> nn.Module:
+    if str(ffn_mode).strip().lower() == _GRID_FFN_SWIGLU:
+        return _SwiGLUFFN(embedding_size=embedding_size, ff_expansion=ff_expansion)
+    ff_hidden = embedding_size * ff_expansion
+    return nn.Sequential(
+        nn.Linear(embedding_size, ff_hidden),
+        _build_sandwich_activation(activation),
+        nn.Linear(ff_hidden, embedding_size),
+    )
+
+
+class _GridAttentionCore(nn.Module):
+    """Standard or differential multi-head attention for opt-in grid blocks."""
+
+    def __init__(
+        self,
+        *,
+        embedding_size: int,
+        n_heads: int,
+        attention_mode: str,
+        is_cross_attention: bool,
+        packed_attention: bool,
+    ) -> None:
+        super().__init__()
+        self.embedding_size = int(embedding_size)
+        self.n_heads = int(n_heads)
+        self.attention_mode = str(attention_mode).strip().lower()
+        self.is_cross_attention = bool(is_cross_attention)
+        self.packed_attention = bool(packed_attention)
+        if self.embedding_size % self.n_heads != 0:
+            raise ValueError(
+                "grid attention requires embedding_size divisible by n_heads, "
+                f"got embedding_size={self.embedding_size}, n_heads={self.n_heads}"
+            )
+        if self.attention_mode == _GRID_ATTENTION_DIFFERENTIAL:
+            self.q1 = nn.Linear(self.embedding_size, self.embedding_size)
+            self.k1 = nn.Linear(self.embedding_size, self.embedding_size)
+            self.q2 = nn.Linear(self.embedding_size, self.embedding_size)
+            self.k2 = nn.Linear(self.embedding_size, self.embedding_size)
+            self.v = nn.Linear(self.embedding_size, self.embedding_size)
+            self.out_proj = nn.Linear(self.embedding_size, self.embedding_size)
+            self.lambda_scale = nn.Parameter(
+                torch.tensor(float(_DIFFERENTIAL_ATTENTION_LAMBDA_INIT))
+            )
+        elif self.attention_mode == _GRID_ATTENTION_STANDARD:
+            self.attn = (
+                (
+                    _NativePackedCrossAttention(
+                        embedding_size=self.embedding_size,
+                        n_heads=self.n_heads,
+                    )
+                    if self.is_cross_attention
+                    else _NativePackedSelfAttention(
+                        embedding_size=self.embedding_size,
+                        n_heads=self.n_heads,
+                    )
+                )
+                if self.packed_attention
+                else nn.MultiheadAttention(
+                    self.embedding_size,
+                    self.n_heads,
+                    batch_first=True,
+                )
+            )
+        else:
+            raise ValueError(
+                "grid_attention_mode must be 'standard' or 'differential', "
+                f"got {attention_mode!r}"
+            )
+
+    def forward(
+        self,
+        query: torch.Tensor,
+        *,
+        key_value: torch.Tensor,
+        attn_bias: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if self.attention_mode == _GRID_ATTENTION_STANDARD:
+            if self.packed_attention:
+                if self.is_cross_attention:
+                    return cast(_NativePackedCrossAttention, self.attn)(
+                        query,
+                        key_value=key_value,
+                    )
+                return cast(_NativePackedSelfAttention, self.attn)(
+                    query,
+                    attn_bias=attn_bias,
+                )
+            return multihead_attention_sdpa(
+                cast(nn.MultiheadAttention, self.attn),
+                query,
+                key_value,
+                key_value,
+                attn_bias=attn_bias,
+            )
+        return self._differential_attention(
+            query,
+            key_value=key_value,
+            attn_bias=attn_bias,
+        )
+
+    def _attention_weights(
+        self,
+        query_heads: torch.Tensor,
+        key_heads: torch.Tensor,
+        *,
+        attn_bias: torch.Tensor | None,
+    ) -> torch.Tensor:
+        head_dim = int(query_heads.shape[-1])
+        scores = torch.matmul(query_heads, key_heads.transpose(-2, -1)) / math.sqrt(head_dim)
+        if attn_bias is not None:
+            scores = scores + attn_bias.to(device=scores.device, dtype=scores.dtype)
+        return torch.softmax(scores, dim=-1)
+
+    def _differential_attention(
+        self,
+        query: torch.Tensor,
+        *,
+        key_value: torch.Tensor,
+        attn_bias: torch.Tensor | None,
+    ) -> torch.Tensor:
+        q1 = _reshape_heads(self.q1(query), num_heads=self.n_heads)
+        k1 = _reshape_heads(self.k1(key_value), num_heads=self.n_heads)
+        q2 = _reshape_heads(self.q2(query), num_heads=self.n_heads)
+        k2 = _reshape_heads(self.k2(key_value), num_heads=self.n_heads)
+        v = _reshape_heads(self.v(key_value), num_heads=self.n_heads)
+        attn1 = self._attention_weights(q1, k1, attn_bias=attn_bias)
+        attn2 = self._attention_weights(q2, k2, attn_bias=attn_bias)
+        attended = torch.matmul(attn1 - (self.lambda_scale * attn2), v)
+        batch_size, _num_heads, target_len, head_dim = attended.shape
+        merged = (
+            attended.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, target_len, self.n_heads * head_dim)
+        )
+        return self.out_proj(merged)
+
+
+class _GridCrossAttentionBlock(nn.Module):
+    """Pre-norm cross-attention block with opt-in grid attention and FFN modes."""
+
+    def __init__(
+        self,
+        *,
+        embedding_size: int,
+        n_heads: int,
+        ff_expansion: int,
+        activation: str,
+        block_norm: str,
+        attention_mode: str,
+        ffn_mode: str,
+        packed_attention: bool,
+    ) -> None:
+        super().__init__()
+        self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.kv_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.attn = _GridAttentionCore(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            attention_mode=attention_mode,
+            is_cross_attention=True,
+            packed_attention=packed_attention,
+        )
+        self.ff = _build_grid_ffn(
+            embedding_size=embedding_size,
+            ff_expansion=ff_expansion,
+            activation=activation,
+            ffn_mode=ffn_mode,
+        )
+
+    def forward(self, query: torch.Tensor, *, key_value: torch.Tensor) -> torch.Tensor:
+        q_norm = self.query_norm(query)
+        kv_norm = self.kv_norm(key_value)
+        query = query + self.attn(q_norm, key_value=kv_norm)
+        return query + self.ff(self.ff_norm(query))
+
+
+class _GridSelfAttentionBlock(nn.Module):
+    """Pre-norm self-attention block with opt-in grid attention and FFN modes."""
+
+    def __init__(
+        self,
+        *,
+        embedding_size: int,
+        n_heads: int,
+        ff_expansion: int,
+        activation: str,
+        block_norm: str,
+        attention_mode: str,
+        ffn_mode: str,
+        packed_attention: bool,
+    ) -> None:
+        super().__init__()
+        self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
+        self.attn = _GridAttentionCore(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            attention_mode=attention_mode,
+            is_cross_attention=False,
+            packed_attention=packed_attention,
+        )
+        self.ff = _build_grid_ffn(
+            embedding_size=embedding_size,
+            ff_expansion=ff_expansion,
+            activation=activation,
+            ffn_mode=ffn_mode,
+        )
+
+    def forward(
+        self,
+        hidden: torch.Tensor,
+        *,
+        attn_bias: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        hidden_norm = self.attn_norm(hidden)
+        hidden = hidden + self.attn(hidden_norm, key_value=hidden_norm, attn_bias=attn_bias)
+        return hidden + self.ff(self.ff_norm(hidden))
+
+
+class _GridInducedSetAttentionBlock(nn.Module):
+    """ISAB mixer using the opt-in grid self/cross-attention blocks."""
+
+    def __init__(
+        self,
+        *,
+        embedding_size: int,
+        n_heads: int,
+        ff_expansion: int,
+        activation: str,
+        block_norm: str,
+        num_inducing: int,
+        attention_mode: str,
+        ffn_mode: str,
+        packed_attention: bool,
+    ) -> None:
+        super().__init__()
+        self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
+        _init_truncated_normal_(self.inducing_seed, mean=0.0, std=0.02, a=-2.0, b=2.0)
+        self.rows_to_inducing = _GridCrossAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            activation=activation,
+            block_norm=block_norm,
+            attention_mode=attention_mode,
+            ffn_mode=ffn_mode,
+            packed_attention=packed_attention,
+        )
+        self.inducing_self = _GridSelfAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            activation=activation,
+            block_norm=block_norm,
+            attention_mode=attention_mode,
+            ffn_mode=ffn_mode,
+            packed_attention=packed_attention,
+        )
+        self.rows_from_inducing = _GridCrossAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            activation=activation,
+            block_norm=block_norm,
+            attention_mode=attention_mode,
+            ffn_mode=ffn_mode,
+            packed_attention=packed_attention,
+        )
+
+
+class _GridHyperConnection(nn.Module):
+    """Input-dependent width/depth mixing over two grid residual streams."""
+
+    def __init__(self, *, embedding_size: int, num_streams: int = _GRID_HYPER_STREAMS) -> None:
+        super().__init__()
+        self.embedding_size = int(embedding_size)
+        self.num_streams = int(num_streams)
+        self.width_norm = nn.LayerNorm(self.embedding_size)
+        self.depth_norm = nn.LayerNorm(self.embedding_size)
+        self.width_proj = nn.Linear(self.embedding_size, self.num_streams)
+        self.depth_proj = nn.Linear(self.embedding_size, self.num_streams)
+        self.width_static = nn.Parameter(torch.zeros(self.num_streams))
+        self.depth_static = nn.Parameter(torch.zeros(self.num_streams))
+        self.dynamic_scale = nn.Parameter(torch.tensor(0.1))
+
+    def width_mix(self, streams: torch.Tensor) -> torch.Tensor:
+        pooled = streams.mean(dim=1).mean(dim=1)
+        dynamic = torch.tanh(self.width_proj(self.width_norm(pooled))) * self.dynamic_scale
+        weights = torch.softmax(dynamic + self.width_static.unsqueeze(0), dim=-1)
+        return torch.einsum("bs,bnsd->bnd", weights, streams)
+
+    def depth_mix(self, streams: torch.Tensor, primary: torch.Tensor) -> torch.Tensor:
+        pooled = primary.mean(dim=1)
+        dynamic = torch.tanh(self.depth_proj(self.depth_norm(pooled))) * self.dynamic_scale
+        weights = torch.tanh(dynamic + self.depth_static.unsqueeze(0))
+        weights = weights / float(self.num_streams)
+        return streams + primary.unsqueeze(2) * weights.unsqueeze(1).unsqueeze(-1)
+
+
+def _use_experimental_grid_blocks(*, attention_mode: str, ffn_mode: str) -> bool:
+    return (
+        str(attention_mode).strip().lower() != _GRID_ATTENTION_STANDARD
+        or str(ffn_mode).strip().lower() == _GRID_FFN_SWIGLU
+    )
 
 
 class _GridMixerLayer(nn.Module):
@@ -51,25 +421,69 @@ class _GridMixerLayer(nn.Module):
         activation: str,
         block_norm: str,
         num_inducing: int,
+        residual_mode: str,
+        attention_mode: str,
+        ffn_mode: str,
         packed_attention: bool = False,
     ) -> None:
         super().__init__()
-        self.row_mixer = _SelfAttentionBlock(
-            embedding_size=embedding_size,
-            n_heads=n_heads,
-            ff_expansion=ff_expansion,
-            activation=activation,
-            block_norm=block_norm,
-            packed_attention=packed_attention,
+        self.residual_mode = str(residual_mode).strip().lower()
+        self.attention_mode = str(attention_mode).strip().lower()
+        self.ffn_mode = str(ffn_mode).strip().lower()
+        self.row_mixer: nn.Module
+        self.column_mixer: nn.Module
+        if _use_experimental_grid_blocks(
+            attention_mode=self.attention_mode,
+            ffn_mode=self.ffn_mode,
+        ):
+            self.row_mixer = _GridSelfAttentionBlock(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                ff_expansion=ff_expansion,
+                activation=activation,
+                block_norm=block_norm,
+                attention_mode=self.attention_mode,
+                ffn_mode=self.ffn_mode,
+                packed_attention=packed_attention,
+            )
+            self.column_mixer = _GridInducedSetAttentionBlock(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                ff_expansion=ff_expansion,
+                activation=activation,
+                block_norm=block_norm,
+                num_inducing=num_inducing,
+                attention_mode=self.attention_mode,
+                ffn_mode=self.ffn_mode,
+                packed_attention=packed_attention,
+            )
+        else:
+            self.row_mixer = _SelfAttentionBlock(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                ff_expansion=ff_expansion,
+                activation=activation,
+                block_norm=block_norm,
+                packed_attention=packed_attention,
+            )
+            self.column_mixer = _InducedSetAttentionBlock(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                ff_expansion=ff_expansion,
+                activation=activation,
+                block_norm=block_norm,
+                num_inducing=num_inducing,
+                packed_attention=packed_attention,
+            )
+        self.row_router = (
+            _GridHyperConnection(embedding_size=embedding_size)
+            if self.residual_mode == _GRID_RESIDUAL_HYPER_CONNECTION_LITE
+            else None
         )
-        self.column_mixer = _InducedSetAttentionBlock(
-            embedding_size=embedding_size,
-            n_heads=n_heads,
-            ff_expansion=ff_expansion,
-            activation=activation,
-            block_norm=block_norm,
-            num_inducing=num_inducing,
-            packed_attention=packed_attention,
+        self.column_router = (
+            _GridHyperConnection(embedding_size=embedding_size)
+            if self.residual_mode == _GRID_RESIDUAL_HYPER_CONNECTION_LITE
+            else None
         )
 
 
@@ -95,6 +509,11 @@ class GridSandwichClassifier(nn.Module):
         sandwich_pre_column_inducing_tokens: int = _D["sandwich_pre_column_inducing_tokens"],
         sandwich_packed_attention: bool = _D["sandwich_packed_attention"],
         feature_type_conditioning: str = _D["feature_type_conditioning"],
+        grid_residual_mode: str = _D["grid_residual_mode"],
+        grid_attention_mode: str = _D["grid_attention_mode"],
+        grid_ffn_mode: str = _D["grid_ffn_mode"],
+        grid_recurrence_steps: int | None = _D["grid_recurrence_steps"],
+        grid_recurrence_unique_layers: int | None = _D["grid_recurrence_unique_layers"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -116,6 +535,11 @@ class GridSandwichClassifier(nn.Module):
             sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
             sandwich_packed_attention=sandwich_packed_attention,
             feature_type_conditioning=feature_type_conditioning,
+            grid_residual_mode=grid_residual_mode,
+            grid_attention_mode=grid_attention_mode,
+            grid_ffn_mode=grid_ffn_mode,
+            grid_recurrence_steps=grid_recurrence_steps,
+            grid_recurrence_unique_layers=grid_recurrence_unique_layers,
         )
         self.arch = "grid_sandwich"
         self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
@@ -138,6 +562,24 @@ class GridSandwichClassifier(nn.Module):
         self.sandwich_packed_attention = bool(self.model_spec.sandwich_packed_attention)
         self.feature_type_conditioning = (
             str(self.model_spec.feature_type_conditioning).strip().lower()
+        )
+        self.grid_residual_mode = str(self.model_spec.grid_residual_mode).strip().lower()
+        self.grid_attention_mode = str(self.model_spec.grid_attention_mode).strip().lower()
+        self.grid_ffn_mode = str(self.model_spec.grid_ffn_mode).strip().lower()
+        self.grid_recurrence_steps = (
+            None
+            if self.model_spec.grid_recurrence_steps is None
+            else int(self.model_spec.grid_recurrence_steps)
+        )
+        self.grid_recurrence_unique_layers = (
+            None
+            if self.model_spec.grid_recurrence_unique_layers is None
+            else int(self.model_spec.grid_recurrence_unique_layers)
+        )
+        self.grid_core_iterations = int(self.grid_recurrence_steps or self.sandwich_layers)
+        self.grid_core_unique_layers = int(
+            self.grid_recurrence_unique_layers
+            or (1 if self.grid_recurrence_steps is not None else self.sandwich_layers)
         )
         if self.norm_type != "layernorm":
             raise ValueError(
@@ -185,6 +627,7 @@ class GridSandwichClassifier(nn.Module):
                 for _ in range(self.pre_column_attention_layers)
             ]
         )
+        grid_layer_count = int(self.grid_core_unique_layers)
         self.grid_layers = nn.ModuleList(
             [
                 _GridMixerLayer(
@@ -194,9 +637,12 @@ class GridSandwichClassifier(nn.Module):
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
                     num_inducing=self.pre_column_inducing_tokens,
+                    residual_mode=self.grid_residual_mode,
+                    attention_mode=self.grid_attention_mode,
+                    ffn_mode=self.grid_ffn_mode,
                     packed_attention=self.sandwich_packed_attention,
                 )
-                for _ in range(self.sandwich_layers)
+                for _ in range(grid_layer_count)
             ]
         )
         self.y_conditioner = LabelTokenTargetConditioner(self.many_class_base, self.d_icl)
@@ -218,6 +664,7 @@ class GridSandwichClassifier(nn.Module):
 
         self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
+        self._grid_core_intervention = GridCoreIntervention()
         self._fourier_position_cache: dict[
             tuple[int, int, torch.device, torch.dtype],
             torch.Tensor,
@@ -237,6 +684,60 @@ class GridSandwichClassifier(nn.Module):
                 f"got {loss_surface!r}"
             )
         self.loss_surface = normalized
+
+    def clear_grid_core_intervention(self) -> None:
+        """Clear eval-only grid-core perturbations."""
+
+        self._grid_core_intervention = GridCoreIntervention()
+
+    def set_grid_core_intervention(
+        self,
+        *,
+        mode: str,
+        start_layer: int | None = None,
+        end_layer: int | None = None,
+        repeat_count: int = 2,
+    ) -> None:
+        """Set an eval-only contiguous grid-layer perturbation."""
+
+        normalized_mode = str(mode).strip().lower()
+        if normalized_mode == _GRID_INTERVENTION_NONE:
+            self.clear_grid_core_intervention()
+            return
+        if normalized_mode not in {
+            _GRID_INTERVENTION_ABLATE_CHUNK,
+            _GRID_INTERVENTION_REPEAT_CHUNK,
+        }:
+            raise ValueError(
+                "grid core intervention mode must be one of "
+                f"{[_GRID_INTERVENTION_NONE, _GRID_INTERVENTION_ABLATE_CHUNK, _GRID_INTERVENTION_REPEAT_CHUNK]}, "
+                f"got {mode!r}"
+            )
+        if self.grid_recurrence_steps is not None:
+            raise ValueError(
+                "grid core interventions require a non-recurrent grid_sandwich checkpoint "
+                "with distinct grid mixer layers"
+            )
+        if start_layer is None or end_layer is None:
+            raise ValueError("grid core interventions require start_layer and end_layer")
+        start = int(start_layer)
+        end = int(end_layer)
+        layer_count = len(self.grid_layers)
+        if start < 0 or end < start or end >= layer_count:
+            raise ValueError(
+                "grid core intervention layer range must satisfy "
+                f"0 <= start_layer <= end_layer < {layer_count}, "
+                f"got start_layer={start}, end_layer={end}"
+            )
+        repeats = int(repeat_count)
+        if normalized_mode == _GRID_INTERVENTION_REPEAT_CHUNK and repeats <= 0:
+            raise ValueError("repeat_chunk grid core interventions require repeat_count > 0")
+        self._grid_core_intervention = GridCoreIntervention(
+            mode=normalized_mode,
+            start_layer=start,
+            end_layer=end,
+            repeat_count=repeats,
+        )
 
     def _apply_activation_checkpoint(
         self,
@@ -439,7 +940,7 @@ class GridSandwichClassifier(nn.Module):
 
     def _cross_block(
         self,
-        block: _CrossAttentionBlock,
+        block: nn.Module,
         query: torch.Tensor,
         key_value: torch.Tensor,
     ) -> torch.Tensor:
@@ -450,7 +951,7 @@ class GridSandwichClassifier(nn.Module):
 
     def _self_block(
         self,
-        block: _SelfAttentionBlock,
+        block: nn.Module,
         hidden: torch.Tensor,
         *,
         attn_bias: torch.Tensor | None = None,
@@ -462,17 +963,153 @@ class GridSandwichClassifier(nn.Module):
 
     def _row_feature_self_attention(
         self,
-        block: _SelfAttentionBlock,
+        block: nn.Module,
         feature_cells: torch.Tensor,
     ) -> torch.Tensor:
-        return _feature_flow.row_feature_self_attention(self, block, feature_cells)
+        batch_size, num_rows, num_features, embedding_size = (
+            int(feature_cells.shape[0]),
+            int(feature_cells.shape[1]),
+            int(feature_cells.shape[2]),
+            int(feature_cells.shape[3]),
+        )
+        row_major = feature_cells.reshape(batch_size * num_rows, num_features, embedding_size)
+        mixed = self._self_block(block, row_major)
+        return mixed.reshape(batch_size, num_rows, num_features, embedding_size)
+
+    def _induced_set_block(
+        self,
+        block: nn.Module,
+        hidden: torch.Tensor,
+    ) -> torch.Tensor:
+        inducing_seed = cast(torch.Tensor, getattr(block, "inducing_seed"))
+        rows_to_inducing = cast(nn.Module, getattr(block, "rows_to_inducing"))
+        inducing_self = cast(nn.Module, getattr(block, "inducing_self"))
+        rows_from_inducing = cast(nn.Module, getattr(block, "rows_from_inducing"))
+        inducing = inducing_seed.expand(int(hidden.shape[0]), -1, -1).to(
+            device=hidden.device,
+            dtype=hidden.dtype,
+        )
+        inducing = self._cross_block(rows_to_inducing, inducing, hidden)
+        inducing = self._self_block(inducing_self, inducing)
+        return self._cross_block(rows_from_inducing, hidden, inducing)
 
     def _column_row_isab(
         self,
-        block: _InducedSetAttentionBlock,
+        block: nn.Module,
         feature_cells: torch.Tensor,
     ) -> torch.Tensor:
-        return _feature_flow.column_row_isab(self, block, feature_cells)
+        batch_size, num_rows, num_features, embedding_size = (
+            int(feature_cells.shape[0]),
+            int(feature_cells.shape[1]),
+            int(feature_cells.shape[2]),
+            int(feature_cells.shape[3]),
+        )
+        column_major = feature_cells.transpose(1, 2).contiguous()
+        column_major = column_major.reshape(batch_size * num_features, num_rows, embedding_size)
+        mixed = self._induced_set_block(block, column_major)
+        mixed = mixed.reshape(batch_size, num_features, num_rows, embedding_size)
+        return mixed.transpose(1, 2).contiguous()
+
+    def _initialize_grid_streams(self, feature_cells: torch.Tensor) -> torch.Tensor:
+        return feature_cells.unsqueeze(3).expand(-1, -1, -1, _GRID_HYPER_STREAMS, -1).contiguous()
+
+    def _row_feature_self_attention_streams(
+        self,
+        layer: _GridMixerLayer,
+        feature_streams: torch.Tensor,
+    ) -> torch.Tensor:
+        if layer.row_router is None:
+            raise RuntimeError("grid hyper-connection row router is missing")
+        batch_size, num_rows, num_features, num_streams, embedding_size = (
+            int(feature_streams.shape[0]),
+            int(feature_streams.shape[1]),
+            int(feature_streams.shape[2]),
+            int(feature_streams.shape[3]),
+            int(feature_streams.shape[4]),
+        )
+        row_major = feature_streams.reshape(
+            batch_size * num_rows,
+            num_features,
+            num_streams,
+            embedding_size,
+        )
+        primary = layer.row_router.width_mix(row_major)
+        mixed = self._self_block(layer.row_mixer, primary)
+        mixed_streams = layer.row_router.depth_mix(row_major, mixed)
+        return mixed_streams.reshape(
+            batch_size,
+            num_rows,
+            num_features,
+            num_streams,
+            embedding_size,
+        )
+
+    def _column_row_isab_streams(
+        self,
+        layer: _GridMixerLayer,
+        feature_streams: torch.Tensor,
+    ) -> torch.Tensor:
+        if layer.column_router is None:
+            raise RuntimeError("grid hyper-connection column router is missing")
+        batch_size, num_rows, num_features, num_streams, embedding_size = (
+            int(feature_streams.shape[0]),
+            int(feature_streams.shape[1]),
+            int(feature_streams.shape[2]),
+            int(feature_streams.shape[3]),
+            int(feature_streams.shape[4]),
+        )
+        column_major = feature_streams.transpose(1, 2).contiguous()
+        column_major = column_major.reshape(
+            batch_size * num_features,
+            num_rows,
+            num_streams,
+            embedding_size,
+        )
+        primary = layer.column_router.width_mix(column_major)
+        mixed = self._induced_set_block(layer.column_mixer, primary)
+        mixed_streams = layer.column_router.depth_mix(column_major, mixed)
+        mixed_streams = mixed_streams.reshape(
+            batch_size,
+            num_features,
+            num_rows,
+            num_streams,
+            embedding_size,
+        )
+        return mixed_streams.transpose(1, 2).contiguous()
+
+    def _grid_core_layer_indices(self) -> tuple[int, ...]:
+        intervention = self._grid_core_intervention
+        if intervention.mode == _GRID_INTERVENTION_NONE:
+            return tuple(range(self.grid_core_iterations))
+        if self.grid_recurrence_steps is not None:
+            raise RuntimeError("grid core interventions are not supported for recurrent checkpoints")
+        start = int(cast(int, intervention.start_layer))
+        end = int(cast(int, intervention.end_layer))
+        if intervention.mode == _GRID_INTERVENTION_ABLATE_CHUNK:
+            return tuple(
+                index
+                for index in range(len(self.grid_layers))
+                if index < start or index > end
+            )
+        if intervention.mode == _GRID_INTERVENTION_REPEAT_CHUNK:
+            before = tuple(range(0, start))
+            chunk = tuple(range(start, end + 1))
+            after = tuple(range(end + 1, len(self.grid_layers)))
+            repeated = tuple(
+                layer_index
+                for _repeat_index in range(int(intervention.repeat_count))
+                for layer_index in chunk
+            )
+            return before + repeated + after
+        raise RuntimeError(f"unsupported grid core intervention mode: {intervention.mode!r}")
+
+    def _grid_core_layer(self, logical_index: int) -> _GridMixerLayer:
+        return cast(
+            _GridMixerLayer,
+            self.grid_layers[int(logical_index) % len(self.grid_layers)]
+            if self.grid_recurrence_steps is not None
+            else self.grid_layers[int(logical_index)],
+        )
 
     def _pre_perceiver_cell_mixer(self, feature_cells: torch.Tensor) -> torch.Tensor:
         return _feature_flow.pre_perceiver_cell_mixer(self, feature_cells)
@@ -550,12 +1187,23 @@ class GridSandwichClassifier(nn.Module):
         )
         feature_state = self._build_feature_state(raw_state)
         hidden = self._label_conditioned_cells(feature_state.feature_cells, y_train=y_train)
-        for index, layer in enumerate(self.grid_layers):
-            layer = cast(_GridMixerLayer, layer)
-            hidden = self._row_feature_self_attention(layer.row_mixer, hidden)
-            self.trace_activation(f"post_grid_row_mixer_{index}", hidden)
-            hidden = self._column_row_isab(layer.column_mixer, hidden)
-            self.trace_activation(f"post_grid_column_mixer_{index}", hidden)
+        if self.grid_residual_mode == _GRID_RESIDUAL_HYPER_CONNECTION_LITE:
+            streams = self._initialize_grid_streams(hidden)
+            for index in self._grid_core_layer_indices():
+                layer = self._grid_core_layer(index)
+                streams = self._row_feature_self_attention_streams(layer, streams)
+                self.trace_activation(f"post_grid_row_mixer_{index}", streams.mean(dim=3))
+                streams = self._column_row_isab_streams(layer, streams)
+                self.trace_activation(f"post_grid_column_mixer_{index}", streams.mean(dim=3))
+            hidden = streams.mean(dim=3)
+            self.trace_activation("post_grid_hyper_connection_collapse", hidden)
+        else:
+            for index in self._grid_core_layer_indices():
+                layer = self._grid_core_layer(index)
+                hidden = self._row_feature_self_attention(layer.row_mixer, hidden)
+                self.trace_activation(f"post_grid_row_mixer_{index}", hidden)
+                hidden = self._column_row_isab(layer.column_mixer, hidden)
+                self.trace_activation(f"post_grid_column_mixer_{index}", hidden)
         pooled_test_rows = self._pool_test_rows(
             hidden,
             train_test_split_index=train_test_split_index,

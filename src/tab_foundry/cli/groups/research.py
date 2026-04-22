@@ -124,11 +124,25 @@ _SCALING_GROUP = LazyGroup(
     **GROUP_KWARGS,
 )
 
+_GRID_CORE_GROUP = LazyGroup(
+    name="grid-core",
+    help="Grid-core diagnostic workflows",
+    lazy_commands={
+        "perturb-checkpoint": LazyCommandSpec(
+            module="tab_foundry.cli.research_grid_core",
+            attr="PERTURB_CHECKPOINT_COMMAND",
+            help="Evaluate ablate/repeat perturbations of contiguous grid-sandwich core chunks",
+        ),
+    },
+    **GROUP_KWARGS,
+)
+
 GROUP = LazyGroup(
     name="research",
     help="Research workflows",
     lazy_commands={
         "adequacy": _ADEQUACY_GROUP,
+        "grid-core": _GRID_CORE_GROUP,
         "scaling": _SCALING_GROUP,
         "sweep": _SWEEP_GROUP,
     },

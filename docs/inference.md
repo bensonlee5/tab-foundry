@@ -60,7 +60,7 @@ Required keys:
     regenerated staged bundles persist them when present so export/load replay
     matches the training checkpoint surface exactly.
   - Exporter also emits architecture reconstruction fields:
-    `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed, sandwich_latents, sandwich_layers, sandwich_heads, sandwich_ff_expansion, sandwich_summary_tokens_per_axis, sandwich_self_attention_per_cross, sandwich_pre_row_attention_layers, sandwich_pre_column_attention_layers, sandwich_pre_column_inducing_tokens}`.
+    `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed, sandwich_latents, sandwich_layers, sandwich_heads, sandwich_ff_expansion, sandwich_summary_tokens_per_axis, sandwich_self_attention_per_cross, sandwich_pre_row_attention_layers, sandwich_pre_column_attention_layers, sandwich_pre_column_inducing_tokens, grid_residual_mode, grid_attention_mode, grid_ffn_mode, grid_recurrence_steps, grid_recurrence_unique_layers}`.
   - Validators accept manifests that omit the optional reconstruction fields and
     apply the current model defaults.
   - Validators also accept older manifests that omit `stage` and the additive
@@ -69,7 +69,8 @@ Required keys:
     and the current canonical defaults.
 - `inference`
   - `task`
-  - `model_arch` (`tabfoundry_simple`, `tabfoundry_staged`, or `tabfoundry_sandwich`)
+  - `model_arch` (`tabfoundry_simple`, `tabfoundry_staged`,
+    `tabfoundry_sandwich`, `routed_sandwich`, or `grid_sandwich`)
   - `model_stage` (optional; emitted only for `tabfoundry_staged`)
   - `group_shifts` (`[0, 1, 3]`)
   - `feature_group_size`

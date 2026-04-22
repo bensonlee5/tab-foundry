@@ -163,6 +163,11 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
             sandwich_packed_attention=bool(spec.sandwich_packed_attention),
             feature_type_conditioning=str(spec.feature_type_conditioning),
+            grid_residual_mode=str(spec.grid_residual_mode),
+            grid_attention_mode=str(spec.grid_attention_mode),
+            grid_ffn_mode=str(spec.grid_ffn_mode),
+            grid_recurrence_steps=spec.grid_recurrence_steps,
+            grid_recurrence_unique_layers=spec.grid_recurrence_unique_layers,
         )
 
     raise ValueError(f"Unsupported model arch: {spec.arch!r}")

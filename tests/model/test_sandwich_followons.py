@@ -87,6 +87,11 @@ def _grid_model(
     *,
     sandwich_pre_row_attention_layers: int = 1,
     sandwich_pre_column_attention_layers: int = 1,
+    grid_residual_mode: str = "prenorm",
+    grid_attention_mode: str = "standard",
+    grid_ffn_mode: str = "gelu",
+    grid_recurrence_steps: int | None = None,
+    grid_recurrence_unique_layers: int | None = None,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -99,6 +104,11 @@ def _grid_model(
         sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
         sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
         sandwich_pre_column_inducing_tokens=8,
+        grid_residual_mode=grid_residual_mode,
+        grid_attention_mode=grid_attention_mode,
+        grid_ffn_mode=grid_ffn_mode,
+        grid_recurrence_steps=grid_recurrence_steps,
+        grid_recurrence_unique_layers=grid_recurrence_unique_layers,
     )
 
 
@@ -310,6 +320,222 @@ def test_grid_sandwich_forward_and_forward_batched_shapes_match() -> None:
     assert tuple(batched_logits.shape) == (1, 2, 4)
     assert torch.allclose(output.logits, batched_logits.squeeze(0), atol=1e-5, rtol=1e-5)
     assert len(model.grid_layers) == 2
+
+
+@pytest.mark.parametrize(
+    "model_kwargs",
+    (
+        {"grid_residual_mode": "hyper_connection_lite"},
+        {"grid_attention_mode": "differential"},
+        {"grid_ffn_mode": "swiglu"},
+        {"grid_recurrence_steps": 3},
+    ),
+)
+def test_grid_sandwich_experimental_modes_preserve_forward_shapes(
+    model_kwargs: dict[str, object],
+) -> None:
+    model = _grid_model(**model_kwargs)
+    batch = _task_batch(num_classes=3)
+    x_all, y_train, split_index, feature_types = _batched_inputs()
+
+    output = model(batch)
+    batched_logits = model.forward_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=split_index,
+        feature_types=feature_types,
+    )
+
+    assert output.logits is not None
+    assert tuple(output.logits.shape) == (2, 4)
+    assert tuple(batched_logits.shape) == (1, 2, 4)
+
+
+def test_grid_sandwich_hyper_connection_uses_two_streams_and_collapses_to_cells() -> None:
+    model = _grid_model(grid_residual_mode="hyper_connection_lite")
+    batch = _task_batch()
+    x_all, y_train, _y_test, split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = model._feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    feature_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=split_index,
+        feature_type_ids=feature_type_ids,
+    )
+    streams = model._initialize_grid_streams(feature_cells)
+
+    assert tuple(streams.shape) == (1, 5, 3, 2, 32)
+    assert torch.allclose(streams.mean(dim=3), feature_cells)
+    assert model.grid_layers[0].row_router is not None
+    assert model.grid_layers[0].column_router is not None
+
+
+def test_grid_sandwich_recurrent_core_shares_one_grid_layer() -> None:
+    model = _grid_model(grid_recurrence_steps=8)
+
+    assert model.grid_recurrence_steps == 8
+    assert model.grid_recurrence_unique_layers is None
+    assert model.grid_core_iterations == 8
+    assert model.grid_core_unique_layers == 1
+    assert len(model.grid_layers) == 1
+
+
+def test_grid_sandwich_recurrent_core_cycles_unique_layers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _grid_model(
+        grid_recurrence_steps=4,
+        grid_recurrence_unique_layers=2,
+    ).eval()
+    batch = _task_batch()
+    calls: list[tuple[str, int]] = []
+
+    def _record_row(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("row", id(block)))
+        return hidden
+
+    def _record_column(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("column", id(block)))
+        return hidden
+
+    monkeypatch.setattr(model, "_row_feature_self_attention", _record_row)
+    monkeypatch.setattr(model, "_column_row_isab", _record_column)
+
+    with torch.no_grad():
+        _ = model(batch)
+
+    layer0 = model.grid_layers[0]
+    layer1 = model.grid_layers[1]
+    assert model.grid_core_iterations == 4
+    assert model.grid_core_unique_layers == 2
+    assert len(model.grid_layers) == 2
+    assert calls == [
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
+
+
+def test_grid_sandwich_grid_core_intervention_none_preserves_logits() -> None:
+    torch.manual_seed(7)
+    baseline = _grid_model().eval()
+    intervened = _grid_model().eval()
+    intervened.load_state_dict(baseline.state_dict())
+    intervened.set_grid_core_intervention(mode="none")
+    batch = _task_batch()
+
+    with torch.no_grad():
+        baseline_logits = baseline(batch).logits
+        intervened_logits = intervened(batch).logits
+
+    assert baseline_logits is not None
+    assert intervened_logits is not None
+    assert torch.allclose(baseline_logits, intervened_logits)
+
+
+def test_grid_sandwich_grid_core_intervention_ablate_and_repeat_call_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _grid_model().eval()
+    batch = _task_batch()
+    calls: list[tuple[str, int]] = []
+
+    def _record_row(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("row", id(block)))
+        return hidden
+
+    def _record_column(block, hidden: torch.Tensor) -> torch.Tensor:
+        calls.append(("column", id(block)))
+        return hidden
+
+    monkeypatch.setattr(model, "_row_feature_self_attention", _record_row)
+    monkeypatch.setattr(model, "_column_row_isab", _record_column)
+
+    with torch.no_grad():
+        model.set_grid_core_intervention(mode="ablate_chunk", start_layer=0, end_layer=0)
+        _ = model(batch)
+
+    layer1 = model.grid_layers[1]
+    assert calls == [
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
+
+    calls.clear()
+    with torch.no_grad():
+        model.set_grid_core_intervention(
+            mode="repeat_chunk",
+            start_layer=0,
+            end_layer=1,
+            repeat_count=2,
+        )
+        _ = model(batch)
+
+    layer0 = model.grid_layers[0]
+    assert calls == [
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+        ("row", id(layer0.row_mixer)),
+        ("column", id(layer0.column_mixer)),
+        ("row", id(layer1.row_mixer)),
+        ("column", id(layer1.column_mixer)),
+    ]
+
+
+def test_grid_sandwich_grid_core_intervention_rejects_recurrent_checkpoint() -> None:
+    model = _grid_model(grid_recurrence_steps=3)
+
+    with pytest.raises(ValueError, match="distinct grid mixer layers"):
+        model.set_grid_core_intervention(
+            mode="repeat_chunk",
+            start_layer=0,
+            end_layer=0,
+            repeat_count=2,
+        )
+
+
+def test_grid_sandwich_differential_attention_initializes_lambdas() -> None:
+    model = _grid_model(grid_attention_mode="differential")
+    lambda_values = [
+        parameter.detach()
+        for name, parameter in model.named_parameters()
+        if name.endswith("lambda_scale")
+    ]
+
+    assert lambda_values
+    assert all(torch.allclose(value, torch.tensor(0.1)) for value in lambda_values)
+
+
+def test_grid_sandwich_forward_does_not_depend_on_test_labels() -> None:
+    model = _grid_model().eval()
+    batch = _task_batch()
+    changed_test_labels = TaskBatch(
+        x_train=batch.x_train,
+        y_train=batch.y_train,
+        x_test=batch.x_test,
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata=batch.metadata,
+        num_classes=batch.num_classes,
+    )
+
+    with torch.no_grad():
+        logits = model(batch).logits
+        changed_logits = model(changed_test_labels).logits
+
+    assert logits is not None
+    assert changed_logits is not None
+    assert torch.allclose(logits, changed_logits)
 
 
 def test_grid_sandwich_honors_pre_perceiver_mixer_depths() -> None:

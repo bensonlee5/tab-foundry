@@ -10896,3 +10896,377 @@ deltas:
     default_next_action: Apply the strict shared-anchor LMO transfer law for regime
       D from the carried low-batch T0 anchor inside tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1.
     applicability_guards: []
+  delta_tf_rd_026_grid_control_replay_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Replay the default grid sandwich control surface as the local executable
+      anchor for the TF-RD-026 broad-ML architecture campaign.
+    upstream_delta: Local control replay; no upstream architecture change.
+    expected_effect: Should reproduce the carried grid sandwich medium behavior closely
+      enough to anchor isolated broad-ML follow-up rows.
+    adequacy_knobs:
+    - medium v6 corpus held fixed
+    - Muon optimizer and 5000-step prior-dump budget held fixed
+    - grid sandwich architecture held at `d_icl=144`, `sandwich_layers=4`, `sandwich_heads=1`
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute first with `--promote-first-executed-row-to-anchor`.
+      - Compare the replay against the carried `0.4221534937` medium log-loss target
+        before interpreting candidate rows.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: grid_sandwich
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: gelu
+        grid_recurrence_steps: null
+    default_next_action: Execute first as the TF-RD-026 control replay and promote
+      it to the sweep anchor.
+    applicability_guards: []
+  delta_tf_rd_026_grid_hyper_connection_lite_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Replace standard grid mixer residuals with the lightweight two-stream
+      hyper-connection residual topology.
+    upstream_delta: Inspired by Hyper-Connections-style residual state mixing, adapted
+      to the grid sandwich row/column blocks without reintroducing routed evidence
+      banks.
+    expected_effect: May improve optimization and information flow through deeper
+      row/column grid mixing at fixed data, width, depth, and optimizer budget.
+    adequacy_knobs:
+    - isolated `grid_residual_mode` change only
+    - medium v6 corpus, Muon, and 5000-step budget fixed
+    - no routed evidence-bank behavior or batch/runtime retune
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the control replay is promoted.
+      - Inspect train stability before combining with any other first-wave mechanism.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_residual_mode: hyper_connection_lite
+    default_next_action: Execute against the promoted TF-RD-026 control replay.
+    applicability_guards: []
+  delta_tf_rd_026_grid_differential_attention_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Switch grid row/column attention from standard attention to the
+      differential attention variant.
+    upstream_delta: Inspired by Differential Transformer attention, using subtractive
+      attention maps to suppress common-mode distractors.
+    expected_effect: May improve grid mixing if the current attention blocks over-attend
+      to noisy or redundant feature/task context.
+    adequacy_knobs:
+    - isolated `grid_attention_mode` change only
+    - shape and attention-kernel behavior verified before quality interpretation
+    - medium v6 corpus, Muon, and 5000-step budget fixed
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the control replay is promoted.
+      - Treat any shape/runtime issue as a blocker before reading benchmark metrics.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_attention_mode: differential
+    default_next_action: Execute against the promoted TF-RD-026 control replay.
+    applicability_guards: []
+  delta_tf_rd_026_grid_swiglu_ffn_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Replace grid mixer GELU FFNs with the parameter-matched SwiGLU FFN
+      variant.
+    upstream_delta: Inspired by broad transformer gains from gated FFN blocks such
+      as SwiGLU.
+    expected_effect: May improve per-cell token transformations if the grid core
+      is FFN-capacity-limited rather than attention-limited.
+    adequacy_knobs:
+    - isolated `grid_ffn_mode` change only
+    - hidden size remains parameter-matched by the implementation rule
+    - medium v6 corpus, Muon, and 5000-step budget fixed
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the control replay is promoted.
+      - Combine with hyper-connection-lite only if both standalone rows train cleanly.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_ffn_mode: swiglu
+    default_next_action: Execute against the promoted TF-RD-026 control replay.
+    applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Share one grid mixer layer across eight recurrent refinement steps
+      as a full-shared-layer efficiency baseline.
+    upstream_delta: Inspired by recurrent/refinement-style transformer computation,
+      where repeated shared computation can improve iterative reasoning without adding
+      distinct layer parameters.
+    expected_effect: May improve grid reasoning if repeated row/column refinement
+      is more useful than the control's four independent grid mixer layers, but
+      interpret any quality change alongside the smaller parameter count.
+    adequacy_knobs:
+    - isolated `grid_recurrence_steps=8` change only
+    - '`sandwich_layers=4` remains configured but the recurrent core uses one shared layer'
+    - interpret quality together with runtime and parameter count
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the control replay is promoted.
+      - Compare quality, throughput, and parameter count before considering promotion.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+    default_next_action: Execute against the promoted TF-RD-026 control replay.
+    applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Combine the shared eight-step recurrent grid core with SwiGLU
+      grid FFNs.
+    upstream_delta: Follow-up to the full-shared-layer recurrence baseline and the
+      standalone SwiGLU gain in TF-RD-026.
+    expected_effect: May preserve row `05`'s better prior-train behavior while
+      adding the gated FFN capacity that improved row `04` benchmark quality.
+    adequacy_knobs:
+    - combination row only; no hyper-connection or differential-attention change
+    - one shared grid mixer layer applied for eight grid-core iterations
+    - interpret quality alongside the smaller recurrent parameter count and extra
+      repeated compute
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute only after row `05` inference verification reproduces benchmark-best
+        and final metrics from the recorded step checkpoints.
+      - Compare against both row `05` recurrent and row `04` SwiGLU before considering
+        the combination additive.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_combo_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_ffn_mode: swiglu
+    default_next_action: Execute against the promoted TF-RD-026 control replay after
+      row `05` inference verification passes.
+    applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Cycle two distinct SwiGLU grid mixer layers across eight recurrent
+      grid-core applications.
+    upstream_delta: Follow-up to row `09`, which shares one recurrent SwiGLU grid
+      layer across all eight applications.
+    expected_effect: Tests whether row `09`'s recurrent+SwiGLU gain improves further
+      when the recurrent core has more than one learned grid transformation.
+    adequacy_knobs:
+    - two unique grid mixer layers cycled four times
+    - grid FFNs use SwiGLU; residual topology and attention remain standard
+    - activation checkpointing remains disabled because recurrent+SwiGLU trips the
+      TorchDynamo checkpoint tracing assertion
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after row `09` to check whether recurrent+SwiGLU benefits from
+        more unique grid-layer capacity.
+      - Compare against rows `04`, `05`, and `09` to separate gated FFN gains from
+        recurrent unique-layer capacity.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_cycle_size_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        grid_ffn_mode: swiglu
+      training:
+        overrides:
+          runtime:
+            activation_checkpointing: false
+    default_next_action: Execute after row `09` to test whether its recurrent+SwiGLU
+      signal scales with two unique grid mixer layers.
+    applicability_guards: []
+  delta_tf_rd_026_grid_recurrent_8_unique4_swiglu_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Cycle four distinct SwiGLU grid mixer layers twice for eight recurrent
+      grid-core applications.
+    upstream_delta: Follow-up to row `04` and row `09`, testing repeated compute
+      after a full four-layer SwiGLU grid core.
+    expected_effect: If recurrence helps only when the full four-layer grid core
+      is preserved, this row should beat row `04`; if extra compute alone is not
+      useful, it should land near or below row `04`.
+    adequacy_knobs:
+    - four unique grid mixer layers cycled twice
+    - same grid-core parameter count as row `04`, but twice the grid-core applications
+    - activation checkpointing remains disabled because recurrent+SwiGLU trips the
+      TorchDynamo checkpoint tracing assertion
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute with row `10` to compare two-layer and four-layer recurrent cycle
+        sizes at the same eight total applications.
+      - Compare primarily against row `04` because both use four unique SwiGLU grid
+        layers, but this row repeats the full grid core.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_compute_scale_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 4
+        grid_ffn_mode: swiglu
+      training:
+        overrides:
+          runtime:
+            activation_checkpointing: false
+    default_next_action: Execute after row `09` to test the same four unique SwiGLU
+      grid layers as row `04`, repeated twice.
+    applicability_guards: []
+  delta_tf_rd_026_grid_repeat_candidate_1_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Blocked placeholder for the top contiguous grid-core repeat candidate
+      selected by the checkpoint perturbation diagnostic.
+    upstream_delta: Uses checkpoint-time ablation/repeat evidence to choose a localized
+      recurrent grid-core chunk before training another architecture row.
+    expected_effect: Should preserve the full four-layer grid-core parameter count
+      while adding repeated compute only around the best diagnostic chunk.
+    adequacy_knobs:
+    - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+      4` ranks contiguous repeat chunks against row `01`
+    - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
+    - add only the selected chunk-repeat training gate after the diagnostic selects
+      a concrete chunk
+    parameter_adequacy_policy:
+      default_plan:
+      - Fill in the selected contiguous chunk from the diagnostic ranking.
+      - Execute only after row `01` has a local checkpoint and the diagnostic artifacts
+        are attached to the sweep evidence.
+      default_negative_decision: defer
+      reject_requires:
+      - diagnostic_selected_chunk
+      - parameter_count_matches_control
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: null
+    default_next_action: Run the grid-core perturbation diagnostic, then replace this
+      placeholder with the top selected repeat chunk before execution.
+    applicability_guards: []
+  delta_tf_rd_026_grid_repeat_candidate_2_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Blocked placeholder for the second contiguous grid-core repeat candidate
+      selected by the checkpoint perturbation diagnostic.
+    upstream_delta: Uses checkpoint-time ablation/repeat evidence to choose a second
+      localized recurrent grid-core chunk only if the diagnostic shows multiple
+      plausible regions.
+    expected_effect: Should preserve the full four-layer grid-core parameter count
+      while testing whether the runner-up localized repeat is robust.
+    adequacy_knobs:
+    - blocked until `research grid-core perturb-checkpoint --repeat-count 2 --repeat-count
+      4` ranks contiguous repeat chunks against row `01`
+    - instantiate the full four-layer grid core with `grid_recurrence_steps=null`
+    - skip this row if the diagnostic yields only one credible repeat candidate
+    parameter_adequacy_policy:
+      default_plan:
+      - Fill in the second selected contiguous chunk only if the diagnostic ranking
+        warrants it.
+      - Execute after the top candidate unless the diagnostic shows a clear tie.
+      default_negative_decision: defer
+      reject_requires:
+      - diagnostic_selected_chunk
+      - parameter_count_matches_control
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_recurrence_steps: null
+    default_next_action: Keep blocked unless the perturbation diagnostic surfaces
+      a second credible repeat chunk.
+    applicability_guards: []
+  delta_tf_rd_026_grid_hc_swiglu_combo_v1:
+    dimension_family: model
+    family: grid_sandwich_broad_ml
+    binary_applicable: false
+    description: Combine hyper-connection-lite residual topology with SwiGLU grid
+      FFNs after both standalone mechanisms train cleanly.
+    upstream_delta: Interaction row for the two least entangled first-wave broad-ML
+      mechanisms.
+    expected_effect: May stack if residual topology improves state flow while SwiGLU
+      improves per-cell FFN capacity.
+    adequacy_knobs:
+    - combination row only; no attention or recurrence change
+    - blocked until the standalone hyper-connection-lite and SwiGLU rows are clean
+    - medium v6 corpus, Muon, and 5000-step budget fixed
+    parameter_adequacy_policy:
+      default_plan:
+      - Keep blocked until rows `02` and `04` both train cleanly.
+      - Execute only after the standalone results make an interaction read meaningful.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_change
+      - adequacy_plan_complete
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        grid_residual_mode: hyper_connection_lite
+        grid_ffn_mode: swiglu
+    default_next_action: Unblock only after the standalone hyper-connection-lite
+      and SwiGLU rows both train cleanly.
+    applicability_guards: []

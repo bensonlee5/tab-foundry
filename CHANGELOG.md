@@ -9,14 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- User-facing note: `grid_sandwich` is now the carried repo architecture
-  anchor. The root config defaults to `cls_workstation_grid_sandwich`, the
-  benchmark registry records the April 20-21, 2026 `grid_pilot` run
-  (`final_log_loss=0.4221534937`, Brier `0.2568076367`, ROC AUC
-  `0.8111876562`), and the hardware architecture registry adds
-  `tf_rd_009_a100_80gb_classification_medium_grid_v1` as the A100 medium
-  classification anchor while preserving `tabfoundry_sandwich` as historical
-  comparison evidence.
+- User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
+  architecture gates for opt-in performance sweeps: `grid_residual_mode`,
+  `grid_attention_mode`, `grid_ffn_mode`, `grid_recurrence_steps`, and
+  `grid_recurrence_unique_layers`.
+  The default workstation grid experiment now carries the promoted TF-RD-026
+  row `10` anchor: two distinct SwiGLU grid mixer layers cycled across eight
+  recurrent grid-core applications. The unique-layer recurrence gate cycles
+  multiple distinct grid mixer layers across recurrent passes for TF-RD-026
+  follow-up rows. Export manifests and training/model surface records now
+  preserve these grid fields, and the older TF-RD-026 workstation configs pin
+  their historical control settings for reproducibility.
+- User-facing note: TF-RD-026 now includes `tab-foundry research grid-core
+  perturb-checkpoint`, a checkpoint-time diagnostic that ablates and repeats
+  contiguous grid-sandwich core chunks across multiple repeat counts on a
+  manifest benchmark surface before selecting localized recurrence candidates.
+- User-facing note: `grid_sandwich` is now carried by the TF-RD-026 row `10`
+  anchor. The root config defaults to `cls_workstation_grid_sandwich`, which
+  resolves to final log loss `0.4181767299`, Brier `0.2551413012`, ROC AUC
+  `0.8132547851`, and `2,205,754` parameters on the medium surface. The earlier
+  April 20-21, 2026 `grid_pilot` run remains historical evidence for promoting
+  the grid-preserving family over `tabfoundry_sandwich`.
 - User-facing note: TF-RD-009 issue [#284](https://github.com/bensonlee5/tab-foundry/issues/284)
   now tracks the faithful paper-derived Muon transfer study rather than the
   earlier heuristic endpoint selector. The repo now ships tracked screen and

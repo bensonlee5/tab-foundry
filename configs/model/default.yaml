@@ -39,3 +39,8 @@ sandwich_packed_attention: false
 feature_type_conditioning: film
 floating_likelihood: single_gaussian
 integer_likelihood: hybrid_mixture
+grid_residual_mode: prenorm
+grid_attention_mode: standard
+grid_ffn_mode: gelu
+grid_recurrence_steps: null
+grid_recurrence_unique_layers: null

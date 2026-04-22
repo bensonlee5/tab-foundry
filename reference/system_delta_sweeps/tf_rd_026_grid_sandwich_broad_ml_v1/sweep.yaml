@@ -1,0 +1,80 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_026_grid_sandwich_broad_ml_v1
+parent_sweep_id: tf_rd_009_muon_training_dynamics_lmo_transfer_medium_v1
+status: completed
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_broad_ml_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Broad-ML grid sandwich architecture follow-ons
+  model_source: Hyper-Connections, Differential Transformer, SwiGLU gated FFNs, and
+    recurrent refinement
+anchor_surface:
+  notes:
+  - Row `10` is the promoted TF-RD-026 grid sandwich anchor run
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  - The carried pre-TF-RD-026 grid benchmark target was
+    `final_log_loss_at_matched_regime_budget=0.4221534937`; row `10` improves it
+    to `0.4181767299466772` without material Brier or ROC-AUC regression.
+  - The promoted architecture keeps the medium v6 corpus, Muon optimizer, 5000-step
+    prior-dump budget, W&B logging, and A100 80GB runtime profile fixed.
+  - Rows `02` through `05` remain first-wave mechanism evidence. Hyper-connection-lite
+    and differential attention did not earn anchor promotion; standalone SwiGLU was
+    positive but was superseded by recurrent unique-layer SwiGLU.
+  - Row `05` remains a full-shared-layer recurrent efficiency baseline, not the
+    recurrence answer.
+  - Row `09` was stopped early and is not planned as a canonical completed row.
+    Rows `10` and `11` instead test eight recurrent grid-core applications with
+    two or four distinct SwiGLU grid mixer layers.
+  - Row `10` is the quality winner; row `11` is retained as close comparison evidence
+    with higher parameter count and slightly worse final log loss.
+  dimension_table:
+  - dimension: residual topology
+    upstream: Hyper-Connection-style multi-stream residual routing can improve deep
+      transformer optimization by giving mixers more stable state paths.
+    anchor: The promoted row `10` anchor uses ordinary prenorm residuals in each
+      row and column mixer block.
+    interpretation: The topology variant trained, but it was slower and did not
+      earn promotion.
+  - dimension: distractor suppression
+    upstream: Differential attention subtracts a learned fraction of a second attention
+      map from the primary map to suppress common-mode distractors.
+    anchor: The promoted row `10` anchor uses standard attention in row and column
+      mixing.
+    interpretation: The attention-form variant did not beat the standard attention
+      path under the fixed medium budget.
+  - dimension: gated token capacity
+    upstream: SwiGLU-style gated FFNs often improve transformer quality at matched
+      or near-matched parameter budgets.
+    anchor: The promoted row `10` anchor uses SwiGLU FFNs inside the grid core.
+    interpretation: Standalone SwiGLU was positive and is carried in the promoted
+      recurrent unique-layer anchor.
+  - dimension: recurrent refinement
+    upstream: Sharing a transformation across recurrent iterations can improve iterative
+      reasoning while controlling parameter count.
+    anchor: The promoted row `10` anchor runs eight grid-core applications while
+      cycling two distinct grid mixer layers.
+    interpretation: The full-shared one-layer recurrent row is efficiency evidence
+      only; the winning recurrence shape keeps more than one learned transformation
+      without paying for the full four-layer recurrent row.
+anchor_context:
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

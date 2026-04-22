@@ -174,7 +174,7 @@ def test_checked_in_hardware_registry_tracks_grid_architecture_anchor() -> None:
     assert entry["runtime_profile"] == "cls_workstation_grid_sandwich"
     assert entry["config_profile"] == "cls_workstation_grid_sandwich"
     assert entry["preferred_run_id"] == (
-        "sd_tf_rd_009_sandwich_followons_medium_metadatafix_20260420_03_grid_pilot_v1"
+        "sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2"
     )
     assert entry["baseline_run_id"] == (
         "sd_tf_rd_009_muon_ns_one_epoch_medium_v1_12_delta_tf_rd_009_cls_sandwich_dicl144_layers4_v1_v1"
@@ -184,4 +184,7 @@ def test_checked_in_hardware_registry_tracks_grid_architecture_anchor() -> None:
     assert entry["preferred_architecture"]["sandwich_layers"] == 4
     assert entry["preferred_architecture"]["sandwich_heads"] == 1
     assert entry["preferred_architecture"]["head_hidden_dim"] == 96
+    assert entry["preferred_architecture"]["architecture"]["grid_core_iterations"] == 8
+    assert entry["preferred_architecture"]["architecture"]["grid_core_unique_layers"] == 2
+    assert entry["preferred_architecture"]["architecture"]["grid_ffn_mode"] == "swiglu"
     assert entry["surface_labels"]["model"] == "grid_sandwich"

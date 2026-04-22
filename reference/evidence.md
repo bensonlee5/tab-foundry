@@ -440,9 +440,10 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     surface recorded negative routed-residual evidence
     (`routed_control=0.5120092736`, `routed_rebalance=0.5661516574`) and positive
     grid-preserving evidence (`grid_pilot=0.4221534937`) against the `144x4`
-    sidecar anchor `0.4914031270`; `grid_sandwich` is now the carried repo
-    architecture anchor, with replication and larger-rung validation kept as the
-    next guardrails
+    sidecar anchor `0.4914031270`; TF-RD-026 then promoted row `10`, a
+    two-layer recurrent SwiGLU grid core at final log loss `0.4181767299`, as
+    the carried repo architecture anchor, with larger-rung validation kept as
+    the next guardrail
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

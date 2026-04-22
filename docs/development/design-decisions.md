@@ -34,7 +34,8 @@ should evolve through:
 Near-term architecture direction is now explicit:
 
 - keep a frozen PFN-style control lane for benchmark trust
-- evolve `grid_sandwich` as the coherent primary classification family
+- evolve the TF-RD-026 row `10` `grid_sandwich` anchor as the coherent primary
+  classification family
 - keep `tabfoundry_staged` available only for historical comparison and
   compatibility
 - remain free to borrow specific components from TabPFN or other references
@@ -64,7 +65,8 @@ intentionally deferred further still.
 ### Single Active Architecture Surface
 
 - Internal code should optimize for one active model-development surface:
-  `grid_sandwich`.
+  `grid_sandwich`, currently the two-layer recurrent SwiGLU grid core promoted
+  by TF-RD-026 row `10`.
 - `tabfoundry_simple` remains only as the frozen compatibility anchor.
 - `tabfoundry_staged` remains only as a historical comparison or
   compatibility surface.
