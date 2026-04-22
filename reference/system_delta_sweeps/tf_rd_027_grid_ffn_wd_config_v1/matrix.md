@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_
 - Parent sweep id: `tf_rd_026_grid_sandwich_broad_ml_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `f7b152cfdb2fd8036ed8ca39a3c47f57e81c4ac7d4214a09cc7541b5b23fdfe8`
+- Resolved queue inputs fingerprint: `9ead6206c22318e3f0d4fa0102832aa482cb10d6e0618fef784f4fcfd1b1bdf4`
 
 ## Locked Surface
 
@@ -48,7 +48,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 | 1 | `delta_tf_rd_027_grid_ffn_gelu4_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with GELU FFNs at a 4:1 feedforward multiplier for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry GELU 4:1 as the FFN winner. |
 | 2 | `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with SwiGLU at the 8:3 parameter-matched feedforward multiplier for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry SwiGLU 8:3 as the FFN winner. |
 | 3 | `delta_tf_rd_027_grid_weight_decay_0_1_v1` | grid_sandwich_ffn_stability | no | blocked | none | On the TF-RD-027 FFN winner only, test Muon optimizer weight decay 0.1 for a 2500-step expedited follow-up. | Unblock only after the FFN winner has been selected and copied into this row's effective model surface. |
-| 4 | `delta_tf_rd_027_grid_ffn_geglu8_3_v1` | grid_sandwich_ffn_stability | no | ready | none | Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step expedited screen. | Execute as a TF-RD-027 GEGLU follow-up to the completed SwiGLU 8:3 screen row. |
+| 4 | `delta_tf_rd_027_grid_ffn_geglu8_3_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor and both completed TF-RD-027 FFN rows, so do not carry GEGLU 8:3 as the FFN winner. |
 
 ## Detailed Rows
 
@@ -158,7 +158,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 ### 4. `delta_tf_rd_027_grid_ffn_geglu8_3_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step expedited screen.
@@ -170,6 +170,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `d0756bcfa6fa19864dc910fc3d69d8902dbc62b3ea878141c59bd984565e32fd`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0539`)
 - Model overrides: `{'grid_ffn_mode': 'geglu', 'sandwich_ff_expansion': 4}`
 - Parameter adequacy plan:
   - Compare against the existing TF-RD-026 row 10 anchor and the completed TF-RD-027 GELU 4:1 and SwiGLU 8:3 rows by final_log_loss_at_matched_regime_budget.
@@ -181,8 +182,11 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
   - train for exactly 2500 prior-dump steps
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_ffn_wd_config_v1/delta_tf_rd_027_grid_ffn_geglu8_3_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1` with final log loss `0.4268`, delta final log loss `+0.0087`, final Brier score `0.2597`, delta final brier score `+0.0045`, final ROC AUC `0.8088`, delta final roc auc `-0.0045`, best ROC AUC `0.8088`, final-minus-best `+0.0000`
