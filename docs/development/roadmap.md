@@ -845,7 +845,7 @@ Legacy wording note:
     log loss `0.4181767299`; per the winner rule, keep the current anchor FFN
   - the existing TF-RD-026 row `10` anchor remains the comparator; no fresh
     anchor replay is planned
-  - row `3` is blocked until the FFN winner is selected, then tests
+  - row `3` is ready on the current anchor FFN surface and tests
     `optimizer.weight_decay=0.1` against the carried `0.01`
 - Implementation-backed follow-up:
   - `tf_rd_027_grid_stability_impl_v1` is blocked until the config-only winner

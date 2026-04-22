@@ -773,7 +773,7 @@ rows:
   resolved_surface_fingerprint: d4073f9469f1b8dae18cb00f051bc7296b28e465e913cf5693339689a37facc8
 - order: 3
   delta_id: delta_tf_rd_027_grid_weight_decay_0_1_v1
-  status: blocked
+  status: ready
   rationale: Contextualize `delta_tf_rd_027_grid_weight_decay_0_1_v1` against anchor
     `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
@@ -802,7 +802,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Update this row's anchor/model surface to the FFN winner before execution.
+  - Use the current TF-RD-026 row 10 anchor FFN surface because GELU 4:1, SwiGLU 8:3,
+    and GEGLU 8:3 all lost to the locked anchor.
   - Carry the better of weight decay 0.01 and 0.1 into the implementation-backed stability
     sweep.
   execution_policy: benchmark_full
@@ -812,9 +813,12 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Unblock only after the FFN winner has been selected and copied into
-    this row's effective model surface.
-  notes: []
+  next_action: Execute as the TF-RD-027 weight-decay follow-up on the current anchor
+    FFN surface; compare 0.1 against the carried 0.01 anchor.
+  notes:
+  - Expanded FFN variants are not carried because GELU 4:1, SwiGLU 8:3, and GEGLU
+    8:3 all lost to the locked TF-RD-026 row 10 anchor by matched-budget final log
+    loss.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -1413,4 +1417,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: d0756bcfa6fa19864dc910fc3d69d8902dbc62b3ea878141c59bd984565e32fd
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml
-inputs_fingerprint: 9ead6206c22318e3f0d4fa0102832aa482cb10d6e0618fef784f4fcfd1b1bdf4
+inputs_fingerprint: 03f433bec7af898a25d594c1b8cee5524deede46141c309b43a5a0375ef9914c
