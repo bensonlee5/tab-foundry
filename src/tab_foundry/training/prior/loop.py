@@ -43,6 +43,7 @@ from tab_foundry.training.instability import (
     write_training_telemetry,
 )
 from tab_foundry.training.losses import classification_loss, classification_z_loss
+from tab_foundry.training.loss_surface import resolve_classification_z_loss_coeff
 from tab_foundry.training.prior.io import stack_prior_step
 from tab_foundry.training.prior.missingness import (
     _accumulate_missingness,
@@ -780,9 +781,8 @@ def run_prior_training(
         enable_activation_trace()
     model.to(device)
     model.train()
-    classification_z_loss_coeff = max(
-        0.0,
-        float(getattr(getattr(cfg, "training", None), "classification_z_loss_coeff", 0.0) or 0.0),
+    classification_z_loss_coeff = resolve_classification_z_loss_coeff(
+        getattr(cfg, "training", None)
     )
 
     training_surface_path = output_dir / "training_surface_record.json"

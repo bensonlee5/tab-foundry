@@ -37,6 +37,7 @@ from .instability import (
     train_loss_delta,
     update_loss_ema,
 )
+from .loss_surface import resolve_classification_z_loss_coeff
 from .schedule import stage_base_lr
 from .trainer_guards import (
     GuardStepUpdate,
@@ -463,8 +464,8 @@ def run_training_loop(
         train_iter = cycle_loader(train_loader)
     grad_clip_threshold = float(cfg.runtime.grad_clip)
     eval_every = int(cfg.runtime.eval_every)
-    classification_z_loss_coeff = float(
-        getattr(getattr(cfg, "training", None), "classification_z_loss_coeff", 0.0) or 0.0
+    classification_z_loss_coeff = resolve_classification_z_loss_coeff(
+        getattr(cfg, "training", None)
     )
     for stage in stage_configs:
         _set_optimizer_training_mode(prepared_opts, training=True)
