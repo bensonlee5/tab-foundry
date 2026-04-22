@@ -218,7 +218,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
             "sandwich_pre_column_attention_layers": 3,
             "grid_residual_mode": "hyper_connection_lite",
             "grid_attention_mode": "differential",
-            "grid_ffn_mode": "swiglu",
+            "grid_ffn_mode": "geglu",
             "grid_recurrence_steps": 8,
             "grid_recurrence_unique_layers": 2,
             "classification_logit_softcap": 30.0,
@@ -230,7 +230,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.sandwich_pre_column_attention_layers == 3
     assert spec.grid_residual_mode == "hyper_connection_lite"
     assert spec.grid_attention_mode == "differential"
-    assert spec.grid_ffn_mode == "swiglu"
+    assert spec.grid_ffn_mode == "geglu"
     assert spec.grid_recurrence_steps == 8
     assert spec.grid_recurrence_unique_layers == 2
     assert spec.classification_logit_softcap == pytest.approx(30.0)
@@ -239,7 +239,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
     assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
     assert spec.to_dict()["grid_attention_mode"] == "differential"
-    assert spec.to_dict()["grid_ffn_mode"] == "swiglu"
+    assert spec.to_dict()["grid_ffn_mode"] == "geglu"
     assert spec.to_dict()["grid_recurrence_steps"] == 8
     assert spec.to_dict()["grid_recurrence_unique_layers"] == 2
     assert spec.to_dict()["classification_logit_softcap"] == pytest.approx(30.0)
@@ -379,7 +379,7 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
     (
         ("grid_residual_mode", "dynamic_hyper"),
         ("grid_attention_mode", "flash"),
-        ("grid_ffn_mode", "geglu"),
+        ("grid_ffn_mode", "reglu"),
         ("grid_recurrence_steps", 0),
         ("grid_recurrence_unique_layers", 0),
         ("classification_logit_softcap", 0.0),

@@ -146,8 +146,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do
-    not carry GELU 4:1 as the FFN winner.
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry
+    GELU 4:1 as the FFN winner.
   notes:
   - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -479,8 +479,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do
-    not carry SwiGLU 8:3 as the FFN winner.
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry
+    SwiGLU 8:3 as the FFN winner.
   notes:
   - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -1080,5 +1080,317 @@ rows:
       val_batches: 0
       max_steps: 2500
   resolved_surface_fingerprint: 99dfebb1b79fd5e1286301314405c32f256baefadd81b7c4e69a45ec4635ad04
+- order: 4
+  delta_id: delta_tf_rd_027_grid_ffn_geglu8_3_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_geglu8_3_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_geglu8_3_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: geglu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the completed TF-RD-027
+    GELU 4:1 and SwiGLU 8:3 rows by final_log_loss_at_matched_regime_budget.
+  - If GEGLU also loses to the existing anchor, keep the current anchor FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as a TF-RD-027 GEGLU follow-up to the completed SwiGLU 8:3
+    screen row.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_ffn_stability
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same
+    8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step
+    expedited screen.
+  upstream_delta: Config-only FFN multiplier follow-up from TF-RD-027.
+  entangled_legacy_stage: none
+  expected_effect: Checks whether the GEGLU gate is a better activation choice than
+    SwiGLU when the anchor shape, recurrence, and 8:3 gated hidden-size rule are held
+    fixed.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2 inherited
+    from the anchor
+  - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging held
+    fixed
+  - train for exactly 2500 prior-dump steps
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare against the existing TF-RD-026 row 10 anchor and the completed TF-RD-027
+      GELU 4:1 and SwiGLU 8:3 rows by final_log_loss_at_matched_regime_budget.
+    - If GEGLU also loses to the existing anchor, keep the current anchor FFN.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_ffn_mode_change
+    - matched_2500_step_budget
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 4
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: geglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: geglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 4
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 2500
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 2500
+  resolved_surface_fingerprint: d0756bcfa6fa19864dc910fc3d69d8902dbc62b3ea878141c59bd984565e32fd
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml
-inputs_fingerprint: 7546e42463d5af13e717ea26eb7078d56b8698531a490612737b2d9ef450edee
+inputs_fingerprint: f7b152cfdb2fd8036ed8ca39a3c47f57e81c4ac7d4214a09cc7541b5b23fdfe8

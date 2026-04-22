@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled-by-default `model.classification_logit_softcap` and
   `model.attention_qk_norm`, training now exposes
   `training.classification_z_loss_coeff`, and export/config surface records
-  preserve the new stability fields.
+  preserve the new stability fields. The grid FFN screen also supports a GEGLU
+  gated FFN mode with the same hidden-size rule as the SwiGLU 8:3 row.
 - User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
   architecture gates for opt-in performance sweeps: `grid_residual_mode`,
   `grid_attention_mode`, `grid_ffn_mode`, `grid_recurrence_steps`, and

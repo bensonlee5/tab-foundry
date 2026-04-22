@@ -388,6 +388,7 @@ def test_native_packed_cross_attention_qk_norm_scale_is_per_head() -> None:
         {"grid_residual_mode": "hyper_connection_lite"},
         {"grid_attention_mode": "differential"},
         {"grid_ffn_mode": "swiglu"},
+        {"grid_ffn_mode": "geglu"},
         {"grid_recurrence_steps": 3},
     ),
 )

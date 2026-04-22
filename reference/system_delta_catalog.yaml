@@ -11376,6 +11376,61 @@ deltas:
               warmup_ratio: 0.1
     default_next_action: Execute as the second TF-RD-027 FFN multiplier screen row.
     applicability_guards: []
+  delta_tf_rd_027_grid_ffn_geglu8_3_v1:
+    dimension_family: model
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at
+      the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row
+      for a 2500-step expedited screen.
+    upstream_delta: Config-only FFN multiplier follow-up from TF-RD-027.
+    expected_effect: Checks whether the GEGLU gate is a better activation choice
+      than SwiGLU when the anchor shape, recurrence, and 8:3 gated hidden-size
+      rule are held fixed.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2
+      inherited from the anchor
+    - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging
+      held fixed
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Compare against the existing TF-RD-026 row 10 anchor and the completed
+        TF-RD-027 GELU 4:1 and SwiGLU 8:3 rows by
+        final_log_loss_at_matched_regime_budget.
+      - If GEGLU also loses to the existing anchor, keep the current anchor FFN.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_ffn_mode_change
+      - matched_2500_step_budget
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_ffn_mode: geglu
+        sandwich_ff_expansion: 4
+      training:
+        overrides:
+          runtime:
+            max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute as a TF-RD-027 GEGLU follow-up to the completed
+      SwiGLU 8:3 screen row.
+    applicability_guards: []
   delta_tf_rd_027_grid_weight_decay_0_1_v1:
     dimension_family: training
     family: grid_sandwich_ffn_stability

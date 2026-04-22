@@ -56,6 +56,7 @@ _GRID_RESIDUAL_HYPER_CONNECTION_LITE = "hyper_connection_lite"
 _GRID_ATTENTION_STANDARD = "standard"
 _GRID_ATTENTION_DIFFERENTIAL = "differential"
 _GRID_FFN_SWIGLU = "swiglu"
+_GRID_FFN_GEGLU = "geglu"
 _GRID_HYPER_STREAMS = 2
 _DIFFERENTIAL_ATTENTION_LAMBDA_INIT = 0.1
 _SWIGLU_HIDDEN_MULTIPLE = 8
@@ -100,6 +101,23 @@ class _SwiGLUFFN(nn.Module):
         return self.out(self.value(hidden) * F.silu(self.gate(hidden)))
 
 
+class _GeGLUFFN(nn.Module):
+    """Parameter-matched GEGLU FFN for opt-in grid-core experiments."""
+
+    def __init__(self, *, embedding_size: int, ff_expansion: int) -> None:
+        super().__init__()
+        hidden_size = _swiglu_hidden_size(
+            embedding_size=embedding_size,
+            ff_expansion=ff_expansion,
+        )
+        self.value = nn.Linear(embedding_size, hidden_size)
+        self.gate = nn.Linear(embedding_size, hidden_size)
+        self.out = nn.Linear(hidden_size, embedding_size)
+
+    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+        return self.out(self.value(hidden) * F.gelu(self.gate(hidden)))
+
+
 def _build_grid_ffn(
     *,
     embedding_size: int,
@@ -107,8 +125,11 @@ def _build_grid_ffn(
     activation: str,
     ffn_mode: str,
 ) -> nn.Module:
-    if str(ffn_mode).strip().lower() == _GRID_FFN_SWIGLU:
+    normalized_mode = str(ffn_mode).strip().lower()
+    if normalized_mode == _GRID_FFN_SWIGLU:
         return _SwiGLUFFN(embedding_size=embedding_size, ff_expansion=ff_expansion)
+    if normalized_mode == _GRID_FFN_GEGLU:
+        return _GeGLUFFN(embedding_size=embedding_size, ff_expansion=ff_expansion)
     ff_hidden = embedding_size * ff_expansion
     return nn.Sequential(
         nn.Linear(embedding_size, ff_hidden),
@@ -474,7 +495,7 @@ class _GridHyperConnection(nn.Module):
 def _use_experimental_grid_blocks(*, attention_mode: str, ffn_mode: str) -> bool:
     return (
         str(attention_mode).strip().lower() != _GRID_ATTENTION_STANDARD
-        or str(ffn_mode).strip().lower() == _GRID_FFN_SWIGLU
+        or str(ffn_mode).strip().lower() in {_GRID_FFN_SWIGLU, _GRID_FFN_GEGLU}
     )
 
 
