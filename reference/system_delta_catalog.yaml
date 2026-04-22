@@ -11270,3 +11270,290 @@ deltas:
     default_next_action: Unblock only after the standalone hyper-connection-lite
       and SwiGLU rows both train cleanly.
     applicability_guards: []
+  delta_tf_rd_027_grid_ffn_gelu4_v1:
+    dimension_family: model
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 recurrent grid anchor with GELU FFNs
+      at a 4:1 feedforward multiplier for a 2500-step expedited screen.
+    upstream_delta: Config-only FFN multiplier screen from TF-RD-027.
+    expected_effect: Establishes whether the current SwiGLU recurrent anchor is
+      still better when GELU receives the requested 4:1 feedforward budget.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2
+      inherited from the anchor
+    - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging
+      held fixed
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027
+        SwiGLU 8:3 row by final_log_loss_at_matched_regime_budget.
+      - If both 2500-step FFN rows lose to the existing anchor, keep the current
+        anchor FFN.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_ffn_mode_and_multiplier_change
+      - matched_2500_step_budget
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_ffn_mode: gelu
+        sandwich_ff_expansion: 4
+      training:
+        overrides:
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute as the first TF-RD-027 FFN multiplier screen row.
+    applicability_guards: []
+  delta_tf_rd_027_grid_ffn_swiglu8_3_v1:
+    dimension_family: model
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 recurrent grid anchor with SwiGLU at
+      the 8:3 parameter-matched feedforward multiplier for a 2500-step expedited
+      screen.
+    upstream_delta: Config-only FFN multiplier screen from TF-RD-027.
+    expected_effect: Tests whether the current SwiGLU anchor improves when the
+      feedforward expansion uses sandwich_ff_expansion=4, which maps to the
+      8:3 SwiGLU hidden-size rule.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2
+      inherited from the anchor
+    - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging
+      held fixed
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027
+        GELU 4:1 row by final_log_loss_at_matched_regime_budget.
+      - If both 2500-step FFN rows lose to the existing anchor, keep the current
+        anchor FFN.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_ffn_multiplier_change
+      - matched_2500_step_budget
+      - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_ffn_mode: swiglu
+        sandwich_ff_expansion: 4
+      training:
+        overrides:
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute as the second TF-RD-027 FFN multiplier screen row.
+    applicability_guards: []
+  delta_tf_rd_027_grid_weight_decay_0_1_v1:
+    dimension_family: training
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: On the TF-RD-027 FFN winner only, test Muon optimizer weight decay
+      0.1 for a 2500-step expedited follow-up.
+    upstream_delta: Config-only optimizer regularization follow-up from TF-RD-027.
+    expected_effect: Checks whether stronger weight decay improves the chosen FFN
+      surface without changing width, recurrence, corpus, or runtime policy.
+    adequacy_knobs:
+    - run only after the FFN winner is selected
+    - compare optimizer.weight_decay=0.1 against the carried 0.01 setting on
+      the same FFN winner surface
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Update this row's anchor/model surface to the FFN winner before execution.
+      - Carry the better of weight decay 0.01 and 0.1 into the implementation-backed
+        stability sweep.
+      default_negative_decision: defer
+      reject_requires:
+      - ffn_winner_selected
+      - isolated_optimizer_weight_decay_change
+      - matched_2500_step_budget
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      training:
+        overrides:
+          optimizer:
+            weight_decay: 0.1
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Unblock only after the FFN winner has been selected and
+      copied into this row's effective model surface.
+    applicability_guards: []
+  delta_tf_rd_027_grid_classification_z_loss_1e4_v1:
+    dimension_family: training
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: On the config-only winner, add canonical classification z-loss
+      with coefficient 1e-4 for a 2500-step isolated stability row.
+    upstream_delta: Implementation-backed TF-RD-027 softmax-stability mechanism.
+    expected_effect: Penalizes large classification log normalizers via
+      coeff * mean(logsumexp(logits)^2) without changing benchmark evaluation
+      semantics.
+    adequacy_knobs:
+    - run only after the config-only FFN/weight-decay winner is selected
+    - isolated z-loss change only; no logit softcap or QK-norm in the same row
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Update this row's anchor/model/training surface to the config-only winner
+        before execution.
+      - Compare directly against the config-only winner by matched-budget final
+        log loss and instability telemetry.
+      default_negative_decision: defer
+      reject_requires:
+      - config_only_winner_selected
+      - isolated_z_loss_change
+      - matched_2500_step_budget
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      training:
+        classification_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Unblock only after the config-only winner is selected.
+    applicability_guards: []
+  delta_tf_rd_027_grid_logit_softcap_30_v1:
+    dimension_family: model
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: On the config-only winner, apply a tanh classification-logit
+      softcap of 30.0 for a 2500-step isolated stability row.
+    upstream_delta: Implementation-backed TF-RD-027 softmax-stability mechanism.
+    expected_effect: Bounds classification logits with cap * tanh(logits / cap)
+      before the classification loss and benchmark logits leave the model.
+    adequacy_knobs:
+    - run only after the config-only FFN/weight-decay winner is selected
+    - isolated logit-softcap change only; no z-loss or QK-norm in the same row
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Update this row's anchor/model/training surface to the config-only winner
+        before execution.
+      - Verify the exported model spec carries the softcap field before interpreting
+        benchmark metrics.
+      default_negative_decision: defer
+      reject_requires:
+      - config_only_winner_selected
+      - isolated_logit_softcap_change
+      - matched_2500_step_budget
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        classification_logit_softcap: 30.0
+      training:
+        overrides:
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Unblock only after the config-only winner is selected.
+    applicability_guards: []
+  delta_tf_rd_027_grid_qk_norm_v1:
+    dimension_family: model
+    family: grid_sandwich_ffn_stability
+    binary_applicable: false
+    description: On the config-only winner, enable QK-norm across grid-sandwich
+      attention sites for a 2500-step isolated stability row.
+    upstream_delta: Implementation-backed TF-RD-027 attention-stability mechanism.
+    expected_effect: Normalizes query and key vectors and applies a learnable
+      per-head scale initialized to sqrt(head_dim) across grid sandwich attention.
+    adequacy_knobs:
+    - run only after the config-only FFN/weight-decay winner is selected
+    - isolated QK-norm change only; no z-loss or logit softcap in the same row
+    - train for exactly 2500 prior-dump steps
+    parameter_adequacy_policy:
+      default_plan:
+      - Update this row's anchor/model/training surface to the config-only winner
+        before execution.
+      - Verify packed self-attention and cross-attention paths before interpreting
+        benchmark metrics.
+      default_negative_decision: defer
+      reject_requires:
+      - config_only_winner_selected
+      - isolated_qk_norm_change
+      - matched_2500_step_budget
+    default_initial_status: blocked
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        attention_qk_norm: true
+      training:
+        overrides:
+          runtime:
+            max_steps: 2500
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Unblock only after the config-only winner is selected.
+    applicability_guards: []

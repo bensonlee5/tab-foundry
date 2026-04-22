@@ -16,7 +16,12 @@ from tab_foundry.feature_types import (
     feature_type_ids_from_task_metadata,
     normalize_feature_types,
 )
-from tab_foundry.model.components.attention import _reshape_heads, multihead_attention_sdpa
+from tab_foundry.model.components.attention import (
+    _reshape_heads,
+    apply_qk_norm,
+    multihead_attention_sdpa,
+    qk_norm_scale_init,
+)
 from tab_foundry.model.components.tabular_primitives import (
     DirectMulticlassHead,
     FeatureTypeFiLM,
@@ -123,6 +128,7 @@ class _GridAttentionCore(nn.Module):
         attention_mode: str,
         is_cross_attention: bool,
         packed_attention: bool,
+        qk_norm: bool,
     ) -> None:
         super().__init__()
         self.embedding_size = int(embedding_size)
@@ -130,6 +136,7 @@ class _GridAttentionCore(nn.Module):
         self.attention_mode = str(attention_mode).strip().lower()
         self.is_cross_attention = bool(is_cross_attention)
         self.packed_attention = bool(packed_attention)
+        self.qk_norm = bool(qk_norm)
         if self.embedding_size % self.n_heads != 0:
             raise ValueError(
                 "grid attention requires embedding_size divisible by n_heads, "
@@ -145,17 +152,45 @@ class _GridAttentionCore(nn.Module):
             self.lambda_scale = nn.Parameter(
                 torch.tensor(float(_DIFFERENTIAL_ATTENTION_LAMBDA_INIT))
             )
+            self.qk_norm_scale_1 = (
+                nn.Parameter(
+                    torch.full(
+                        (self.n_heads,),
+                        qk_norm_scale_init(
+                            embed_dim=self.embedding_size,
+                            num_heads=self.n_heads,
+                        ),
+                    )
+                )
+                if self.qk_norm
+                else None
+            )
+            self.qk_norm_scale_2 = (
+                nn.Parameter(
+                    torch.full(
+                        (self.n_heads,),
+                        qk_norm_scale_init(
+                            embed_dim=self.embedding_size,
+                            num_heads=self.n_heads,
+                        ),
+                    )
+                )
+                if self.qk_norm
+                else None
+            )
         elif self.attention_mode == _GRID_ATTENTION_STANDARD:
             self.attn = (
                 (
                     _NativePackedCrossAttention(
                         embedding_size=self.embedding_size,
                         n_heads=self.n_heads,
+                        qk_norm=self.qk_norm,
                     )
                     if self.is_cross_attention
                     else _NativePackedSelfAttention(
                         embedding_size=self.embedding_size,
                         n_heads=self.n_heads,
+                        qk_norm=self.qk_norm,
                     )
                 )
                 if self.packed_attention
@@ -164,6 +199,19 @@ class _GridAttentionCore(nn.Module):
                     self.n_heads,
                     batch_first=True,
                 )
+            )
+            self.qk_norm_scale = (
+                nn.Parameter(
+                    torch.full(
+                        (self.n_heads,),
+                        qk_norm_scale_init(
+                            embed_dim=self.embedding_size,
+                            num_heads=self.n_heads,
+                        ),
+                    )
+                )
+                if self.qk_norm and not self.packed_attention
+                else None
             )
         else:
             raise ValueError(
@@ -195,6 +243,7 @@ class _GridAttentionCore(nn.Module):
                 key_value,
                 key_value,
                 attn_bias=attn_bias,
+                qk_norm_scale=self.qk_norm_scale,
             )
         return self._differential_attention(
             query,
@@ -208,7 +257,9 @@ class _GridAttentionCore(nn.Module):
         key_heads: torch.Tensor,
         *,
         attn_bias: torch.Tensor | None,
+        qk_norm_scale: torch.Tensor | None,
     ) -> torch.Tensor:
+        query_heads, key_heads = apply_qk_norm(query_heads, key_heads, qk_norm_scale)
         head_dim = int(query_heads.shape[-1])
         scores = torch.matmul(query_heads, key_heads.transpose(-2, -1)) / math.sqrt(head_dim)
         if attn_bias is not None:
@@ -227,8 +278,18 @@ class _GridAttentionCore(nn.Module):
         q2 = _reshape_heads(self.q2(query), num_heads=self.n_heads)
         k2 = _reshape_heads(self.k2(key_value), num_heads=self.n_heads)
         v = _reshape_heads(self.v(key_value), num_heads=self.n_heads)
-        attn1 = self._attention_weights(q1, k1, attn_bias=attn_bias)
-        attn2 = self._attention_weights(q2, k2, attn_bias=attn_bias)
+        attn1 = self._attention_weights(
+            q1,
+            k1,
+            attn_bias=attn_bias,
+            qk_norm_scale=self.qk_norm_scale_1,
+        )
+        attn2 = self._attention_weights(
+            q2,
+            k2,
+            attn_bias=attn_bias,
+            qk_norm_scale=self.qk_norm_scale_2,
+        )
         attended = torch.matmul(attn1 - (self.lambda_scale * attn2), v)
         batch_size, _num_heads, target_len, head_dim = attended.shape
         merged = (
@@ -253,6 +314,7 @@ class _GridCrossAttentionBlock(nn.Module):
         attention_mode: str,
         ffn_mode: str,
         packed_attention: bool,
+        qk_norm: bool,
     ) -> None:
         super().__init__()
         self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -264,6 +326,7 @@ class _GridCrossAttentionBlock(nn.Module):
             attention_mode=attention_mode,
             is_cross_attention=True,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.ff = _build_grid_ffn(
             embedding_size=embedding_size,
@@ -293,6 +356,7 @@ class _GridSelfAttentionBlock(nn.Module):
         attention_mode: str,
         ffn_mode: str,
         packed_attention: bool,
+        qk_norm: bool,
     ) -> None:
         super().__init__()
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -303,6 +367,7 @@ class _GridSelfAttentionBlock(nn.Module):
             attention_mode=attention_mode,
             is_cross_attention=False,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.ff = _build_grid_ffn(
             embedding_size=embedding_size,
@@ -337,6 +402,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
         attention_mode: str,
         ffn_mode: str,
         packed_attention: bool,
+        qk_norm: bool,
     ) -> None:
         super().__init__()
         self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
@@ -350,6 +416,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             attention_mode=attention_mode,
             ffn_mode=ffn_mode,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.inducing_self = _GridSelfAttentionBlock(
             embedding_size=embedding_size,
@@ -360,6 +427,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             attention_mode=attention_mode,
             ffn_mode=ffn_mode,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.rows_from_inducing = _GridCrossAttentionBlock(
             embedding_size=embedding_size,
@@ -370,6 +438,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             attention_mode=attention_mode,
             ffn_mode=ffn_mode,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
 
 
@@ -425,6 +494,7 @@ class _GridMixerLayer(nn.Module):
         attention_mode: str,
         ffn_mode: str,
         packed_attention: bool = False,
+        qk_norm: bool = False,
     ) -> None:
         super().__init__()
         self.residual_mode = str(residual_mode).strip().lower()
@@ -445,6 +515,7 @@ class _GridMixerLayer(nn.Module):
                 attention_mode=self.attention_mode,
                 ffn_mode=self.ffn_mode,
                 packed_attention=packed_attention,
+                qk_norm=qk_norm,
             )
             self.column_mixer = _GridInducedSetAttentionBlock(
                 embedding_size=embedding_size,
@@ -456,6 +527,7 @@ class _GridMixerLayer(nn.Module):
                 attention_mode=self.attention_mode,
                 ffn_mode=self.ffn_mode,
                 packed_attention=packed_attention,
+                qk_norm=qk_norm,
             )
         else:
             self.row_mixer = _SelfAttentionBlock(
@@ -465,6 +537,7 @@ class _GridMixerLayer(nn.Module):
                 activation=activation,
                 block_norm=block_norm,
                 packed_attention=packed_attention,
+                qk_norm=qk_norm,
             )
             self.column_mixer = _InducedSetAttentionBlock(
                 embedding_size=embedding_size,
@@ -474,6 +547,7 @@ class _GridMixerLayer(nn.Module):
                 block_norm=block_norm,
                 num_inducing=num_inducing,
                 packed_attention=packed_attention,
+                qk_norm=qk_norm,
             )
         self.row_router = (
             _GridHyperConnection(embedding_size=embedding_size)
@@ -514,6 +588,8 @@ class GridSandwichClassifier(nn.Module):
         grid_ffn_mode: str = _D["grid_ffn_mode"],
         grid_recurrence_steps: int | None = _D["grid_recurrence_steps"],
         grid_recurrence_unique_layers: int | None = _D["grid_recurrence_unique_layers"],
+        classification_logit_softcap: float | None = _D["classification_logit_softcap"],
+        attention_qk_norm: bool = _D["attention_qk_norm"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -540,6 +616,8 @@ class GridSandwichClassifier(nn.Module):
             grid_ffn_mode=grid_ffn_mode,
             grid_recurrence_steps=grid_recurrence_steps,
             grid_recurrence_unique_layers=grid_recurrence_unique_layers,
+            classification_logit_softcap=classification_logit_softcap,
+            attention_qk_norm=attention_qk_norm,
         )
         self.arch = "grid_sandwich"
         self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
@@ -576,6 +654,12 @@ class GridSandwichClassifier(nn.Module):
             if self.model_spec.grid_recurrence_unique_layers is None
             else int(self.model_spec.grid_recurrence_unique_layers)
         )
+        self.classification_logit_softcap = (
+            None
+            if self.model_spec.classification_logit_softcap is None
+            else float(self.model_spec.classification_logit_softcap)
+        )
+        self.attention_qk_norm = bool(self.model_spec.attention_qk_norm)
         self.grid_core_iterations = int(self.grid_recurrence_steps or self.sandwich_layers)
         self.grid_core_unique_layers = int(
             self.grid_recurrence_unique_layers
@@ -609,6 +693,7 @@ class GridSandwichClassifier(nn.Module):
                     activation=self.sandwich_activation,
                     block_norm=self.sandwich_block_norm,
                     packed_attention=self.sandwich_packed_attention,
+                    qk_norm=self.attention_qk_norm,
                 )
                 for _ in range(self.pre_row_attention_layers)
             ]
@@ -623,6 +708,7 @@ class GridSandwichClassifier(nn.Module):
                     block_norm=self.sandwich_block_norm,
                     num_inducing=self.pre_column_inducing_tokens,
                     packed_attention=self.sandwich_packed_attention,
+                    qk_norm=self.attention_qk_norm,
                 )
                 for _ in range(self.pre_column_attention_layers)
             ]
@@ -641,6 +727,7 @@ class GridSandwichClassifier(nn.Module):
                     attention_mode=self.grid_attention_mode,
                     ffn_mode=self.grid_ffn_mode,
                     packed_attention=self.sandwich_packed_attention,
+                    qk_norm=self.attention_qk_norm,
                 )
                 for _ in range(grid_layer_count)
             ]
@@ -655,6 +742,7 @@ class GridSandwichClassifier(nn.Module):
             activation=self.sandwich_activation,
             block_norm=self.sandwich_block_norm,
             packed_attention=self.sandwich_packed_attention,
+            qk_norm=self.attention_qk_norm,
         )
         self.direct_head = DirectMulticlassHead(
             self.d_icl,
@@ -1163,6 +1251,12 @@ class GridSandwichClassifier(nn.Module):
         self.trace_activation("post_test_row_pool", pooled)
         return pooled
 
+    def _apply_classification_logit_softcap(self, logits: torch.Tensor) -> torch.Tensor:
+        cap = self.classification_logit_softcap
+        if cap is None:
+            return logits
+        return float(cap) * torch.tanh(logits / float(cap))
+
     def _forward_logits_batched(
         self,
         *,
@@ -1208,7 +1302,8 @@ class GridSandwichClassifier(nn.Module):
             hidden,
             train_test_split_index=train_test_split_index,
         )
-        return self.direct_head(pooled_test_rows)
+        logits = self.direct_head(pooled_test_rows)
+        return self._apply_classification_logit_softcap(logits)
 
     def forward_batched(
         self,

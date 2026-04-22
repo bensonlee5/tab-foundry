@@ -274,6 +274,7 @@ Parallel/later lanes are intentionally off that main path:
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, and the prior-trained PFN-facing benchmark lane are all stable | Keep that lane clearly separate from the architecture target | `TF-RD-001` |
 | Grid is the primary classification candidate | `implemented` | `grid_sandwich` is the carried architecture anchor after TF-RD-026 row `10` promoted the two-layer recurrent SwiGLU grid core at final log loss `0.4181767299`; `tabfoundry_sandwich` remains the previous carried comparison family and retains its compact hybrid, knob-screen, width/head, and direct-head evidence | Validate the promoted grid anchor on larger or harder rungs rather than reopening simplification-first sandwich work | `TF-RD-026`, `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010`, `TF-RD-009` |
 | Broad-ML grid follow-ons selected a new anchor | `completed` | TF-RD-026 completed the medium sweep, promoted row `10` (`grid_recurrence_steps=8`, `grid_recurrence_unique_layers=2`, `grid_ffn_mode=swiglu`) as the current `cls_workstation_grid_sandwich` surface, and left row `11` as close comparison evidence | Larger-rung validation remains before replacing external planning assumptions; row `09` is not planned after its early stop | `TF-RD-026`, `TF-RD-009` |
+| Expedited FFN and stability grid screens are queued | `active` | TF-RD-027 now has a config-only sweep (`tf_rd_027_grid_ffn_wd_config_v1`) for GELU 4:1, SwiGLU 8:3, and weight decay `0.1`, plus an implementation-backed follow-up sweep (`tf_rd_027_grid_stability_impl_v1`) for z-loss, logit softcap, and QK-norm | Execute the two ready FFN rows first; keep the dependent weight-decay and stability rows blocked until the config-only winner is known | `TF-RD-027`, `TF-RD-026` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, TF-RD-020 settled harder-front winners that can seed the sandwich benchmark program, and dagzoo epics [#249](https://github.com/bensonlee5/dagzoo/issues/249) and [#247](https://github.com/bensonlee5/dagzoo/issues/247) define later surface-expansion work | Keep TF-RD-021 and dagzoo RD-002/RD-005 as sidecar synthetic-data context while TF-RD-009 executes on the closed TF-RD-010 benchmark contract | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `implemented` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, `tab-foundry dev run-inspect` now exposes compact runtime and regime-budget summaries, sweep summaries now carry compact runtime columns, and TF-RD-022 closed on the kept bf16 plus activation-checkpointing `compile_eager_dynamic` runtime surface with an A100 wall-time improvement from `3848.0996s` to `3586.6358s` and matched-budget log loss improvement from `0.6820820744` to `0.6810689708` | Carry the kept TF-RD-022 runtime surface unchanged into TF-RD-009; any later runtime changes now need a new dedicated lane rather than reopening the closed gate | `TF-RD-022` |
 | Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, `medium_v5` now records the sorted-control replay, and `large_v2` now records the local large-rung replay | `implemented` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` now records the completed sorted-order control replay under [#202](https://github.com/bensonlee5/tab-foundry/issues/202) at `0.6849303354`, and `large_v2` now records the completed local all-rows benchmark-only large replay under [#203](https://github.com/bensonlee5/tab-foundry/issues/203) with control `0.8974410961`, `mcar=0.9155278224`, `mar=0.9418792099`, and `mnar=0.9411754209` | TF-RD-010 now explicitly keeps the original `medium_v4` control (`0.6811727401`) over the worse sorted-order `medium_v5` replay (`0.6849303354`), and the completed `large_v2` replay preserves the same ordering with control best on the harder rung. Later lanes inherit that closed benchmark contract and the no-missingness-promotion read, while the canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-022`, `TF-RD-024`, `TF-RD-014`, `TF-RD-017` |
@@ -826,6 +827,34 @@ Legacy wording note:
   - remaining guardrail: validate on a larger or harder rung before treating
     the row `10` shape as a scaling-law replacement rather than the current
     medium anchor
+
+### TF-RD-027: Expedited Grid FFN And Stability Sweeps
+
+- Status: `active`
+- Milestone: `In Progress`
+- Goal: run short 2500-step screens from the TF-RD-026 row `10`
+  `grid_sandwich` anchor without reopening width or unique-layer recurrence.
+- Config-only sweep:
+  - `tf_rd_027_grid_ffn_wd_config_v1` starts with two ready FFN rows:
+    GELU 4:1 (`grid_ffn_mode=gelu`, `sandwich_ff_expansion=4`) and SwiGLU 8:3
+    (`grid_ffn_mode=swiglu`, `sandwich_ff_expansion=4`)
+  - the existing TF-RD-026 row `10` anchor remains the comparator; no fresh
+    anchor replay is planned
+  - row `3` is blocked until the FFN winner is selected, then tests
+    `optimizer.weight_decay=0.1` against the carried `0.01`
+- Implementation-backed follow-up:
+  - `tf_rd_027_grid_stability_impl_v1` is blocked until the config-only winner
+    is known
+  - queued isolated rows cover classification z-loss
+    (`training.classification_z_loss_coeff=1e-4`), tanh logit softcap
+    (`model.classification_logit_softcap=30.0`), and QK-norm
+    (`model.attention_qk_norm=true`)
+- Exit criteria:
+  - select the FFN winner by `final_log_loss_at_matched_regime_budget`; if both
+    new FFN rows lose, keep the current anchor FFN
+  - after the weight-decay row, carry the better of `0.01` and `0.1`
+  - run the implementation-backed rows only after the config-only winner is
+    copied into the follow-up sweep anchor/effective surfaces
 
 ### TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
 

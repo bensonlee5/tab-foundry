@@ -463,6 +463,9 @@ def run_training_loop(
         train_iter = cycle_loader(train_loader)
     grad_clip_threshold = float(cfg.runtime.grad_clip)
     eval_every = int(cfg.runtime.eval_every)
+    classification_z_loss_coeff = float(
+        getattr(getattr(cfg, "training", None), "classification_z_loss_coeff", 0.0) or 0.0
+    )
     for stage in stage_configs:
         _set_optimizer_training_mode(prepared_opts, training=True)
 
@@ -526,7 +529,15 @@ def run_training_loop(
                 with accelerator.accumulate(model):
                     with accelerator.autocast():
                         output = model(batch) if model_forward is None else model_forward(batch)
-                        loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                        if classification_z_loss_coeff > 0.0:
+                            loss, metrics = _compute_loss_and_metrics(
+                                output,
+                                batch,
+                                task=task,
+                                classification_z_loss_coeff=classification_z_loss_coeff,
+                            )
+                        else:
+                            loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
                     accelerator.backward(
                         _task_weighted_microstep_loss(
                             loss,

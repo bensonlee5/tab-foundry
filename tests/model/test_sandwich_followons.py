@@ -5,6 +5,10 @@ import torch
 
 from tab_foundry.model.architectures.grid_sandwich import GridSandwichClassifier
 from tab_foundry.model.architectures.routed_sandwich import RoutedSandwichClassifier
+from tab_foundry.model.architectures.tabfoundry_sandwich.blocks import (
+    _NativePackedCrossAttention,
+    _NativePackedSelfAttention,
+)
 from tab_foundry.types import TaskBatch
 
 
@@ -92,6 +96,9 @@ def _grid_model(
     grid_ffn_mode: str = "gelu",
     grid_recurrence_steps: int | None = None,
     grid_recurrence_unique_layers: int | None = None,
+    sandwich_packed_attention: bool = False,
+    classification_logit_softcap: float | None = None,
+    attention_qk_norm: bool = False,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -101,6 +108,7 @@ def _grid_model(
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_packed_attention=sandwich_packed_attention,
         sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
         sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
         sandwich_pre_column_inducing_tokens=8,
@@ -109,6 +117,8 @@ def _grid_model(
         grid_ffn_mode=grid_ffn_mode,
         grid_recurrence_steps=grid_recurrence_steps,
         grid_recurrence_unique_layers=grid_recurrence_unique_layers,
+        classification_logit_softcap=classification_logit_softcap,
+        attention_qk_norm=attention_qk_norm,
     )
 
 
@@ -320,6 +330,56 @@ def test_grid_sandwich_forward_and_forward_batched_shapes_match() -> None:
     assert tuple(batched_logits.shape) == (1, 2, 4)
     assert torch.allclose(output.logits, batched_logits.squeeze(0), atol=1e-5, rtol=1e-5)
     assert len(model.grid_layers) == 2
+
+
+def test_grid_sandwich_classification_logit_softcap_bounds_logits() -> None:
+    model = _grid_model(classification_logit_softcap=0.25).eval()
+    batch = _task_batch()
+
+    with torch.no_grad():
+        output = model(batch)
+
+    assert output.logits is not None
+    assert tuple(output.logits.shape) == (2, 4)
+    assert torch.max(torch.abs(output.logits)).item() <= 0.25
+
+
+def test_grid_sandwich_qk_norm_packed_forward_remains_finite() -> None:
+    model = _grid_model(
+        sandwich_packed_attention=True,
+        attention_qk_norm=True,
+    ).eval()
+    batch = _task_batch()
+
+    with torch.no_grad():
+        output = model(batch)
+
+    assert output.logits is not None
+    assert torch.isfinite(output.logits).all()
+    assert any(name.endswith("qk_norm_scale") for name, _parameter in model.named_parameters())
+
+
+def test_native_packed_self_attention_qk_norm_scale_is_per_head() -> None:
+    block = _NativePackedSelfAttention(embedding_size=16, n_heads=4, qk_norm=True)
+    hidden = torch.randn(2, 5, 16)
+
+    output = block(hidden)
+
+    assert tuple(output.shape) == (2, 5, 16)
+    assert block.qk_norm_scale is not None
+    torch.testing.assert_close(block.qk_norm_scale.detach(), torch.full((4,), 2.0))
+
+
+def test_native_packed_cross_attention_qk_norm_scale_is_per_head() -> None:
+    block = _NativePackedCrossAttention(embedding_size=16, n_heads=4, qk_norm=True)
+    query = torch.randn(2, 3, 16)
+    key_value = torch.randn(2, 5, 16)
+
+    output = block(query, key_value=key_value)
+
+    assert tuple(output.shape) == (2, 3, 16)
+    assert block.qk_norm_scale is not None
+    torch.testing.assert_close(block.qk_norm_scale.detach(), torch.full((4,), 2.0))
 
 
 @pytest.mark.parametrize(

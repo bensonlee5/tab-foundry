@@ -121,6 +121,8 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         grid_ffn_mode="swiglu",
         grid_recurrence_steps=4,
         grid_recurrence_unique_layers=2,
+        classification_logit_softcap=30.0,
+        attention_qk_norm=True,
     )
 
     assert isinstance(model, GridSandwichClassifier)
@@ -132,6 +134,8 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
     assert model.pre_column_inducing_tokens == 8
     assert model.grid_attention_mode == "differential"
     assert model.grid_ffn_mode == "swiglu"
+    assert model.classification_logit_softcap == pytest.approx(30.0)
+    assert model.attention_qk_norm is True
 
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
@@ -201,6 +205,8 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.grid_ffn_mode == "gelu"
     assert spec.grid_recurrence_steps is None
     assert spec.grid_recurrence_unique_layers is None
+    assert spec.classification_logit_softcap is None
+    assert spec.attention_qk_norm is False
 
 
 def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
@@ -215,6 +221,8 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
             "grid_ffn_mode": "swiglu",
             "grid_recurrence_steps": 8,
             "grid_recurrence_unique_layers": 2,
+            "classification_logit_softcap": 30.0,
+            "attention_qk_norm": True,
         },
     )
 
@@ -225,6 +233,8 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.grid_ffn_mode == "swiglu"
     assert spec.grid_recurrence_steps == 8
     assert spec.grid_recurrence_unique_layers == 2
+    assert spec.classification_logit_softcap == pytest.approx(30.0)
+    assert spec.attention_qk_norm is True
     assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
     assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
@@ -232,6 +242,8 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.to_dict()["grid_ffn_mode"] == "swiglu"
     assert spec.to_dict()["grid_recurrence_steps"] == 8
     assert spec.to_dict()["grid_recurrence_unique_layers"] == 2
+    assert spec.to_dict()["classification_logit_softcap"] == pytest.approx(30.0)
+    assert spec.to_dict()["attention_qk_norm"] is True
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -370,6 +382,8 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         ("grid_ffn_mode", "geglu"),
         ("grid_recurrence_steps", 0),
         ("grid_recurrence_unique_layers", 0),
+        ("classification_logit_softcap", 0.0),
+        ("attention_qk_norm", "maybe"),
     ),
 )
 def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(

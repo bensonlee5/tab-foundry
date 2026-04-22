@@ -9,7 +9,9 @@ from typing import cast
 
 from tab_foundry.model.components.attention import (
     _reshape_heads,
+    apply_qk_norm,
     multihead_attention_sdpa,
+    qk_norm_scale_init,
     scaled_dot_product_attention,
 )
 from tab_foundry.model.components.normalization import build_norm
@@ -36,7 +38,7 @@ def _init_truncated_normal_(
 class _NativePackedSelfAttention(nn.Module):
     """Packed self-attention with explicit QKV projections."""
 
-    def __init__(self, *, embedding_size: int, n_heads: int) -> None:
+    def __init__(self, *, embedding_size: int, n_heads: int, qk_norm: bool = False) -> None:
         super().__init__()
         self.embedding_size = int(embedding_size)
         self.embed_dim = int(embedding_size)
@@ -50,6 +52,16 @@ class _NativePackedSelfAttention(nn.Module):
         )
         self.in_proj_bias = nn.Parameter(torch.empty(self.embedding_size * 3))
         self.out_proj = nn.Linear(self.embedding_size, self.embedding_size)
+        self.qk_norm_scale = (
+            nn.Parameter(
+                torch.full(
+                    (self.n_heads,),
+                    qk_norm_scale_init(embed_dim=self.embedding_size, num_heads=self.n_heads),
+                )
+            )
+            if bool(qk_norm)
+            else None
+        )
         reference = nn.MultiheadAttention(self.embedding_size, self.n_heads, batch_first=True)
         self.copy_from_multihead_attention(reference)
 
@@ -77,6 +89,7 @@ class _NativePackedSelfAttention(nn.Module):
         q_heads = _reshape_heads(q_proj, num_heads=self.n_heads)
         k_heads = _reshape_heads(k_proj, num_heads=self.n_heads)
         v_heads = _reshape_heads(v_proj, num_heads=self.n_heads)
+        q_heads, k_heads = apply_qk_norm(q_heads, k_heads, self.qk_norm_scale)
         attn_out = scaled_dot_product_attention(
             q_heads,
             k_heads,
@@ -97,7 +110,7 @@ class _NativePackedSelfAttention(nn.Module):
 class _NativePackedCrossAttention(nn.Module):
     """Packed cross-attention with explicit Q and fused KV projections."""
 
-    def __init__(self, *, embedding_size: int, n_heads: int) -> None:
+    def __init__(self, *, embedding_size: int, n_heads: int, qk_norm: bool = False) -> None:
         super().__init__()
         self.embedding_size = int(embedding_size)
         self.embed_dim = int(embedding_size)
@@ -111,6 +124,16 @@ class _NativePackedCrossAttention(nn.Module):
         )
         self.in_proj_bias = nn.Parameter(torch.empty(self.embedding_size * 3))
         self.out_proj = nn.Linear(self.embedding_size, self.embedding_size)
+        self.qk_norm_scale = (
+            nn.Parameter(
+                torch.full(
+                    (self.n_heads,),
+                    qk_norm_scale_init(embed_dim=self.embedding_size, num_heads=self.n_heads),
+                )
+            )
+            if bool(qk_norm)
+            else None
+        )
         reference = nn.MultiheadAttention(self.embedding_size, self.n_heads, batch_first=True)
         self.copy_from_multihead_attention(reference)
 
@@ -135,6 +158,7 @@ class _NativePackedCrossAttention(nn.Module):
         q_heads = _reshape_heads(q_proj, num_heads=self.n_heads)
         k_heads = _reshape_heads(k_proj, num_heads=self.n_heads)
         v_heads = _reshape_heads(v_proj, num_heads=self.n_heads)
+        q_heads, k_heads = apply_qk_norm(q_heads, k_heads, self.qk_norm_scale)
         attn_out = scaled_dot_product_attention(
             q_heads,
             k_heads,
@@ -163,6 +187,7 @@ class _CrossAttentionBlock(nn.Module):
         activation: str,
         block_norm: str,
         packed_attention: bool = False,
+        qk_norm: bool = False,
     ) -> None:
         super().__init__()
         self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -170,13 +195,27 @@ class _CrossAttentionBlock(nn.Module):
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.packed_attention = bool(packed_attention)
         self.attn = (
-            _NativePackedCrossAttention(embedding_size=embedding_size, n_heads=n_heads)
+            _NativePackedCrossAttention(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                qk_norm=qk_norm,
+            )
             if self.packed_attention
             else nn.MultiheadAttention(
                 embedding_size,
                 n_heads,
                 batch_first=True,
             )
+        )
+        self.qk_norm_scale = (
+            nn.Parameter(
+                torch.full(
+                    (int(n_heads),),
+                    qk_norm_scale_init(embed_dim=embedding_size, num_heads=n_heads),
+                )
+            )
+            if bool(qk_norm) and not self.packed_attention
+            else None
         )
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
@@ -198,6 +237,7 @@ class _CrossAttentionBlock(nn.Module):
                 q_norm,
                 kv_norm,
                 kv_norm,
+                qk_norm_scale=self.qk_norm_scale,
             )
         return query + self.ff(self.ff_norm(query))
 
@@ -214,19 +254,34 @@ class _SelfAttentionBlock(nn.Module):
         activation: str,
         block_norm: str,
         packed_attention: bool = False,
+        qk_norm: bool = False,
     ) -> None:
         super().__init__()
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.ff_norm = _build_sandwich_block_norm(block_norm, embedding_size)
         self.packed_attention = bool(packed_attention)
         self.attn = (
-            _NativePackedSelfAttention(embedding_size=embedding_size, n_heads=n_heads)
+            _NativePackedSelfAttention(
+                embedding_size=embedding_size,
+                n_heads=n_heads,
+                qk_norm=qk_norm,
+            )
             if self.packed_attention
             else nn.MultiheadAttention(
                 embedding_size,
                 n_heads,
                 batch_first=True,
             )
+        )
+        self.qk_norm_scale = (
+            nn.Parameter(
+                torch.full(
+                    (int(n_heads),),
+                    qk_norm_scale_init(embed_dim=embedding_size, num_heads=n_heads),
+                )
+            )
+            if bool(qk_norm) and not self.packed_attention
+            else None
         )
         ff_hidden = embedding_size * ff_expansion
         self.ff = nn.Sequential(
@@ -253,6 +308,7 @@ class _SelfAttentionBlock(nn.Module):
                 hidden_norm,
                 hidden_norm,
                 attn_bias=attn_bias,
+                qk_norm_scale=self.qk_norm_scale,
             )
         return hidden + self.ff(self.ff_norm(hidden))
 
@@ -270,6 +326,7 @@ class _PerceiverStage(nn.Module):
         block_norm: str,
         self_attention_per_cross: int,
         packed_attention: bool = False,
+        qk_norm: bool = False,
     ) -> None:
         super().__init__()
         self.input_read = _CrossAttentionBlock(
@@ -279,6 +336,7 @@ class _PerceiverStage(nn.Module):
             activation=activation,
             block_norm=block_norm,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.self_blocks = nn.ModuleList(
             [
@@ -289,6 +347,7 @@ class _PerceiverStage(nn.Module):
                     activation=activation,
                     block_norm=block_norm,
                     packed_attention=packed_attention,
+                    qk_norm=qk_norm,
                 )
                 for _ in range(self_attention_per_cross)
             ]
@@ -308,6 +367,7 @@ class _InducedSetAttentionBlock(nn.Module):
         block_norm: str,
         num_inducing: int,
         packed_attention: bool = False,
+        qk_norm: bool = False,
     ) -> None:
         super().__init__()
         self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
@@ -319,6 +379,7 @@ class _InducedSetAttentionBlock(nn.Module):
             activation=activation,
             block_norm=block_norm,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.inducing_self = _SelfAttentionBlock(
             embedding_size=embedding_size,
@@ -327,6 +388,7 @@ class _InducedSetAttentionBlock(nn.Module):
             activation=activation,
             block_norm=block_norm,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
         self.rows_from_inducing = _CrossAttentionBlock(
             embedding_size=embedding_size,
@@ -335,6 +397,7 @@ class _InducedSetAttentionBlock(nn.Module):
             activation=activation,
             block_norm=block_norm,
             packed_attention=packed_attention,
+            qk_norm=qk_norm,
         )
 
 

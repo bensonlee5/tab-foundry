@@ -378,6 +378,10 @@ def build_training_surface_record(
             "grid_recurrence_unique_layers": None
             if model_spec.grid_recurrence_unique_layers is None
             else int(model_spec.grid_recurrence_unique_layers),
+            "classification_logit_softcap": None
+            if model_spec.classification_logit_softcap is None
+            else float(model_spec.classification_logit_softcap),
+            "attention_qk_norm": bool(model_spec.attention_qk_norm),
             "grid_core_iterations": int(
                 model_spec.grid_recurrence_steps or model_spec.sandwich_layers
             ),
@@ -443,6 +447,9 @@ def build_training_surface_record(
             training_payload = {
                 "surface_label": training_label,
                 "loss_surface": str(training_cfg.get("loss_surface", "classification")),
+                "classification_z_loss_coeff": float(
+                    training_cfg.get("classification_z_loss_coeff", 0.0) or 0.0
+                ),
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
                 "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
                 "optimizer_name": None

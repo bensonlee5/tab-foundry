@@ -99,8 +99,12 @@ def _training_surface_payload(
             )
     payload = {
         "surface_label": str(training_cfg.get("surface_label", "training_default")),
+        "loss_surface": str(training_cfg.get("loss_surface", "classification")),
         "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
         "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
+        "classification_z_loss_coeff": float(
+            training_cfg.get("classification_z_loss_coeff", 0.0) or 0.0
+        ),
         "overrides": dict(cast(dict[str, Any], training_cfg.get("overrides", {}))),
         "optimizer_name": None if optimizer_cfg.get("name") is None else str(optimizer_cfg["name"]),
         "optimizer_min_lr": None

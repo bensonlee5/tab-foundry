@@ -1,0 +1,143 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_027_grid_ffn_wd_config_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_027_grid_ffn_gelu4_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_gelu4_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_gelu4_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: gelu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 SwiGLU
+    8:3 row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor
+    FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as the first TF-RD-027 FFN multiplier screen row.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_027_grid_ffn_swiglu8_3_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_swiglu8_3_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: swiglu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 GELU 4:1
+    row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor
+    FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as the second TF-RD-027 FFN multiplier screen row.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_027_grid_weight_decay_0_1_v1
+  status: blocked
+  rationale: Contextualize `delta_tf_rd_027_grid_weight_decay_0_1_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_weight_decay_0_1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model: {}
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      optimizer:
+        weight_decay: 0.1
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Update this row's anchor/model surface to the FFN winner before execution.
+  - Carry the better of weight decay 0.01 and 0.1 into the implementation-backed stability
+    sweep.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Unblock only after the FFN winner has been selected and copied into
+    this row's effective model surface.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: TF-RD-027 adds expedited 2500-step grid FFN and stability
+  sweep lanes from the TF-RD-026 row `10` anchor. `grid_sandwich` now exposes
+  disabled-by-default `model.classification_logit_softcap` and
+  `model.attention_qk_norm`, training now exposes
+  `training.classification_z_loss_coeff`, and export/config surface records
+  preserve the new stability fields.
 - User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
   architecture gates for opt-in performance sweeps: `grid_residual_mode`,
   `grid_attention_mode`, `grid_ffn_mode`, `grid_recurrence_steps`, and

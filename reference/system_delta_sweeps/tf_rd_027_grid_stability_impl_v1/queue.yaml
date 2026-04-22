@@ -1,0 +1,140 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_027_grid_stability_impl_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_027_grid_classification_z_loss_1e4_v1
+  status: blocked
+  rationale: Contextualize `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_classification_z_loss_1e4_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model: {}
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    classification_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Update this row's anchor/model/training surface to the config-only winner before
+    execution.
+  - Compare directly against the config-only winner by matched-budget final log loss
+    and instability telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Unblock only after the config-only winner is selected.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_027_grid_logit_softcap_30_v1
+  status: blocked
+  rationale: Contextualize `delta_tf_rd_027_grid_logit_softcap_30_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_logit_softcap_30_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    classification_logit_softcap: 30.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Update this row's anchor/model/training surface to the config-only winner before
+    execution.
+  - Verify the exported model spec carries the softcap field before interpreting benchmark
+    metrics.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Unblock only after the config-only winner is selected.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_027_grid_qk_norm_v1
+  status: blocked
+  rationale: Contextualize `delta_tf_rd_027_grid_qk_norm_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_qk_norm_v1` against
+    locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    attention_qk_norm: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Update this row's anchor/model/training surface to the config-only winner before
+    execution.
+  - Verify packed self-attention and cross-attention paths before interpreting benchmark
+    metrics.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Unblock only after the config-only winner is selected.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

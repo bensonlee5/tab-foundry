@@ -398,6 +398,8 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     model_payload["grid_ffn_mode"] = "swiglu"
     model_payload["grid_recurrence_steps"] = 8
     model_payload["grid_recurrence_unique_layers"] = 2
+    model_payload["classification_logit_softcap"] = 30.0
+    model_payload["attention_qk_norm"] = True
     model_payload.pop("sandwich_latents", None)
     model_payload.pop("sandwich_summary_tokens_per_axis", None)
     model_payload.pop("sandwich_self_attention_per_cross", None)
@@ -436,10 +438,14 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     assert manifest.model.grid_ffn_mode == "swiglu"
     assert manifest.model.grid_recurrence_steps == 8
     assert manifest.model.grid_recurrence_unique_layers == 2
+    assert manifest.model.classification_logit_softcap == pytest.approx(30.0)
+    assert manifest.model.attention_qk_norm is True
     assert rebuilt.sandwich_pre_row_attention_layers == 3
     assert rebuilt.sandwich_pre_column_attention_layers == 2
     assert rebuilt.grid_recurrence_steps == 8
     assert rebuilt.grid_recurrence_unique_layers == 2
+    assert rebuilt.classification_logit_softcap == pytest.approx(30.0)
+    assert rebuilt.attention_qk_norm is True
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "grid_sandwich"
     assert roundtrip.to_dict() == manifest.model.to_dict()
