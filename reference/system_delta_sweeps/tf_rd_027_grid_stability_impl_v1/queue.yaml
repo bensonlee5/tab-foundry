@@ -21,6 +21,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -67,6 +69,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -112,6 +116,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump

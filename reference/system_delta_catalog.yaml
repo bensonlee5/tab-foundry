@@ -11311,6 +11311,8 @@ deltas:
         overrides:
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump
@@ -11363,6 +11365,8 @@ deltas:
         overrides:
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump
@@ -11409,6 +11413,8 @@ deltas:
             weight_decay: 0.1
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump
@@ -11456,6 +11462,8 @@ deltas:
         overrides:
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump
@@ -11502,6 +11510,8 @@ deltas:
         overrides:
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump
@@ -11548,6 +11558,8 @@ deltas:
         overrides:
           runtime:
             max_steps: 2500
+            activation_checkpointing: false
+            checkpoint_every: null
           schedule:
             stages:
             - name: prior_dump

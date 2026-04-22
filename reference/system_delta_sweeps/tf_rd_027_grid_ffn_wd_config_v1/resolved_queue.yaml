@@ -125,6 +125,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -410,10 +412,10 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 389615b6acc8123ce4d4041de7abcc0a2cc07759982f891ec850a4f461f00c74
+  resolved_surface_fingerprint: 6b4fbd3928344005770bd40ffdb1e2783b6ccfce7536c477cbfaa8af6d8b81c2
 - order: 2
   delta_id: delta_tf_rd_027_grid_ffn_swiglu8_3_v1
   status: ready
@@ -435,6 +437,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -721,10 +725,10 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 492ae29d945a1cca13d25e92219f80ee8c3ed79e41bfb6a985fa0e728d394437
+  resolved_surface_fingerprint: d4073f9469f1b8dae18cb00f051bc7296b28e465e913cf5693339689a37facc8
 - order: 3
   delta_id: delta_tf_rd_027_grid_weight_decay_0_1_v1
   status: blocked
@@ -746,6 +750,8 @@ rows:
         weight_decay: 0.1
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -1028,9 +1034,9 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 79dccacf2a0be6c4cc8ca75a63298ee84c76f7a9694ec363331fea2a13d63294
+  resolved_surface_fingerprint: 99dfebb1b79fd5e1286301314405c32f256baefadd81b7c4e69a45ec4635ad04
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml
-inputs_fingerprint: f4bac8cf4199aa2bd39cacff168a4699d59d822459eada173474e7627bdbd00b
+inputs_fingerprint: 0613e113a159be4247e4c62a3d31fa7db8ca52551ae51efca402267f6496764e

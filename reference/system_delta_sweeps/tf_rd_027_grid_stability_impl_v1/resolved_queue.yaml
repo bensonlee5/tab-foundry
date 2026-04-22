@@ -125,6 +125,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -407,10 +409,10 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 81d778a01c425884e919e788741b1f6df6d34c3385363af4df6707a2d441d104
+  resolved_surface_fingerprint: 9fad736e62c02d257d00d599119b871b06d82ebfa4b0de310e0aa2dcc2f56812
 - order: 2
   delta_id: delta_tf_rd_027_grid_logit_softcap_30_v1
   status: blocked
@@ -431,6 +433,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -713,10 +717,10 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 02c39a7b0dc2a035126164c278e5785b9003dfa55f4e198eff87a0b8d2cd61df
+  resolved_surface_fingerprint: 691c4bba7b97bcba6a229f759c501aebaa1231f3af5852cd201eddcf5c8b9d6c
 - order: 3
   delta_id: delta_tf_rd_027_grid_qk_norm_v1
   status: blocked
@@ -736,6 +740,8 @@ rows:
     overrides:
       runtime:
         max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
       schedule:
         stages:
         - name: prior_dump
@@ -1018,9 +1024,9 @@ rows:
       profile_step_timing: false
       activation_checkpointing: false
       eval_every: 25
-      checkpoint_every: 25
+      checkpoint_every: null
       val_batches: 0
       max_steps: 2500
-  resolved_surface_fingerprint: 8d72ade66c0db13fd6b1e14ddd6346a510635f05ce89ba89f71c835971542afe
+  resolved_surface_fingerprint: 74d7961b47e03037e66dd58e8d4e8eb0f1dc16494562834b7e133f92c9e192f8
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_027_grid_stability_impl_v1/resolved_queue.yaml
-inputs_fingerprint: 8c7d68e72d7c6b5d14f7adc94731ac4f17ce672c252fc55bf79985fad576982c
+inputs_fingerprint: d0c8183f83032a8f0517d4c0e3cab22438426f3aac9702f1432cb7359940d075
