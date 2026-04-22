@@ -107,7 +107,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_027_grid_ffn_gelu4_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_027_grid_ffn_gelu4_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
   hypothesis: ''
@@ -141,17 +141,38 @@ rows:
     FFN.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute as the first TF-RD-027 FFN multiplier screen row.
-  notes: []
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do
+    not carry GELU 4:1 as the FFN winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 3.4681114985864707
+    best_roc_auc: 0.8109918094894001
+    best_log_loss: 0.4254928909191396
+    best_brier_score: 0.2593929678080482
+    final_roc_auc: 0.8109918094894001
+    final_log_loss: 0.4254928909191396
+    final_brier_score: 0.2593929678080482
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.007316160972462404
+    delta_final_brier_score: 0.004251666597777648
+    delta_final_roc_auc: -0.002262975589991334
+    row_pool_final_window_mean_grad_norm: 0.05697507245058772
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_ffn_stability
@@ -418,7 +439,7 @@ rows:
   resolved_surface_fingerprint: 6b4fbd3928344005770bd40ffdb1e2783b6ccfce7536c477cbfaa8af6d8b81c2
 - order: 2
   delta_id: delta_tf_rd_027_grid_ffn_swiglu8_3_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` against anchor
     `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
@@ -453,17 +474,38 @@ rows:
     FFN.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute as the second TF-RD-027 FFN multiplier screen row.
-  notes: []
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do
+    not carry SwiGLU 8:3 as the FFN winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.9042503466619065
+    best_roc_auc: 0.8109634480933599
+    best_log_loss: 0.4261833356259272
+    best_brier_score: 0.2593253686115299
+    final_roc_auc: 0.8109634480933599
+    final_log_loss: 0.4261833356259272
+    final_brier_score: 0.2593253686115299
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.00800660567924999
+    delta_final_brier_score: 0.004184067401259317
+    delta_final_roc_auc: -0.002291336986031567
+    row_pool_final_window_mean_grad_norm: 0.05361365551164578
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_ffn_stability
@@ -1039,4 +1081,4 @@ rows:
       max_steps: 2500
   resolved_surface_fingerprint: 99dfebb1b79fd5e1286301314405c32f256baefadd81b7c4e69a45ec4635ad04
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml
-inputs_fingerprint: 0613e113a159be4247e4c62a3d31fa7db8ca52551ae51efca402267f6496764e
+inputs_fingerprint: 7546e42463d5af13e717ea26eb7078d56b8698531a490612737b2d9ef450edee
