@@ -104,10 +104,13 @@ def _operator_payload(event: Any) -> dict[str, Any]:
 
 
 def _profiled_step_count(operators: Iterable[dict[str, Any]]) -> int | None:
-    profiled_steps = sum(
-        int(operator["count"])
-        for operator in operators
-        if str(operator["name"]).startswith("ProfilerStep")
+    profiled_steps = max(
+        (
+            int(operator["count"])
+            for operator in operators
+            if str(operator["name"]).startswith("ProfilerStep")
+        ),
+        default=0,
     )
     return profiled_steps if profiled_steps > 0 else None
 

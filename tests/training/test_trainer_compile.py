@@ -88,6 +88,17 @@ class _FakeProfiler:
                     cuda_memory_usage=0,
                     flops=0.0,
                 ),
+                SimpleNamespace(
+                    key="ProfilerStep#duplicate",
+                    count=2,
+                    self_cpu_time_total=0.0,
+                    cpu_time_total=0.0,
+                    self_cuda_time_total=0.0,
+                    cuda_time_total=0.0,
+                    cpu_memory_usage=0,
+                    cuda_memory_usage=0,
+                    flops=0.0,
+                ),
             ]
         )
 
