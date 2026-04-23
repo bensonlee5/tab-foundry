@@ -72,6 +72,20 @@ _GPU_UTILIZATION_CAPABILITIES: dict[str, dict[str, Any]] = {
             },
         },
     },
+    "nvidia-rtx-a6000": {
+        "theoretical_hbm_bandwidth_gbps": 768.0,
+        "raw_name_required_all": ("rtx", "a6000"),
+        "precisions": {
+            "bf16": {
+                "theoretical_peak_tflops_per_second": 154.85,
+                "peak_compute_basis": "tensorcore_bf16_dense",
+            },
+            "fp16": {
+                "theoretical_peak_tflops_per_second": 154.85,
+                "peak_compute_basis": "tensorcore_fp16_dense",
+            },
+        },
+    },
 }
 
 

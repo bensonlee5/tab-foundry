@@ -653,3 +653,41 @@ def test_build_utilization_summary_keeps_ambiguous_gpu_peaks_null() -> None:
         "roofline_knee_flops_per_byte": None,
         "peak_compute_basis": None,
     }
+
+
+def test_build_utilization_summary_reports_rtx_a6000_roofline_fields() -> None:
+    utilization = build_utilization_summary(
+        runtime_summary={
+            "peak_vram_allocated_fraction": 0.65,
+            "peak_vram_reserved_fraction": 0.71,
+            "throughput_tokens_per_second": 130000.0,
+            "non_train_overhead_fraction": 0.05,
+        },
+        hardware_summary={
+            "device_type": "cuda",
+            "raw_device_name": "NVIDIA RTX A6000",
+            "gpu_class": "nvidia-rtx-a6000",
+            "total_device_vram_bytes": 48 * 1024**3,
+            "hardware_profile_id": "nvidia-rtx-a6000_48gb",
+        },
+        training_surface_record={
+            "runtime": {
+                "mixed_precision": "bf16",
+            }
+        },
+        compute_accounting={
+            "train_flops_per_token": 2.5e7,
+        },
+    )
+
+    assert utilization == {
+        "peak_vram_allocated_fraction": 0.65,
+        "peak_vram_reserved_fraction": 0.71,
+        "non_train_overhead_fraction": 0.05,
+        "achieved_train_tflops_per_second": pytest.approx(3.25),
+        "theoretical_peak_tflops_per_second": 154.85,
+        "compute_utilization_fraction": pytest.approx(3.25 / 154.85),
+        "theoretical_hbm_bandwidth_gbps": 768.0,
+        "roofline_knee_flops_per_byte": pytest.approx(201.62760416666666),
+        "peak_compute_basis": "tensorcore_bf16_dense",
+    }

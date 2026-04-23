@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summaries for VRAM fractions, non-train overhead fraction, optional step-time
   bucket rollups, and benchmark-registry roofline-adjacent fields derived from
   existing compute accounting plus variant-conservative supported GPU
-  capability lookups. Run inspection, sweep queue updates, sweep summaries, and
-  result cards now expose the new utilization payload without adding active
-  hardware polling to training.
+  capability lookups, including RTX A6000. Run inspection, sweep queue updates,
+  sweep summaries, and result cards now expose the new utilization payload
+  without adding active hardware polling to training.
 - User-facing note: `grid_sandwich` training keeps the TF-RD-010 medium corpus
   pinned while dataset generation moves to a separate TF-RD-010 balanced
   paired row/feature latent-target dagzoo recipe built from H100 large-shape

@@ -69,6 +69,22 @@ def test_resolve_gpu_utilization_capability_reports_supported_bf16_gpu() -> None
     }
 
 
+def test_resolve_gpu_utilization_capability_reports_rtx_a6000_bf16_gpu() -> None:
+    capability = hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="nvidia-rtx-a6000",
+        raw_device_name="NVIDIA RTX A6000",
+        hardware_profile_id="nvidia-rtx-a6000_44gb",
+        mixed_precision="bf16",
+    )
+
+    assert capability == {
+        "theoretical_peak_tflops_per_second": 154.85,
+        "theoretical_hbm_bandwidth_gbps": 768.0,
+        "roofline_knee_flops_per_byte": pytest.approx(201.62760416666666),
+        "peak_compute_basis": "tensorcore_bf16_dense",
+    }
+
+
 def test_resolve_gpu_utilization_capability_rejects_unknown_or_unsupported_pairs() -> None:
     assert hardware_profiles.resolve_gpu_utilization_capability(
         gpu_class="cpu",
