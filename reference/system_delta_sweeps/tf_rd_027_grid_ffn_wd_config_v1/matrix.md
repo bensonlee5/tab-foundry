@@ -1,0 +1,197 @@
+# System Delta Matrix
+
+This file is rendered from `reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml` (derived from `reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/queue.yaml` plus `reference/system_delta_catalog.yaml`) and the canonical benchmark registry.
+
+## Sweep
+
+- Sweep id: `tf_rd_027_grid_ffn_wd_config_v1`
+- Sweep status: `draft`
+- Parent sweep id: `tf_rd_026_grid_sandwich_broad_ml_v1`
+- Complexity level: `classification_md`
+- Resolved queue path: `reference/system_delta_sweeps/tf_rd_027_grid_ffn_wd_config_v1/resolved_queue.yaml`
+- Resolved queue inputs fingerprint: `76eaae4725c9aba47700cf0306da56438d124f6eea8b9ea9cb8dfbadad9d9b10`
+
+## Locked Surface
+
+- Anchor run id: `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+- Benchmark manifest: local benchmark-manifest id `openml_classification_medium_v1`
+- Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
+- External benchmarks: `none`
+- Training experiment: `cls_workstation_grid_sandwich`
+- Training config profile: `cls_workstation_grid_sandwich`
+- Surface role: `classification_grid_broad_ml_followup`
+- Comparison policy: `anchor_only`
+- Anchor metrics: final log loss `0.4182`, final Brier score `0.2551`, best ROC AUC `0.8135`, final ROC AUC `0.8133`, final training time `4073.3s`
+
+## Anchor Comparison
+
+Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper-Connections, Differential Transformer, SwiGLU gated FFNs, and recurrent refinement`.
+
+| Dimension | Upstream Broad-ML grid sandwich architecture follow-ons | Locked anchor | Interpretation |
+| --- | --- | --- | --- |
+| feature encoder | Scalar feature linear encoder with internal train/test z-score+clip handling. | Staged feature encoder `unknown` from the benchmark registry surface. | Feature encoder changes alter the per-cell representation and should be interpreted explicitly. |
+| target conditioning | Mean-padded linear target encoder on the direct binary path. | Target conditioner `unknown` from the staged surface. | Target-conditioning changes should be interpreted separately from encoder or context changes. |
+| cell transformer block | Post-norm nanoTabPFN block with feature attention then row attention. | Cell transformer block `unknown` from the staged surface. | Cell-block changes affect the core table computation and should be isolated carefully. |
+| tokenizer | One scalar token per feature. | Tokenizer `unknown` from the staged surface. | Tokenizer changes alter the token sequence presented to the transformer stack. |
+| column encoder | None on the upstream direct path. | Column encoder `unknown` from the staged surface. | Column-encoder changes should be read separately from row pooling or context changes. |
+| row readout | Target-column readout from the final cell tensor. | Row pool `unknown` from the staged surface. | Row-pool changes alter the readout contract and require their own interpretation. |
+| context encoder | None on the upstream direct path. | Context encoder `unknown` from the staged surface. | Context-encoder changes alter how training rows condition test rows. |
+| prediction head | Direct binary logits head. | Prediction head `unknown` from the staged surface. | Head changes alter the task contract and output semantics. |
+| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet` sourced from `openml_classification_medium` (242 tasks (missing values permitted)) with data surface label `tf_rd_010_dagzoo_medium_control`. | Manifest and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose. |
+| preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
+| training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_cosine_warmup`. | Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions. |
+
+## Queue Summary
+
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `delta_tf_rd_027_grid_ffn_gelu4_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with GELU FFNs at a 4:1 feedforward multiplier for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry GELU 4:1 as the FFN winner. |
+| 2 | `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with SwiGLU at the 8:3 parameter-matched feedforward multiplier for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry SwiGLU 8:3 as the FFN winner. |
+| 3 | `delta_tf_rd_027_grid_weight_decay_0_1_v1` | grid_sandwich_ffn_stability | no | completed | none | On the TF-RD-027 FFN winner only, test Muon optimizer weight decay 0.1 for a 2500-step expedited follow-up. | Execute as the TF-RD-027 weight-decay follow-up on the current anchor FFN surface; compare 0.1 against the carried 0.01 anchor. |
+| 4 | `delta_tf_rd_027_grid_ffn_geglu8_3_v1` | grid_sandwich_ffn_stability | no | completed | none | Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step expedited screen. | Completed; loses to the locked TF-RD-026 row 10 anchor and both completed TF-RD-027 FFN rows, so do not carry GEGLU 8:3 as the FFN winner. |
+
+## Detailed Rows
+
+### 1. `delta_tf_rd_027_grid_ffn_gelu4_v1`
+
+- Dimension family: `model`
+- Status: `completed`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Test the TF-RD-026 row 10 recurrent grid anchor with GELU FFNs at a 4:1 feedforward multiplier for a 2500-step expedited screen.
+- Rationale: Contextualize `delta_tf_rd_027_grid_ffn_gelu4_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2` for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+- Hypothesis: none
+- Upstream delta: Config-only FFN multiplier screen from TF-RD-027.
+- Anchor delta: Delta description pending for `delta_tf_rd_027_grid_ffn_gelu4_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+- Expected effect: Establishes whether the current SwiGLU recurrent anchor is still better when GELU receives the requested 4:1 feedforward budget.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `6b4fbd3928344005770bd40ffdb1e2783b6ccfce7536c477cbfaa8af6d8b81c2`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0570`)
+- Model overrides: `{'grid_ffn_mode': 'gelu', 'sandwich_ff_expansion': 4}`
+- Parameter adequacy plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 SwiGLU 8:3 row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor FFN.
+- Adequacy knobs to dimension explicitly:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2 inherited from the anchor
+  - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging held fixed
+  - train for exactly 2500 prior-dump steps
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_ffn_wd_config_v1/delta_tf_rd_027_grid_ffn_gelu4_v1/result_card.md`
+- Registered run: `sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1` with final log loss `0.4255`, delta final log loss `+0.0073`, final Brier score `0.2594`, delta final brier score `+0.0043`, final ROC AUC `0.8110`, delta final roc auc `-0.0023`, best ROC AUC `0.8110`, final-minus-best `+0.0000`
+
+### 2. `delta_tf_rd_027_grid_ffn_swiglu8_3_v1`
+
+- Dimension family: `model`
+- Status: `completed`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Test the TF-RD-026 row 10 recurrent grid anchor with SwiGLU at the 8:3 parameter-matched feedforward multiplier for a 2500-step expedited screen.
+- Rationale: Contextualize `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2` for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+- Hypothesis: none
+- Upstream delta: Config-only FFN multiplier screen from TF-RD-027.
+- Anchor delta: Delta description pending for `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+- Expected effect: Tests whether the current SwiGLU anchor improves when the feedforward expansion uses sandwich_ff_expansion=4, which maps to the 8:3 SwiGLU hidden-size rule.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `d4073f9469f1b8dae18cb00f051bc7296b28e465e913cf5693339689a37facc8`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0536`)
+- Model overrides: `{'grid_ffn_mode': 'swiglu', 'sandwich_ff_expansion': 4}`
+- Parameter adequacy plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 GELU 4:1 row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor FFN.
+- Adequacy knobs to dimension explicitly:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2 inherited from the anchor
+  - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging held fixed
+  - train for exactly 2500 prior-dump steps
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_ffn_wd_config_v1/delta_tf_rd_027_grid_ffn_swiglu8_3_v1/result_card.md`
+- Registered run: `sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1` with final log loss `0.4262`, delta final log loss `+0.0080`, final Brier score `0.2593`, delta final brier score `+0.0042`, final ROC AUC `0.8110`, delta final roc auc `-0.0023`, best ROC AUC `0.8110`, final-minus-best `+0.0000`
+
+### 3. `delta_tf_rd_027_grid_weight_decay_0_1_v1`
+
+- Dimension family: `training`
+- Status: `completed`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: On the TF-RD-027 FFN winner only, test Muon optimizer weight decay 0.1 for a 2500-step expedited follow-up.
+- Rationale: Contextualize `delta_tf_rd_027_grid_weight_decay_0_1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2` for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+- Hypothesis: none
+- Upstream delta: Config-only optimizer regularization follow-up from TF-RD-027.
+- Anchor delta: Delta description pending for `delta_tf_rd_027_grid_weight_decay_0_1_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+- Expected effect: Checks whether stronger weight decay improves the chosen FFN surface without changing width, recurrence, corpus, or runtime policy.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `99dfebb1b79fd5e1286301314405c32f256baefadd81b7c4e69a45ec4635ad04`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0559`)
+- Training overrides: `{'optimizer': {'weight_decay': 0.1}, 'runtime': {'max_steps': 2500, 'activation_checkpointing': False, 'checkpoint_every': None}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
+- Parameter adequacy plan:
+  - Use the current TF-RD-026 row 10 anchor FFN surface because GELU 4:1, SwiGLU 8:3, and GEGLU 8:3 all lost to the locked anchor.
+  - Carry the better of weight decay 0.01 and 0.1 into the implementation-backed stability sweep.
+- Adequacy knobs to dimension explicitly:
+  - run only after the FFN winner is selected
+  - compare optimizer.weight_decay=0.1 against the carried 0.01 setting on the same FFN winner surface
+  - train for exactly 2500 prior-dump steps
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Expanded FFN variants are not carried because GELU 4:1, SwiGLU 8:3, and GEGLU 8:3 all lost to the locked TF-RD-026 row 10 anchor by matched-budget final log loss.
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_03_delta_tf_rd_027_grid_weight_decay_0_1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_ffn_wd_config_v1/delta_tf_rd_027_grid_weight_decay_0_1_v1/result_card.md`
+- Registered run: `sd_tf_rd_027_grid_ffn_wd_config_v1_03_delta_tf_rd_027_grid_weight_decay_0_1_v1_v1` with final log loss `0.4264`, delta final log loss `+0.0082`, final Brier score `0.2595`, delta final brier score `+0.0044`, final ROC AUC `0.8077`, delta final roc auc `-0.0055`, best ROC AUC `0.8077`, final-minus-best `+0.0000`
+
+### 4. `delta_tf_rd_027_grid_ffn_geglu8_3_v1`
+
+- Dimension family: `model`
+- Status: `completed`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Test the TF-RD-026 row 10 recurrent grid anchor with GEGLU at the same 8:3 parameter-matched feedforward multiplier as the SwiGLU row for a 2500-step expedited screen.
+- Rationale: Contextualize `delta_tf_rd_027_grid_ffn_geglu8_3_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2` for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+- Hypothesis: none
+- Upstream delta: Config-only FFN multiplier follow-up from TF-RD-027.
+- Anchor delta: Delta description pending for `delta_tf_rd_027_grid_ffn_geglu8_3_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+- Expected effect: Checks whether the GEGLU gate is a better activation choice than SwiGLU when the anchor shape, recurrence, and 8:3 gated hidden-size rule are held fixed.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `d0756bcfa6fa19864dc910fc3d69d8902dbc62b3ea878141c59bd984565e32fd`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0539`)
+- Model overrides: `{'grid_ffn_mode': 'geglu', 'sandwich_ff_expansion': 4}`
+- Parameter adequacy plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the completed TF-RD-027 GELU 4:1 and SwiGLU 8:3 rows by final_log_loss_at_matched_regime_budget.
+  - If GEGLU also loses to the existing anchor, keep the current anchor FFN.
+- Adequacy knobs to dimension explicitly:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - d_icl=144, grid_recurrence_steps=8, and grid_recurrence_unique_layers=2 inherited from the anchor
+  - Muon optimizer, medium v6 corpus, OpenML medium benchmark, and W&B logging held fixed
+  - train for exactly 2500 prior-dump steps
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_ffn_wd_config_v1/delta_tf_rd_027_grid_ffn_geglu8_3_v1/result_card.md`
+- Registered run: `sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1` with final log loss `0.4268`, delta final log loss `+0.0087`, final Brier score `0.2597`, delta final brier score `+0.0045`, final ROC AUC `0.8088`, delta final roc auc `-0.0045`, best ROC AUC `0.8088`, final-minus-best `+0.0000`

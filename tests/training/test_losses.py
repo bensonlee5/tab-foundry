@@ -3,11 +3,32 @@ from __future__ import annotations
 import torch
 
 from tab_foundry.training.losses import (
+    classification_loss,
+    classification_z_loss,
     cross_entropy_bits,
     gaussian_nll_bits,
     mixture_bits,
     quantile_pinball_loss,
 )
+
+
+def test_classification_z_loss_matches_logsumexp_square_mean() -> None:
+    logits = torch.tensor([[1.0, 2.0], [-1.0, 3.0]], dtype=torch.float32)
+
+    z_loss = classification_z_loss(logits)
+
+    expected = torch.logsumexp(logits, dim=-1).square().mean()
+    torch.testing.assert_close(z_loss, expected)
+
+
+def test_classification_loss_adds_weighted_z_loss() -> None:
+    logits = torch.tensor([[1.0, 2.0], [-1.0, 3.0]], dtype=torch.float32)
+    targets = torch.tensor([1, 0], dtype=torch.int64)
+
+    loss = classification_loss(logits, targets, z_loss_coeff=1.0e-4)
+
+    expected = classification_loss(logits, targets) + (1.0e-4 * classification_z_loss(logits))
+    torch.testing.assert_close(loss, expected)
 
 
 def test_pinball_loss_finite() -> None:

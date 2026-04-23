@@ -195,6 +195,10 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "grid_recurrence_unique_layers": None
                 if spec.grid_recurrence_unique_layers is None
                 else int(spec.grid_recurrence_unique_layers),
+                "classification_logit_softcap": None
+                if spec.classification_logit_softcap is None
+                else float(spec.classification_logit_softcap),
+                "attention_qk_norm": bool(spec.attention_qk_norm),
                 "grid_core_iterations": int(spec.grid_recurrence_steps or spec.sandwich_layers),
                 "grid_core_unique_layers": int(
                     spec.grid_recurrence_unique_layers

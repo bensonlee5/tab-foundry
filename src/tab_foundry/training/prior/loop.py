@@ -42,7 +42,8 @@ from tab_foundry.training.instability import (
     update_loss_ema,
     write_training_telemetry,
 )
-from tab_foundry.training.losses import classification_loss
+from tab_foundry.training.losses import classification_loss, classification_z_loss
+from tab_foundry.training.loss_surface import resolve_classification_z_loss_coeff
 from tab_foundry.training.prior.io import stack_prior_step
 from tab_foundry.training.prior.missingness import (
     _accumulate_missingness,
@@ -173,6 +174,7 @@ def _run_prior_step_with_microbatch_retry(
     feature_types_batch: list[list[str]] | None,
     train_test_split_index: int,
     loss_surface: str,
+    classification_z_loss_coeff: float,
     trace_activations: bool,
     flush_activation_trace: object,
 ) -> tuple[float, dict[str, float], dict[str, float] | None, int, int]:
@@ -235,10 +237,28 @@ def _run_prior_step_with_microbatch_retry(
                 if not isinstance(logits, torch.Tensor):
                     raise RuntimeError("prior-dump training requires tensor logits")
                 targets = y_all_batch[start:stop, train_test_split_index:].reshape(-1).to(torch.int64)
-                loss = classification_loss(
-                    logits.reshape(-1, int(logits.shape[-1])),
-                    targets,
-                )
+                flat_logits = logits.reshape(-1, int(logits.shape[-1]))
+                if classification_z_loss_coeff > 0.0:
+                    loss = classification_loss(
+                        flat_logits,
+                        targets,
+                        z_loss_coeff=classification_z_loss_coeff,
+                    )
+                    ce_loss = classification_loss(flat_logits, targets)
+                    z_loss = classification_z_loss(flat_logits)
+                    weighted_metrics["classification_ce_loss"] = weighted_metrics.get(
+                        "classification_ce_loss",
+                        0.0,
+                    ) + (float(ce_loss.detach().item()) * weight)
+                    weighted_metrics["classification_z_loss"] = weighted_metrics.get(
+                        "classification_z_loss",
+                        0.0,
+                    ) + (float(z_loss.detach().item()) * weight)
+                    weighted_metrics["classification_z_loss_coeff"] = float(
+                        classification_z_loss_coeff
+                    )
+                else:
+                    loss = classification_loss(flat_logits, targets)
                 weighted_metrics["acc"] = weighted_metrics.get("acc", 0.0) + (
                     float(
                         (
@@ -761,6 +781,9 @@ def run_prior_training(
         enable_activation_trace()
     model.to(device)
     model.train()
+    classification_z_loss_coeff = resolve_classification_z_loss_coeff(
+        getattr(cfg, "training", None)
+    )
 
     training_surface_path = output_dir / "training_surface_record.json"
     run = None
@@ -881,6 +904,7 @@ def run_prior_training(
                 feature_types_batch=feature_types_batch,
                 train_test_split_index=prior_step.train_test_split_index,
                 loss_surface=loss_surface,
+                classification_z_loss_coeff=classification_z_loss_coeff,
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
             )

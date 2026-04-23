@@ -166,6 +166,43 @@ def test_classification_metrics_flatten_batched_targets() -> None:
     assert metrics["acc"] == pytest.approx(1.0)
 
 
+def test_classification_metrics_add_z_loss_only_when_requested() -> None:
+    logits = torch.tensor(
+        [
+            [3.0, 1.0, -2.0],
+            [0.0, 2.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(4, 3),
+        y_train=torch.randint(0, 3, (4,)),
+        x_test=torch.randn(2, 3),
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata={},
+        num_classes=3,
+    )
+    output = ClassificationOutput(logits=logits, num_classes=3)
+
+    baseline_loss, baseline_metrics = _compute_loss_and_metrics(
+        output,
+        batch,
+        task="classification",
+    )
+    z_loss, z_metrics = _compute_loss_and_metrics(
+        output,
+        batch,
+        task="classification",
+        classification_z_loss_coeff=1.0e-4,
+    )
+
+    assert "classification_z_loss" not in baseline_metrics
+    assert z_loss.item() > baseline_loss.item()
+    assert z_metrics["classification_ce_loss"] == pytest.approx(baseline_loss.item())
+    assert z_metrics["classification_z_loss"] > 0.0
+    assert z_metrics["classification_z_loss_coeff"] == pytest.approx(1.0e-4)
+
+
 def test_manyclass_path_metrics_raise_for_underfull_path_counts() -> None:
     output = ClassificationOutput(
         logits=None,

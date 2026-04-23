@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import torch
 import torch.nn.functional as F
 from torch import Tensor
@@ -12,6 +14,28 @@ def _reshape_heads(x: Tensor, *, num_heads: int) -> Tensor:
     batch_size, seq_len, embed_dim = x.shape
     head_dim = embed_dim // num_heads
     return x.view(batch_size, seq_len, num_heads, head_dim).transpose(1, 2)
+
+
+def qk_norm_scale_init(*, embed_dim: int, num_heads: int) -> float:
+    if int(embed_dim) % int(num_heads) != 0:
+        raise ValueError(
+            "QK-norm requires embed_dim divisible by num_heads, "
+            f"got embed_dim={embed_dim}, num_heads={num_heads}"
+        )
+    return math.sqrt(int(embed_dim) // int(num_heads))
+
+
+def apply_qk_norm(
+    query_heads: Tensor,
+    key_heads: Tensor,
+    qk_norm_scale: Tensor | None,
+) -> tuple[Tensor, Tensor]:
+    if qk_norm_scale is None:
+        return query_heads, key_heads
+    query_norm = F.normalize(query_heads, p=2.0, dim=-1)
+    key_norm = F.normalize(key_heads, p=2.0, dim=-1)
+    scale = qk_norm_scale.to(device=query_norm.device, dtype=query_norm.dtype).view(1, -1, 1, 1)
+    return query_norm * scale, key_norm
 
 
 def attention_bias_from_allowed_mask(allowed_mask: Tensor, *, dtype: torch.dtype) -> Tensor:
@@ -66,6 +90,7 @@ def multihead_attention_sdpa(
     value: Tensor,
     *,
     attn_bias: Tensor | None = None,
+    qk_norm_scale: Tensor | None = None,
 ) -> Tensor:
     """Run a MultiheadAttention module through SDPA using its existing weights."""
 
@@ -93,6 +118,7 @@ def multihead_attention_sdpa(
     q_heads = _reshape_heads(q_proj, num_heads=module.num_heads)
     k_heads = _reshape_heads(k_proj, num_heads=module.num_heads)
     v_heads = _reshape_heads(v_proj, num_heads=module.num_heads)
+    q_heads, k_heads = apply_qk_norm(q_heads, k_heads, qk_norm_scale)
 
     attn_out = scaled_dot_product_attention(
         q_heads,
@@ -118,6 +144,7 @@ def packed_projection_multihead_attention_sdpa(
     value: Tensor,
     *,
     attn_bias: Tensor | None = None,
+    qk_norm_scale: Tensor | None = None,
 ) -> Tensor:
     """Run MultiheadAttention through SDPA with fused QKV/KV projections when possible."""
 
@@ -149,11 +176,13 @@ def packed_projection_multihead_attention_sdpa(
             key,
             value,
             attn_bias=attn_bias,
+            qk_norm_scale=qk_norm_scale,
         )
 
     q_heads = _reshape_heads(q_proj, num_heads=module.num_heads)
     k_heads = _reshape_heads(k_proj, num_heads=module.num_heads)
     v_heads = _reshape_heads(v_proj, num_heads=module.num_heads)
+    q_heads, k_heads = apply_qk_norm(q_heads, k_heads, qk_norm_scale)
 
     attn_out = scaled_dot_product_attention(
         q_heads,
