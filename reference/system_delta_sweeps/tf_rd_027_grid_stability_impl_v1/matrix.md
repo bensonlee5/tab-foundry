@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_027_grid_stabili
 - Parent sweep id: `tf_rd_027_grid_ffn_wd_config_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_027_grid_stability_impl_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `d0c8183f83032a8f0517d4c0e3cab22438426f3aac9702f1432cb7359940d075`
+- Resolved queue inputs fingerprint: `beb3bf2319cc720fe88f885a558e2497d7e3df1d38189229ffdc6887f810c4e2`
 
 ## Locked Surface
 
@@ -45,16 +45,16 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` | grid_sandwich_ffn_stability | no | blocked | none | On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row. | Unblock only after the config-only winner is selected. |
-| 2 | `delta_tf_rd_027_grid_logit_softcap_30_v1` | grid_sandwich_ffn_stability | no | blocked | none | On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row. | Unblock only after the config-only winner is selected. |
-| 3 | `delta_tf_rd_027_grid_qk_norm_v1` | grid_sandwich_ffn_stability | no | blocked | none | On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row. | Unblock only after the config-only winner is selected. |
+| 1 | `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row. | Execute as the isolated z-loss stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
+| 2 | `delta_tf_rd_027_grid_logit_softcap_30_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row. | Execute as the isolated logit-softcap stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
+| 3 | `delta_tf_rd_027_grid_qk_norm_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row. | Execute as the isolated QK-norm stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_027_grid_classification_z_loss_1e4_v1`
 
 - Dimension family: `training`
-- Status: `blocked`
+- Status: `ready`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row.
@@ -68,7 +68,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
 - Training overrides: `{'runtime': {'max_steps': 2500, 'activation_checkpointing': False, 'checkpoint_every': None}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
-  - Update this row's anchor/model/training surface to the config-only winner before execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Compare directly against the config-only winner by matched-budget final log loss and instability telemetry.
 - Adequacy knobs to dimension explicitly:
   - run only after the config-only FFN/weight-decay winner is selected
@@ -78,6 +78,8 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Benchmark checkpoint selection: `all`
 - Interpretation status: `pending`
 - Decision: `None`
+- Notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_classification_z_loss_1e4_v1/result_card.md`
 - Benchmark metrics: pending
@@ -85,7 +87,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 ### 2. `delta_tf_rd_027_grid_logit_softcap_30_v1`
 
 - Dimension family: `model`
-- Status: `blocked`
+- Status: `ready`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row.
@@ -99,7 +101,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'classification_logit_softcap': 30.0}`
 - Parameter adequacy plan:
-  - Update this row's anchor/model/training surface to the config-only winner before execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Verify the exported model spec carries the softcap field before interpreting benchmark metrics.
 - Adequacy knobs to dimension explicitly:
   - run only after the config-only FFN/weight-decay winner is selected
@@ -109,6 +111,8 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Benchmark checkpoint selection: `all`
 - Interpretation status: `pending`
 - Decision: `None`
+- Notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_logit_softcap_30_v1/result_card.md`
 - Benchmark metrics: pending
@@ -116,7 +120,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 ### 3. `delta_tf_rd_027_grid_qk_norm_v1`
 
 - Dimension family: `model`
-- Status: `blocked`
+- Status: `ready`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row.
@@ -130,7 +134,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
 - Model overrides: `{'attention_qk_norm': True}`
 - Parameter adequacy plan:
-  - Update this row's anchor/model/training surface to the config-only winner before execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Verify packed self-attention and cross-attention paths before interpreting benchmark metrics.
 - Adequacy knobs to dimension explicitly:
   - run only after the config-only FFN/weight-decay winner is selected
@@ -140,6 +144,8 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Benchmark checkpoint selection: `all`
 - Interpretation status: `pending`
 - Decision: `None`
+- Notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_qk_norm_v1/result_card.md`
 - Benchmark metrics: pending

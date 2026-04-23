@@ -3,7 +3,7 @@ sweep_id: tf_rd_027_grid_stability_impl_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_027_grid_classification_z_loss_1e4_v1
-  status: blocked
+  status: ready
   rationale: Contextualize `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` against
     anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_stability_impl_v1`.
@@ -31,8 +31,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Update this row's anchor/model/training surface to the config-only winner before
-    execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the
+    weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Compare directly against the config-only winner by matched-budget final log loss
     and instability telemetry.
   execution_policy: benchmark_full
@@ -42,8 +42,12 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Unblock only after the config-only winner is selected.
-  notes: []
+  next_action: Execute as the isolated z-loss stability probe on the carried anchor
+    config with optimizer.weight_decay=0.01.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs.
+    `0.4181767299` final log loss).
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -51,7 +55,7 @@ rows:
   parent_delta_ref: null
 - order: 2
   delta_ref: delta_tf_rd_027_grid_logit_softcap_30_v1
-  status: blocked
+  status: ready
   rationale: Contextualize `delta_tf_rd_027_grid_logit_softcap_30_v1` against anchor
     `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_stability_impl_v1`.
@@ -79,8 +83,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Update this row's anchor/model/training surface to the config-only winner before
-    execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the
+    weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Verify the exported model spec carries the softcap field before interpreting benchmark
     metrics.
   execution_policy: benchmark_full
@@ -90,8 +94,12 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Unblock only after the config-only winner is selected.
-  notes: []
+  next_action: Execute as the isolated logit-softcap stability probe on the carried
+    anchor config with optimizer.weight_decay=0.01.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs.
+    `0.4181767299` final log loss).
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -99,7 +107,7 @@ rows:
   parent_delta_ref: null
 - order: 3
   delta_ref: delta_tf_rd_027_grid_qk_norm_v1
-  status: blocked
+  status: ready
   rationale: Contextualize `delta_tf_rd_027_grid_qk_norm_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_027_grid_stability_impl_v1`.
   hypothesis: ''
@@ -126,8 +134,8 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.1
   parameter_adequacy_plan:
-  - Update this row's anchor/model/training surface to the config-only winner before
-    execution.
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the
+    weight-decay 0.1 follow-up all lost by matched-budget final log loss.
   - Verify packed self-attention and cross-attention paths before interpreting benchmark
     metrics.
   execution_policy: benchmark_full
@@ -137,8 +145,12 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Unblock only after the config-only winner is selected.
-  notes: []
+  next_action: Execute as the isolated QK-norm stability probe on the carried anchor
+    config with optimizer.weight_decay=0.01.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs.
+    `0.4181767299` final log loss).
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
