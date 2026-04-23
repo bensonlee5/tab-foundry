@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_027_grid_stabili
 - Parent sweep id: `tf_rd_027_grid_ffn_wd_config_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_027_grid_stability_impl_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `beb3bf2319cc720fe88f885a558e2497d7e3df1d38189229ffdc6887f810c4e2`
+- Resolved queue inputs fingerprint: `191b8254cb14647bab5e9e050b7e6c1a8b6fa8b23f114343b3a95a33d8ed23a9`
 
 ## Locked Surface
 
@@ -45,16 +45,16 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row. | Execute as the isolated z-loss stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
-| 2 | `delta_tf_rd_027_grid_logit_softcap_30_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row. | Execute as the isolated logit-softcap stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
-| 3 | `delta_tf_rd_027_grid_qk_norm_v1` | grid_sandwich_ffn_stability | no | ready | none | On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row. | Execute as the isolated QK-norm stability probe on the carried anchor config with optimizer.weight_decay=0.01. |
+| 1 | `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` | grid_sandwich_ffn_stability | no | completed | none | On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row. | Completed; classification z-loss lost to the locked TF-RD-026 row 10 anchor, so do not carry it. |
+| 2 | `delta_tf_rd_027_grid_logit_softcap_30_v1` | grid_sandwich_ffn_stability | no | completed | none | On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row. | Completed; logit softcap lost to the locked TF-RD-026 row 10 anchor, so do not carry it. |
+| 3 | `delta_tf_rd_027_grid_qk_norm_v1` | grid_sandwich_ffn_stability | no | completed | none | On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row. | Completed; QK-norm lost to the locked TF-RD-026 row 10 anchor, so do not carry it. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_027_grid_classification_z_loss_1e4_v1`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, add canonical classification z-loss with coefficient 1e-4 for a 2500-step isolated stability row.
@@ -66,6 +66,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `9fad736e62c02d257d00d599119b871b06d82ebfa4b0de310e0aa2dcc2f56812`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0537`)
 - Training overrides: `{'runtime': {'max_steps': 2500, 'activation_checkpointing': False, 'checkpoint_every': None}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
 - Parameter adequacy plan:
   - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
@@ -76,18 +77,21 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
   - train for exactly 2500 prior-dump steps
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_01_delta_tf_rd_027_grid_classification_z_loss_1e4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Final log loss `0.4243303110` lost to the locked anchor `0.4181767299` by `+0.0061535811`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_classification_z_loss_1e4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_027_grid_stability_impl_v1_01_delta_tf_rd_027_grid_classification_z_loss_1e4_v1_v1` with final log loss `0.4243`, delta final log loss `+0.0062`, final Brier score `0.2584`, delta final brier score `+0.0033`, final ROC AUC `0.8097`, delta final roc auc `-0.0035`, best ROC AUC `0.8097`, final-minus-best `+0.0000`
 
 ### 2. `delta_tf_rd_027_grid_logit_softcap_30_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, apply a tanh classification-logit softcap of 30.0 for a 2500-step isolated stability row.
@@ -99,6 +103,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `691c4bba7b97bcba6a229f759c501aebaa1231f3af5852cd201eddcf5c8b9d6c`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0538`)
 - Model overrides: `{'classification_logit_softcap': 30.0}`
 - Parameter adequacy plan:
   - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
@@ -109,18 +114,21 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
   - train for exactly 2500 prior-dump steps
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_02_delta_tf_rd_027_grid_logit_softcap_30_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Final log loss `0.4251839620` lost to the locked anchor `0.4181767299` by `+0.0070072320`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_logit_softcap_30_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_027_grid_stability_impl_v1_02_delta_tf_rd_027_grid_logit_softcap_30_v1_v1` with final log loss `0.4252`, delta final log loss `+0.0070`, final Brier score `0.2591`, delta final brier score `+0.0040`, final ROC AUC `0.8113`, delta final roc auc `-0.0020`, best ROC AUC `0.8113`, final-minus-best `+0.0000`
 
 ### 3. `delta_tf_rd_027_grid_qk_norm_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: On the config-only winner, enable QK-norm across grid-sandwich attention sites for a 2500-step isolated stability row.
@@ -132,6 +140,7 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `74d7961b47e03037e66dd58e8d4e8eb0f1dc16494562834b7e133f92c9e192f8`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 2500}`
+- Stage-local stability: row (grad `0.0856`)
 - Model overrides: `{'attention_qk_norm': True}`
 - Parameter adequacy plan:
   - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay 0.1 follow-up all lost by matched-budget final log loss.
@@ -142,10 +151,13 @@ Upstream reference: `Broad-ML grid sandwich architecture follow-ons` from `Hyper
   - train for exactly 2500 prior-dump steps
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299` final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_03_delta_tf_rd_027_grid_qk_norm_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Final log loss `0.4741464959` lost to the locked anchor `0.4181767299` by `+0.0559697660`; no TF-RD-027 stability row beat the anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_027_grid_stability_impl_v1/delta_tf_rd_027_grid_qk_norm_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_027_grid_stability_impl_v1_03_delta_tf_rd_027_grid_qk_norm_v1_v1` with final log loss `0.4741`, delta final log loss `+0.0560`, final Brier score `0.2908`, delta final brier score `+0.0357`, final ROC AUC `0.7860`, delta final roc auc `-0.0272`, best ROC AUC `0.7860`, final-minus-best `+0.0000`
