@@ -22,6 +22,7 @@ from tab_foundry.model.spec import (
     ModelBuildSpec,
 )
 from tab_foundry.training.instability import (
+    build_utilization_summary,
     grad_norm_summary_from_values,
     objective_metric_for_task,
     telemetry_path,
@@ -301,6 +302,38 @@ def _hardware_summary_from_telemetry(
     if summary is None:
         return None
     return summary or None
+
+
+def _utilization_summary_from_telemetry(
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(telemetry_payload, Mapping):
+        return None
+    summary = _normalized_optional_mapping(telemetry_payload.get("utilization_summary"))
+    if summary is None:
+        return None
+    return summary or None
+
+
+def _utilization_summary_from_artifacts(
+    *,
+    telemetry_payload: Mapping[str, Any] | None,
+    training_surface_record: Mapping[str, Any] | None,
+    compute_accounting: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    runtime_summary = _runtime_summary_from_telemetry(telemetry_payload)
+    hardware_summary = _hardware_summary_from_telemetry(telemetry_payload)
+    if runtime_summary is None and hardware_summary is None and compute_accounting is None:
+        return _utilization_summary_from_telemetry(telemetry_payload)
+    payload = build_utilization_summary(
+        runtime_summary=runtime_summary,
+        hardware_summary=hardware_summary,
+        training_surface_record=training_surface_record,
+        compute_accounting=compute_accounting,
+    )
+    if payload is not None:
+        return payload
+    return _utilization_summary_from_telemetry(telemetry_payload)
 
 
 def _regime_budget_from_artifacts(

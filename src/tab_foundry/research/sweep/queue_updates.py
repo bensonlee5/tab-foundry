@@ -112,6 +112,11 @@ def runtime_and_regime_metrics(
         telemetry_payload=telemetry_payload,
         key="regime_budget",
     )
+    utilization_summary = _runtime_and_regime_source(
+        run_entry=run_entry,
+        telemetry_payload=telemetry_payload,
+        key="utilization_summary",
+    )
     metrics: dict[str, Any] = {}
     if runtime_summary is not None:
         for key in ("peak_vram_allocated", "peak_vram_reserved"):
@@ -124,6 +129,9 @@ def runtime_and_regime_metrics(
             "throughput_examples_per_second",
             "throughput_tokens_per_second",
             "non_train_overhead_seconds",
+            "peak_vram_allocated_fraction",
+            "peak_vram_reserved_fraction",
+            "non_train_overhead_fraction",
         ):
             metric_value = optional_metric(runtime_summary, key)
             if metric_value is not None:
@@ -167,6 +175,23 @@ def runtime_and_regime_metrics(
             text_value = optional_text(regime_budget, key)
             if text_value is not None:
                 metrics[key] = text_value
+    if utilization_summary is not None:
+        for key in (
+            "peak_vram_allocated_fraction",
+            "peak_vram_reserved_fraction",
+            "non_train_overhead_fraction",
+            "achieved_train_tflops_per_second",
+            "theoretical_peak_tflops_per_second",
+            "compute_utilization_fraction",
+            "theoretical_hbm_bandwidth_gbps",
+            "roofline_knee_flops_per_byte",
+        ):
+            metric_value = optional_metric(utilization_summary, key)
+            if metric_value is not None:
+                metrics[key] = metric_value
+        peak_compute_basis = optional_text(utilization_summary, "peak_compute_basis")
+        if peak_compute_basis is not None:
+            metrics["peak_compute_basis"] = peak_compute_basis
     return metrics
 
 

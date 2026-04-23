@@ -408,6 +408,9 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     runtime_summary = payload.get("runtime_summary")
     if isinstance(runtime_summary, Mapping):
         lines.append(f"runtime_summary={_format_jsonable(dict(runtime_summary))}")
+    utilization_summary = payload.get("utilization_summary")
+    if isinstance(utilization_summary, Mapping):
+        lines.append(f"utilization_summary={_format_jsonable(dict(utilization_summary))}")
     benchmark_timing = payload.get("benchmark_timing")
     if isinstance(benchmark_timing, Mapping):
         lines.append(f"benchmark_timing={_format_jsonable(dict(benchmark_timing))}")

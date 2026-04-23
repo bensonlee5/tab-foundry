@@ -9,6 +9,7 @@ from tab_foundry.training.instability import (
     build_regime_budget_summary,
     build_runtime_summary,
     build_training_telemetry,
+    build_utilization_summary,
     gradient_module_map,
     history_loss_summary,
 )
@@ -45,6 +46,16 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
             "task_batch_signature_counts": {
                 "24x8x6x2": 1 if step % 3 else 0,
                 "18x6x6x2": 0 if step % 3 else 1,
+            },
+            "timing_seconds": {
+                "data_wait": 0.1,
+                "batch_diagnostics": 0.05,
+                "h2d_transfer": 0.02,
+                "forward_backward": 0.5,
+                "activation_trace": 0.0,
+                "grad_diagnostics": 0.03,
+                "optimizer": 0.08,
+                "checkpoint": 0.04 if step % 10 == 0 else 0.0,
             },
             "module_grad_norms": {
                 "feature_encoder": 1.0,
@@ -142,6 +153,21 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
             "family_block_count": 67,
             "estimated_family_switch_count": 66,
         },
+    }
+    step_timing_summary = diagnostics["step_timing_summary"]
+    assert step_timing_summary["profiled_step_count"] == 100
+    assert step_timing_summary["mean_profiled_step_seconds"] == pytest.approx(0.784)
+    assert step_timing_summary["buckets"]["data_wait"] == {
+        "mean_seconds": pytest.approx(0.1),
+        "fraction_of_profiled_step_time": pytest.approx(0.1275510204),
+    }
+    assert step_timing_summary["buckets"]["forward_backward"] == {
+        "mean_seconds": pytest.approx(0.5),
+        "fraction_of_profiled_step_time": pytest.approx(0.6377551020),
+    }
+    assert step_timing_summary["buckets"]["checkpoint"] == {
+        "mean_seconds": pytest.approx(0.004),
+        "fraction_of_profiled_step_time": pytest.approx(0.0051020408),
     }
 
 
@@ -461,6 +487,7 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
             examples_seen=96,
             tokens_seen=38400,
             peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
+            total_device_vram_bytes=80 * 1024**3,
         ),
         hardware_summary={
             "device_type": "cuda",
@@ -483,9 +510,23 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
     assert telemetry["runtime_summary"] == {
         "peak_vram_allocated": 1024,
         "peak_vram_reserved": 2048,
+        "peak_vram_allocated_fraction": pytest.approx(1024 / float(80 * 1024**3)),
+        "peak_vram_reserved_fraction": pytest.approx(2048 / float(80 * 1024**3)),
         "throughput_examples_per_second": 32.0,
         "throughput_tokens_per_second": 12800.0,
         "non_train_overhead_seconds": pytest.approx(0.8),
+        "non_train_overhead_fraction": pytest.approx(0.8 / 3.8),
+    }
+    assert telemetry["utilization_summary"] == {
+        "peak_vram_allocated_fraction": pytest.approx(1024 / float(80 * 1024**3)),
+        "peak_vram_reserved_fraction": pytest.approx(2048 / float(80 * 1024**3)),
+        "non_train_overhead_fraction": pytest.approx(0.8 / 3.8),
+        "achieved_train_tflops_per_second": None,
+        "theoretical_peak_tflops_per_second": None,
+        "compute_utilization_fraction": None,
+        "theoretical_hbm_bandwidth_gbps": None,
+        "roofline_knee_flops_per_byte": None,
+        "peak_compute_basis": None,
     }
     assert telemetry["hardware_summary"]["gpu_class"] == "a100"
     assert telemetry["hardware_summary"]["vram_class_gb"] == 80
@@ -504,6 +545,7 @@ def test_build_runtime_summary_records_loader_wall_metadata() -> None:
         examples_seen=96,
         tokens_seen=38400,
         peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
+        total_device_vram_bytes=80 * 1024**3,
         loader_effective_num_workers=8,
         loader_effective_prefetch_factor=4,
         loader_task_batch_cache_mode="bounded_streaming",
@@ -515,9 +557,12 @@ def test_build_runtime_summary_records_loader_wall_metadata() -> None:
     assert summary == {
         "peak_vram_allocated": 1024,
         "peak_vram_reserved": 2048,
+        "peak_vram_allocated_fraction": pytest.approx(1024 / float(80 * 1024**3)),
+        "peak_vram_reserved_fraction": pytest.approx(2048 / float(80 * 1024**3)),
         "throughput_examples_per_second": 32.0,
         "throughput_tokens_per_second": 12800.0,
         "non_train_overhead_seconds": pytest.approx(0.8),
+        "non_train_overhead_fraction": pytest.approx(0.8 / 3.8),
         "end_to_end_wall_seconds": 4.2,
         "loader_setup_seconds": 0.4,
         "loader_effective_num_workers": 8,
@@ -529,4 +574,42 @@ def test_build_runtime_summary_records_loader_wall_metadata() -> None:
             "compiled_family_count": 3,
             "family_switch_count": 7,
         },
+    }
+
+
+def test_build_utilization_summary_enriches_compute_utilization_from_compute_accounting() -> None:
+    utilization = build_utilization_summary(
+        runtime_summary={
+            "peak_vram_allocated": 40 * 1024**3,
+            "peak_vram_reserved": 50 * 1024**3,
+            "peak_vram_allocated_fraction": 0.5,
+            "peak_vram_reserved_fraction": 0.625,
+            "throughput_tokens_per_second": 160000.0,
+            "non_train_overhead_fraction": 0.2,
+        },
+        hardware_summary={
+            "device_type": "cuda",
+            "gpu_class": "a100",
+            "total_device_vram_bytes": 80 * 1024**3,
+        },
+        training_surface_record={
+            "runtime": {
+                "mixed_precision": "bf16",
+            }
+        },
+        compute_accounting={
+            "train_flops_per_token": 2.5e7,
+        },
+    )
+
+    assert utilization == {
+        "peak_vram_allocated_fraction": 0.5,
+        "peak_vram_reserved_fraction": 0.625,
+        "non_train_overhead_fraction": 0.2,
+        "achieved_train_tflops_per_second": pytest.approx(4.0),
+        "theoretical_peak_tflops_per_second": 312.0,
+        "compute_utilization_fraction": pytest.approx(4.0 / 312.0),
+        "theoretical_hbm_bandwidth_gbps": 2039.0,
+        "roofline_knee_flops_per_byte": pytest.approx(153.0161844031388),
+        "peak_compute_basis": "tensorcore_bf16_dense",
     }

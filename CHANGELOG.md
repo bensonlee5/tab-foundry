@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: training telemetry now adds zero-overhead runtime-utilization
+  summaries for VRAM fractions, non-train overhead fraction, optional step-time
+  bucket rollups, and benchmark-registry roofline-adjacent fields derived from
+  existing compute accounting plus supported GPU capability lookups. Run
+  inspection, sweep queue updates, sweep summaries, and result cards now expose
+  the new utilization payload without adding active hardware polling to
+  training.
 - User-facing note: `grid_sandwich` training keeps the TF-RD-010 medium corpus
   pinned while dataset generation moves to a separate TF-RD-010 balanced
   paired row/feature latent-target dagzoo recipe built from H100 large-shape

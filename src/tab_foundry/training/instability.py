@@ -11,6 +11,10 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch import nn
 
+from tab_foundry.hardware_profiles import (
+    normalize_mixed_precision_mode,
+    resolve_gpu_utilization_capability,
+)
 from tab_foundry.model.spec import ROUTED_SANDWICH_MODEL_ARCH, SANDWICH_FAMILY_MODEL_ARCHES
 from tab_foundry.task_batching import parse_task_batch_signature_text
 from tab_foundry.timestamps import utc_now as _shared_utc_now
@@ -18,7 +22,7 @@ from tab_foundry.types import TaskBatch
 
 
 LOSS_EMA_ALPHA = 0.1
-TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v5"
+TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v6"
 CLASSIFICATION_OBJECTIVE_METRIC = "final_log_loss_at_matched_regime_budget"
 CELL_BPC_OBJECTIVE_METRIC = "final_bpc_at_matched_regime_budget"
 _TASK_BATCH_NDIM = 3
@@ -119,6 +123,16 @@ _SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = (
 )
 _GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
 _SANDWICH_STAGE_SELF_RE = re.compile(r"post_stage_(\d+)_self(?:_\d+)?\Z")
+_STEP_TIMING_BUCKETS = (
+    "data_wait",
+    "batch_diagnostics",
+    "h2d_transfer",
+    "forward_backward",
+    "activation_trace",
+    "grad_diagnostics",
+    "optimizer",
+    "checkpoint",
+)
 
 
 def _utc_now() -> str:
@@ -581,6 +595,23 @@ def _mean_or_none(values: Sequence[float]) -> float | None:
     return float(sum(values) / float(len(values)))
 
 
+def _coerce_non_negative_finite_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        return None
+    return max(0.0, numeric)
+
+
+def _fraction_or_none(numerator: Any, denominator: Any) -> float | None:
+    numerator_f = _coerce_non_negative_finite_float(numerator)
+    denominator_f = _coerce_non_negative_finite_float(denominator)
+    if numerator_f is None or denominator_f is None or denominator_f <= 0.0:
+        return None
+    return float(numerator_f / denominator_f)
+
+
 def grad_norm_summary_from_values(values: Sequence[float]) -> dict[str, float | None]:
     """Summarize one finite grad-norm history with nullable outputs."""
 
@@ -985,7 +1016,7 @@ def diagnostics_summary(
     if feature_encoder_vs_direct_head is not None:
         module_balance["feature_encoder_vs_direct_head"] = feature_encoder_vs_direct_head
 
-    return {
+    payload = {
         "windowing": {
             "warmup_end_step": int(warmup_end_step),
             "window_record_counts": {
@@ -1010,6 +1041,53 @@ def diagnostics_summary(
             warmup_end_step=warmup_end_step,
             training_surface_record=training_surface_record,
         ),
+    }
+    step_timing_summary = _step_timing_summary(ordered)
+    if step_timing_summary is not None:
+        payload["step_timing_summary"] = step_timing_summary
+    return payload
+
+
+def _step_timing_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+    ordered = _sorted_records(records)
+    profiled_step_count = 0
+    total_profiled_step_seconds = 0.0
+    bucket_totals = {bucket: 0.0 for bucket in _STEP_TIMING_BUCKETS}
+    for record in ordered:
+        raw_timing_seconds = record.get("timing_seconds")
+        if not isinstance(raw_timing_seconds, Mapping):
+            continue
+        step_total = 0.0
+        step_has_profiled_bucket = False
+        for bucket in _STEP_TIMING_BUCKETS:
+            raw_value = raw_timing_seconds.get(bucket, 0.0)
+            value = _coerce_non_negative_finite_float(raw_value)
+            if value is None:
+                value = 0.0
+            if raw_timing_seconds.get(bucket) is not None:
+                step_has_profiled_bucket = True
+            bucket_totals[bucket] += value
+            step_total += value
+        if not step_has_profiled_bucket:
+            continue
+        profiled_step_count += 1
+        total_profiled_step_seconds += step_total
+    if profiled_step_count <= 0:
+        return None
+    mean_profiled_step_seconds = total_profiled_step_seconds / float(profiled_step_count)
+    return {
+        "profiled_step_count": int(profiled_step_count),
+        "mean_profiled_step_seconds": float(mean_profiled_step_seconds),
+        "buckets": {
+            bucket: {
+                "mean_seconds": float(bucket_totals[bucket] / float(profiled_step_count)),
+                "fraction_of_profiled_step_time": _fraction_or_none(
+                    bucket_totals[bucket],
+                    total_profiled_step_seconds,
+                ),
+            }
+            for bucket in _STEP_TIMING_BUCKETS
+        },
     }
 
 
@@ -1174,6 +1252,126 @@ def _normalize_payload_values(payload: Mapping[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _runtime_surface_payload(
+    training_surface_record: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(training_surface_record, Mapping):
+        return None
+    raw_runtime = training_surface_record.get("runtime")
+    if not isinstance(raw_runtime, Mapping):
+        return None
+    return raw_runtime
+
+
+def _runtime_mixed_precision_mode(
+    training_surface_record: Mapping[str, Any] | None,
+) -> str | None:
+    runtime_payload = _runtime_surface_payload(training_surface_record)
+    if runtime_payload is None:
+        return None
+    return normalize_mixed_precision_mode(runtime_payload.get("mixed_precision"))
+
+
+def build_utilization_summary(
+    *,
+    runtime_summary: Mapping[str, Any] | None,
+    hardware_summary: Mapping[str, Any] | None,
+    training_surface_record: Mapping[str, Any] | None = None,
+    compute_accounting: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Build zero-overhead utilization and roofline-adjacent telemetry."""
+
+    runtime_payload = runtime_summary if isinstance(runtime_summary, Mapping) else None
+    hardware_payload = hardware_summary if isinstance(hardware_summary, Mapping) else None
+    total_device_vram_bytes = None
+    if hardware_payload is not None:
+        total_device_vram_bytes = _coerce_non_negative_finite_float(
+            hardware_payload.get("total_device_vram_bytes")
+        )
+
+    peak_vram_allocated_fraction = None
+    peak_vram_reserved_fraction = None
+    non_train_overhead_fraction = None
+    if runtime_payload is not None:
+        peak_vram_allocated_fraction = _coerce_non_negative_finite_float(
+            runtime_payload.get("peak_vram_allocated_fraction")
+        )
+        if peak_vram_allocated_fraction is None:
+            peak_vram_allocated_fraction = _fraction_or_none(
+                runtime_payload.get("peak_vram_allocated"),
+                total_device_vram_bytes,
+            )
+        peak_vram_reserved_fraction = _coerce_non_negative_finite_float(
+            runtime_payload.get("peak_vram_reserved_fraction")
+        )
+        if peak_vram_reserved_fraction is None:
+            peak_vram_reserved_fraction = _fraction_or_none(
+                runtime_payload.get("peak_vram_reserved"),
+                total_device_vram_bytes,
+            )
+        non_train_overhead_fraction = _coerce_non_negative_finite_float(
+            runtime_payload.get("non_train_overhead_fraction")
+        )
+
+    capability = None
+    if hardware_payload is not None:
+        capability = resolve_gpu_utilization_capability(
+            gpu_class=(
+                None
+                if hardware_payload.get("gpu_class") is None
+                else str(hardware_payload.get("gpu_class"))
+            ),
+            mixed_precision=_runtime_mixed_precision_mode(training_surface_record),
+        )
+
+    achieved_train_tflops_per_second = None
+    if runtime_payload is not None and isinstance(compute_accounting, Mapping):
+        throughput_tokens_per_second = _coerce_non_negative_finite_float(
+            runtime_payload.get("throughput_tokens_per_second")
+        )
+        train_flops_per_token = _coerce_non_negative_finite_float(
+            compute_accounting.get("train_flops_per_token")
+        )
+        if throughput_tokens_per_second is not None and train_flops_per_token is not None:
+            achieved_train_tflops_per_second = float(
+                train_flops_per_token * throughput_tokens_per_second / 1.0e12
+            )
+
+    theoretical_peak_tflops_per_second = None
+    theoretical_hbm_bandwidth_gbps = None
+    roofline_knee_flops_per_byte = None
+    peak_compute_basis = None
+    if capability is not None:
+        theoretical_peak_tflops_per_second = _coerce_non_negative_finite_float(
+            capability.get("theoretical_peak_tflops_per_second")
+        )
+        theoretical_hbm_bandwidth_gbps = _coerce_non_negative_finite_float(
+            capability.get("theoretical_hbm_bandwidth_gbps")
+        )
+        roofline_knee_flops_per_byte = _coerce_non_negative_finite_float(
+            capability.get("roofline_knee_flops_per_byte")
+        )
+        raw_peak_compute_basis = capability.get("peak_compute_basis")
+        if isinstance(raw_peak_compute_basis, str) and raw_peak_compute_basis.strip():
+            peak_compute_basis = str(raw_peak_compute_basis)
+
+    payload = {
+        "peak_vram_allocated_fraction": peak_vram_allocated_fraction,
+        "peak_vram_reserved_fraction": peak_vram_reserved_fraction,
+        "non_train_overhead_fraction": non_train_overhead_fraction,
+        "achieved_train_tflops_per_second": achieved_train_tflops_per_second,
+        "theoretical_peak_tflops_per_second": theoretical_peak_tflops_per_second,
+        "compute_utilization_fraction": _fraction_or_none(
+            achieved_train_tflops_per_second,
+            theoretical_peak_tflops_per_second,
+        ),
+        "theoretical_hbm_bandwidth_gbps": theoretical_hbm_bandwidth_gbps,
+        "roofline_knee_flops_per_byte": roofline_knee_flops_per_byte,
+        "peak_compute_basis": peak_compute_basis,
+    }
+    return payload if any(value is not None for value in payload.values()) else None
+
+
 def _training_surface_data_payload(
     training_surface_record: Mapping[str, Any] | None,
 ) -> Mapping[str, Any] | None:
@@ -1322,6 +1520,7 @@ def build_runtime_summary(
     examples_seen: int,
     tokens_seen: int,
     peak_memory_summary: Mapping[str, int | None] | None,
+    total_device_vram_bytes: int | None = None,
     loader_effective_num_workers: int | None = None,
     loader_effective_prefetch_factor: int | None = None,
     loader_task_batch_cache_mode: str | None = None,
@@ -1345,12 +1544,25 @@ def build_runtime_summary(
         raw_reserved = peak_memory_summary.get("peak_vram_reserved")
         peak_allocated = None if raw_allocated is None else int(raw_allocated)
         peak_reserved = None if raw_reserved is None else int(raw_reserved)
+    non_train_overhead_seconds = max(0.0, wall_elapsed - train_elapsed)
     summary: dict[str, Any] = {
         "peak_vram_allocated": peak_allocated,
         "peak_vram_reserved": peak_reserved,
+        "peak_vram_allocated_fraction": _fraction_or_none(
+            peak_allocated,
+            total_device_vram_bytes,
+        ),
+        "peak_vram_reserved_fraction": _fraction_or_none(
+            peak_reserved,
+            total_device_vram_bytes,
+        ),
         "throughput_examples_per_second": throughput_examples,
         "throughput_tokens_per_second": throughput_tokens,
-        "non_train_overhead_seconds": max(0.0, wall_elapsed - train_elapsed),
+        "non_train_overhead_seconds": non_train_overhead_seconds,
+        "non_train_overhead_fraction": _fraction_or_none(
+            non_train_overhead_seconds,
+            wall_elapsed,
+        ),
     }
     if end_to_end_wall_seconds is not None:
         summary["end_to_end_wall_seconds"] = float(end_to_end_wall_seconds)
@@ -1476,6 +1688,18 @@ def build_training_telemetry(
         ),
         "runtime_summary": (
             None if runtime_summary is None else _normalize_payload_values(runtime_summary)
+        ),
+        "utilization_summary": (
+            None
+            if (
+                utilization_summary := build_utilization_summary(
+                    runtime_summary=runtime_summary,
+                    hardware_summary=hardware_summary,
+                    training_surface_record=training_surface_record,
+                )
+            )
+            is None
+            else _normalize_payload_values(utilization_summary)
         ),
         "hardware_summary": (
             None if hardware_summary is None else _normalize_payload_values(hardware_summary)

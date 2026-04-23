@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from tab_foundry.cli.dev import render_run_inspect_text
 from tab_foundry.training.health import health_check, run_inspect
 from tab_foundry.training.instability import build_training_telemetry
@@ -47,6 +49,9 @@ def _training_surface_record(
             "loss_surface": loss_surface,
             "surface_label": "training_default",
         },
+        "runtime": {
+            "mixed_precision": "bf16",
+        },
     }
 
 
@@ -65,9 +70,12 @@ def _runtime_summary() -> dict[str, object]:
     return {
         "peak_vram_allocated": 1024,
         "peak_vram_reserved": 2048,
+        "peak_vram_allocated_fraction": 1024 / float(80 * 1024**3),
+        "peak_vram_reserved_fraction": 2048 / float(80 * 1024**3),
         "throughput_examples_per_second": 12.5,
         "throughput_tokens_per_second": 6400.0,
         "non_train_overhead_seconds": 0.8,
+        "non_train_overhead_fraction": 0.2,
     }
 
 
@@ -90,6 +98,20 @@ def _regime_budget() -> dict[str, object]:
         "unique_task_budget": 96,
         "objective_metric": "final_log_loss_at_matched_regime_budget",
         "curriculum_id": "dagzoo_shape_aware_multi_invocation",
+    }
+
+
+def _utilization_summary() -> dict[str, object]:
+    return {
+        "peak_vram_allocated_fraction": 1024 / float(80 * 1024**3),
+        "peak_vram_reserved_fraction": 2048 / float(80 * 1024**3),
+        "non_train_overhead_fraction": 0.2,
+        "achieved_train_tflops_per_second": 4.0,
+        "theoretical_peak_tflops_per_second": 312.0,
+        "compute_utilization_fraction": 4.0 / 312.0,
+        "theoretical_hbm_bandwidth_gbps": 2039.0,
+        "roofline_knee_flops_per_byte": 153.0161844031388,
+        "peak_compute_basis": "tensorcore_bf16_dense",
     }
 
 
@@ -224,6 +246,7 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
                 },
                 "tab_foundry_metrics": {"best_roc_auc": 0.71},
                 "runtime_summary": _runtime_summary(),
+                "utilization_summary": _utilization_summary(),
                 "hardware_summary": _hardware_summary(),
                 "regime_budget": _regime_budget(),
             },
@@ -240,9 +263,11 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
     assert payload["comparison_summary"]["best_roc_auc"] == 0.71
     assert payload["benchmark_run_record"]["run_id"] == "row_one_run"
     assert payload["runtime_summary"]["peak_vram_reserved"] == 2048
+    assert payload["utilization_summary"]["compute_utilization_fraction"] == pytest.approx(4.0 / 312.0)
     assert payload["hardware_summary"]["hardware_profile_id"] == "a100_80gb"
     assert payload["regime_budget"]["token_budget"] == 38400
     assert payload["benchmark_run_record"]["runtime_summary"]["throughput_tokens_per_second"] == 6400.0
+    assert payload["benchmark_run_record"]["utilization_summary"]["peak_compute_basis"] == "tensorcore_bf16_dense"
     assert payload["benchmark_run_record"]["hardware_summary"]["gpu_class"] == "a100"
     assert payload["artifacts"]["comparison_summary_json"]["exists"] is True
     assert payload["artifacts"]["latest_checkpoint_pt"]["exists"] is True
@@ -250,6 +275,8 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
     rendered = render_run_inspect_text(payload)
     assert "runtime_summary=" in rendered
     assert "\"throughput_tokens_per_second\": 6400.0" in rendered
+    assert "utilization_summary=" in rendered
+    assert "\"compute_utilization_fraction\": 0.01282051282051282" in rendered
     assert "hardware_summary=" in rendered
     assert "\"hardware_profile_id\": \"a100_80gb\"" in rendered
     assert "regime_budget=" in rendered

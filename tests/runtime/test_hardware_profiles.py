@@ -51,3 +51,32 @@ def test_build_hardware_summary_reports_cpu_profile() -> None:
         "vram_class_gb": None,
         "hardware_profile_id": "cpu",
     }
+
+
+def test_resolve_gpu_utilization_capability_reports_supported_bf16_gpu() -> None:
+    capability = hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="a100",
+        mixed_precision="bf16",
+    )
+
+    assert capability == {
+        "theoretical_peak_tflops_per_second": 312.0,
+        "theoretical_hbm_bandwidth_gbps": 2039.0,
+        "roofline_knee_flops_per_byte": pytest.approx(153.0161844031388),
+        "peak_compute_basis": "tensorcore_bf16_dense",
+    }
+
+
+def test_resolve_gpu_utilization_capability_rejects_unknown_or_unsupported_pairs() -> None:
+    assert hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="cpu",
+        mixed_precision="bf16",
+    ) is None
+    assert hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="a100",
+        mixed_precision="no",
+    ) is None
+    assert hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="mystery_gpu",
+        mixed_precision="bf16",
+    ) is None

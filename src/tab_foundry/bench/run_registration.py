@@ -26,6 +26,7 @@ from tab_foundry.bench.registry.record_helpers import (
     _training_diagnostics_from_history,
     _training_shape_summary_from_telemetry,
     _training_surface_record,
+    _utilization_summary_from_artifacts,
     _runtime_summary_from_telemetry,
     _wandb_identity_from_telemetry,
 )
@@ -564,6 +565,11 @@ def derive_benchmark_run_record(
         state_dict=raw_state_dict,
         telemetry_payload=telemetry_payload,
     )
+    utilization_summary = _utilization_summary_from_artifacts(
+        telemetry_payload=telemetry_payload,
+        training_surface_record=training_surface_payload,
+        compute_accounting=compute_accounting,
+    )
     accounting_artifact_path = _accounting_artifact_path(
         comparison_summary_path=resolved_summary_path,
         benchmark_run_record_path=benchmark_run_record_path,
@@ -616,6 +622,7 @@ def derive_benchmark_run_record(
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
+        "utilization_summary": utilization_summary,
         "benchmark_timing": _benchmark_timing_from_summary(tab_foundry),
         "hardware_summary": _hardware_summary_from_telemetry(telemetry_payload),
         "inference_timing": inference_timing,
@@ -731,6 +738,7 @@ def derive_benchmark_run_entry(
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
         "runtime_summary": record.get("runtime_summary"),
+        "utilization_summary": record.get("utilization_summary"),
         "benchmark_timing": record.get("benchmark_timing"),
         "hardware_summary": record.get("hardware_summary"),
         "inference_timing": record.get("inference_timing"),

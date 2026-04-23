@@ -690,14 +690,19 @@ def _build_prior_telemetry_payload(
     error: Exception | None = None,
 ) -> tuple[dict[str, Any], float]:
     wall_elapsed_seconds = time.perf_counter() - train_start
+    hardware_summary = build_hardware_summary(device)
     runtime_summary = build_runtime_summary(
         train_elapsed_seconds=state.train_elapsed_seconds,
         wall_elapsed_seconds=wall_elapsed_seconds,
         examples_seen=state.examples_seen,
         tokens_seen=state.tokens_seen,
         peak_memory_summary=peak_device_memory_summary(device),
+        total_device_vram_bytes=(
+            None
+            if not isinstance(hardware_summary, Mapping)
+            else hardware_summary.get("total_device_vram_bytes")
+        ),
     )
-    hardware_summary = build_hardware_summary(device)
     regime_budget = build_regime_budget_summary(
         task=task,
         loss_surface=loss_surface,

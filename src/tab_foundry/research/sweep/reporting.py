@@ -254,9 +254,50 @@ def _runtime_and_regime_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
     append_scalar_line(lines, label="Peak VRAM reserved", value=queue_metrics.get("peak_vram_reserved"))
     append_metric_line(
         lines,
+        label="Peak VRAM allocated fraction",
+        value=queue_metrics.get("peak_vram_allocated_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Peak VRAM reserved fraction",
+        value=queue_metrics.get("peak_vram_reserved_fraction"),
+    )
+    append_metric_line(
+        lines,
         label="Non-train overhead seconds",
         value=queue_metrics.get("non_train_overhead_seconds"),
     )
+    append_metric_line(
+        lines,
+        label="Non-train overhead fraction",
+        value=queue_metrics.get("non_train_overhead_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Achieved train TFLOP/s",
+        value=queue_metrics.get("achieved_train_tflops_per_second"),
+    )
+    append_metric_line(
+        lines,
+        label="Theoretical peak TFLOP/s",
+        value=queue_metrics.get("theoretical_peak_tflops_per_second"),
+    )
+    append_metric_line(
+        lines,
+        label="Compute utilization fraction",
+        value=queue_metrics.get("compute_utilization_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Theoretical HBM bandwidth (GB/s)",
+        value=queue_metrics.get("theoretical_hbm_bandwidth_gbps"),
+    )
+    append_metric_line(
+        lines,
+        label="Roofline knee (FLOP/byte)",
+        value=queue_metrics.get("roofline_knee_flops_per_byte"),
+    )
+    append_scalar_line(lines, label="Peak compute basis", value=queue_metrics.get("peak_compute_basis"))
     append_metric_line(lines, label="Tokens per step", value=queue_metrics.get("tokens_per_step"))
     append_scalar_line(lines, label="Token budget", value=queue_metrics.get("token_budget"))
     append_scalar_line(lines, label="Unique task budget", value=queue_metrics.get("unique_task_budget"))

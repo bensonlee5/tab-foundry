@@ -386,11 +386,14 @@ def _runtime_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "peak_vram_allocated": _summary_value(payload, "peak_vram_allocated"),
         "peak_vram_reserved": _summary_value(payload, "peak_vram_reserved"),
+        "peak_vram_allocated_fraction": _summary_value(payload, "peak_vram_allocated_fraction"),
+        "peak_vram_reserved_fraction": _summary_value(payload, "peak_vram_reserved_fraction"),
         "throughput_examples_per_second": _summary_value(
             payload, "throughput_examples_per_second"
         ),
         "throughput_tokens_per_second": _summary_value(payload, "throughput_tokens_per_second"),
         "non_train_overhead_seconds": _summary_value(payload, "non_train_overhead_seconds"),
+        "non_train_overhead_fraction": _summary_value(payload, "non_train_overhead_fraction"),
     }
 
 
@@ -420,6 +423,28 @@ def _hardware_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
         "total_device_vram_bytes": _summary_value(payload, "total_device_vram_bytes"),
         "vram_class_gb": _summary_value(payload, "vram_class_gb"),
         "hardware_profile_id": _summary_value(payload, "hardware_profile_id"),
+    }
+
+
+def _utilization_summary_excerpt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "peak_vram_allocated_fraction": _summary_value(payload, "peak_vram_allocated_fraction"),
+        "peak_vram_reserved_fraction": _summary_value(payload, "peak_vram_reserved_fraction"),
+        "non_train_overhead_fraction": _summary_value(payload, "non_train_overhead_fraction"),
+        "achieved_train_tflops_per_second": _summary_value(
+            payload, "achieved_train_tflops_per_second"
+        ),
+        "theoretical_peak_tflops_per_second": _summary_value(
+            payload, "theoretical_peak_tflops_per_second"
+        ),
+        "compute_utilization_fraction": _summary_value(payload, "compute_utilization_fraction"),
+        "theoretical_hbm_bandwidth_gbps": _summary_value(
+            payload, "theoretical_hbm_bandwidth_gbps"
+        ),
+        "roofline_knee_flops_per_byte": _summary_value(
+            payload, "roofline_knee_flops_per_byte"
+        ),
+        "peak_compute_basis": _summary_value(payload, "peak_compute_basis"),
     }
 
 
@@ -471,6 +496,28 @@ def _preferred_runtime_summary(
         )
     if isinstance(telemetry_payload, Mapping) and isinstance(telemetry_payload.get("runtime_summary"), Mapping):
         return _runtime_summary_excerpt(cast(Mapping[str, Any], telemetry_payload["runtime_summary"]))
+    return None
+
+
+def _preferred_utilization_summary(
+    *,
+    benchmark_run_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if isinstance(benchmark_run_record, Mapping) and isinstance(
+        benchmark_run_record.get("utilization_summary"),
+        Mapping,
+    ):
+        return _utilization_summary_excerpt(
+            cast(Mapping[str, Any], benchmark_run_record["utilization_summary"])
+        )
+    if isinstance(telemetry_payload, Mapping) and isinstance(
+        telemetry_payload.get("utilization_summary"),
+        Mapping,
+    ):
+        return _utilization_summary_excerpt(
+            cast(Mapping[str, Any], telemetry_payload["utilization_summary"])
+        )
     return None
 
 
@@ -562,6 +609,11 @@ def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_summary": (
             _runtime_summary_excerpt(cast(Mapping[str, Any], record.get("runtime_summary")))
             if isinstance(record.get("runtime_summary"), Mapping)
+            else None
+        ),
+        "utilization_summary": (
+            _utilization_summary_excerpt(cast(Mapping[str, Any], record.get("utilization_summary")))
+            if isinstance(record.get("utilization_summary"), Mapping)
             else None
         ),
         "benchmark_timing": (
@@ -685,6 +737,10 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         if comparison_summary is None
         else _comparison_summary_excerpt(comparison_summary),
         "runtime_summary": _preferred_runtime_summary(
+            benchmark_run_record=benchmark_run_record,
+            telemetry_payload=telemetry_payload,
+        ),
+        "utilization_summary": _preferred_utilization_summary(
             benchmark_run_record=benchmark_run_record,
             telemetry_payload=telemetry_payload,
         ),

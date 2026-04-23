@@ -24,6 +24,48 @@ _GPU_CLASS_PATTERNS: tuple[tuple[str, str], ...] = (
     ("rtx 3090", "rtx3090"),
 )
 
+_GPU_UTILIZATION_CAPABILITIES: dict[str, dict[str, Any]] = {
+    "a100": {
+        "theoretical_hbm_bandwidth_gbps": 2039.0,
+        "precisions": {
+            "bf16": {
+                "theoretical_peak_tflops_per_second": 312.0,
+                "peak_compute_basis": "tensorcore_bf16_dense",
+            },
+            "fp16": {
+                "theoretical_peak_tflops_per_second": 312.0,
+                "peak_compute_basis": "tensorcore_fp16_dense",
+            },
+        },
+    },
+    "h100": {
+        "theoretical_hbm_bandwidth_gbps": 3350.0,
+        "precisions": {
+            "bf16": {
+                "theoretical_peak_tflops_per_second": 989.0,
+                "peak_compute_basis": "tensorcore_bf16_dense",
+            },
+            "fp16": {
+                "theoretical_peak_tflops_per_second": 989.0,
+                "peak_compute_basis": "tensorcore_fp16_dense",
+            },
+        },
+    },
+    "h200": {
+        "theoretical_hbm_bandwidth_gbps": 4800.0,
+        "precisions": {
+            "bf16": {
+                "theoretical_peak_tflops_per_second": 989.0,
+                "peak_compute_basis": "tensorcore_bf16_dense",
+            },
+            "fp16": {
+                "theoretical_peak_tflops_per_second": 989.0,
+                "peak_compute_basis": "tensorcore_fp16_dense",
+            },
+        },
+    },
+}
+
 
 def _load_torch():
     try:
@@ -83,6 +125,65 @@ def build_hardware_profile_id(
     if vram_class_gb is None:
         return normalized_gpu_class
     return f"{normalized_gpu_class}_{int(vram_class_gb)}gb"
+
+
+def normalize_mixed_precision_mode(value: Any) -> str | None:
+    """Normalize runtime mixed-precision modes for capability lookups."""
+
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return None
+    aliases = {
+        "fp16": "fp16",
+        "float16": "fp16",
+        "half": "fp16",
+        "bf16": "bf16",
+        "bfloat16": "bf16",
+        "no": "no",
+        "fp32": "no",
+        "float32": "no",
+        "full": "no",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def resolve_gpu_utilization_capability(
+    *,
+    gpu_class: str | None,
+    mixed_precision: Any,
+) -> dict[str, Any] | None:
+    """Return roofline-adjacent peak capability data for supported GPU/precision pairs."""
+
+    normalized_gpu_class = None if gpu_class is None else str(gpu_class).strip().lower() or None
+    normalized_precision = normalize_mixed_precision_mode(mixed_precision)
+    if normalized_gpu_class is None or normalized_precision is None:
+        return None
+    raw_capability = _GPU_UTILIZATION_CAPABILITIES.get(normalized_gpu_class)
+    if raw_capability is None:
+        return None
+    raw_precisions = raw_capability.get("precisions")
+    if not isinstance(raw_precisions, dict):
+        return None
+    precision_capability = raw_precisions.get(normalized_precision)
+    if not isinstance(precision_capability, dict):
+        return None
+    bandwidth_gbps = raw_capability.get("theoretical_hbm_bandwidth_gbps")
+    theoretical_peak_tflops = precision_capability.get("theoretical_peak_tflops_per_second")
+    if bandwidth_gbps is None or theoretical_peak_tflops is None:
+        return None
+    bandwidth_gbps_f = float(bandwidth_gbps)
+    theoretical_peak_tflops_f = float(theoretical_peak_tflops)
+    if bandwidth_gbps_f <= 0.0 or theoretical_peak_tflops_f <= 0.0:
+        return None
+    return {
+        "theoretical_peak_tflops_per_second": theoretical_peak_tflops_f,
+        "theoretical_hbm_bandwidth_gbps": bandwidth_gbps_f,
+        # Both values use decimal giga-units, so the knee is 1000 * TFLOP/s / GB/s.
+        "roofline_knee_flops_per_byte": 1000.0 * theoretical_peak_tflops_f / bandwidth_gbps_f,
+        "peak_compute_basis": precision_capability.get("peak_compute_basis"),
+    }
 
 
 def build_hardware_summary(device: Any | None) -> dict[str, Any] | None:

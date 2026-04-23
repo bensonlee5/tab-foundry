@@ -148,9 +148,12 @@ class _TrainingDiagnosticsPayload(_RegistryPayloadModel):
 class _RuntimeSummaryPayload(_RegistryPayloadModel):
     peak_vram_allocated: StrictInt | None = None
     peak_vram_reserved: StrictInt | None = None
+    peak_vram_allocated_fraction: FiniteFloat | None = None
+    peak_vram_reserved_fraction: FiniteFloat | None = None
     throughput_examples_per_second: FiniteFloat | None = None
     throughput_tokens_per_second: FiniteFloat | None = None
     non_train_overhead_seconds: FiniteFloat | None = None
+    non_train_overhead_fraction: FiniteFloat | None = None
     end_to_end_wall_seconds: FiniteFloat | None = None
     loader_setup_seconds: FiniteFloat | None = None
     loader_effective_num_workers: StrictInt | None = None
@@ -180,6 +183,18 @@ class _HardwareSummaryPayload(_RegistryPayloadModel):
     total_device_vram_bytes: StrictInt | None = None
     vram_class_gb: StrictInt | None = None
     hardware_profile_id: StrictStr | None = None
+
+
+class _UtilizationSummaryPayload(_RegistryPayloadModel):
+    peak_vram_allocated_fraction: FiniteFloat | None = None
+    peak_vram_reserved_fraction: FiniteFloat | None = None
+    non_train_overhead_fraction: FiniteFloat | None = None
+    achieved_train_tflops_per_second: FiniteFloat | None = None
+    theoretical_peak_tflops_per_second: FiniteFloat | None = None
+    compute_utilization_fraction: FiniteFloat | None = None
+    theoretical_hbm_bandwidth_gbps: FiniteFloat | None = None
+    roofline_knee_flops_per_byte: FiniteFloat | None = None
+    peak_compute_basis: StrictStr | None = None
 
 
 class _InferenceTimingPayload(_RegistryPayloadModel):
@@ -304,6 +319,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    utilization_summary: _UtilizationSummaryPayload | None = None
     benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
     inference_timing: _InferenceTimingPayload | None = None
@@ -333,6 +349,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
+    utilization_summary: _UtilizationSummaryPayload | None = None
     benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
     inference_timing: _InferenceTimingPayload | None = None

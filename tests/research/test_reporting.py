@@ -34,7 +34,11 @@ def _classification_queue_metrics() -> dict[str, float | int | str]:
         "final_minus_best_bpf": 0.021,
         "delta_final_bpf": 0.012,
         "peak_vram_reserved": 2048,
+        "peak_vram_reserved_fraction": 0.625,
         "throughput_tokens_per_second": 6400.0,
+        "achieved_train_tflops_per_second": 4.0,
+        "compute_utilization_fraction": 4.0 / 312.0,
+        "peak_compute_basis": "tensorcore_bf16_dense",
         "tokens_per_step": 512.0,
         "token_budget": 38400,
         "unique_task_budget": 96,
@@ -92,6 +96,10 @@ def test_result_card_text_marks_classification_bpc_metrics_as_legacy_diagnostics
     assert "## Runtime and regime budget" in text
     assert "- Throughput tokens/sec: `6400.0000`" in text
     assert "- Peak VRAM reserved: `2048`" in text
+    assert "- Peak VRAM reserved fraction: `0.6250`" in text
+    assert "- Achieved train TFLOP/s: `4.0000`" in text
+    assert "- Compute utilization fraction: `0.0128`" in text
+    assert "- Peak compute basis: `tensorcore_bf16_dense`" in text
     assert "- Token budget: `38400`" in text
     assert "- Curriculum id: `dagzoo_shape_aware_multi_invocation`" in text
 

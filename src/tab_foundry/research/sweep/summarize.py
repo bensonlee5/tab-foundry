@@ -74,11 +74,16 @@ def _runtime_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | Non
         "loader_setup_seconds": _optional_float(metrics.get("loader_setup_seconds")),
         "peak_vram_allocated": _optional_int(metrics.get("peak_vram_allocated")),
         "peak_vram_reserved": _optional_int(metrics.get("peak_vram_reserved")),
+        "peak_vram_allocated_fraction": _optional_float(
+            metrics.get("peak_vram_allocated_fraction")
+        ),
+        "peak_vram_reserved_fraction": _optional_float(metrics.get("peak_vram_reserved_fraction")),
         "throughput_examples_per_second": _optional_float(
             metrics.get("throughput_examples_per_second")
         ),
         "throughput_tokens_per_second": _optional_float(metrics.get("throughput_tokens_per_second")),
         "non_train_overhead_seconds": _optional_float(metrics.get("non_train_overhead_seconds")),
+        "non_train_overhead_fraction": _optional_float(metrics.get("non_train_overhead_fraction")),
         "loader_effective_num_workers": _optional_int(metrics.get("loader_effective_num_workers")),
         "loader_effective_prefetch_factor": _optional_int(
             metrics.get("loader_effective_prefetch_factor")
@@ -94,6 +99,29 @@ def _runtime_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | Non
         "compile_dispatch_family_switch_count": _optional_int(
             metrics.get("compile_dispatch_family_switch_count")
         ),
+    }
+    return payload if any(value is not None for value in payload.values()) else None
+
+
+def _utilization_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | None:
+    payload = {
+        "peak_vram_allocated_fraction": _optional_float(metrics.get("peak_vram_allocated_fraction")),
+        "peak_vram_reserved_fraction": _optional_float(metrics.get("peak_vram_reserved_fraction")),
+        "non_train_overhead_fraction": _optional_float(metrics.get("non_train_overhead_fraction")),
+        "achieved_train_tflops_per_second": _optional_float(
+            metrics.get("achieved_train_tflops_per_second")
+        ),
+        "theoretical_peak_tflops_per_second": _optional_float(
+            metrics.get("theoretical_peak_tflops_per_second")
+        ),
+        "compute_utilization_fraction": _optional_float(metrics.get("compute_utilization_fraction")),
+        "theoretical_hbm_bandwidth_gbps": _optional_float(
+            metrics.get("theoretical_hbm_bandwidth_gbps")
+        ),
+        "roofline_knee_flops_per_byte": _optional_float(
+            metrics.get("roofline_knee_flops_per_byte")
+        ),
+        "peak_compute_basis": _optional_text(metrics.get("peak_compute_basis")),
     }
     return payload if any(value is not None for value in payload.values()) else None
 
@@ -194,11 +222,34 @@ def build_sweep_summary_payload(
                     metrics.get("estimated_family_switch_count")
                 ),
                 "peak_vram_reserved": _optional_int(metrics.get("peak_vram_reserved")),
+                "peak_vram_allocated_fraction": _optional_float(
+                    metrics.get("peak_vram_allocated_fraction")
+                ),
+                "peak_vram_reserved_fraction": _optional_float(
+                    metrics.get("peak_vram_reserved_fraction")
+                ),
                 "throughput_tokens_per_second": _optional_float(
                     metrics.get("throughput_tokens_per_second")
                 ),
+                "achieved_train_tflops_per_second": _optional_float(
+                    metrics.get("achieved_train_tflops_per_second")
+                ),
+                "theoretical_peak_tflops_per_second": _optional_float(
+                    metrics.get("theoretical_peak_tflops_per_second")
+                ),
+                "compute_utilization_fraction": _optional_float(
+                    metrics.get("compute_utilization_fraction")
+                ),
+                "theoretical_hbm_bandwidth_gbps": _optional_float(
+                    metrics.get("theoretical_hbm_bandwidth_gbps")
+                ),
+                "roofline_knee_flops_per_byte": _optional_float(
+                    metrics.get("roofline_knee_flops_per_byte")
+                ),
+                "peak_compute_basis": _optional_text(metrics.get("peak_compute_basis")),
                 "tokens_per_step": _optional_float(metrics.get("tokens_per_step")),
                 "runtime_summary": _runtime_summary_excerpt(metrics),
+                "utilization_summary": _utilization_summary_excerpt(metrics),
                 "regime_budget": _regime_budget_excerpt(metrics),
             }
         )
