@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` training keeps the TF-RD-010 medium corpus
+  pinned while dataset generation moves to a separate TF-RD-010 balanced
+  paired row/feature latent-target dagzoo recipe built from H100 large-shape
+  settings. The promoted workstation profile keeps `grad_accum_steps=4`,
+  reduces signature-family churn with four
+  optimizer-step family blocks, and disables periodic `step_*.pt` checkpoint
+  snapshots while preserving final/latest checkpoints. Historical TF-RD-026 row
+  configs remain pinned to the prior snapshot cadence for reproducibility.
 - User-facing note: `grid_sandwich` now exposes TF-RD-026 broad-ML
   architecture gates for opt-in performance sweeps: `grid_residual_mode`,
   `grid_attention_mode`, `grid_ffn_mode`, `grid_recurrence_steps`, and

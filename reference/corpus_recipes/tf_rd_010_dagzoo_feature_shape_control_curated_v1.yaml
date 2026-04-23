@@ -1,0 +1,197 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_010_dagzoo_feature_shape_control_curated_v1
+kind: dagzoo_python_generated
+description: TF-RD-010 balanced latent-target control front retargeted to paired
+  row and feature shapes for separate corpus materialization before training.
+surface_label: tf_rd_010_dagzoo_feature_shape_control
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: accepted_only
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_010_dagzoo_feature_shape_control
+  comparator_role: control
+  benchmark_family: tf_rd_010
+  task_grid: paired_feature_shape_rows_features_classes_v1
+  corpus_recipe_version: feature_shape_v1
+  synthetic_epoch_regime: feature_shape_73728_records_5000x1x4
+  balanced_front_shape: paired_cell_budget_rows_features_v1
+  manifest_record_count: 73728
+  per_invocation_num_datasets: 512
+  target_derivation: tabiclv2_latent_node
+generator:
+  module: tab_foundry.data.corpus_generators.tf_rd_010_latent_target
+  callable: build_balanced_feature_shape_recipe
+  inputs:
+    base_config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+    num_datasets: 512
+    filter_max_attempts: 256
+  fingerprint: 7debf2feaacc
+review_summary:
+  grid_family: paired_feature_shape_rows_features_classes_v1
+  config_refs:
+  - configs/benchmark_cuda_h100_large_shape.yaml
+  invocation_count: 144
+  manifest_record_count: 73728
+  shape_pair_count: 16
+  shape_pairs:
+  - cell_budget_label: 16k_cells
+    row_total: 128
+    n_train: 96
+    n_test: 32
+    feature_count: 128
+    cell_count: 16384
+    graph_nodes_min: 8
+    graph_nodes_max: 64
+  - cell_budget_label: 16k_cells
+    row_total: 256
+    n_train: 192
+    n_test: 64
+    feature_count: 64
+    cell_count: 16384
+    graph_nodes_min: 4
+    graph_nodes_max: 64
+  - cell_budget_label: 16k_cells
+    row_total: 512
+    n_train: 384
+    n_test: 128
+    feature_count: 32
+    cell_count: 16384
+    graph_nodes_min: 4
+    graph_nodes_max: 32
+  - cell_budget_label: 16k_cells
+    row_total: 1024
+    n_train: 768
+    n_test: 256
+    feature_count: 16
+    cell_count: 16384
+    graph_nodes_min: 4
+    graph_nodes_max: 16
+  - cell_budget_label: 32k_cells
+    row_total: 128
+    n_train: 96
+    n_test: 32
+    feature_count: 256
+    cell_count: 32768
+    graph_nodes_min: 8
+    graph_nodes_max: 96
+  - cell_budget_label: 32k_cells
+    row_total: 256
+    n_train: 192
+    n_test: 64
+    feature_count: 128
+    cell_count: 32768
+    graph_nodes_min: 8
+    graph_nodes_max: 64
+  - cell_budget_label: 32k_cells
+    row_total: 512
+    n_train: 384
+    n_test: 128
+    feature_count: 64
+    cell_count: 32768
+    graph_nodes_min: 4
+    graph_nodes_max: 64
+  - cell_budget_label: 32k_cells
+    row_total: 1024
+    n_train: 768
+    n_test: 256
+    feature_count: 32
+    cell_count: 32768
+    graph_nodes_min: 4
+    graph_nodes_max: 32
+  - cell_budget_label: 65k_cells
+    row_total: 256
+    n_train: 192
+    n_test: 64
+    feature_count: 256
+    cell_count: 65536
+    graph_nodes_min: 8
+    graph_nodes_max: 96
+  - cell_budget_label: 65k_cells
+    row_total: 512
+    n_train: 384
+    n_test: 128
+    feature_count: 128
+    cell_count: 65536
+    graph_nodes_min: 8
+    graph_nodes_max: 64
+  - cell_budget_label: 65k_cells
+    row_total: 1024
+    n_train: 768
+    n_test: 256
+    feature_count: 64
+    cell_count: 65536
+    graph_nodes_min: 4
+    graph_nodes_max: 64
+  - cell_budget_label: 65k_cells
+    row_total: 2048
+    n_train: 1536
+    n_test: 512
+    feature_count: 32
+    cell_count: 65536
+    graph_nodes_min: 4
+    graph_nodes_max: 32
+  - cell_budget_label: 131k_cells
+    row_total: 512
+    n_train: 384
+    n_test: 128
+    feature_count: 256
+    cell_count: 131072
+    graph_nodes_min: 8
+    graph_nodes_max: 96
+  - cell_budget_label: 131k_cells
+    row_total: 1024
+    n_train: 768
+    n_test: 256
+    feature_count: 128
+    cell_count: 131072
+    graph_nodes_min: 8
+    graph_nodes_max: 64
+  - cell_budget_label: 131k_cells
+    row_total: 2048
+    n_train: 1536
+    n_test: 512
+    feature_count: 64
+    cell_count: 131072
+    graph_nodes_min: 4
+    graph_nodes_max: 64
+  - cell_budget_label: 131k_cells
+    row_total: 4096
+    n_train: 3072
+    n_test: 1024
+    feature_count: 32
+    cell_count: 131072
+    graph_nodes_min: 4
+    graph_nodes_max: 32
+  row_totals:
+  - 128
+  - 256
+  - 512
+  - 1024
+  - 2048
+  - 4096
+  feature_counts:
+  - 16
+  - 32
+  - 64
+  - 128
+  - 256
+  cell_budget_labels:
+  - 16k_cells
+  - 32k_cells
+  - 65k_cells
+  - 131k_cells
+  class_counts:
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  num_datasets_per_invocation: 512
+  missingness: null
+  target_derivation: tabiclv2_latent_node
