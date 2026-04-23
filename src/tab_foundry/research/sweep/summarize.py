@@ -126,6 +126,21 @@ def _utilization_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] |
     return payload if any(value is not None for value in payload.values()) else None
 
 
+def _bottleneck_summary_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | None:
+    payload = {
+        "dominant_bucket": _optional_text(metrics.get("dominant_bottleneck_bucket")),
+        "host_pipeline_fraction": _optional_float(metrics.get("host_pipeline_fraction")),
+        "h2d_transfer_fraction": _optional_float(metrics.get("h2d_transfer_fraction")),
+        "forward_backward_fraction": _optional_float(metrics.get("forward_backward_fraction")),
+        "optimizer_fraction": _optional_float(metrics.get("optimizer_fraction")),
+        "checkpoint_fraction": _optional_float(metrics.get("checkpoint_fraction")),
+        "diagnostic_overhead_fraction": _optional_float(
+            metrics.get("diagnostic_overhead_fraction")
+        ),
+    }
+    return payload if any(value is not None for value in payload.values()) else None
+
+
 def _regime_budget_excerpt(metrics: Mapping[str, Any]) -> dict[str, Any] | None:
     payload = {
         "tokens_per_step": _optional_float(metrics.get("tokens_per_step")),
@@ -247,9 +262,24 @@ def build_sweep_summary_payload(
                     metrics.get("roofline_knee_flops_per_byte")
                 ),
                 "peak_compute_basis": _optional_text(metrics.get("peak_compute_basis")),
+                "dominant_bottleneck_bucket": _optional_text(
+                    metrics.get("dominant_bottleneck_bucket")
+                ),
+                "host_pipeline_fraction": _optional_float(
+                    metrics.get("host_pipeline_fraction")
+                ),
+                "h2d_transfer_fraction": _optional_float(
+                    metrics.get("h2d_transfer_fraction")
+                ),
+                "forward_backward_fraction": _optional_float(
+                    metrics.get("forward_backward_fraction")
+                ),
+                "optimizer_fraction": _optional_float(metrics.get("optimizer_fraction")),
+                "checkpoint_fraction": _optional_float(metrics.get("checkpoint_fraction")),
                 "tokens_per_step": _optional_float(metrics.get("tokens_per_step")),
                 "runtime_summary": _runtime_summary_excerpt(metrics),
                 "utilization_summary": _utilization_summary_excerpt(metrics),
+                "bottleneck_summary": _bottleneck_summary_excerpt(metrics),
                 "regime_budget": _regime_budget_excerpt(metrics),
             }
         )

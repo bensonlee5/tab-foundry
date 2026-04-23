@@ -39,6 +39,12 @@ def _classification_queue_metrics() -> dict[str, float | int | str]:
         "achieved_train_tflops_per_second": 4.0,
         "compute_utilization_fraction": 4.0 / 312.0,
         "peak_compute_basis": "tensorcore_bf16_dense",
+        "dominant_bottleneck_bucket": "forward_backward",
+        "host_pipeline_fraction": 0.3,
+        "h2d_transfer_fraction": 0.01,
+        "forward_backward_fraction": 0.6,
+        "optimizer_fraction": 0.06,
+        "checkpoint_fraction": 0.0,
         "tokens_per_step": 512.0,
         "token_budget": 38400,
         "unique_task_budget": 96,
@@ -100,6 +106,9 @@ def test_result_card_text_marks_classification_bpc_metrics_as_legacy_diagnostics
     assert "- Achieved train TFLOP/s: `4.0000`" in text
     assert "- Compute utilization fraction: `0.0128`" in text
     assert "- Peak compute basis: `tensorcore_bf16_dense`" in text
+    assert "- Dominant bottleneck bucket: `forward_backward`" in text
+    assert "- Host pipeline fraction: `0.3000`" in text
+    assert "- Forward/backward fraction: `0.6000`" in text
     assert "- Token budget: `38400`" in text
     assert "- Curriculum id: `dagzoo_shape_aware_multi_invocation`" in text
 

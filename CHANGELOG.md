@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `tab-foundry dev run-inspect` now supports opt-in posthoc
+  compute-accounting derivation for completed runs and surfaces a neutral
+  bottleneck summary from existing step-timing buckets. Benchmark registration,
+  sweep summaries, and result cards carry the optional bottleneck payload, and
+  `tab-foundry train profile` now writes `torch_profiler/profile_summary.json`
+  with structured operator timing, memory-allocation, FLOP, and operator-class
+  rollups while leaving normal training runs unchanged.
 - User-facing note: training telemetry now adds zero-overhead runtime-utilization
   summaries for VRAM fractions, non-train overhead fraction, optional step-time
   bucket rollups, and benchmark-registry roofline-adjacent fields derived from

@@ -132,6 +132,12 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
                     "theoretical_hbm_bandwidth_gbps": 2039.0,
                     "roofline_knee_flops_per_byte": 153.0161844031388,
                     "peak_compute_basis": "tensorcore_bf16_dense",
+                    "dominant_bottleneck_bucket": "forward_backward",
+                    "host_pipeline_fraction": 0.3,
+                    "h2d_transfer_fraction": 0.01,
+                    "forward_backward_fraction": 0.6,
+                    "optimizer_fraction": 0.06,
+                    "checkpoint_fraction": 0.0,
                     "loader_effective_num_workers": 8,
                     "loader_effective_prefetch_factor": 4,
                     "loader_task_batch_cache_mode": "bounded_streaming",
@@ -211,6 +217,15 @@ def test_summarize_sweep_preserves_runtime_and_regime_budget_fields(monkeypatch)
         "theoretical_hbm_bandwidth_gbps": 2039.0,
         "roofline_knee_flops_per_byte": 153.0161844031388,
         "peak_compute_basis": "tensorcore_bf16_dense",
+    }
+    assert row["bottleneck_summary"] == {
+        "dominant_bucket": "forward_backward",
+        "host_pipeline_fraction": 0.3,
+        "h2d_transfer_fraction": 0.01,
+        "forward_backward_fraction": 0.6,
+        "optimizer_fraction": 0.06,
+        "checkpoint_fraction": 0.0,
+        "diagnostic_overhead_fraction": None,
     }
     assert row["regime_budget"] == {
         "tokens_per_step": 512.0,

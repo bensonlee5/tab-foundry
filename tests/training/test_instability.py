@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from torch import nn
 
+from tab_foundry.training.bottlenecks import build_bottleneck_summary
 from tab_foundry.training.instability import (
     build_regime_budget_summary,
     build_runtime_summary,
@@ -169,6 +170,80 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
         "mean_seconds": pytest.approx(0.004),
         "fraction_of_profiled_step_time": pytest.approx(0.0051020408),
     }
+    bottleneck_summary = build_bottleneck_summary(
+        step_timing_summary=step_timing_summary,
+        utilization_summary={
+            "achieved_train_tflops_per_second": 4.0,
+            "theoretical_peak_tflops_per_second": 312.0,
+            "compute_utilization_fraction": 4.0 / 312.0,
+        },
+    )
+    assert bottleneck_summary == {
+        "profiled_step_count": 100,
+        "mean_profiled_step_seconds": pytest.approx(0.784),
+        "dominant_bucket": "forward_backward",
+        "ranked_step_time_buckets": [
+            {
+                "name": "forward_backward",
+                "mean_seconds": pytest.approx(0.5),
+                "fraction_of_profiled_step_time": pytest.approx(0.6377551020),
+            },
+            {
+                "name": "data_wait",
+                "mean_seconds": pytest.approx(0.1),
+                "fraction_of_profiled_step_time": pytest.approx(0.1275510204),
+            },
+            {
+                "name": "optimizer",
+                "mean_seconds": pytest.approx(0.08),
+                "fraction_of_profiled_step_time": pytest.approx(0.1020408163),
+            },
+            {
+                "name": "batch_diagnostics",
+                "mean_seconds": pytest.approx(0.05),
+                "fraction_of_profiled_step_time": pytest.approx(0.0637755102),
+            },
+            {
+                "name": "grad_diagnostics",
+                "mean_seconds": pytest.approx(0.03),
+                "fraction_of_profiled_step_time": pytest.approx(0.0382653061),
+            },
+            {
+                "name": "h2d_transfer",
+                "mean_seconds": pytest.approx(0.02),
+                "fraction_of_profiled_step_time": pytest.approx(0.0255102041),
+            },
+            {
+                "name": "checkpoint",
+                "mean_seconds": pytest.approx(0.004),
+                "fraction_of_profiled_step_time": pytest.approx(0.0051020408),
+            },
+            {
+                "name": "activation_trace",
+                "mean_seconds": pytest.approx(0.0),
+                "fraction_of_profiled_step_time": pytest.approx(0.0),
+            },
+        ],
+        "host_pipeline_fraction": pytest.approx(0.1913265306),
+        "h2d_transfer_fraction": pytest.approx(0.0255102041),
+        "forward_backward_fraction": pytest.approx(0.6377551020),
+        "optimizer_fraction": pytest.approx(0.1020408163),
+        "checkpoint_fraction": pytest.approx(0.0051020408),
+        "diagnostic_overhead_fraction": pytest.approx(0.0382653061),
+        "achieved_train_tflops_per_second": 4.0,
+        "theoretical_peak_tflops_per_second": 312.0,
+        "compute_utilization_fraction": pytest.approx(4.0 / 312.0),
+    }
+
+
+def test_build_bottleneck_summary_stays_absent_without_step_timing() -> None:
+    assert (
+        build_bottleneck_summary(
+            step_timing_summary=None,
+            utilization_summary={"compute_utilization_fraction": 0.25},
+        )
+        is None
+    )
 
 
 def test_build_training_telemetry_uses_sandwich_stage_activations_for_upper_blocks(

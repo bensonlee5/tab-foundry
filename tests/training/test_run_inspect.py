@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from click.testing import CliRunner
 import pytest
 
+import tab_foundry.cli as cli_module
+import tab_foundry.training.posthoc_accounting as posthoc_accounting
 from tab_foundry.cli.dev import render_run_inspect_text
 from tab_foundry.training.health import health_check, run_inspect
 from tab_foundry.training.instability import build_training_telemetry
@@ -136,6 +139,22 @@ def _gradient_records(*, activation_shape: str = "staged") -> list[dict[str, obj
                 "activation_norms": activation_norms,
             }
         )
+    return records
+
+
+def _timed_gradient_records() -> list[dict[str, object]]:
+    records = _gradient_records()
+    for record in records:
+        record["timing_seconds"] = {
+            "data_wait": 0.2,
+            "batch_diagnostics": 0.1,
+            "h2d_transfer": 0.01,
+            "forward_backward": 0.5,
+            "activation_trace": 0.0,
+            "grad_diagnostics": 0.02,
+            "optimizer": 0.05,
+            "checkpoint": 0.0,
+        }
     return records
 
 
@@ -281,6 +300,121 @@ def test_run_inspect_reports_health_surface_labels_and_benchmark_metadata(tmp_pa
     assert "\"hardware_profile_id\": \"a100_80gb\"" in rendered
     assert "regime_budget=" in rendered
     assert "\"token_budget\": 38400" in rendered
+
+
+def test_run_inspect_derives_posthoc_compute_and_bottleneck_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "profiled_run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    history_records = _history_records()
+    gradient_records = _timed_gradient_records()
+    _write_jsonl(run_dir / "train_history.jsonl", history_records)
+    _write_jsonl(run_dir / "gradient_history.jsonl", gradient_records)
+    training_surface_record = _training_surface_record()
+    (run_dir / "training_surface_record.json").write_text(
+        json.dumps(training_surface_record, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    telemetry = build_training_telemetry(
+        run_dir=run_dir,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=history_records,
+        gradient_records=gradient_records,
+        runtime_summary=_runtime_summary(),
+        hardware_summary=_hardware_summary(),
+        regime_budget=_regime_budget(),
+        training_surface_record=training_surface_record,
+    )
+    telemetry_path = run_dir / "telemetry.json"
+    telemetry_path.write_text(
+        json.dumps(telemetry, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    original_telemetry = telemetry_path.read_text(encoding="utf-8")
+
+    monkeypatch.setattr(
+        posthoc_accounting,
+        "derive_compute_accounting_for_run",
+        lambda *_args, **_kwargs: {"train_flops_per_token": 625_000_000.0},
+    )
+
+    plain_payload = run_inspect(run_dir)
+    payload = run_inspect(run_dir, derive_compute_accounting=True)
+
+    assert plain_payload["compute_accounting"] is None
+    assert plain_payload["utilization_summary"]["achieved_train_tflops_per_second"] is None
+    assert payload["compute_accounting"] == {"train_flops_per_token": 625_000_000.0}
+    assert payload["utilization_summary"]["achieved_train_tflops_per_second"] == pytest.approx(4.0)
+    assert payload["utilization_summary"]["compute_utilization_fraction"] == pytest.approx(4.0 / 312.0)
+    assert payload["bottleneck_summary"]["dominant_bucket"] == "forward_backward"
+    assert payload["bottleneck_summary"]["host_pipeline_fraction"] == pytest.approx(0.3 / 0.88)
+    assert payload["bottleneck_summary"]["h2d_transfer_fraction"] == pytest.approx(0.01 / 0.88)
+    assert payload["bottleneck_summary"]["compute_utilization_fraction"] == pytest.approx(4.0 / 312.0)
+    assert telemetry_path.read_text(encoding="utf-8") == original_telemetry
+
+    rendered = render_run_inspect_text(payload)
+    assert "bottleneck_summary=" in rendered
+    assert "compute_accounting=" in rendered
+
+
+def test_run_inspect_cli_derives_compute_accounting(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "cli_profiled_run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    history_records = _history_records()
+    gradient_records = _timed_gradient_records()
+    _write_jsonl(run_dir / "train_history.jsonl", history_records)
+    _write_jsonl(run_dir / "gradient_history.jsonl", gradient_records)
+    training_surface_record = _training_surface_record()
+    (run_dir / "training_surface_record.json").write_text(
+        json.dumps(training_surface_record, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    telemetry = build_training_telemetry(
+        run_dir=run_dir,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=history_records,
+        gradient_records=gradient_records,
+        runtime_summary=_runtime_summary(),
+        hardware_summary=_hardware_summary(),
+        regime_budget=_regime_budget(),
+        training_surface_record=training_surface_record,
+    )
+    (run_dir / "telemetry.json").write_text(
+        json.dumps(telemetry, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        posthoc_accounting,
+        "derive_compute_accounting_for_run",
+        lambda *_args, **_kwargs: {"train_flops_per_token": 625_000_000.0},
+    )
+
+    result = CliRunner().invoke(
+        cli_module.cli,
+        [
+            "dev",
+            "run-inspect",
+            "--run-dir",
+            str(run_dir),
+            "--derive-compute-accounting",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["compute_accounting"] == {"train_flops_per_token": 625_000_000.0}
+    assert payload["utilization_summary"]["achieved_train_tflops_per_second"] == pytest.approx(4.0)
+    assert payload["bottleneck_summary"]["forward_backward_fraction"] == pytest.approx(0.5 / 0.88)
 
 
 def test_run_inspect_keeps_partial_runs_inspectable_when_health_is_unavailable(tmp_path: Path) -> None:

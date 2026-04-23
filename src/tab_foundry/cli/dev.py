@@ -411,6 +411,14 @@ def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
     utilization_summary = payload.get("utilization_summary")
     if isinstance(utilization_summary, Mapping):
         lines.append(f"utilization_summary={_format_jsonable(dict(utilization_summary))}")
+    bottleneck_summary = payload.get("bottleneck_summary")
+    if isinstance(bottleneck_summary, Mapping):
+        lines.append(f"bottleneck_summary={_format_jsonable(dict(bottleneck_summary))}")
+    compute_accounting = payload.get("compute_accounting")
+    if isinstance(compute_accounting, Mapping):
+        lines.append(f"compute_accounting={_format_jsonable(dict(compute_accounting))}")
+    elif payload.get("compute_accounting_error") is not None:
+        lines.append(f"compute_accounting=unavailable: {payload['compute_accounting_error']}")
     benchmark_timing = payload.get("benchmark_timing")
     if isinstance(benchmark_timing, Mapping):
         lines.append(f"benchmark_timing={_format_jsonable(dict(benchmark_timing))}")
@@ -518,8 +526,16 @@ def _run_health_check(*, run_dir: Path, json_mode: bool) -> int:
     return 0
 
 
-def _run_run_inspect(*, run_dir: Path, json_mode: bool) -> int:
-    payload = run_inspect(run_dir)
+def _run_run_inspect(
+    *,
+    run_dir: Path,
+    json_mode: bool,
+    derive_compute_accounting: bool,
+) -> int:
+    payload = run_inspect(
+        run_dir,
+        derive_compute_accounting=derive_compute_accounting,
+    )
     emit_payload(payload, json_mode=json_mode, render_text=render_run_inspect_text)
     return 0
 
@@ -675,9 +691,22 @@ def HEALTH_CHECK_COMMAND(run_dir: Path, json_mode: bool) -> int:
     help="Inspect one run directory, its local artifacts, and any available benchmark metadata",
 )
 @click.option("--run-dir", required=True, type=click.Path(path_type=Path), help="Run directory to inspect")
+@click.option(
+    "--derive-compute-accounting",
+    is_flag=True,
+    help="Posthoc-derive compute accounting and enriched utilization from the saved checkpoint.",
+)
 @json_output_option
-def RUN_INSPECT_COMMAND(run_dir: Path, json_mode: bool) -> int:
-    return _run_run_inspect(run_dir=run_dir, json_mode=json_mode)
+def RUN_INSPECT_COMMAND(
+    run_dir: Path,
+    derive_compute_accounting: bool,
+    json_mode: bool,
+) -> int:
+    return _run_run_inspect(
+        run_dir=run_dir,
+        json_mode=json_mode,
+        derive_compute_accounting=derive_compute_accounting,
+    )
 
 
 @click.command(

@@ -13,7 +13,6 @@ from tab_foundry.bench.openml_benchmark import (
 )
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import (
-    compute_accounting_from_model_spec,
     model_surface_payload,
     parameter_accounting_from_model_spec,
 )
@@ -26,6 +25,11 @@ from tab_foundry.training.instability import (
     grad_norm_summary_from_values,
     objective_metric_for_task,
     telemetry_path,
+)
+from tab_foundry.training.bottlenecks import build_bottleneck_summary
+from tab_foundry.training.posthoc_accounting import (
+    compute_accounting_from_checkpoint_config,
+    training_shape_summary_from_telemetry as _shared_training_shape_summary_from_telemetry,
 )
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 from tab_foundry.training.surface import write_training_surface_record
@@ -285,12 +289,7 @@ def _runtime_summary_from_telemetry(
 def _training_shape_summary_from_telemetry(
     telemetry_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
-    if not isinstance(telemetry_payload, Mapping):
-        return None
-    summary = _normalized_optional_mapping(telemetry_payload.get("training_shape_summary"))
-    if summary is None:
-        return None
-    return summary or None
+    return _shared_training_shape_summary_from_telemetry(telemetry_payload)
 
 
 def _hardware_summary_from_telemetry(
@@ -334,6 +333,31 @@ def _utilization_summary_from_artifacts(
     if payload is not None:
         return payload
     return _utilization_summary_from_telemetry(telemetry_payload)
+
+
+def _bottleneck_summary_from_artifacts(
+    *,
+    telemetry_payload: Mapping[str, Any] | None,
+    utilization_summary: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    diagnostics = (
+        telemetry_payload.get("diagnostics")
+        if isinstance(telemetry_payload, Mapping)
+        else None
+    )
+    step_timing_summary = (
+        diagnostics.get("step_timing_summary")
+        if isinstance(diagnostics, Mapping)
+        else None
+    )
+    return build_bottleneck_summary(
+        step_timing_summary=(
+            cast(Mapping[str, Any], step_timing_summary)
+            if isinstance(step_timing_summary, Mapping)
+            else None
+        ),
+        utilization_summary=utilization_summary,
+    )
 
 
 def _regime_budget_from_artifacts(
@@ -424,22 +448,11 @@ def _compute_accounting_from_cfg(
     state_dict: dict[str, Any] | None,
     telemetry_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
-    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
-    training_shape_summary = _training_shape_summary_from_telemetry(telemetry_payload)
-    regime_budget = _normalized_optional_mapping(
-        None if telemetry_payload is None else telemetry_payload.get("regime_budget")
-    )
-    if regime_budget is None:
-        return None
-    tokens_seen_raw = regime_budget.get("tokens_seen")
-    tokens_per_step_raw = regime_budget.get("tokens_per_step")
-    tokens_seen = None if tokens_seen_raw is None else int(tokens_seen_raw)
-    tokens_per_step = None if tokens_per_step_raw is None else float(tokens_per_step_raw)
-    return compute_accounting_from_model_spec(
-        model_spec,
-        training_shape_summary=training_shape_summary,
-        tokens_seen=tokens_seen,
-        tokens_per_step=tokens_per_step,
+    return compute_accounting_from_checkpoint_config(
+        raw_cfg,
+        state_dict=state_dict,
+        telemetry_payload=telemetry_payload,
+        strict=True,
     )
 
 

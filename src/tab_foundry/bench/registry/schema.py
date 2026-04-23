@@ -197,6 +197,28 @@ class _UtilizationSummaryPayload(_RegistryPayloadModel):
     peak_compute_basis: StrictStr | None = None
 
 
+class _BottleneckBucketPayload(_RegistryPayloadModel):
+    name: StrictStr
+    mean_seconds: FiniteFloat | None = None
+    fraction_of_profiled_step_time: FiniteFloat | None = None
+
+
+class _BottleneckSummaryPayload(_RegistryPayloadModel):
+    profiled_step_count: StrictInt | None = None
+    mean_profiled_step_seconds: FiniteFloat | None = None
+    dominant_bucket: StrictStr | None = None
+    ranked_step_time_buckets: list[_BottleneckBucketPayload] | None = None
+    host_pipeline_fraction: FiniteFloat | None = None
+    h2d_transfer_fraction: FiniteFloat | None = None
+    forward_backward_fraction: FiniteFloat | None = None
+    optimizer_fraction: FiniteFloat | None = None
+    checkpoint_fraction: FiniteFloat | None = None
+    diagnostic_overhead_fraction: FiniteFloat | None = None
+    achieved_train_tflops_per_second: FiniteFloat | None = None
+    theoretical_peak_tflops_per_second: FiniteFloat | None = None
+    compute_utilization_fraction: FiniteFloat | None = None
+
+
 class _InferenceTimingPayload(_RegistryPayloadModel):
     fixture_id: StrictStr
     requested_device: StrictStr | None = None
@@ -320,6 +342,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
     utilization_summary: _UtilizationSummaryPayload | None = None
+    bottleneck_summary: _BottleneckSummaryPayload | None = None
     benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
     inference_timing: _InferenceTimingPayload | None = None
@@ -350,6 +373,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     runtime_summary: _RuntimeSummaryPayload | None = None
     utilization_summary: _UtilizationSummaryPayload | None = None
+    bottleneck_summary: _BottleneckSummaryPayload | None = None
     benchmark_timing: _BenchmarkTimingPayload | None = None
     hardware_summary: _HardwareSummaryPayload | None = None
     inference_timing: _InferenceTimingPayload | None = None

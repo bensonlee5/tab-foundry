@@ -117,6 +117,11 @@ def runtime_and_regime_metrics(
         telemetry_payload=telemetry_payload,
         key="utilization_summary",
     )
+    bottleneck_summary = _runtime_and_regime_source(
+        run_entry=run_entry,
+        telemetry_payload=telemetry_payload,
+        key="bottleneck_summary",
+    )
     metrics: dict[str, Any] = {}
     if runtime_summary is not None:
         for key in ("peak_vram_allocated", "peak_vram_reserved"):
@@ -192,6 +197,21 @@ def runtime_and_regime_metrics(
         peak_compute_basis = optional_text(utilization_summary, "peak_compute_basis")
         if peak_compute_basis is not None:
             metrics["peak_compute_basis"] = peak_compute_basis
+    if bottleneck_summary is not None:
+        for key in (
+            "host_pipeline_fraction",
+            "h2d_transfer_fraction",
+            "forward_backward_fraction",
+            "optimizer_fraction",
+            "checkpoint_fraction",
+            "diagnostic_overhead_fraction",
+        ):
+            metric_value = optional_metric(bottleneck_summary, key)
+            if metric_value is not None:
+                metrics[key] = metric_value
+        dominant_bucket = optional_text(bottleneck_summary, "dominant_bucket")
+        if dominant_bucket is not None:
+            metrics["dominant_bottleneck_bucket"] = dominant_bucket
     return metrics
 
 

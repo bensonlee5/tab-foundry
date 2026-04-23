@@ -298,6 +298,36 @@ def _runtime_and_regime_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
         value=queue_metrics.get("roofline_knee_flops_per_byte"),
     )
     append_scalar_line(lines, label="Peak compute basis", value=queue_metrics.get("peak_compute_basis"))
+    append_scalar_line(
+        lines,
+        label="Dominant bottleneck bucket",
+        value=queue_metrics.get("dominant_bottleneck_bucket"),
+    )
+    append_metric_line(
+        lines,
+        label="Host pipeline fraction",
+        value=queue_metrics.get("host_pipeline_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="H2D transfer fraction",
+        value=queue_metrics.get("h2d_transfer_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Forward/backward fraction",
+        value=queue_metrics.get("forward_backward_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Optimizer fraction",
+        value=queue_metrics.get("optimizer_fraction"),
+    )
+    append_metric_line(
+        lines,
+        label="Checkpoint fraction",
+        value=queue_metrics.get("checkpoint_fraction"),
+    )
     append_metric_line(lines, label="Tokens per step", value=queue_metrics.get("tokens_per_step"))
     append_scalar_line(lines, label="Token budget", value=queue_metrics.get("token_budget"))
     append_scalar_line(lines, label="Unique task budget", value=queue_metrics.get("unique_task_budget"))
