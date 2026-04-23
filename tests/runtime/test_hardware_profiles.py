@@ -56,6 +56,8 @@ def test_build_hardware_summary_reports_cpu_profile() -> None:
 def test_resolve_gpu_utilization_capability_reports_supported_bf16_gpu() -> None:
     capability = hardware_profiles.resolve_gpu_utilization_capability(
         gpu_class="a100",
+        raw_device_name="NVIDIA A100-SXM4-80GB",
+        hardware_profile_id="a100_80gb",
         mixed_precision="bf16",
     )
 
@@ -70,13 +72,25 @@ def test_resolve_gpu_utilization_capability_reports_supported_bf16_gpu() -> None
 def test_resolve_gpu_utilization_capability_rejects_unknown_or_unsupported_pairs() -> None:
     assert hardware_profiles.resolve_gpu_utilization_capability(
         gpu_class="cpu",
+        raw_device_name="cpu",
         mixed_precision="bf16",
     ) is None
     assert hardware_profiles.resolve_gpu_utilization_capability(
         gpu_class="a100",
+        raw_device_name="NVIDIA A100-SXM4-80GB",
         mixed_precision="no",
     ) is None
     assert hardware_profiles.resolve_gpu_utilization_capability(
         gpu_class="mystery_gpu",
+        raw_device_name="NVIDIA Mystery GPU",
+        mixed_precision="bf16",
+    ) is None
+
+
+def test_resolve_gpu_utilization_capability_rejects_ambiguous_h100_pcie() -> None:
+    assert hardware_profiles.resolve_gpu_utilization_capability(
+        gpu_class="h100",
+        raw_device_name="NVIDIA H100 PCIe",
+        hardware_profile_id="h100_80gb",
         mixed_precision="bf16",
     ) is None

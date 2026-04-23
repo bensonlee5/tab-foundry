@@ -1321,6 +1321,16 @@ def build_utilization_summary(
                 if hardware_payload.get("gpu_class") is None
                 else str(hardware_payload.get("gpu_class"))
             ),
+            raw_device_name=(
+                None
+                if hardware_payload.get("raw_device_name") is None
+                else str(hardware_payload.get("raw_device_name"))
+            ),
+            hardware_profile_id=(
+                None
+                if hardware_payload.get("hardware_profile_id") is None
+                else str(hardware_payload.get("hardware_profile_id"))
+            ),
             mixed_precision=_runtime_mixed_precision_mode(training_surface_record),
         )
 

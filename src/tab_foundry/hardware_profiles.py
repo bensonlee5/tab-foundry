@@ -27,6 +27,8 @@ _GPU_CLASS_PATTERNS: tuple[tuple[str, str], ...] = (
 _GPU_UTILIZATION_CAPABILITIES: dict[str, dict[str, Any]] = {
     "a100": {
         "theoretical_hbm_bandwidth_gbps": 2039.0,
+        "raw_name_required_all": ("a100", "sxm"),
+        "raw_name_rejected_any": ("pcie", "pci-e", "pci express"),
         "precisions": {
             "bf16": {
                 "theoretical_peak_tflops_per_second": 312.0,
@@ -40,6 +42,9 @@ _GPU_UTILIZATION_CAPABILITIES: dict[str, dict[str, Any]] = {
     },
     "h100": {
         "theoretical_hbm_bandwidth_gbps": 3350.0,
+        "raw_name_required_all": ("h100",),
+        "raw_name_required_any": ("sxm", "hbm3"),
+        "raw_name_rejected_any": ("pcie", "pci-e", "pci express", "nvl"),
         "precisions": {
             "bf16": {
                 "theoretical_peak_tflops_per_second": 989.0,
@@ -53,6 +58,9 @@ _GPU_UTILIZATION_CAPABILITIES: dict[str, dict[str, Any]] = {
     },
     "h200": {
         "theoretical_hbm_bandwidth_gbps": 4800.0,
+        "raw_name_required_all": ("h200",),
+        "raw_name_required_any": ("sxm", "hbm3e"),
+        "raw_name_rejected_any": ("pcie", "pci-e", "pci express"),
         "precisions": {
             "bf16": {
                 "theoretical_peak_tflops_per_second": 989.0,
@@ -149,9 +157,42 @@ def normalize_mixed_precision_mode(value: Any) -> str | None:
     return aliases.get(normalized, normalized)
 
 
+def _capability_matches_raw_device_name(
+    raw_capability: dict[str, Any],
+    *,
+    raw_device_name: str | None,
+) -> bool:
+    """Return whether a raw GPU name identifies the capability variant."""
+
+    if raw_device_name is None or not str(raw_device_name).strip():
+        return False
+    normalized_name = str(raw_device_name).strip().lower()
+    rejected_any = tuple(
+        str(value).strip().lower()
+        for value in raw_capability.get("raw_name_rejected_any", ())
+    )
+    if any(value and value in normalized_name for value in rejected_any):
+        return False
+    required_all = tuple(
+        str(value).strip().lower()
+        for value in raw_capability.get("raw_name_required_all", ())
+    )
+    if any(value and value not in normalized_name for value in required_all):
+        return False
+    required_any = tuple(
+        str(value).strip().lower()
+        for value in raw_capability.get("raw_name_required_any", ())
+    )
+    if required_any and not any(value and value in normalized_name for value in required_any):
+        return False
+    return True
+
+
 def resolve_gpu_utilization_capability(
     *,
     gpu_class: str | None,
+    raw_device_name: str | None = None,
+    hardware_profile_id: str | None = None,
     mixed_precision: Any,
 ) -> dict[str, Any] | None:
     """Return roofline-adjacent peak capability data for supported GPU/precision pairs."""
@@ -162,6 +203,8 @@ def resolve_gpu_utilization_capability(
         return None
     raw_capability = _GPU_UTILIZATION_CAPABILITIES.get(normalized_gpu_class)
     if raw_capability is None:
+        return None
+    if not _capability_matches_raw_device_name(raw_capability, raw_device_name=raw_device_name):
         return None
     raw_precisions = raw_capability.get("precisions")
     if not isinstance(raw_precisions, dict):

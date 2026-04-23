@@ -589,8 +589,10 @@ def test_build_utilization_summary_enriches_compute_utilization_from_compute_acc
         },
         hardware_summary={
             "device_type": "cuda",
+            "raw_device_name": "NVIDIA A100-SXM4-80GB",
             "gpu_class": "a100",
             "total_device_vram_bytes": 80 * 1024**3,
+            "hardware_profile_id": "a100_80gb",
         },
         training_surface_record={
             "runtime": {
@@ -612,4 +614,42 @@ def test_build_utilization_summary_enriches_compute_utilization_from_compute_acc
         "theoretical_hbm_bandwidth_gbps": 2039.0,
         "roofline_knee_flops_per_byte": pytest.approx(153.0161844031388),
         "peak_compute_basis": "tensorcore_bf16_dense",
+    }
+
+
+def test_build_utilization_summary_keeps_ambiguous_gpu_peaks_null() -> None:
+    utilization = build_utilization_summary(
+        runtime_summary={
+            "peak_vram_allocated": 40 * 1024**3,
+            "peak_vram_reserved": 50 * 1024**3,
+            "throughput_tokens_per_second": 160000.0,
+            "non_train_overhead_fraction": 0.2,
+        },
+        hardware_summary={
+            "device_type": "cuda",
+            "raw_device_name": "NVIDIA H100 PCIe",
+            "gpu_class": "h100",
+            "total_device_vram_bytes": 80 * 1024**3,
+            "hardware_profile_id": "h100_80gb",
+        },
+        training_surface_record={
+            "runtime": {
+                "mixed_precision": "bf16",
+            }
+        },
+        compute_accounting={
+            "train_flops_per_token": 2.5e7,
+        },
+    )
+
+    assert utilization == {
+        "peak_vram_allocated_fraction": pytest.approx(0.5),
+        "peak_vram_reserved_fraction": pytest.approx(0.625),
+        "non_train_overhead_fraction": 0.2,
+        "achieved_train_tflops_per_second": pytest.approx(4.0),
+        "theoretical_peak_tflops_per_second": None,
+        "compute_utilization_fraction": None,
+        "theoretical_hbm_bandwidth_gbps": None,
+        "roofline_knee_flops_per_byte": None,
+        "peak_compute_basis": None,
     }
