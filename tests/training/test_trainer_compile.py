@@ -77,6 +77,17 @@ class _FakeProfiler:
                     cuda_memory_usage=512,
                     flops=0.0,
                 ),
+                SimpleNamespace(
+                    key="ProfilerStep*",
+                    count=2,
+                    self_cpu_time_total=0.0,
+                    cpu_time_total=0.0,
+                    self_cuda_time_total=0.0,
+                    cuda_time_total=0.0,
+                    cpu_memory_usage=0,
+                    cuda_memory_usage=0,
+                    flops=0.0,
+                ),
             ]
         )
 
@@ -314,6 +325,7 @@ def test_train_profile_command_writes_structured_profiler_summary(
     assert (profile_dir / "key_averages.txt").read_text(encoding="utf-8") == "fake profiler table"
     payload = json.loads((profile_dir / "profile_summary.json").read_text(encoding="utf-8"))
     assert payload["schedule"]["expected_profiled_step_count"] == 2
+    assert payload["profiled_step_count"] == 2
     assert payload["operator_class_totals"]["compute"]["flops"] == 1024.0
     assert payload["operator_class_totals"]["memory_movement"]["cuda_memory_allocated_bytes"] == 512
     assert payload["top_operators"][0]["name"] == "aten::matmul"

@@ -103,6 +103,15 @@ def _operator_payload(event: Any) -> dict[str, Any]:
     }
 
 
+def _profiled_step_count(operators: Iterable[dict[str, Any]]) -> int | None:
+    profiled_steps = sum(
+        int(operator["count"])
+        for operator in operators
+        if str(operator["name"]).startswith("ProfilerStep")
+    )
+    return profiled_steps if profiled_steps > 0 else None
+
+
 def build_torch_profiler_summary(
     key_averages: Iterable[Any],
     *,
@@ -171,6 +180,7 @@ def build_torch_profiler_summary(
             "repeat": int(repeat),
             "expected_profiled_step_count": int(active) * int(repeat),
         },
+        "profiled_step_count": _profiled_step_count(operators),
         "totals": {
             "self_cpu_time_total_us": total_self_cpu_time_us,
             "self_cuda_time_total_us": total_self_cuda_time_us,
