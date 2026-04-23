@@ -268,6 +268,9 @@ runtime wiring.
 | `grid_ffn_mode` | `swiglu` | gated FFN path inside grid-core row and column mixers |
 | `grid_recurrence_steps` | `8` | total row/column grid-core applications |
 | `grid_recurrence_unique_layers` | `2` | two distinct grid-mixer layers, cycled four times |
+| `classification_logit_softcap` | `null` | disabled by default; TF-RD-027 tests tanh logit softcapping as an isolated stability mechanism |
+| `attention_qk_norm` | `false` | disabled by default; TF-RD-027 tests QK-normalized grid attention as an isolated stability mechanism |
+| `training.classification_z_loss_coeff` | `0.0` | disabled by default; TF-RD-027 tests the auxiliary classification z-loss as an isolated training mechanism |
 | `feature_type_conditioning` | `film` | feature-type modulation after the shared feature encoder |
 | `runtime.activation_checkpointing` | `false` | disabled for the current recurrent SwiGLU anchor because the checkpointed path trips a TorchDynamo tracing assertion |
 

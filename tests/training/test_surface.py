@@ -365,6 +365,8 @@ def test_build_training_surface_record_includes_grid_pre_mixer_depth_metadata(
     assert record["model"]["architecture"]["grid_ffn_mode"] == "gelu"
     assert record["model"]["architecture"]["grid_recurrence_steps"] is None
     assert record["model"]["architecture"]["grid_recurrence_unique_layers"] is None
+    assert record["model"]["architecture"]["classification_logit_softcap"] is None
+    assert record["model"]["architecture"]["attention_qk_norm"] is False
     assert record["model"]["architecture"]["grid_core_unique_layers"] == 2
 
 
@@ -757,6 +759,7 @@ def test_build_training_surface_record_includes_optional_training_surface(
             "training": {
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,
+                "classification_z_loss_coeff": 1.0e-4,
                 "overrides": {
                     "optimizer": {"min_lr": 4.0e-4},
                 },
@@ -782,6 +785,7 @@ def test_build_training_surface_record_includes_optional_training_surface(
 
     assert record["labels"]["training"] == "prior_linear_warmup_decay"
     assert record["training"]["apply_schedule"] is True
+    assert record["training"]["classification_z_loss_coeff"] == pytest.approx(1.0e-4)
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05

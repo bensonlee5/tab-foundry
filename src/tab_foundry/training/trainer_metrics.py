@@ -20,7 +20,7 @@ from tab_foundry.task_batching import move_batch, task_batch_diagnostics
 from tab_foundry.types import TaskBatch
 
 from .distributed import _global_mean_from_local
-from .losses import classification_loss, hierarchical_nll_loss
+from .losses import classification_loss, classification_z_loss, hierarchical_nll_loss
 
 _TASK_BATCH_TENSOR_DIMENSIONS = 3
 
@@ -35,6 +35,7 @@ def _compute_loss_and_metrics(
     batch: TaskBatch,
     *,
     task: str,
+    classification_z_loss_coeff: float = 0.0,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     if task != "classification":
         raise RuntimeError(
@@ -77,12 +78,23 @@ def _compute_loss_and_metrics(
         expected_num_classes=expected_num_classes,
         context="classification training/evaluation",
     )
+    z_loss_coeff = max(0.0, float(classification_z_loss_coeff))
 
     if output.logits is not None:
         logits = output.logits[:, :resolved_num_classes]
-        loss = classification_loss(logits, target)
+        ce_loss = classification_loss(logits, target)
+        z_loss = classification_z_loss(logits) if z_loss_coeff > 0.0 else None
+        loss = ce_loss if z_loss is None else ce_loss + (z_loss_coeff * z_loss)
         acc = (logits.argmax(dim=-1) == target).float().mean().item()
         cls_metrics = {"acc": float(acc)}
+        if z_loss is not None:
+            cls_metrics.update(
+                {
+                    "classification_ce_loss": float(ce_loss.detach().item()),
+                    "classification_z_loss": float(z_loss.detach().item()),
+                    "classification_z_loss_coeff": float(z_loss_coeff),
+                }
+            )
         if output.aux_metrics is not None:
             cls_metrics.update(output.aux_metrics)
         return loss, cls_metrics
@@ -106,19 +118,40 @@ def _compute_loss_and_metrics(
     if path_logits is None or path_targets is None:
         raise RuntimeError("classification training/evaluation missing path logits or targets")
     weighted_total: torch.Tensor | None = None
+    weighted_ce_total: torch.Tensor | None = None
+    weighted_z_total: torch.Tensor | None = None
     total_edges = 0
     for logits, targets, sample_count in zip(path_logits, path_targets, counts, strict=True):
         count_i = int(sample_count)
         if count_i <= 0:
             continue
-        term = classification_loss(logits, targets.to(torch.int64))
+        ce_term = classification_loss(logits, targets.to(torch.int64))
+        z_term = classification_z_loss(logits) if z_loss_coeff > 0.0 else None
+        term = ce_term if z_term is None else ce_term + (z_loss_coeff * z_term)
         contrib = term * float(count_i)
         weighted_total = contrib if weighted_total is None else weighted_total + contrib
+        ce_contrib = ce_term * float(count_i)
+        weighted_ce_total = ce_contrib if weighted_ce_total is None else weighted_ce_total + ce_contrib
+        if z_term is not None:
+            z_contrib = z_term * float(count_i)
+            weighted_z_total = z_contrib if weighted_z_total is None else weighted_z_total + z_contrib
         total_edges += count_i
     if weighted_total is None or total_edges <= 0 or n_test <= 0:
         raise RuntimeError("path-based many-class output has no valid terms")
     loss = weighted_total / float(n_test)
     path_metrics: dict[str, float] = {}
+    if weighted_z_total is not None and weighted_ce_total is not None:
+        path_metrics.update(
+            {
+                "classification_ce_loss": float(
+                    (weighted_ce_total / float(n_test)).detach().item()
+                ),
+                "classification_z_loss": float(
+                    (weighted_z_total / float(n_test)).detach().item()
+                ),
+                "classification_z_loss_coeff": float(z_loss_coeff),
+            }
+        )
     if output.aux_metrics is not None:
         path_metrics.update(output.aux_metrics)
     return loss, path_metrics
@@ -205,4 +238,7 @@ def _expected_metric_keys(task: str) -> set[str]:
         "many_class_nodes_visited",
         "many_class_avg_path_depth",
         "many_class_empty_nodes",
+        "classification_ce_loss",
+        "classification_z_loss",
+        "classification_z_loss_coeff",
     }

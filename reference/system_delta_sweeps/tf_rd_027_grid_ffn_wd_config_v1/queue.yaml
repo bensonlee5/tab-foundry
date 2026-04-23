@@ -1,0 +1,283 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_027_grid_ffn_wd_config_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_027_grid_ffn_gelu4_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_gelu4_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_gelu4_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: gelu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 SwiGLU
+    8:3 row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor
+    FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry
+    GELU 4:1 as the FFN winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_01_delta_tf_rd_027_grid_ffn_gelu4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 3.4681114985864707
+    best_roc_auc: 0.8109918094894001
+    best_log_loss: 0.4254928909191396
+    best_brier_score: 0.2593929678080482
+    final_roc_auc: 0.8109918094894001
+    final_log_loss: 0.4254928909191396
+    final_brier_score: 0.2593929678080482
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.007316160972462404
+    delta_final_brier_score: 0.004251666597777648
+    delta_final_roc_auc: -0.002262975589991334
+    row_pool_final_window_mean_grad_norm: 0.05697507245058772
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_027_grid_ffn_swiglu8_3_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_swiglu8_3_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_swiglu8_3_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: swiglu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the TF-RD-027 GELU 4:1
+    row by final_log_loss_at_matched_regime_budget.
+  - If both 2500-step FFN rows lose to the existing anchor, keep the current anchor
+    FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor, so do not carry
+    SwiGLU 8:3 as the FFN winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_02_delta_tf_rd_027_grid_ffn_swiglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.9042503466619065
+    best_roc_auc: 0.8109634480933599
+    best_log_loss: 0.4261833356259272
+    best_brier_score: 0.2593253686115299
+    final_roc_auc: 0.8109634480933599
+    final_log_loss: 0.4261833356259272
+    final_brier_score: 0.2593253686115299
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.00800660567924999
+    delta_final_brier_score: 0.004184067401259317
+    delta_final_roc_auc: -0.002291336986031567
+    row_pool_final_window_mean_grad_norm: 0.05361365551164578
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_027_grid_weight_decay_0_1_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_weight_decay_0_1_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_weight_decay_0_1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model: {}
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      optimizer:
+        weight_decay: 0.1
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Use the current TF-RD-026 row 10 anchor FFN surface because GELU 4:1, SwiGLU 8:3,
+    and GEGLU 8:3 all lost to the locked anchor.
+  - Carry the better of weight decay 0.01 and 0.1 into the implementation-backed stability
+    sweep.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_03_delta_tf_rd_027_grid_weight_decay_0_1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute as the TF-RD-027 weight-decay follow-up on the current anchor
+    FFN surface; compare 0.1 against the carried 0.01 anchor.
+  notes:
+  - Expanded FFN variants are not carried because GELU 4:1, SwiGLU 8:3, and GEGLU
+    8:3 all lost to the locked TF-RD-026 row 10 anchor by matched-budget final log
+    loss.
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_03_delta_tf_rd_027_grid_weight_decay_0_1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.3318485692182183
+    best_roc_auc: 0.8077334954792127
+    best_log_loss: 0.42635163265314335
+    best_brier_score: 0.259533285691761
+    final_roc_auc: 0.8077334954792127
+    final_log_loss: 0.42635163265314335
+    final_brier_score: 0.259533285691761
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.008174902706466147
+    delta_final_brier_score: 0.0043919844814904185
+    delta_final_roc_auc: -0.005521289600178725
+    row_pool_final_window_mean_grad_norm: 0.055940786201955583
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_027_grid_ffn_geglu8_3_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_ffn_geglu8_3_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_ffn_wd_config_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_ffn_geglu8_3_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_ffn_mode: geglu
+    sandwich_ff_expansion: 4
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare against the existing TF-RD-026 row 10 anchor and the completed TF-RD-027
+    GELU 4:1 and SwiGLU 8:3 rows by final_log_loss_at_matched_regime_budget.
+  - If GEGLU also loses to the existing anchor, keep the current anchor FFN.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; loses to the locked TF-RD-026 row 10 anchor and both completed
+    TF-RD-027 FFN rows, so do not carry GEGLU 8:3 as the FFN winner.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_027_grid_ffn_wd_config_v1_04_delta_tf_rd_027_grid_ffn_geglu8_3_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.598605431776316
+    best_roc_auc: 0.8087982990994832
+    best_log_loss: 0.42684463673916934
+    best_brier_score: 0.25968033165434307
+    final_roc_auc: 0.8087982990994832
+    final_log_loss: 0.42684463673916934
+    final_brier_score: 0.25968033165434307
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.00866790679249213
+    delta_final_brier_score: 0.0045390304440725004
+    delta_final_roc_auc: -0.00445648597990822
+    row_pool_final_window_mean_grad_norm: 0.05391942481845697
+  parent_delta_ref: null

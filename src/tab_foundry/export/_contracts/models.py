@@ -122,10 +122,19 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     grid_ffn_mode: StrictStr | None = None
     grid_recurrence_steps: StrictInt | None = None
     grid_recurrence_unique_layers: StrictInt | None = None
+    classification_logit_softcap: FiniteFloat | None = None
+    attention_qk_norm: StrictBool | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
     pre_encoder_clip: FiniteFloat | None = None
+
+    @field_validator("classification_logit_softcap")
+    @classmethod
+    def _validate_classification_logit_softcap(cls, value: float | None) -> float | None:
+        if value is not None and float(value) <= 0.0:
+            raise ValueError("classification_logit_softcap must be null or > 0")
+        return value
 
 
 class _InferenceConfigPayload(_ContractsPayloadModel):
@@ -368,6 +377,8 @@ class ExportModelSpec:
     grid_ffn_mode: str
     grid_recurrence_steps: int | None
     grid_recurrence_unique_layers: int | None
+    classification_logit_softcap: float | None
+    attention_qk_norm: bool
 
     @classmethod
     def from_build_spec(
@@ -435,6 +446,10 @@ class ExportModelSpec:
             grid_recurrence_unique_layers=None
             if spec.grid_recurrence_unique_layers is None
             else int(spec.grid_recurrence_unique_layers),
+            classification_logit_softcap=None
+            if spec.classification_logit_softcap is None
+            else float(spec.classification_logit_softcap),
+            attention_qk_norm=bool(spec.attention_qk_norm),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -495,6 +510,8 @@ class ExportModelSpec:
                 "grid_ffn_mode": self.grid_ffn_mode,
                 "grid_recurrence_steps": self.grid_recurrence_steps,
                 "grid_recurrence_unique_layers": self.grid_recurrence_unique_layers,
+                "classification_logit_softcap": self.classification_logit_softcap,
+                "attention_qk_norm": self.attention_qk_norm,
             },
         )
 
@@ -538,6 +555,8 @@ class ExportModelSpec:
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
                 "grid_recurrence_unique_layers",
+                "classification_logit_softcap",
+                "attention_qk_norm",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -559,6 +578,8 @@ class ExportModelSpec:
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
                 "grid_recurrence_unique_layers",
+                "classification_logit_softcap",
+                "attention_qk_norm",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -572,6 +593,8 @@ class ExportModelSpec:
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
                 "grid_recurrence_unique_layers",
+                "classification_logit_softcap",
+                "attention_qk_norm",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -623,6 +646,8 @@ class ExportModelSpec:
                 "grid_ffn_mode",
                 "grid_recurrence_steps",
                 "grid_recurrence_unique_layers",
+                "classification_logit_softcap",
+                "attention_qk_norm",
             ):
                 payload.pop(field_name, None)
             return payload

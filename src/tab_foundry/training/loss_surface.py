@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import warnings
 from typing import Any, Mapping
 
@@ -33,6 +34,25 @@ def normalize_training_loss_surface(value: Any) -> str | None:
             f"{SUPPORTED_TRAINING_LOSS_SURFACES}, got {value!r}"
         )
     return normalized
+
+
+def resolve_classification_z_loss_coeff(training_cfg: Mapping[str, Any] | Any) -> float:
+    raw_value = 0.0
+    if isinstance(training_cfg, Mapping):
+        raw_value = training_cfg.get("classification_z_loss_coeff", 0.0)
+    elif training_cfg is not None:
+        raw_value = getattr(training_cfg, "classification_z_loss_coeff", 0.0)
+    try:
+        coeff = float(raw_value or 0.0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "training.classification_z_loss_coeff must be a finite non-negative float"
+        ) from exc
+    if not math.isfinite(coeff) or coeff < 0.0:
+        raise ValueError(
+            "training.classification_z_loss_coeff must be a finite non-negative float"
+        )
+    return coeff
 
 
 def resolve_training_loss_surface(

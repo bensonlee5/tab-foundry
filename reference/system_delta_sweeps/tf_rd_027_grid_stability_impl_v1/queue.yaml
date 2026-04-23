@@ -1,0 +1,224 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_027_grid_stability_impl_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_027_grid_classification_z_loss_1e4_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_classification_z_loss_1e4_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_classification_z_loss_1e4_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model: {}
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    classification_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay
+    0.1 follow-up all lost by matched-budget final log loss.
+  - Compare directly against the config-only winner by matched-budget final log loss
+    and instability telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_stability_impl_v1_01_delta_tf_rd_027_grid_classification_z_loss_1e4_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; classification z-loss lost to the locked TF-RD-026 row
+    10 anchor, so do not carry it.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299`
+    final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_01_delta_tf_rd_027_grid_classification_z_loss_1e4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Final log loss `0.4243303110` lost to the locked anchor `0.4181767299` by
+    `+0.0061535811`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.6588713939586652
+    best_roc_auc: 0.8097471968978645
+    best_log_loss: 0.42433031101836677
+    best_brier_score: 0.2584319032666059
+    final_roc_auc: 0.8097471968978645
+    final_log_loss: 0.42433031101836677
+    final_brier_score: 0.2584319032666059
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.006153581071689562
+    delta_final_brier_score: 0.0032906020563353566
+    delta_final_roc_auc: -0.003507588181526966
+    row_pool_final_window_mean_grad_norm: 0.053714303258772064
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_027_grid_logit_softcap_30_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_logit_softcap_30_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_logit_softcap_30_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    classification_logit_softcap: 30.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay
+    0.1 follow-up all lost by matched-budget final log loss.
+  - Verify the exported model spec carries the softcap field before interpreting benchmark
+    metrics.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_stability_impl_v1_02_delta_tf_rd_027_grid_logit_softcap_30_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; logit softcap lost to the locked TF-RD-026 row 10 anchor,
+    so do not carry it.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299`
+    final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_02_delta_tf_rd_027_grid_logit_softcap_30_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Final log loss `0.4251839620` lost to the locked anchor `0.4181767299` by
+    `+0.0070072320`.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.189371183434445
+    best_roc_auc: 0.8112965905751044
+    best_log_loss: 0.4251839619505828
+    best_brier_score: 0.259103742298513
+    final_roc_auc: 0.8112965905751044
+    final_log_loss: 0.4251839619505828
+    final_brier_score: 0.259103742298513
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0070072320039055724
+    delta_final_brier_score: 0.003962441088242452
+    delta_final_roc_auc: -0.0019581945042870252
+    row_pool_final_window_mean_grad_norm: 0.05376486010850626
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_027_grid_qk_norm_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_027_grid_qk_norm_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_027_grid_stability_impl_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_027_grid_qk_norm_v1` against
+    locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    attention_qk_norm: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    overrides:
+      runtime:
+        max_steps: 2500
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Use the current TF-RD-026 row 10 anchor config because the FFN rows and the weight-decay
+    0.1 follow-up all lost by matched-budget final log loss.
+  - Verify packed self-attention and cross-attention paths before interpreting benchmark
+    metrics.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_027_grid_stability_impl_v1_03_delta_tf_rd_027_grid_qk_norm_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Completed; QK-norm lost to the locked TF-RD-026 row 10 anchor, so
+    do not carry it.
+  notes:
+  - Config-only gate completed; carry the original TF-RD-026 row 10 anchor config
+    because `optimizer.weight_decay=0.1` lost to the anchor (`0.4263516327` vs. `0.4181767299`
+    final log loss).
+  - Canonical rerun registered as `sd_tf_rd_027_grid_stability_impl_v1_03_delta_tf_rd_027_grid_qk_norm_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Final log loss `0.4741464959` lost to the locked anchor `0.4181767299` by
+    `+0.0559697660`; no TF-RD-027 stability row beat the anchor.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 2500.0
+    max_grad_norm: 2.4388716811638784
+    best_roc_auc: 0.7860114856847039
+    best_log_loss: 0.4741464959427502
+    best_brier_score: 0.2908074661038038
+    final_roc_auc: 0.7860114856847039
+    final_log_loss: 0.4741464959427502
+    final_brier_score: 0.2908074661038038
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.055969765996073007
+    delta_final_brier_score: 0.03566616489353325
+    delta_final_roc_auc: -0.027243299394687504
+    row_pool_final_window_mean_grad_norm: 0.08563701401073051
+  parent_delta_ref: null

@@ -7,6 +7,7 @@ from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 import pytest
 
+from tab_foundry.config_inspection import resolve_config_payload
 from tab_foundry.model.spec import model_build_spec_from_mappings
 
 
@@ -131,11 +132,19 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert str(cfg.model.grid_ffn_mode) == "swiglu"
     assert int(cfg.model.grid_recurrence_steps) == 8
     assert int(cfg.model.grid_recurrence_unique_layers) == 2
+    assert cfg.model.classification_logit_softcap is None
+    assert bool(cfg.model.attention_qk_norm) is False
+    assert float(cfg.training.classification_z_loss_coeff) == 0.0
     assert bool(cfg.runtime.activation_checkpointing) is False
     assert int(cfg.runtime.max_steps) == 5000
     assert int(cfg.schedule.stages[0].steps) == 5000
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"
     assert str(cfg.logging.run_name) == "cls-workstation-grid-sandwich"
+
+
+def test_resolve_config_rejects_negative_classification_z_loss_coeff() -> None:
+    with pytest.raises(ValueError, match="classification_z_loss_coeff"):
+        _ = resolve_config_payload(("training.classification_z_loss_coeff=-0.1",))
 
 
 @pytest.mark.parametrize(

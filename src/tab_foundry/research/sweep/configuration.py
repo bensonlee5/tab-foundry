@@ -254,6 +254,8 @@ def compose_cfg(
     for key in (
         "surface_label",
         "task_batch_size",
+        "loss_surface",
+        "classification_z_loss_coeff",
     ):
         if key in training_payload:
             OmegaConf.update(cfg, f"training.{key}", training_payload[key], merge=True)

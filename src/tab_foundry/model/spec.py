@@ -48,7 +48,7 @@ SUPPORTED_ROUTED_RESIDUAL_MODES = ("dynamic_hyper",)
 SUPPORTED_ROUTED_RESIDUAL_SCALES = ("deepnorm",)
 SUPPORTED_GRID_RESIDUAL_MODES = ("prenorm", "hyper_connection_lite")
 SUPPORTED_GRID_ATTENTION_MODES = ("standard", "differential")
-SUPPORTED_GRID_FFN_MODES = ("gelu", "swiglu")
+SUPPORTED_GRID_FFN_MODES = ("gelu", "swiglu", "geglu")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -481,6 +481,8 @@ class _GridSandwichModelParams(_SandwichModelParams):
     grid_ffn_mode: str = "gelu"
     grid_recurrence_steps: int | None = Field(default=None, gt=0)
     grid_recurrence_unique_layers: int | None = Field(default=None, gt=0)
+    classification_logit_softcap: float | None = Field(default=None, gt=0.0)
+    attention_qk_norm: bool = False
 
     @field_validator("grid_residual_mode", mode="before")
     @classmethod
@@ -514,6 +516,35 @@ class _GridSandwichModelParams(_SandwichModelParams):
                 f"{SUPPORTED_GRID_FFN_MODES}, got {value!r}"
             )
         return normalized
+
+    @field_validator("attention_qk_norm", mode="before")
+    @classmethod
+    def _coerce_attention_qk_norm(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"attention_qk_norm must be boolean-compatible, got {value!r}")
+
+    @field_validator("classification_logit_softcap", mode="before")
+    @classmethod
+    def _validate_classification_logit_softcap(cls, value: Any) -> float | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "none", "null"}:
+                return None
+        cap = float(value)
+        if cap <= 0.0:
+            raise ValueError("classification_logit_softcap must be null or > 0")
+        return cap
 
     @field_validator("grid_recurrence_steps", mode="before")
     @classmethod
