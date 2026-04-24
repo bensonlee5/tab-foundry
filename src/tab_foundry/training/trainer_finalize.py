@@ -64,6 +64,7 @@ def finalize_training_run(
 
     task_batching_summary: Mapping[str, Any] | None = None
     if accelerator.is_main_process:
+        hardware_summary = build_hardware_summary(accelerator.device)
         runtime_summary = build_runtime_summary(
             train_elapsed_seconds=state.train_elapsed_seconds,
             wall_elapsed_seconds=wall_elapsed_seconds,
@@ -72,6 +73,11 @@ def finalize_training_run(
             examples_seen=state.examples_seen,
             tokens_seen=state.tokens_seen,
             peak_memory_summary=peak_device_memory_summary(accelerator.device),
+            total_device_vram_bytes=(
+                None
+                if not isinstance(hardware_summary, Mapping)
+                else hardware_summary.get("total_device_vram_bytes")
+            ),
             loader_effective_num_workers=loader_effective_num_workers,
             loader_effective_prefetch_factor=loader_effective_prefetch_factor,
             loader_task_batch_cache_mode=loader_task_batch_cache_mode,
@@ -79,7 +85,6 @@ def finalize_training_run(
             compile_shape_dispatch_max_families=compile_shape_dispatch_max_families,
             compile_shape_dispatch_summary=compile_shape_dispatch_summary,
         )
-        hardware_summary = build_hardware_summary(accelerator.device)
         regime_budget = build_regime_budget_summary(
             task=task,
             loss_surface=loss_surface,

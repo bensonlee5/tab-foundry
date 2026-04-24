@@ -70,3 +70,5 @@ recipes:
     path: tf_rd_010_missingness_mnar_v3.yaml
   tf_rd_010_dagzoo_medium_control_curated_v6:
     path: tf_rd_010_dagzoo_medium_control_curated_v6.yaml
+  tf_rd_010_dagzoo_feature_shape_control_curated_v1:
+    path: tf_rd_010_dagzoo_feature_shape_control_curated_v1.yaml

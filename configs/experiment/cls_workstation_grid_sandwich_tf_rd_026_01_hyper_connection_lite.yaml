@@ -4,15 +4,24 @@ defaults:
   - cls_workstation_grid_sandwich
   - _self_
 
+data:
+  surface_label: tf_rd_010_dagzoo_medium_control
+  corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+
 model:
   grid_residual_mode: hyper_connection_lite
   grid_ffn_mode: gelu
   grid_recurrence_steps: null
   grid_recurrence_unique_layers: null
 
+training:
+  task_batch_size: 16
+
 runtime:
   output_dir: outputs/staged_ladder/research/tf_rd_026_grid_sandwich_broad_ml_v1/01_hyper_connection_lite
   activation_checkpointing: true
+  checkpoint_every: 25
+  signature_family_optimizer_step_block_length: null
 
 logging:
   group: tf_rd_026_grid_sandwich_broad_ml_v1

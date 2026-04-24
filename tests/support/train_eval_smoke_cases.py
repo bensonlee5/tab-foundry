@@ -2305,6 +2305,7 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["runtime_summary/loader_setup_seconds"] >= 0.0
     assert fake_run.summary["runtime_summary/throughput_examples_per_second"] > 0.0
     assert fake_run.summary["runtime_summary/throughput_tokens_per_second"] > 0.0
+    assert fake_run.summary["runtime_summary/non_train_overhead_fraction"] >= 0.0
     assert fake_run.summary["hardware_summary/device_type"] == "cpu"
     assert fake_run.summary["hardware_summary/gpu_class"] == "cpu"
     assert fake_run.summary["regime_budget/tokens_seen"] > 0
@@ -2321,9 +2322,12 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert telemetry["runtime_summary"] == {
         "peak_vram_allocated": None,
         "peak_vram_reserved": None,
+        "peak_vram_allocated_fraction": None,
+        "peak_vram_reserved_fraction": None,
         "throughput_examples_per_second": fake_run.summary["runtime_summary/throughput_examples_per_second"],
         "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
         "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
+        "non_train_overhead_fraction": fake_run.summary["runtime_summary/non_train_overhead_fraction"],
         "end_to_end_wall_seconds": fake_run.summary["runtime_summary/end_to_end_wall_seconds"],
         "loader_setup_seconds": fake_run.summary["runtime_summary/loader_setup_seconds"],
         "loader_effective_num_workers": 0,

@@ -2317,9 +2317,12 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     assert telemetry["runtime_summary"] == {
         "peak_vram_allocated": None,
         "peak_vram_reserved": None,
+        "peak_vram_allocated_fraction": None,
+        "peak_vram_reserved_fraction": None,
         "throughput_examples_per_second": fake_run.summary["runtime_summary/throughput_examples_per_second"],
         "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
         "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
+        "non_train_overhead_fraction": fake_run.summary["runtime_summary/non_train_overhead_fraction"],
     }
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"

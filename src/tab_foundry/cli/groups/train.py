@@ -12,6 +12,7 @@ from tab_foundry.config import compose_config
 import tab_foundry.cli.train_prior as train_prior_cli
 from tab_foundry.training.trainer import train as run_training
 from tab_foundry.cli.click_utils import GROUP_KWARGS
+from tab_foundry.training.profiler_summary import build_torch_profiler_summary
 
 
 def _run_training_command(*, overrides: tuple[str, ...]) -> int:
@@ -40,7 +41,7 @@ def _run_training_profile_command(
     cfg = compose_config(list(overrides))
     cfg.runtime.max_steps = int(max_steps)
     cfg.runtime.eval_every = int(max_steps)
-    cfg.runtime.checkpoint_every = int(max_steps)
+    cfg.runtime.checkpoint_every = None
     cfg.runtime.profile_step_timing = True
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     trace_dir = output_dir / "torch_profiler"
@@ -60,6 +61,7 @@ def _run_training_profile_command(
         on_trace_ready=torch.profiler.tensorboard_trace_handler(str(trace_dir)),
         record_shapes=True,
         profile_memory=True,
+        with_flops=True,
         with_stack=False,
     ) as profiler:
         result = run_training(cfg, profiler=profiler)
@@ -90,11 +92,33 @@ def _run_training_profile_command(
         ),
         encoding="utf-8",
     )
+    profile_summary_path = trace_dir / "profile_summary.json"
+    profile_summary_path.write_text(
+        json.dumps(
+            build_torch_profiler_summary(
+                key_averages,
+                trace_dir=str(trace_dir),
+                summary_path=str(summary_path),
+                output_dir=str(result.output_dir),
+                activities=[str(activity) for activity in activities],
+                max_steps=max_steps,
+                wait=wait,
+                warmup=warmup,
+                active=active,
+                repeat=repeat,
+            ),
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     print(
         "Training profile complete:",
         f"output_dir={result.output_dir}",
         f"trace_dir={trace_dir}",
         f"summary={summary_path}",
+        f"profile_summary={profile_summary_path}",
         f"step={result.global_step}",
         f"metrics={result.metrics}",
     )

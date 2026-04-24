@@ -153,15 +153,21 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert telemetry["runtime_summary"].keys() == {
         "peak_vram_allocated",
         "peak_vram_reserved",
+        "peak_vram_allocated_fraction",
+        "peak_vram_reserved_fraction",
         "throughput_examples_per_second",
         "throughput_tokens_per_second",
         "non_train_overhead_seconds",
+        "non_train_overhead_fraction",
     }
     assert telemetry["runtime_summary"]["peak_vram_allocated"] is None
     assert telemetry["runtime_summary"]["peak_vram_reserved"] is None
+    assert telemetry["runtime_summary"]["peak_vram_allocated_fraction"] is None
+    assert telemetry["runtime_summary"]["peak_vram_reserved_fraction"] is None
     assert telemetry["runtime_summary"]["throughput_examples_per_second"] > 0.0
     assert telemetry["runtime_summary"]["throughput_tokens_per_second"] > 0.0
     assert telemetry["runtime_summary"]["non_train_overhead_seconds"] >= 0.0
+    assert telemetry["runtime_summary"]["non_train_overhead_fraction"] is not None
     assert telemetry["hardware_summary"]["device_type"] == "cpu"
     assert telemetry["hardware_summary"]["hardware_profile_id"] == "cpu"
     assert telemetry["regime_budget"]["tokens_seen"] > 0

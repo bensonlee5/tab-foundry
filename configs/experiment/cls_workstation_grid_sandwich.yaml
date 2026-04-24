@@ -21,8 +21,11 @@ model:
 
 runtime:
   output_dir: outputs/cls_workstation_grid_sandwich
+  grad_accum_steps: 4
   max_steps: 5000
   activation_checkpointing: false
+  checkpoint_every: null
+  signature_family_optimizer_step_block_length: 4
 
 schedule:
   stages:

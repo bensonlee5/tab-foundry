@@ -117,7 +117,9 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
 
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "grid_sandwich"
+    assert str(cfg.data.surface_label) == "tf_rd_010_dagzoo_medium_control"
     assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.training.task_batch_size) == 16
     assert int(cfg.model.d_icl) == 144
     assert int(cfg.model.head_hidden_dim) == 96
     assert int(cfg.model.sandwich_layers) == 4
@@ -136,6 +138,9 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert bool(cfg.model.attention_qk_norm) is False
     assert float(cfg.training.classification_z_loss_coeff) == 0.0
     assert bool(cfg.runtime.activation_checkpointing) is False
+    assert cfg.runtime.checkpoint_every is None
+    assert int(cfg.runtime.grad_accum_steps) == 4
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 4
     assert int(cfg.runtime.max_steps) == 5000
     assert int(cfg.schedule.stages[0].steps) == 5000
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_grid_sandwich"
@@ -181,6 +186,10 @@ def test_tf_rd_026_grid_sandwich_experiment_rows_resolve(
     spec = _resolved_model_spec(cfg)
 
     assert spec.arch == "grid_sandwich"
+    assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.training.task_batch_size) == 16
+    assert int(cfg.runtime.checkpoint_every) == 25
+    assert cfg.runtime.signature_family_optimizer_step_block_length is None
     assert getattr(spec, field_name) == expected_value
     assert str(cfg.logging.group) == "tf_rd_026_grid_sandwich_broad_ml_v1"
     assert str(cfg.runtime.output_dir).startswith(
@@ -215,7 +224,9 @@ def test_default_config_follows_grid_architecture_anchor() -> None:
 
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "grid_sandwich"
+    assert str(cfg.data.surface_label) == "tf_rd_010_dagzoo_medium_control"
     assert str(cfg.data.corpus_ref) == "tf_rd_010_dagzoo_medium_control_curated_v6"
+    assert int(cfg.training.task_batch_size) == 16
     assert int(cfg.model.d_icl) == 144
     assert int(cfg.model.sandwich_layers) == 4
     assert int(cfg.model.sandwich_heads) == 1
@@ -226,6 +237,8 @@ def test_default_config_follows_grid_architecture_anchor() -> None:
     assert str(cfg.runtime.loader_task_batch_cache_mode) == "bounded_streaming"
     assert bool(cfg.runtime.compile_model) is True
     assert str(cfg.runtime.compile_shape_dispatch_mode) == "signature_family"
+    assert int(cfg.runtime.signature_family_optimizer_step_block_length) == 4
+    assert cfg.runtime.checkpoint_every is None
 
 
 def test_generic_sandwich_compose_accepts_pre_perceiver_override_without_plus() -> None:

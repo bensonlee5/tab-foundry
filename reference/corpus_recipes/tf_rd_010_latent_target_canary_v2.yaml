@@ -28,7 +28,7 @@ generator:
     base_config_ref: configs/default.yaml
     num_datasets: 32
     filter_max_attempts: 64
-  fingerprint: 103f547c8cfe
+  fingerprint: 0df8430c90df
 review_summary:
   grid_family: latent_target_canary_rows_only_v2
   config_refs:
