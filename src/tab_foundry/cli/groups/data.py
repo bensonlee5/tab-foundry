@@ -35,6 +35,7 @@ from tab_foundry.data.corpus_materialization import (
 )
 from tab_foundry.data.corpus_reporting import corpus_compare_payload, corpus_results_payload
 from tab_foundry.data.dagzoo_workflow import DagzooGenerateManifestConfig, run_dagzoo_generate_manifest
+from tab_foundry.data.execution_pack import materialize_exact_shape_execution_pack
 from tab_realdata_hub.manifest import build_manifest
 
 
@@ -414,6 +415,42 @@ def _run_corpus_results(
     return 0
 
 
+def _run_corpus_materialize_execution_pack(
+    *,
+    source_manifest: Path,
+    out_manifest: Path,
+    max_steps: int,
+    grad_accum_steps: int,
+    task_batch_size: int,
+    signature_family_optimizer_step_block_length: int,
+    total_train_tasks: int,
+    summary_out: Path | None,
+    json_mode: bool,
+) -> int:
+    summary = materialize_exact_shape_execution_pack(
+        source_manifest_path=source_manifest,
+        out_manifest_path=out_manifest,
+        max_steps=max_steps,
+        grad_accum_steps=grad_accum_steps,
+        task_batch_size=task_batch_size,
+        signature_family_optimizer_step_block_length=signature_family_optimizer_step_block_length,
+        total_train_tasks=total_train_tasks,
+        summary_out=summary_out,
+    )
+    payload = summary.to_dict()
+    if json_mode:
+        emit_payload(payload, json_mode=True)
+        return 0
+    print(f"Execution pack manifest: {summary.out_manifest_path}")
+    print(f"Source manifest: {summary.source_manifest_path}")
+    print(f"Selected records: {summary.selected_records}")
+    print(f"Exact signatures: {summary.exact_signature_count}")
+    print(f"Signature families: {summary.signature_family_count}")
+    if summary_out is not None:
+        print(f"Summary: {summary_out.expanduser().resolve()}")
+    return 0
+
+
 @click.command(name="build-manifest", help="Build a manifest parquet from packed shard outputs")
 @click.option(
     "--data-root",
@@ -667,6 +704,48 @@ def CORPUS_RESULTS_COMMAND(corpus_ref: str, registry_path: Path | None, json_mod
     )
 
 
+@click.command(
+    name="materialize-execution-pack",
+    help="Derive an exact-shape ordered execution-pack manifest from a source manifest",
+)
+@path_option("source-manifest", required=True, help="Source manifest parquet path")
+@path_option("out-manifest", required=True, help="Output execution-pack manifest parquet path")
+@click.option("--max-steps", default=2500, show_default=True, type=POSITIVE_INT)
+@click.option("--grad-accum-steps", default=4, show_default=True, type=POSITIVE_INT)
+@click.option("--task-batch-size", default=16, show_default=True, type=POSITIVE_INT)
+@click.option(
+    "--signature-family-optimizer-step-block-length",
+    default=2,
+    show_default=True,
+    type=POSITIVE_INT,
+)
+@click.option("--total-train-tasks", default=160000, show_default=True, type=POSITIVE_INT)
+@path_option("summary-out", default=None, help="Optional JSON summary artifact path")
+@json_output_option
+def CORPUS_MATERIALIZE_EXECUTION_PACK_COMMAND(
+    source_manifest: Path,
+    out_manifest: Path,
+    max_steps: int,
+    grad_accum_steps: int,
+    task_batch_size: int,
+    signature_family_optimizer_step_block_length: int,
+    total_train_tasks: int,
+    summary_out: Path | None,
+    json_mode: bool,
+) -> int:
+    return _run_corpus_materialize_execution_pack(
+        source_manifest=source_manifest,
+        out_manifest=out_manifest,
+        max_steps=max_steps,
+        grad_accum_steps=grad_accum_steps,
+        task_batch_size=task_batch_size,
+        signature_family_optimizer_step_block_length=signature_family_optimizer_step_block_length,
+        total_train_tasks=total_train_tasks,
+        summary_out=summary_out,
+        json_mode=json_mode,
+    )
+
+
 @click.group(name="data", help="Data workflows", **GROUP_KWARGS)
 def GROUP() -> None:
     """Data workflows."""
@@ -679,6 +758,7 @@ def CORPUS_GROUP() -> None:
 
 CORPUS_GROUP.add_command(CORPUS_LIST_RECIPES_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_MATERIALIZE_COMMAND)
+CORPUS_GROUP.add_command(CORPUS_MATERIALIZE_EXECUTION_PACK_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_COMPACT_STAGED_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_FINALIZE_STAGED_COMMAND)
 CORPUS_GROUP.add_command(CORPUS_INSPECT_COMMAND)

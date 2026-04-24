@@ -205,6 +205,72 @@ def test_build_openml_benchmark_bundle_discovery_rejects_below_min_task_count(
         )
 
 
+def test_build_openml_benchmark_bundle_discovery_reports_below_min_missing_pct(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        discovery_module.openml.tasks,
+        "list_tasks",
+        lambda **_kwargs: pd.DataFrame(
+            [
+                {
+                    "tid": 10,
+                    "did": 1,
+                    "name": "too_clean",
+                    "NumberOfInstances": 400,
+                    "NumberOfFeatures": 4,
+                    "NumberOfClasses": 2,
+                    "NumberOfInstancesWithMissingValues": 1,
+                    "MinorityClassSize": 80,
+                    "estimation_procedure": "10-fold Crossvalidation",
+                },
+                {
+                    "tid": 11,
+                    "did": 2,
+                    "name": "missing_ok",
+                    "NumberOfInstances": 400,
+                    "NumberOfFeatures": 4,
+                    "NumberOfClasses": 2,
+                    "NumberOfInstancesWithMissingValues": 8,
+                    "MinorityClassSize": 80,
+                    "estimation_procedure": "10-fold Crossvalidation",
+                },
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        selection_module,
+        "prepare_openml_benchmark_task",
+        lambda task_id, *, new_instances, task_type: prepared_task(
+            task_id=int(task_id),
+            dataset_name="missing_ok",
+            n_rows=200,
+            n_features=4,
+            n_classes=2,
+            missing_pct=2.0,
+        ),
+    )
+
+    result = bundle_module.build_openml_benchmark_bundle_result(
+        bundle_module.OpenMLBenchmarkBundleConfig(
+            bundle_name="missing_wide",
+            version=1,
+            discover_from_openml=True,
+            min_instances=200,
+            min_task_count=1,
+            max_features=50,
+            max_classes=2,
+            min_missing_pct=0.5,
+            max_missing_pct=20.0,
+            min_minority_class_pct=2.5,
+        )
+    )
+
+    assert result.bundle["task_ids"] == [11]
+    report = bundle_module.render_openml_benchmark_candidate_report(result.report_entries)
+    assert "missing_pct=0.25 below min_missing_pct=0.5" in report
+
+
 def test_build_openml_benchmark_bundle_discovery_falls_back_when_filtered_listing_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -8,6 +8,7 @@ from tab_foundry.training.trainer_runtime_config import (
     _resolve_compile_shape_dispatch_max_families,
     _resolve_compile_shape_dispatch_mode,
     _resolve_loader_task_batch_cache_mode,
+    _resolve_loader_train_shuffle,
     _resolve_signature_family_optimizer_step_block_length,
     _resolve_signature_family_run_length,
     default_loader_num_workers,
@@ -55,6 +56,11 @@ def test_resolve_loader_overlap_runtime_settings_preserves_explicit_values() -> 
     assert resolved.prefetch_factor == 2
     assert resolved.num_workers_is_auto is False
     assert resolved.prefetch_factor_is_auto is False
+
+
+def test_resolve_loader_train_shuffle_defaults_true_and_accepts_false() -> None:
+    assert _resolve_loader_train_shuffle(OmegaConf.create({})) is True
+    assert _resolve_loader_train_shuffle(OmegaConf.create({"loader_train_shuffle": False})) is False
 
 
 def test_resolve_loader_task_batch_cache_mode_preserves_legacy_precedence() -> None:

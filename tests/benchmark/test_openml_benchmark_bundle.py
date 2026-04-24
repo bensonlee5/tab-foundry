@@ -12,7 +12,7 @@ from tab_foundry.bench.openml_benchmark.bundle import (
     validate_default_anchor_benchmark_summary,
 )
 from tests.support.openml_benchmark_compare_cases import (
-    test_default_benchmark_manifest_path_resolves_to_medium_multiclass_bundle,
+    test_default_benchmark_manifest_path_resolves_to_missing_wide_multiclass_bundle,
     test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_multiclass_bundles,
     test_load_benchmark_bundle_requires_full_selection,
 )
@@ -67,14 +67,16 @@ def test_canonical_benchmark_bundle_source_path_uses_known_sibling_relative_form
     ) == "../tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json"
 
 
-def test_default_anchor_benchmark_summary_is_medium_multiclass_with_natural_missingness() -> None:
+def test_default_anchor_benchmark_summary_is_missing_wide_with_observed_missingness_contract() -> None:
     summary = default_anchor_benchmark_summary()
 
-    assert summary["name"] == "openml_classification_medium"
-    assert summary["source_path"] == "src/tab_foundry/bench/openml_classification_medium_v1.json"
-    assert summary["task_count"] == 242
+    assert summary["name"] == "openml_classification_missing_wide"
+    assert summary["source_path"] == "src/tab_foundry/bench/openml_classification_missing_wide_v1.json"
+    assert summary["task_count"] == 65
     assert summary["allow_missing_values"] is True
-    assert default_anchor_control_baseline_id() == "cls_benchmark_linear_multiclass_medium_v1"
+    assert summary["selection"]["max_features"] == 100
+    assert summary["selection"]["min_missing_pct"] == 0.5
+    assert default_anchor_control_baseline_id() == "cls_benchmark_linear_multiclass_missing_wide_v1"
 
 
 def test_validate_default_anchor_benchmark_summary_rejects_binary_regression() -> None:
@@ -99,4 +101,4 @@ def test_validate_default_anchor_benchmark_summary_rejects_binary_regression() -
     )
 
     assert issues
-    assert any("openml_classification_medium" in issue for issue in issues)
+    assert any("openml_classification_missing_wide" in issue for issue in issues)

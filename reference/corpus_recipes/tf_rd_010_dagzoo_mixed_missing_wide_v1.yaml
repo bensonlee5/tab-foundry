@@ -1,0 +1,92 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_010_dagzoo_mixed_missing_wide_v1
+kind: dagzoo_python_generated
+description: TF-RD-010 exact-shape wide mixed-missingness corpus for throughput
+  probes. The grid preserves exact row, feature, and class signatures while
+  expanding feature counts to 100 and injecting MCAR, MAR, and MNAR missingness.
+surface_label: tf_rd_010_dagzoo_mixed_missing_wide
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: accepted_only
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_010_dagzoo_mixed_missing_wide
+  comparator_role: throughput_probe
+  benchmark_family: tf_rd_010
+  task_grid: mixed_missing_exact_shape_wide_v1
+  corpus_recipe_version: v1
+  synthetic_epoch_regime: exact_shape_mixed_missing_2500x4x16_probe
+  balanced_front_shape: rows_features_classes_missingness_v1
+  manifest_record_count: 193536
+  per_invocation_num_datasets: 256
+  target_derivation: tabiclv2_latent_node
+generator:
+  module: tab_foundry.data.corpus_generators.tf_rd_010_mixed_missing_wide
+  callable: build_mixed_missing_wide_recipe
+  inputs:
+    base_config_ref: configs/default.yaml
+    num_datasets: 256
+    filter_max_attempts: 512
+    missingness_regimes:
+    - mechanism: mcar
+      rate: 0.15
+    - mechanism: mar
+      rate: 0.15
+    - mechanism: mnar
+      rate: 0.15
+    feature_graph_bands:
+      "6": [2, 12]
+      "10": [2, 20]
+      "14": [4, 28]
+      "20": [2, 20]
+      "32": [4, 32]
+      "64": [4, 64]
+      "100": [4, 100]
+  fingerprint: c87064f38d4f
+review_summary:
+  grid_family: mixed_missing_exact_shape_wide_v1
+  config_refs:
+  - configs/default.yaml
+  invocation_count: 756
+  manifest_record_count: 193536
+  row_totals:
+  - 128
+  - 256
+  - 512
+  - 1024
+  feature_counts:
+  - 6
+  - 10
+  - 14
+  - 20
+  - 32
+  - 64
+  - 100
+  feature_graph_bands:
+    "6": [2, 12]
+    "10": [2, 20]
+    "14": [4, 28]
+    "20": [2, 20]
+    "32": [4, 32]
+    "64": [4, 64]
+    "100": [4, 100]
+  class_counts:
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  num_datasets_per_invocation: 256
+  missingness_regimes:
+  - mechanism: mcar
+    rate: 0.15
+  - mechanism: mar
+    rate: 0.15
+  - mechanism: mnar
+    rate: 0.15
+  target_derivation: tabiclv2_latent_node

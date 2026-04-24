@@ -2378,7 +2378,7 @@ def test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_m
     assert float(medium_bundle["selection"]["max_missing_pct"]) == 20.0
 
 
-def test_default_benchmark_manifest_path_resolves_to_medium_multiclass_bundle() -> None:
+def test_default_benchmark_manifest_path_resolves_to_missing_wide_multiclass_bundle() -> None:
     bundle_path = compare_module.default_benchmark_manifest_path()
 
     assert bundle_path == (
@@ -2386,7 +2386,7 @@ def test_default_benchmark_manifest_path_resolves_to_medium_multiclass_bundle() 
         / "data"
         / "manifests"
         / "bench"
-        / "openml_classification_medium_v1"
+        / "openml_classification_missing_wide_v1"
         / "manifest.parquet"
     )
 

@@ -1,0 +1,538 @@
+{
+  "name": "openml_classification_missing_wide",
+  "selection": {
+    "max_classes": 10,
+    "max_features": 100,
+    "max_missing_pct": 20.0,
+    "min_classes": 2,
+    "min_minority_class_pct": 1.0,
+    "min_missing_pct": 0.5,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    13,
+    15,
+    29,
+    35,
+    48,
+    2071,
+    2077,
+    2079,
+    3543,
+    3544,
+    3546,
+    3547,
+    3570,
+    3651,
+    3663,
+    3696,
+    3709,
+    3760,
+    3802,
+    3820,
+    3831,
+    3849,
+    3886,
+    3890,
+    3953,
+    167112,
+    167113,
+    167114,
+    167117,
+    190403,
+    360913,
+    361107,
+    361330,
+    361650,
+    361660,
+    362084,
+    362204,
+    362206,
+    362214,
+    362235,
+    362263,
+    362277,
+    362279,
+    362303,
+    362379,
+    362562,
+    362563,
+    362829,
+    362830,
+    362831,
+    362833,
+    362835,
+    362968,
+    362969,
+    362970,
+    362971,
+    362973,
+    363055,
+    363401,
+    363429,
+    363456,
+    363586,
+    363634,
+    363636,
+    363647
+  ],
+  "tasks": [
+    {
+      "dataset_name": "breast-cancer",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 13
+    },
+    {
+      "dataset_name": "breast-w",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 15
+    },
+    {
+      "dataset_name": "credit-approval",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 29
+    },
+    {
+      "dataset_name": "dermatology",
+      "n_classes": 6,
+      "n_features": 34,
+      "n_rows": 200,
+      "task_id": 35
+    },
+    {
+      "dataset_name": "heart-c",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 48
+    },
+    {
+      "dataset_name": "adult",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 2071
+    },
+    {
+      "dataset_name": "baseball",
+      "n_classes": 3,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 2077
+    },
+    {
+      "dataset_name": "eucalyptus",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 2079
+    },
+    {
+      "dataset_name": "irish",
+      "n_classes": 2,
+      "n_features": 5,
+      "n_rows": 200,
+      "task_id": 3543
+    },
+    {
+      "dataset_name": "analcatdata_broadwaymult",
+      "n_classes": 7,
+      "n_features": 7,
+      "n_rows": 200,
+      "task_id": 3544
+    },
+    {
+      "dataset_name": "analcatdata_halloffame",
+      "n_classes": 3,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 3546
+    },
+    {
+      "dataset_name": "cars",
+      "n_classes": 3,
+      "n_features": 7,
+      "n_rows": 200,
+      "task_id": 3547
+    },
+    {
+      "dataset_name": "biomed",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 3570
+    },
+    {
+      "dataset_name": "cleveland",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 3651
+    },
+    {
+      "dataset_name": "cholesterol",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 3663
+    },
+    {
+      "dataset_name": "autoMpg",
+      "n_classes": 2,
+      "n_features": 7,
+      "n_rows": 200,
+      "task_id": 3696
+    },
+    {
+      "dataset_name": "breastTumor",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 3709
+    },
+    {
+      "dataset_name": "colleges_aaup",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 3760
+    },
+    {
+      "dataset_name": "chscase_whale",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 3802
+    },
+    {
+      "dataset_name": "braziltourism",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 3820
+    },
+    {
+      "dataset_name": "analcatdata_birthday",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 3831
+    },
+    {
+      "dataset_name": "analcatdata_marketing",
+      "n_classes": 2,
+      "n_features": 32,
+      "n_rows": 200,
+      "task_id": 3849
+    },
+    {
+      "dataset_name": "soybean",
+      "n_classes": 2,
+      "n_features": 35,
+      "n_rows": 200,
+      "task_id": 3886
+    },
+    {
+      "dataset_name": "ada_prior",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 3890
+    },
+    {
+      "dataset_name": "adult-census",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 3953
+    },
+    {
+      "dataset_name": "jungle_chess_2pcs_endgame_complete",
+      "n_classes": 3,
+      "n_features": 45,
+      "n_rows": 200,
+      "task_id": 167112
+    },
+    {
+      "dataset_name": "jungle_chess_2pcs_endgame_rat_panther",
+      "n_classes": 3,
+      "n_features": 44,
+      "n_rows": 200,
+      "task_id": 167113
+    },
+    {
+      "dataset_name": "jungle_chess_2pcs_endgame_rat_elephant",
+      "n_classes": 3,
+      "n_features": 44,
+      "n_rows": 200,
+      "task_id": 167114
+    },
+    {
+      "dataset_name": "jungle_chess_2pcs_endgame_rat_lion",
+      "n_classes": 3,
+      "n_features": 45,
+      "n_rows": 200,
+      "task_id": 167117
+    },
+    {
+      "dataset_name": "regime_alimentaire",
+      "n_classes": 2,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 190403
+    },
+    {
+      "dataset_name": "penguins",
+      "n_classes": 3,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 360913
+    },
+    {
+      "dataset_name": "credit-approval_reproduced",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 361107
+    },
+    {
+      "dataset_name": "Traffic_violations",
+      "n_classes": 3,
+      "n_features": 20,
+      "n_rows": 200,
+      "task_id": 361330
+    },
+    {
+      "dataset_name": "Tour-and-Travels-Customer-Churn-Prediction",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 361650
+    },
+    {
+      "dataset_name": "Mammographic-Mass-Data-Set",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 361660
+    },
+    {
+      "dataset_name": "internet_usage",
+      "n_classes": 2,
+      "n_features": 68,
+      "n_rows": 200,
+      "task_id": 362084
+    },
+    {
+      "dataset_name": "Give-Me-Some-Credit",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 362204
+    },
+    {
+      "dataset_name": "Credit-Risk-Classification-Dataset",
+      "n_classes": 2,
+      "n_features": 33,
+      "n_rows": 200,
+      "task_id": 362206
+    },
+    {
+      "dataset_name": "LT-Vehicle-Loan-Default-Prediction",
+      "n_classes": 2,
+      "n_features": 37,
+      "n_rows": 200,
+      "task_id": 362214
+    },
+    {
+      "dataset_name": "Give-Me-Some-Credit-Sampled",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 362235
+    },
+    {
+      "dataset_name": "Give-Me-Some-Credit-Sampled-Preprocessed",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 362263
+    },
+    {
+      "dataset_name": "dataset_credit-approval",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 362277
+    },
+    {
+      "dataset_name": "dataset_credit_score",
+      "n_classes": 3,
+      "n_features": 27,
+      "n_rows": 200,
+      "task_id": 362279
+    },
+    {
+      "dataset_name": "Midwest_survey",
+      "n_classes": 9,
+      "n_features": 27,
+      "n_rows": 200,
+      "task_id": 362303
+    },
+    {
+      "dataset_name": "WMO-Hurricane-Survival-Dataset",
+      "n_classes": 2,
+      "n_features": 22,
+      "n_rows": 200,
+      "task_id": 362379
+    },
+    {
+      "dataset_name": "NewspaperChurn",
+      "n_classes": 2,
+      "n_features": 17,
+      "n_rows": 200,
+      "task_id": 362562
+    },
+    {
+      "dataset_name": "South_Asian_Churn_dataset",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 362563
+    },
+    {
+      "dataset_name": "eucalyptus_seed_0_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 362829
+    },
+    {
+      "dataset_name": "eucalyptus_seed_1_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 362830
+    },
+    {
+      "dataset_name": "eucalyptus_seed_2_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 362831
+    },
+    {
+      "dataset_name": "eucalyptus_seed_3_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 362833
+    },
+    {
+      "dataset_name": "eucalyptus_seed_4_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 5,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 362835
+    },
+    {
+      "dataset_name": "adult_seed_0_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 362968
+    },
+    {
+      "dataset_name": "adult_seed_1_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 362969
+    },
+    {
+      "dataset_name": "adult_seed_2_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 362970
+    },
+    {
+      "dataset_name": "adult_seed_3_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 362971
+    },
+    {
+      "dataset_name": "adult_seed_4_nrows_2000_nclasses_10_ncols_100_stratify_True",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 362973
+    },
+    {
+      "dataset_name": "adult-test",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 363055
+    },
+    {
+      "dataset_name": "HCV_data",
+      "n_classes": 5,
+      "n_features": 12,
+      "n_rows": 200,
+      "task_id": 363401
+    },
+    {
+      "dataset_name": "Mental_Health_Dataset",
+      "n_classes": 5,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 363429
+    },
+    {
+      "dataset_name": "PostPartum_Depression",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 363456
+    },
+    {
+      "dataset_name": "depression_2020",
+      "n_classes": 2,
+      "n_features": 20,
+      "n_rows": 200,
+      "task_id": 363586
+    },
+    {
+      "dataset_name": "Fitness_Club",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 363634
+    },
+    {
+      "dataset_name": "GiveMeSomeCredit",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 363636
+    },
+    {
+      "dataset_name": "Marketing_Campaign",
+      "n_classes": 2,
+      "n_features": 25,
+      "n_rows": 200,
+      "task_id": 363647
+    }
+  ],
+  "version": 1
+}

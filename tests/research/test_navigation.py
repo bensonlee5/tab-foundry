@@ -102,7 +102,7 @@ def test_build_scaling_navigation_payload_marks_default_anchor_only_when_baselin
         "rows": [],
         "status": "draft",
         "benchmark_manifest_path": str(manifest_path),
-        "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+        "control_baseline_id": navigation_module.default_anchor_control_baseline_id(),
         "anchor_run_id": "anchor_run",
         "training_experiment": "exp",
         "training_config_profile": "profile",
@@ -127,7 +127,7 @@ def test_build_scaling_navigation_payload_marks_default_anchor_only_when_baselin
         complexity_level="classification_md",
         anchor_run_id="anchor_run",
         benchmark_manifest_path=str(manifest_path),
-        control_baseline_id="cls_benchmark_linear_multiclass_medium_v1",
+        control_baseline_id=navigation_module.default_anchor_control_baseline_id(),
     )
 
     monkeypatch.setattr(navigation_module, "default_benchmark_manifest_path", lambda: manifest_path)

@@ -9,8 +9,8 @@ from typing import Any, Mapping, cast
 from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root
 
 
-BENCHMARK_BUNDLE_FILENAME = "openml_classification_medium_v1.json"
-DEFAULT_ANCHOR_CONTROL_BASELINE_ID = "cls_benchmark_linear_multiclass_medium_v1"
+BENCHMARK_BUNDLE_FILENAME = "openml_classification_missing_wide_v1.json"
+DEFAULT_ANCHOR_CONTROL_BASELINE_ID = "cls_benchmark_linear_multiclass_missing_wide_v1"
 _CLASSIFICATION_TASK_TYPE = "supervised_classification"
 _PERCENT_SCALE_MAX = 100.0
 _REGRESSION_TASK_TYPE = "supervised_regression"
@@ -115,6 +115,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
         }
         | ({"task_type"} if "task_type" in payload else set())
         | ({"min_classes"} if "min_classes" in payload else set())
+        | ({"min_missing_pct"} if "min_missing_pct" in payload else set())
         if task_type == _CLASSIFICATION_TASK_TYPE
         else {
             "new_instances",
@@ -122,6 +123,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
             "max_features",
             "max_missing_pct",
         }
+        | ({"min_missing_pct"} if "min_missing_pct" in payload else set())
     )
     actual_keys = set(payload.keys())
     if actual_keys != expected_keys:
@@ -133,18 +135,24 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
 
     new_instances = payload["new_instances"]
     max_features = payload["max_features"]
+    min_missing_pct = payload.get("min_missing_pct", 0.0)
     max_missing_pct = payload["max_missing_pct"]
 
     if not isinstance(new_instances, int) or isinstance(new_instances, bool) or new_instances <= 0:
         raise RuntimeError("benchmark bundle selection.new_instances must be a positive int")
     if not isinstance(max_features, int) or isinstance(max_features, bool) or max_features <= 0:
         raise RuntimeError("benchmark bundle selection.max_features must be a positive int")
+    if not isinstance(min_missing_pct, (int, float)) or not 0 <= float(min_missing_pct) <= _PERCENT_SCALE_MAX:
+        raise RuntimeError("benchmark bundle selection.min_missing_pct must be a percentage between 0 and 100")
     if not isinstance(max_missing_pct, (int, float)) or not 0 <= float(max_missing_pct) <= _PERCENT_SCALE_MAX:
         raise RuntimeError("benchmark bundle selection.max_missing_pct must be a percentage between 0 and 100")
+    if float(min_missing_pct) > float(max_missing_pct):
+        raise RuntimeError("benchmark bundle selection.min_missing_pct must not exceed max_missing_pct")
     normalized = {
         "new_instances": int(new_instances),
         "task_type": str(task_type),
         "max_features": int(max_features),
+        "min_missing_pct": float(min_missing_pct),
         "max_missing_pct": float(max_missing_pct),
     }
     if task_type == _CLASSIFICATION_TASK_TYPE:
@@ -381,7 +389,7 @@ def _normalized_bundle_summary_payload(payload: Mapping[str, Any]) -> dict[str, 
 
 
 def default_anchor_benchmark_summary() -> dict[str, Any]:
-    """Return the canonical medium-multiclass anchor benchmark summary."""
+    """Return the canonical wide missingness anchor benchmark summary."""
 
     bundle_path = default_benchmark_bundle_path()
     bundle = load_benchmark_bundle(bundle_path, allow_missing_values=True)

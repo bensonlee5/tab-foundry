@@ -7,7 +7,11 @@ import sys
 
 import click
 
-from tab_realdata_hub.openml import materialize_bundle
+from tab_foundry.bench.openml_benchmark.bundle import load_benchmark_bundle
+from tab_foundry.bench.openml_benchmark.materialization import materialize_benchmark_bundle
+from tab_foundry.bench.openml_benchmark.missingness_validation import (
+    validate_openml_missingness_manifest,
+)
 from tab_foundry.repo_paths import repo_root
 from tab_foundry.cli.click_utils import run_click_command
 
@@ -25,7 +29,7 @@ def _materialize_bundle_command(
     split_seed: int,
     test_size: float,
 ) -> int:
-    result = materialize_bundle(
+    result = materialize_benchmark_bundle(
         bundle_path,
         _default_out_root(bundle_path) if out_root is None else out_root,
         force=force,
@@ -35,6 +39,26 @@ def _materialize_bundle_command(
     print(f"Materialized benchmark manifest: {result.manifest_path}")
     print(f"Packed shards: {result.data_root}")
     print(f"Tasks: {len(result.task_summaries)}")
+    bundle = load_benchmark_bundle(bundle_path, allow_missing_values=True)
+    selection = bundle["selection"]
+    min_missing_pct = float(selection.get("min_missing_pct", 0.0))
+    max_missing_pct = float(selection.get("max_missing_pct", 0.0))
+    if min_missing_pct > 0.0 and max_missing_pct > 0.0:
+        summary_out = (
+            Path(result.manifest_path).expanduser().resolve().parent
+            / "openml_missingness_summary.json"
+        )
+        summary = validate_openml_missingness_manifest(
+            Path(result.manifest_path),
+            summary_out=summary_out,
+            require_observed_missing=True,
+        )
+        print(
+            "Observed missingness:",
+            f"missing_feature_cells={summary['total_missing_feature_cells']}",
+            f"missing_rows={summary['total_missing_rows']}",
+            f"summary={summary_out}",
+        )
     return 0
 
 

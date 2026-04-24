@@ -6,6 +6,9 @@ import pyarrow.parquet as pq
 import pytest
 
 import tab_foundry.bench.openml_benchmark as benchmark_module
+from tab_foundry.bench.openml_benchmark.missingness_validation import (
+    validate_openml_missingness_manifest,
+)
 
 
 def _checked_in_benchmark_manifest_path(surface_name: str) -> Path:
@@ -69,6 +72,17 @@ def test_checked_in_binary_large_no_missing_bundle_loads() -> None:
     assert len(bundle["task_ids"]) == 64
     assert bundle["selection"]["max_missing_pct"] == 0.0
     assert all(int(task["n_classes"]) == 2 for task in bundle["tasks"])
+
+
+def test_default_missing_wide_manifest_validates_observed_missingness() -> None:
+    summary = validate_openml_missingness_manifest(
+        benchmark_module.default_benchmark_manifest_path()
+    )
+
+    assert summary["dataset_count"] == 65
+    assert summary["selection"]["max_features"] == 100
+    assert summary["selection"]["min_missing_pct"] == 0.5
+    assert summary["total_missing_feature_cells"] > 0
 
 
 def test_checked_in_binary_large_bundle_requires_explicit_missing_value_opt_in() -> None:

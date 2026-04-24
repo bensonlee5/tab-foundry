@@ -60,9 +60,11 @@ def test_build_openml_benchmark_bundle_main_parses_discovery_flags(
                     "new_instances": int(config.new_instances),
                     "task_type": str(config.task_type),
                     "max_features": int(config.max_features),
+                    "min_missing_pct": float(config.min_missing_pct),
                     "max_missing_pct": float(config.max_missing_pct),
                     "max_classes": int(config.max_classes or 2),
                     "min_minority_class_pct": float(config.min_minority_class_pct),
+                    **({} if config.min_classes is None else {"min_classes": int(config.min_classes)}),
                 },
                 "task_ids": [10],
                 "tasks": [
@@ -116,10 +118,14 @@ def test_build_openml_benchmark_bundle_main_parses_discovery_flags(
             "50",
             "--max-features",
             "50",
+            "--min-classes",
+            "2",
             "--max-classes",
             "2",
+            "--min-missing-pct",
+            "0.5",
             "--max-missing-pct",
-            "0.0",
+            "5.0",
             "--min-minority-class-pct",
             "2.5",
         ]
@@ -131,6 +137,8 @@ def test_build_openml_benchmark_bundle_main_parses_discovery_flags(
     assert config.discover_from_openml is True
     assert config.min_instances == 200
     assert config.min_task_count == 50
+    assert config.min_classes == 2
+    assert config.min_missing_pct == 0.5
     assert captured["bundle"] is not None
     stdout = capsys.readouterr().out
     assert "OpenML discovery candidate report:" in stdout

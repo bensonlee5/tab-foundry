@@ -18,13 +18,26 @@ class OpenMLBenchmarkBundleConfig:
     task_type: str = "supervised_classification"
     new_instances: int = 200
     max_features: int = 10
+    min_classes: int | None = None
     max_classes: int | None = 2
+    min_missing_pct: float = 0.0
     max_missing_pct: float = 0.0
     min_minority_class_pct: float = 2.5
     task_ids: tuple[int, ...] | None = None
     discover_from_openml: bool = False
     min_instances: int = 1
     min_task_count: int = 1
+
+    def __post_init__(self) -> None:
+        if self.min_classes is not None and self.max_classes is not None:
+            if int(self.min_classes) <= 0 or int(self.max_classes) <= 0:
+                raise ValueError("min_classes and max_classes must be positive when provided")
+            if int(self.min_classes) > int(self.max_classes):
+                raise ValueError("min_classes must not exceed max_classes")
+        if float(self.min_missing_pct) < 0.0 or float(self.max_missing_pct) < 0.0:
+            raise ValueError("missing percentage bounds must be non-negative")
+        if float(self.min_missing_pct) > float(self.max_missing_pct):
+            raise ValueError("min_missing_pct must not exceed max_missing_pct")
 
     def resolved_task_ids(self) -> tuple[int, ...]:
         """Resolve custom task ids or fall back to the named pinned source pool."""

@@ -10,6 +10,7 @@ runtime:
   loader_task_batch_cache_mode: bounded_streaming
   num_workers: auto
   loader_pin_memory: true
+  loader_train_shuffle: true
   loader_persistent_workers: false
   loader_prefetch_factor: auto
   non_blocking_device_transfer: true

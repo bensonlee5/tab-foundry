@@ -42,12 +42,20 @@ def validate_prepared_task(
             f"number_of_features={number_of_features:g} exceeds max_features={config.max_features}"
         )
     missing_pct = float(prepared.qualities["PercentageOfInstancesWithMissingValues"])
+    if missing_pct < float(config.min_missing_pct):
+        raise RuntimeError(
+            f"missing_pct={missing_pct:g} below min_missing_pct={config.min_missing_pct:g}"
+        )
     if missing_pct > float(config.max_missing_pct):
         raise RuntimeError(
             f"missing_pct={missing_pct:g} exceeds max_missing_pct={config.max_missing_pct:g}"
         )
     if config.task_type == "supervised_classification":
         number_of_classes = float(prepared.qualities["NumberOfClasses"])
+        if config.min_classes is not None and number_of_classes < float(config.min_classes):
+            raise RuntimeError(
+                f"number_of_classes={number_of_classes:g} below min_classes={config.min_classes}"
+            )
         if config.max_classes is not None and number_of_classes > float(config.max_classes):
             raise RuntimeError(
                 f"number_of_classes={number_of_classes:g} exceeds max_classes={config.max_classes}"
@@ -115,6 +123,7 @@ def collect_task_candidates(
         )
         keep_candidate = (
             candidate.number_of_features <= float(config.max_features)
+            and candidate.missing_pct >= float(config.min_missing_pct)
             and candidate.missing_pct <= float(config.max_missing_pct)
         )
         if config.task_type == "supervised_classification":
@@ -128,6 +137,12 @@ def collect_task_candidates(
                     keep_candidate
                     and candidate.number_of_classes is not None
                     and candidate.number_of_classes <= float(config.max_classes)
+                )
+            if config.min_classes is not None:
+                keep_candidate = (
+                    keep_candidate
+                    and candidate.number_of_classes is not None
+                    and candidate.number_of_classes >= float(config.min_classes)
                 )
         if keep_candidate:
             resolved_candidates.append(candidate)
@@ -167,6 +182,10 @@ def resolve_selected_tasks(
             for candidate in eligible_candidates
             if candidate.number_of_classes is not None
             and int(candidate.number_of_classes) <= effective_max_classes
+            and (
+                config.min_classes is None
+                or int(candidate.number_of_classes) >= int(config.min_classes)
+            )
         ]
     )
     if not selected_candidates:
@@ -180,7 +199,7 @@ def resolve_selected_tasks(
                 task_type=str(config.task_type),
             )
             validate_prepared_task(prepared, config=config)
-        except RuntimeError as exc:
+        except Exception as exc:
             if config.discover_from_openml:
                 report_entries.append(
                     OpenMLBenchmarkCandidateReportEntry(
@@ -193,7 +212,9 @@ def resolve_selected_tasks(
                     )
                 )
                 continue
-            raise
+            if isinstance(exc, RuntimeError):
+                raise
+            raise RuntimeError(f"failed to prepare OpenML task {candidate.task_id}: {exc}") from exc
         if config.discover_from_openml:
             report_entries.append(
                 OpenMLBenchmarkCandidateReportEntry(
@@ -214,9 +235,36 @@ def resolve_selected_tasks(
     dataset_name_counts = Counter(str(prepared.dataset_name) for prepared in selected_tasks)
     duplicate_dataset_names = sorted(name for name, count in dataset_name_counts.items() if count > 1)
     if duplicate_dataset_names:
+        if config.discover_from_openml:
+            kept_by_name: dict[str, PreparedOpenMLBenchmarkTask] = {}
+            for prepared in sorted(selected_tasks, key=lambda item: int(item.task_id)):
+                dataset_name = str(prepared.dataset_name)
+                existing = kept_by_name.get(dataset_name)
+                if existing is None:
+                    kept_by_name[dataset_name] = prepared
+                    continue
+                report_entries.append(
+                    OpenMLBenchmarkCandidateReportEntry(
+                        task_id=int(prepared.task_id),
+                        dataset_id=None,
+                        dataset_name=dataset_name,
+                        estimation_procedure=None,
+                        status="rejected",
+                        reason=(
+                            f"duplicate dataset_name={dataset_name!r}; "
+                            f"preferred task_id={existing.task_id}"
+                        ),
+                    )
+                )
+            selected_tasks = list(kept_by_name.values())
+        else:
+            raise RuntimeError(
+                "OpenML benchmark bundle produced duplicate dataset names after validation: "
+                f"{duplicate_dataset_names}"
+            )
+    if not selected_tasks:
         raise RuntimeError(
-            "OpenML benchmark bundle produced duplicate dataset names after validation: "
-            f"{duplicate_dataset_names}"
+            "OpenML benchmark bundle produced no tasks after duplicate dataset-name filtering"
         )
     return (
         sorted(selected_tasks, key=lambda prepared: int(prepared.task_id)),

@@ -1,0 +1,21 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_sandwich_speedrun_cached_packed_muon_v1
+  - _self_
+
+data:
+  source: manifest
+  surface_label: tf_rd_010_dagzoo_mixed_missing_wide_exact_pack
+  manifest_path: outputs/corpora/tf_rd_010_dagzoo_mixed_missing_wide_v1/exact_pack_2500x4x16_block2/manifest.parquet
+  allow_missing_values: true
+
+runtime:
+  output_dir: outputs/cls_benchmark_sandwich_speedrun_mixed_missing_exact_pack_v1
+  loader_train_shuffle: false
+  signature_family_optimizer_step_block_length: 2
+  checkpoint_every: null
+  profile_step_timing: true
+
+logging:
+  run_name: cls-benchmark-sandwich-speedrun-mixed-missing-exact-pack-v1

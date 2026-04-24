@@ -330,6 +330,31 @@ def test_manifest_task_batch_sampler_preserves_manifest_order_without_shuffle() 
     assert len(sampler) == 4
 
 
+def test_manifest_source_can_disable_train_record_shuffle(tmp_path: Path) -> None:
+    manifest_path = _write_manifest_dataset(
+        tmp_path,
+        datasets=[
+            _manifest_task_payload(dataset_index=1, order_tag="first"),
+            _manifest_task_payload(dataset_index=2, order_tag="second"),
+            _manifest_task_payload(dataset_index=3, order_tag="third"),
+        ],
+    )
+    dataset = manifest_source_module.build_manifest_task_dataset(
+        OmegaConf.create(
+            {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "loader_train_shuffle": False,
+            }
+        ),
+        split="train",
+        task="classification",
+        seed=17,
+    )
+
+    assert [record["dataset_index"] for record in dataset.records] == [1, 2, 3]
+
+
 def test_manifest_task_batch_sampler_batches_contiguous_runs_without_shuffle() -> None:
     signatures = [
         (2, 2, 3, 2),

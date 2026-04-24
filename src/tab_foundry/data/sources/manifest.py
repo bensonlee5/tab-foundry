@@ -24,6 +24,19 @@ def build_manifest_task_dataset(
     data_surface = resolve_data_surface(data_cfg)
     if data_surface.manifest_path is None:
         raise RuntimeError("manifest-backed data surface requires a non-empty manifest path")
+    loader_train_shuffle = getattr(data_cfg, "loader_train_shuffle", None)
+    shuffle_records = str(split).strip().lower() == "train"
+    if shuffle_records and loader_train_shuffle is not None:
+        if isinstance(loader_train_shuffle, str):
+            shuffle_records = loader_train_shuffle.strip().lower() not in {
+                "",
+                "0",
+                "false",
+                "no",
+                "off",
+            }
+        else:
+            shuffle_records = bool(loader_train_shuffle)
     preprocessing_surface = resolve_preprocessing_surface(
         None
         if preprocessing_cfg is None
@@ -33,7 +46,7 @@ def build_manifest_task_dataset(
         manifest_path=Path(str(data_surface.manifest_path)),
         split=split,
         task=task,
-        shuffle_records=(str(split).strip().lower() == "train"),
+        shuffle_records=shuffle_records,
         shuffle_seed=int(seed),
         impute_missing=bool(preprocessing_surface.impute_missing),
         all_nan_fill=float(preprocessing_surface.all_nan_fill),
