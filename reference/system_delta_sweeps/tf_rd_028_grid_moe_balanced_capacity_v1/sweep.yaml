@@ -1,0 +1,101 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_028_grid_moe_balanced_capacity_v1
+parent_sweep_id: tf_rd_027_grid_stability_impl_v1
+status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_moe_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Grid-Sandwich MoE balanced-capacity follow-up
+  model_source: Switch-style sparse SwiGLU experts for the promoted Grid-Sandwich
+    core FFNs
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    sourced from `openml_classification_medium` (242 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `grid_sandwich`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - The manifest surface keeps the same bundle provenance (missing values permitted).
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+      sourced from `openml_classification_medium` (242 tasks (missing values permitted))
+      with data surface label `tf_rd_010_dagzoo_medium_control`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

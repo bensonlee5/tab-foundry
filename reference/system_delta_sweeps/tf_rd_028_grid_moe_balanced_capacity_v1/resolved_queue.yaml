@@ -1,0 +1,1302 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_028_grid_moe_balanced_capacity_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/matrix.md
+sweep_id: tf_rd_028_grid_moe_balanced_capacity_v1
+parent_sweep_id: tf_rd_027_grid_stability_impl_v1
+sweep_status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_moe_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Grid-Sandwich MoE balanced-capacity follow-up
+  model_source: Switch-style sparse SwiGLU experts for the promoted Grid-Sandwich
+    core FFNs
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    sourced from `openml_classification_medium` (242 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `grid_sandwich`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - The manifest surface keeps the same bundle provenance (missing values permitted).
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+      sourced from `openml_classification_medium` (242 tasks (missing values permitted))
+      with data surface label `tf_rd_010_dagzoo_medium_control`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_028_grid_moe_e4_top1_smoke_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 100
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 100
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Treat this row as diagnostic only; do not compare it as a quality candidate against
+    the 5000-step anchor.
+  - Full TF-RD-028 candidate execution is blocked on finite training losses, finite
+    MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+    smoke row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute first on the Vast VM and unblock the full MoE ladder only after
+    smoke training, benchmark artifacts, and W&B logging are clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_balanced_capacity
+  binary_applicable: false
+  description: Run a short benchmark-capable smoke of the TF-RD-026 row 10 Grid-Sandwich
+    anchor with core-only SwiGLU MoE FFNs using four experts and top-1 routing.
+  upstream_delta: Diagnostic execution gate for the TF-RD-028 Grid-Sandwich MoE capacity
+    ladder.
+  entangled_legacy_stage: none
+  expected_effect: Should prove that MoE config resolution, prior training, differentiable
+    auxiliary losses, route-health metrics, checkpoint export, benchmark registration,
+    and W&B logging all work before spending a full candidate budget.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with four sparse experts
+  - Switch-style top-1 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+  parameter_adequacy_policy:
+    default_plan:
+    - Treat this row as diagnostic only; do not compare it as a quality candidate
+      against the 5000-step anchor.
+    - Full TF-RD-028 candidate execution is blocked on finite training losses, finite
+      MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+      smoke row.
+    default_negative_decision: defer
+    reject_requires:
+    - smoke_only_row
+    - benchmark_path_failed
+    - nonfinite_moe_auxiliary_metrics
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 100
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 100
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: e22f10d0f5085e2c0a26cdb6ec8c748a048128884330921193921c9210493fb2
+- order: 2
+  delta_id: delta_tf_rd_028_grid_moe_e2_top1_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e2_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e2_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 2
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the diagnostic smoke row passes.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as the first full-budget TF-RD-028 top-1 MoE candidate after
+    the smoke row passes.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_balanced_capacity
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU
+    MoE FFNs using two experts and top-1 routing.
+  upstream_delta: First full-budget TF-RD-028 sparse expert count rung.
+  entangled_legacy_stage: none
+  expected_effect: Adds a low-risk amount of sparse expert capacity while keeping
+    active FFN compute near the dense anchor.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with two sparse experts
+  - Switch-style top-1 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the diagnostic smoke row passes.
+    - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+      and route-health telemetry.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_moe_expert_count_change
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 2
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: 8315967364764e0ac3174595c61566c3cc03dbba9c348ec7346d9be19115f6dd
+- order: 3
+  delta_id: delta_tf_rd_028_grid_moe_e4_top1_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the diagnostic smoke row passes.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute as the main TF-RD-028 top-1 MoE candidate after the smoke row
+    passes.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_balanced_capacity
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU
+    MoE FFNs using four experts and top-1 routing.
+  upstream_delta: Main recommended TF-RD-028 sparse capacity row.
+  entangled_legacy_stage: none
+  expected_effect: Adds the planned first meaningful sparse parameter increase while
+    keeping active FFN compute near the dense anchor.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with four sparse experts
+  - Switch-style top-1 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the diagnostic smoke row passes.
+    - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+      and route-health telemetry.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_moe_expert_count_change
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: 33e88ecbe3cc98f9b6f23e9bc44e13cbf22a36e0fae9ca4d6fce6e2108dd3989
+- order: 4
+  delta_id: delta_tf_rd_028_grid_moe_e8_top1_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e8_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e8_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 8
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after lower expert-count top-1 rows pass basic route-health checks.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after E=2 and E=4 top-1 rows show finite losses and usable
+    route-health metrics.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_balanced_capacity
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU
+    MoE FFNs using eight experts and top-1 routing.
+  upstream_delta: Higher sparse expert count rung for the TF-RD-028 MoE ladder.
+  entangled_legacy_stage: none
+  expected_effect: Adds substantially more total expert parameters while keeping active
+    FFN compute near the dense anchor, exposing whether sparse capacity continues
+    to scale before expert-parallel memory work.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with eight sparse experts
+  - Switch-style top-1 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after lower expert-count top-1 rows pass basic route-health checks.
+    - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+      and route-health telemetry.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_moe_expert_count_change
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 8
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: 02ce9c5ece3b193e4a3a0adfcbcd877cffca57acb790cabc4745e3139be8626b
+- order: 5
+  delta_id: delta_tf_rd_028_grid_moe_e4_top2_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent
+    route collapse.
+  - Compare against the E=4 top-1 row and locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget,
+    route-health telemetry, and the additional active-compute cost.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute only after the top-1 MoE rows pass route-health inspection
+    and quality is not explained by a routing bug.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_balanced_capacity
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU
+    MoE FFNs using four experts and top-2 routing.
+  upstream_delta: Conditional TF-RD-028 top-k follow-up after top-1 route health is
+    known.
+  entangled_legacy_stage: none
+  expected_effect: Increases active expert mixing and router gradient density relative
+    to top-1, trading extra active FFN compute for a possible quality or route-health
+    improvement.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with four sparse experts
+  - Switch-style top-2 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent
+      route collapse.
+    - Compare against the E=4 top-1 row and locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget,
+      route-health telemetry, and the additional active-compute cost.
+    default_negative_decision: defer
+    reject_requires:
+    - top1_route_health_gate_passed
+    - isolated_top_k_change
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: false
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: null
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: null
+      corpus_record_path: null
+      manifest: null
+      dagzoo_provenance: null
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 16
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 4
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: d5f11be2a9bcd4c836b219657dab7920cfa632f4c13520cee6ba4b484b0484e3
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/resolved_queue.yaml
+inputs_fingerprint: c4634dc14e6e81833acea1194ce3273dd9e35f314faecde10eebe85f0822c791

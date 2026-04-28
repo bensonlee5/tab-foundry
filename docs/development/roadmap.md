@@ -864,6 +864,30 @@ Legacy wording note:
     and `optimizer.weight_decay=0.01`
   - close TF-RD-027 without stacking z-loss, softcap, or QK-norm
 
+### TF-RD-028: Grid MoE Balanced Capacity Sweep
+
+- Status: `draft`
+- Milestone: `Active`
+- Tracking issue: [#295](https://github.com/bensonlee5/tab-foundry/issues/295)
+- Goal: test whether sparse core-only SwiGLU MoE FFNs can add usable Grid-Sandwich
+  capacity while keeping active FFN compute near the TF-RD-026 row `10` anchor.
+- Current plan:
+  - `tf_rd_028_grid_moe_balanced_capacity_v1` compares against the locked
+    TF-RD-026 row `10` anchor final log loss `0.4181767299`
+  - row `01` is a 100-step benchmark-capable `E=4`, `top_k=1` smoke gate for
+    training, MoE aux metrics, checkpoint export, benchmark registration, and
+    W&B logging
+  - full candidate rows test `E=2`, `E=4`, and `E=8` top-1 routing at the
+    anchor-matched 5000-step budget
+  - row `05` tests `E=4`, `top_k=2` only after top-1 rows show finite losses and
+    usable route-health metrics
+- Exit criteria:
+  - smoke passes on the Vast VM before full candidate execution
+  - every executed row has queue status, W&B identity, rendered matrix output,
+    benchmark result card, and route-health metrics aligned
+  - interpret candidates by final log loss at matched budget plus route-health
+    telemetry, with the smoke row excluded from quality comparison
+
 ### TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
 
 - Status: `completed`
