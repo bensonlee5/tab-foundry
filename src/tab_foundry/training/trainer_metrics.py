@@ -36,6 +36,8 @@ def _compute_loss_and_metrics(
     *,
     task: str,
     classification_z_loss_coeff: float = 0.0,
+    moe_load_balance_loss_coeff: float = 0.0,
+    moe_router_z_loss_coeff: float = 0.0,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     if task != "classification":
         raise RuntimeError(
@@ -97,6 +99,13 @@ def _compute_loss_and_metrics(
             )
         if output.aux_metrics is not None:
             cls_metrics.update(output.aux_metrics)
+        loss = _add_moe_aux_losses(
+            loss,
+            output=output,
+            metrics=cls_metrics,
+            moe_load_balance_loss_coeff=moe_load_balance_loss_coeff,
+            moe_router_z_loss_coeff=moe_router_z_loss_coeff,
+        )
         return loss, cls_metrics
 
     if output.class_probs is not None:
@@ -106,6 +115,13 @@ def _compute_loss_and_metrics(
         cls_metrics = {"acc": float(acc)}
         if output.aux_metrics is not None:
             cls_metrics.update(output.aux_metrics)
+        loss = _add_moe_aux_losses(
+            loss,
+            output=output,
+            metrics=cls_metrics,
+            moe_load_balance_loss_coeff=moe_load_balance_loss_coeff,
+            moe_router_z_loss_coeff=moe_router_z_loss_coeff,
+        )
         return loss, cls_metrics
 
     counts = validate_classification_path_terms_contract(
@@ -154,7 +170,38 @@ def _compute_loss_and_metrics(
         )
     if output.aux_metrics is not None:
         path_metrics.update(output.aux_metrics)
+    loss = _add_moe_aux_losses(
+        loss,
+        output=output,
+        metrics=path_metrics,
+        moe_load_balance_loss_coeff=moe_load_balance_loss_coeff,
+        moe_router_z_loss_coeff=moe_router_z_loss_coeff,
+    )
     return loss, path_metrics
+
+
+def _add_moe_aux_losses(
+    loss: torch.Tensor,
+    *,
+    output: ClassificationOutput,
+    metrics: dict[str, float],
+    moe_load_balance_loss_coeff: float,
+    moe_router_z_loss_coeff: float,
+) -> torch.Tensor:
+    aux_losses = output.aux_losses or {}
+    load_balance = aux_losses.get("moe_load_balance_loss")
+    load_coeff = max(0.0, float(moe_load_balance_loss_coeff))
+    if load_balance is not None and load_coeff > 0.0:
+        loss = loss + (load_coeff * load_balance)
+        metrics["moe_load_balance_loss"] = float(load_balance.detach().item())
+        metrics["moe_load_balance_loss_coeff"] = float(load_coeff)
+    router_z = aux_losses.get("moe_router_z_loss")
+    z_coeff = max(0.0, float(moe_router_z_loss_coeff))
+    if router_z is not None and z_coeff > 0.0:
+        loss = loss + (z_coeff * router_z)
+        metrics["moe_router_z_loss"] = float(router_z.detach().item())
+        metrics["moe_router_z_loss_coeff"] = float(z_coeff)
+    return loss
 
 
 def _evaluate_loader(
@@ -241,4 +288,12 @@ def _expected_metric_keys(task: str) -> set[str]:
         "classification_ce_loss",
         "classification_z_loss",
         "classification_z_loss_coeff",
+        "moe_load_balance_loss",
+        "moe_load_balance_loss_coeff",
+        "moe_router_z_loss",
+        "moe_router_z_loss_coeff",
+        "moe_router_entropy",
+        "moe_expert_fraction_min",
+        "moe_expert_fraction_max",
+        "moe_expert_fraction_std",
     }

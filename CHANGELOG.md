@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` now exposes an opt-in core-only sparse
+  SwiGLU MoE path through `model.grid_moe_scope`,
+  `model.grid_moe_num_experts`, `model.grid_moe_top_k`, and
+  `model.grid_moe_router_init_std`. Training can add the differentiable MoE
+  load-balancing and router z-loss terms through
+  `training.moe_load_balance_loss_coeff` and
+  `training.moe_router_z_loss_coeff`; defaults preserve dense behavior and
+  export/config surfaces persist the new fields for reconstruction.
 - User-facing note: the default OpenML benchmark anchor now targets
   `openml_classification_missing_wide_v1`, a validated missing-valued
   classification surface with `min_missing_pct: 0.5`, `max_features: 100`,

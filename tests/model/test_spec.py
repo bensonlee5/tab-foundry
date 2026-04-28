@@ -123,6 +123,10 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         grid_recurrence_unique_layers=2,
         classification_logit_softcap=30.0,
         attention_qk_norm=True,
+        grid_moe_scope="grid_core_ffn",
+        grid_moe_num_experts=4,
+        grid_moe_top_k=2,
+        grid_moe_router_init_std=0.02,
     )
 
     assert isinstance(model, GridSandwichClassifier)
@@ -136,6 +140,10 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
     assert model.grid_ffn_mode == "swiglu"
     assert model.classification_logit_softcap == pytest.approx(30.0)
     assert model.attention_qk_norm is True
+    assert model.grid_moe_scope == "grid_core_ffn"
+    assert model.grid_moe_num_experts == 4
+    assert model.grid_moe_top_k == 2
+    assert model.grid_moe_router_init_std == pytest.approx(0.02)
 
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
@@ -207,6 +215,10 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.grid_recurrence_unique_layers is None
     assert spec.classification_logit_softcap is None
     assert spec.attention_qk_norm is False
+    assert spec.grid_moe_scope == "none"
+    assert spec.grid_moe_num_experts == 1
+    assert spec.grid_moe_top_k == 1
+    assert spec.grid_moe_router_init_std == pytest.approx(0.01)
 
 
 def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
@@ -223,6 +235,10 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
             "grid_recurrence_unique_layers": 2,
             "classification_logit_softcap": 30.0,
             "attention_qk_norm": True,
+            "grid_moe_scope": "grid_core_ffn",
+            "grid_moe_num_experts": 4,
+            "grid_moe_top_k": 2,
+            "grid_moe_router_init_std": 0.02,
         },
     )
 
@@ -235,6 +251,10 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.grid_recurrence_unique_layers == 2
     assert spec.classification_logit_softcap == pytest.approx(30.0)
     assert spec.attention_qk_norm is True
+    assert spec.grid_moe_scope == "grid_core_ffn"
+    assert spec.grid_moe_num_experts == 4
+    assert spec.grid_moe_top_k == 2
+    assert spec.grid_moe_router_init_std == pytest.approx(0.02)
     assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
     assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
@@ -244,6 +264,10 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.to_dict()["grid_recurrence_unique_layers"] == 2
     assert spec.to_dict()["classification_logit_softcap"] == pytest.approx(30.0)
     assert spec.to_dict()["attention_qk_norm"] is True
+    assert spec.to_dict()["grid_moe_scope"] == "grid_core_ffn"
+    assert spec.to_dict()["grid_moe_num_experts"] == 4
+    assert spec.to_dict()["grid_moe_top_k"] == 2
+    assert spec.to_dict()["grid_moe_router_init_std"] == pytest.approx(0.02)
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -384,6 +408,10 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         ("grid_recurrence_unique_layers", 0),
         ("classification_logit_softcap", 0.0),
         ("attention_qk_norm", "maybe"),
+        ("grid_moe_scope", "all_grid_ffn"),
+        ("grid_moe_num_experts", 0),
+        ("grid_moe_top_k", 0),
+        ("grid_moe_router_init_std", 0.0),
     ),
 )
 def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(
@@ -394,6 +422,30 @@ def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(
         _ = model_build_spec_from_mappings(
             task="classification",
             primary={"arch": "grid_sandwich", field_name: bad_value},
+        )
+
+
+def test_grid_sandwich_model_spec_rejects_enabled_moe_with_one_expert() -> None:
+    with pytest.raises(ValueError, match="grid_moe_num_experts"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "grid_sandwich",
+                "grid_moe_scope": "grid_core_ffn",
+                "grid_moe_num_experts": 1,
+            },
+        )
+
+
+def test_grid_sandwich_model_spec_rejects_moe_top_k_above_num_experts() -> None:
+    with pytest.raises(ValueError, match="grid_moe_top_k"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "grid_sandwich",
+                "grid_moe_num_experts": 2,
+                "grid_moe_top_k": 3,
+            },
         )
 
 

@@ -37,7 +37,11 @@ from .instability import (
     train_loss_delta,
     update_loss_ema,
 )
-from .loss_surface import resolve_classification_z_loss_coeff
+from .loss_surface import (
+    resolve_classification_z_loss_coeff,
+    resolve_moe_load_balance_loss_coeff,
+    resolve_moe_router_z_loss_coeff,
+)
 from .schedule import stage_base_lr
 from .trainer_guards import (
     GuardStepUpdate,
@@ -467,6 +471,12 @@ def run_training_loop(
     classification_z_loss_coeff = resolve_classification_z_loss_coeff(
         getattr(cfg, "training", None)
     )
+    moe_load_balance_loss_coeff = resolve_moe_load_balance_loss_coeff(
+        getattr(cfg, "training", None)
+    )
+    moe_router_z_loss_coeff = resolve_moe_router_z_loss_coeff(
+        getattr(cfg, "training", None)
+    )
     for stage in stage_configs:
         _set_optimizer_training_mode(prepared_opts, training=True)
 
@@ -530,15 +540,21 @@ def run_training_loop(
                 with accelerator.accumulate(model):
                     with accelerator.autocast():
                         output = model(batch) if model_forward is None else model_forward(batch)
+                        loss_kwargs: dict[str, float] = {}
                         if classification_z_loss_coeff > 0.0:
-                            loss, metrics = _compute_loss_and_metrics(
-                                output,
-                                batch,
-                                task=task,
-                                classification_z_loss_coeff=classification_z_loss_coeff,
+                            loss_kwargs["classification_z_loss_coeff"] = classification_z_loss_coeff
+                        if moe_load_balance_loss_coeff > 0.0:
+                            loss_kwargs["moe_load_balance_loss_coeff"] = (
+                                moe_load_balance_loss_coeff
                             )
-                        else:
-                            loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                        if moe_router_z_loss_coeff > 0.0:
+                            loss_kwargs["moe_router_z_loss_coeff"] = moe_router_z_loss_coeff
+                        loss, metrics = _compute_loss_and_metrics(
+                            output,
+                            batch,
+                            task=task,
+                            **loss_kwargs,
+                        )
                     accelerator.backward(
                         _task_weighted_microstep_loss(
                             loss,

@@ -256,6 +256,8 @@ def compose_cfg(
         "task_batch_size",
         "loss_surface",
         "classification_z_loss_coeff",
+        "moe_load_balance_loss_coeff",
+        "moe_router_z_loss_coeff",
     ):
         if key in training_payload:
             OmegaConf.update(cfg, f"training.{key}", training_payload[key], merge=True)

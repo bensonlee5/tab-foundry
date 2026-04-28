@@ -124,6 +124,10 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     grid_recurrence_unique_layers: StrictInt | None = None
     classification_logit_softcap: FiniteFloat | None = None
     attention_qk_norm: StrictBool | None = None
+    grid_moe_scope: StrictStr | None = None
+    grid_moe_num_experts: StrictInt | None = None
+    grid_moe_top_k: StrictInt | None = None
+    grid_moe_router_init_std: FiniteFloat | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -379,6 +383,10 @@ class ExportModelSpec:
     grid_recurrence_unique_layers: int | None
     classification_logit_softcap: float | None
     attention_qk_norm: bool
+    grid_moe_scope: str
+    grid_moe_num_experts: int
+    grid_moe_top_k: int
+    grid_moe_router_init_std: float
 
     @classmethod
     def from_build_spec(
@@ -450,6 +458,10 @@ class ExportModelSpec:
             if spec.classification_logit_softcap is None
             else float(spec.classification_logit_softcap),
             attention_qk_norm=bool(spec.attention_qk_norm),
+            grid_moe_scope=str(spec.grid_moe_scope),
+            grid_moe_num_experts=int(spec.grid_moe_num_experts),
+            grid_moe_top_k=int(spec.grid_moe_top_k),
+            grid_moe_router_init_std=float(spec.grid_moe_router_init_std),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -512,6 +524,10 @@ class ExportModelSpec:
                 "grid_recurrence_unique_layers": self.grid_recurrence_unique_layers,
                 "classification_logit_softcap": self.classification_logit_softcap,
                 "attention_qk_norm": self.attention_qk_norm,
+                "grid_moe_scope": self.grid_moe_scope,
+                "grid_moe_num_experts": self.grid_moe_num_experts,
+                "grid_moe_top_k": self.grid_moe_top_k,
+                "grid_moe_router_init_std": self.grid_moe_router_init_std,
             },
         )
 
@@ -557,6 +573,10 @@ class ExportModelSpec:
                 "grid_recurrence_unique_layers",
                 "classification_logit_softcap",
                 "attention_qk_norm",
+                "grid_moe_scope",
+                "grid_moe_num_experts",
+                "grid_moe_top_k",
+                "grid_moe_router_init_std",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -580,6 +600,10 @@ class ExportModelSpec:
                 "grid_recurrence_unique_layers",
                 "classification_logit_softcap",
                 "attention_qk_norm",
+                "grid_moe_scope",
+                "grid_moe_num_experts",
+                "grid_moe_top_k",
+                "grid_moe_router_init_std",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -595,6 +619,10 @@ class ExportModelSpec:
                 "grid_recurrence_unique_layers",
                 "classification_logit_softcap",
                 "attention_qk_norm",
+                "grid_moe_scope",
+                "grid_moe_num_experts",
+                "grid_moe_top_k",
+                "grid_moe_router_init_std",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -648,6 +676,10 @@ class ExportModelSpec:
                 "grid_recurrence_unique_layers",
                 "classification_logit_softcap",
                 "attention_qk_norm",
+                "grid_moe_scope",
+                "grid_moe_num_experts",
+                "grid_moe_top_k",
+                "grid_moe_router_init_std",
             ):
                 payload.pop(field_name, None)
             return payload

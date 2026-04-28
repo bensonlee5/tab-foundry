@@ -203,6 +203,55 @@ def test_classification_metrics_add_z_loss_only_when_requested() -> None:
     assert z_metrics["classification_z_loss_coeff"] == pytest.approx(1.0e-4)
 
 
+def test_classification_metrics_add_moe_aux_losses_only_when_requested() -> None:
+    logits = torch.tensor(
+        [
+            [3.0, 1.0, -2.0],
+            [0.0, 2.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(4, 3),
+        y_train=torch.randint(0, 3, (4,)),
+        x_test=torch.randn(2, 3),
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata={},
+        num_classes=3,
+    )
+    output = ClassificationOutput(
+        logits=logits,
+        num_classes=3,
+        aux_losses={
+            "moe_load_balance_loss": torch.tensor(2.0),
+            "moe_router_z_loss": torch.tensor(3.0),
+        },
+        aux_metrics={"moe_router_entropy": 1.25},
+    )
+
+    baseline_loss, baseline_metrics = _compute_loss_and_metrics(
+        output,
+        batch,
+        task="classification",
+    )
+    moe_loss, moe_metrics = _compute_loss_and_metrics(
+        output,
+        batch,
+        task="classification",
+        moe_load_balance_loss_coeff=0.1,
+        moe_router_z_loss_coeff=0.01,
+    )
+
+    assert "moe_load_balance_loss" not in baseline_metrics
+    assert "moe_router_z_loss" not in baseline_metrics
+    assert baseline_metrics["moe_router_entropy"] == pytest.approx(1.25)
+    assert moe_loss.item() == pytest.approx(baseline_loss.item() + 0.23)
+    assert moe_metrics["moe_load_balance_loss"] == pytest.approx(2.0)
+    assert moe_metrics["moe_load_balance_loss_coeff"] == pytest.approx(0.1)
+    assert moe_metrics["moe_router_z_loss"] == pytest.approx(3.0)
+    assert moe_metrics["moe_router_z_loss_coeff"] == pytest.approx(0.01)
+
+
 def test_manyclass_path_metrics_raise_for_underfull_path_counts() -> None:
     output = ClassificationOutput(
         logits=None,

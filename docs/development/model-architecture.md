@@ -138,6 +138,8 @@ The live design combines:
 - a recurrent grid core that keeps hidden states shaped as `[B, R, C, d_icl]`,
   alternates row-wise feature self-attention with column-wise row ISAB mixing,
   and applies two distinct SwiGLU grid-mixer layers four times each
+- an opt-in core-only sparse SwiGLU MoE path for grid-core FFNs, disabled by
+  default, that selects top-k experts per cell token without token dropping
 - a learned test-row pool query that attends over each test row's feature
   bundle directly before the `DirectMulticlassHead`
 
@@ -268,9 +270,15 @@ runtime wiring.
 | `grid_ffn_mode` | `swiglu` | gated FFN path inside grid-core row and column mixers |
 | `grid_recurrence_steps` | `8` | total row/column grid-core applications |
 | `grid_recurrence_unique_layers` | `2` | two distinct grid-mixer layers, cycled four times |
+| `grid_moe_scope` | `none` | dense grid-core FFNs by default; `grid_core_ffn` enables sparse MoE only in recurrent grid-core SwiGLU FFNs |
+| `grid_moe_num_experts` | `1` | inactive default; enabled MoE requires more than one expert |
+| `grid_moe_top_k` | `1` | selected experts per token for the optional sparse MoE path |
+| `grid_moe_router_init_std` | `0.01` | normal initialization scale for MoE router weights |
 | `classification_logit_softcap` | `null` | disabled by default; TF-RD-027 tests tanh logit softcapping as an isolated stability mechanism |
 | `attention_qk_norm` | `false` | disabled by default; TF-RD-027 tests QK-normalized grid attention as an isolated stability mechanism |
 | `training.classification_z_loss_coeff` | `0.0` | disabled by default; TF-RD-027 tests the auxiliary classification z-loss as an isolated training mechanism |
+| `training.moe_load_balance_loss_coeff` | `0.0` | disabled by default; recommended first MoE sweep value is `1e-2` |
+| `training.moe_router_z_loss_coeff` | `0.0` | disabled by default; recommended first MoE sweep value is `1e-4` |
 | `feature_type_conditioning` | `film` | feature-type modulation after the shared feature encoder |
 | `runtime.activation_checkpointing` | `false` | disabled for the current recurrent SwiGLU anchor because the checkpointed path trips a TorchDynamo tracing assertion |
 

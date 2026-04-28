@@ -136,7 +136,13 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert int(cfg.model.grid_recurrence_unique_layers) == 2
     assert cfg.model.classification_logit_softcap is None
     assert bool(cfg.model.attention_qk_norm) is False
+    assert str(cfg.model.grid_moe_scope) == "none"
+    assert int(cfg.model.grid_moe_num_experts) == 1
+    assert int(cfg.model.grid_moe_top_k) == 1
+    assert float(cfg.model.grid_moe_router_init_std) == pytest.approx(0.01)
     assert float(cfg.training.classification_z_loss_coeff) == 0.0
+    assert float(cfg.training.moe_load_balance_loss_coeff) == 0.0
+    assert float(cfg.training.moe_router_z_loss_coeff) == 0.0
     assert bool(cfg.runtime.activation_checkpointing) is False
     assert cfg.runtime.checkpoint_every is None
     assert int(cfg.runtime.grad_accum_steps) == 4
@@ -150,6 +156,13 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
 def test_resolve_config_rejects_negative_classification_z_loss_coeff() -> None:
     with pytest.raises(ValueError, match="classification_z_loss_coeff"):
         _ = resolve_config_payload(("training.classification_z_loss_coeff=-0.1",))
+
+
+def test_resolve_config_rejects_negative_moe_aux_loss_coeff() -> None:
+    with pytest.raises(ValueError, match="moe_load_balance_loss_coeff"):
+        _ = resolve_config_payload(("training.moe_load_balance_loss_coeff=-0.1",))
+    with pytest.raises(ValueError, match="moe_router_z_loss_coeff"):
+        _ = resolve_config_payload(("training.moe_router_z_loss_coeff=-0.1",))
 
 
 @pytest.mark.parametrize(

@@ -37,22 +37,45 @@ def normalize_training_loss_surface(value: Any) -> str | None:
 
 
 def resolve_classification_z_loss_coeff(training_cfg: Mapping[str, Any] | Any) -> float:
+    return _resolve_non_negative_float_training_field(
+        training_cfg,
+        field_name="classification_z_loss_coeff",
+    )
+
+
+def _resolve_non_negative_float_training_field(
+    training_cfg: Mapping[str, Any] | Any,
+    *,
+    field_name: str,
+) -> float:
     raw_value = 0.0
     if isinstance(training_cfg, Mapping):
-        raw_value = training_cfg.get("classification_z_loss_coeff", 0.0)
+        raw_value = training_cfg.get(field_name, 0.0)
     elif training_cfg is not None:
-        raw_value = getattr(training_cfg, "classification_z_loss_coeff", 0.0)
+        raw_value = getattr(training_cfg, field_name, 0.0)
     try:
         coeff = float(raw_value or 0.0)
     except (TypeError, ValueError) as exc:
         raise ValueError(
-            "training.classification_z_loss_coeff must be a finite non-negative float"
+            f"training.{field_name} must be a finite non-negative float"
         ) from exc
     if not math.isfinite(coeff) or coeff < 0.0:
-        raise ValueError(
-            "training.classification_z_loss_coeff must be a finite non-negative float"
-        )
+        raise ValueError(f"training.{field_name} must be a finite non-negative float")
     return coeff
+
+
+def resolve_moe_load_balance_loss_coeff(training_cfg: Mapping[str, Any] | Any) -> float:
+    return _resolve_non_negative_float_training_field(
+        training_cfg,
+        field_name="moe_load_balance_loss_coeff",
+    )
+
+
+def resolve_moe_router_z_loss_coeff(training_cfg: Mapping[str, Any] | Any) -> float:
+    return _resolve_non_negative_float_training_field(
+        training_cfg,
+        field_name="moe_router_z_loss_coeff",
+    )
 
 
 def resolve_training_loss_surface(
