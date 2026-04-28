@@ -424,6 +424,21 @@ def _inference_timing_from_checkpoint(
     return dict(cast(Mapping[str, Any], raw_timing))
 
 
+def _checkpoint_cfg_uses_grid_moe(raw_cfg: Mapping[str, Any]) -> bool:
+    model_cfg = raw_cfg.get("model")
+    if not isinstance(model_cfg, Mapping):
+        return False
+    scope = str(model_cfg.get("grid_moe_scope") or "none").strip().lower()
+    if scope in {"", "none"}:
+        return False
+    raw_experts = model_cfg.get("grid_moe_num_experts", 1)
+    try:
+        num_experts = int(raw_experts)
+    except (TypeError, ValueError):
+        num_experts = 2
+    return num_experts > 1
+
+
 def comparison_delta(
     *,
     reference_run_id: str,
@@ -588,7 +603,7 @@ def derive_benchmark_run_record(
         ),
     )
     inference_timing = _inference_timing_from_summary(tab_foundry)
-    if inference_timing is None:
+    if inference_timing is None and not _checkpoint_cfg_uses_grid_moe(raw_cfg):
         inference_timing = _inference_timing_from_checkpoint(
             checkpoint_path=best_checkpoint_path,
             telemetry_payload=telemetry_payload,

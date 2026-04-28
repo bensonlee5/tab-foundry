@@ -602,6 +602,37 @@ def test_derive_benchmark_run_record_includes_optional_sweep_metadata(
     }
 
 
+def test_derive_benchmark_run_record_skips_export_timing_fallback_for_grid_moe(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="grid_moe",
+        model_cfg_override={
+            "grid_moe_scope": "grid_core_ffn",
+            "grid_moe_num_experts": 4,
+            "grid_moe_top_k": 1,
+            "grid_moe_router_init_std": 0.01,
+        },
+    )
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
+
+    def _unexpected_export_check(*args: object, **kwargs: object) -> dict[str, object]:
+        raise AssertionError("grid MoE registry derivation should not run export-check timing")
+
+    monkeypatch.setattr(registry_module, "_export_check", _unexpected_export_check)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["inference_timing"] is None
+
+
 def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
