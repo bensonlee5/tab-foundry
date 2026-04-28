@@ -170,6 +170,9 @@ def test_tf_rd_010_latent_target_recipe_ids_are_registered() -> None:
     assert recipes["tf_rd_010_latent_target_canary_curated_v3"] == {
         "path": "tf_rd_010_latent_target_canary_curated_v3.yaml"
     }
+    assert recipes["tf_rd_010_dagzoo_mixed_missing_wide_v1"] == {
+        "path": "tf_rd_010_dagzoo_mixed_missing_wide_v1.yaml"
+    }
 
 
 def test_tf_rd_010_dagzoo_medium_control_curated_v5_preserves_balanced_shape_without_teacher_controls() -> None:
@@ -301,3 +304,48 @@ def test_tf_rd_010_latent_target_canary_curated_v3_tracks_row_ladder_without_tea
         row_total = int(dataset["n_train"]) + int(dataset["n_test"])
         seen_rows.add(row_total)
     assert seen_rows == set(ROW_SPECS)
+
+
+def test_tf_rd_010_dagzoo_mixed_missing_wide_v1_expands_missingness_and_wide_features() -> None:
+    recipe = load_corpus_recipe("tf_rd_010_dagzoo_mixed_missing_wide_v1", repo_root=REPO_ROOT).to_dict()
+
+    assert recipe["surface_label"] == "tf_rd_010_dagzoo_mixed_missing_wide"
+    assert recipe["manifest"]["missing_value_policy"] == "allow_any"
+    assert recipe["manifest"]["filter_policy"] == "accepted_only"
+    assert recipe["review_summary"]["feature_counts"] == [6, 10, 14, 20, 32, 64, 100]
+    assert recipe["review_summary"]["missingness_regimes"] == [
+        {"mechanism": "mcar", "rate": 0.15},
+        {"mechanism": "mar", "rate": 0.15},
+        {"mechanism": "mnar", "rate": 0.15},
+    ]
+
+    invocations = recipe["invocations"]
+    assert len(invocations) == 756
+    mechanisms = {str(invocation["missing_mechanism"]) for invocation in invocations}
+    assert mechanisms == {"mcar", "mar", "mnar"}
+
+    grid: set[tuple[str, int, int, int]] = set()
+    for invocation in invocations:
+        dataset = invocation["config_overrides"]["dataset"]
+        graph = invocation["config_overrides"]["graph"]
+        mechanism = str(invocation["missing_mechanism"])
+        feature_count = int(dataset["n_features_min"])
+        class_count = int(dataset["n_classes_min"])
+        row_total = int(dataset["n_train"]) + int(dataset["n_test"])
+        assert invocation["missing_rate"] == 0.15
+        assert dataset["n_features_max"] == feature_count
+        assert dataset["n_classes_max"] == class_count
+        assert graph == {
+            "n_nodes_min": recipe["review_summary"]["feature_graph_bands"][str(feature_count)][0],
+            "n_nodes_max": recipe["review_summary"]["feature_graph_bands"][str(feature_count)][1],
+        }
+        grid.add((mechanism, row_total, feature_count, class_count))
+
+    expected = {
+        (mechanism, row_total, feature_count, class_count)
+        for mechanism in ("mcar", "mar", "mnar")
+        for row_total in ROW_SPECS
+        for feature_count in (6, 10, 14, 20, 32, 64, 100)
+        for class_count in CLASS_COUNTS
+    }
+    assert grid == expected

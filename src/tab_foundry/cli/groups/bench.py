@@ -102,6 +102,11 @@ GROUP = LazyGroup(
             attr="COMMAND",
             help="Materialize an OpenML bundle into a manifest-backed benchmark surface",
         ),
+        "validate-openml-manifest": LazyCommandSpec(
+            module="tab_foundry.cli.bench_validate_openml_manifest",
+            attr="COMMAND",
+            help="Validate observed missingness in a materialized OpenML benchmark manifest",
+        ),
         "registry": _REGISTRY_GROUP,
         "smoke": _SMOKE_GROUP,
         "tune": LazyCommandSpec(

@@ -60,6 +60,10 @@ _LAZY_EXPORTS = {
     "aggregate_curve": (".summary", "aggregate_curve"),
     "build_comparison_summary": (".summary", "build_comparison_summary"),
     "plot_comparison_curve": (".summary", "plot_comparison_curve"),
+    "validate_openml_missingness_manifest": (
+        ".missingness_validation",
+        "validate_openml_missingness_manifest",
+    ),
 }
 _DATASET_EXPORTS = {
     "PreparedOpenMLBenchmarkTask",
@@ -126,6 +130,7 @@ __all__ = [
     "summarize_checkpoint_curve",
     "task_bootstrap_roc_auc_interval",
     "validate_default_anchor_benchmark_summary",
+    "validate_openml_missingness_manifest",
 ]
 
 

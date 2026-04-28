@@ -71,7 +71,8 @@ def task_listing_rows_for_config(
         listing_filters["number_instances"] = f"{int(config.min_instances)}..1000000000"
     listing_filters["number_features"] = f"0..{int(config.max_features)}"
     if config.task_type == "supervised_classification" and config.max_classes is not None:
-        listing_filters["number_classes"] = f"{int(config.max_classes)}..{int(config.max_classes)}"
+        min_classes = int(config.min_classes) if config.min_classes is not None else int(config.max_classes)
+        listing_filters["number_classes"] = f"{min_classes}..{int(config.max_classes)}"
     if float(config.max_missing_pct) <= 0.0:
         listing_filters["number_missing_values"] = 0
     try:
@@ -102,6 +103,11 @@ def candidate_matches_listing_filters(
             False,
             f"number_of_features={candidate.number_of_features:g} exceeds max_features={config.max_features}",
         )
+    if candidate.missing_pct < float(config.min_missing_pct):
+        return (
+            False,
+            f"missing_pct={candidate.missing_pct:g} below min_missing_pct={config.min_missing_pct:g}",
+        )
     if candidate.missing_pct > float(config.max_missing_pct):
         return (
             False,
@@ -110,6 +116,11 @@ def candidate_matches_listing_filters(
     if config.task_type == "supervised_classification":
         if candidate.number_of_classes is None:
             return False, "number_of_classes missing from task listing"
+        if config.min_classes is not None and candidate.number_of_classes < float(config.min_classes):
+            return (
+                False,
+                f"number_of_classes={candidate.number_of_classes:g} below min_classes={config.min_classes}",
+            )
         if config.max_classes is not None and candidate.number_of_classes > float(config.max_classes):
             return (
                 False,

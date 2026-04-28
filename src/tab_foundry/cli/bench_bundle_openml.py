@@ -23,7 +23,9 @@ def _build_openml_bundle_command(
     min_task_count: int,
     task_type: str,
     max_features: int,
+    min_classes: int | None,
     max_classes: str,
+    min_missing_pct: float,
     max_missing_pct: float,
     min_minority_class_pct: float,
 ) -> int:
@@ -34,7 +36,9 @@ def _build_openml_bundle_command(
         task_type=task_type,
         new_instances=new_instances,
         max_features=max_features,
+        min_classes=min_classes,
         max_classes=bundle_module.parse_max_classes_arg(max_classes),
+        min_missing_pct=min_missing_pct,
         max_missing_pct=max_missing_pct,
         min_minority_class_pct=min_minority_class_pct,
         discover_from_openml=discover_from_openml,
@@ -97,10 +101,23 @@ def _build_openml_bundle_command(
 )
 @click.option("--max-features", default=10, show_default=True, type=POSITIVE_INT, help="Maximum raw OpenML feature count allowed by the bundle filter")
 @click.option(
+    "--min-classes",
+    default=None,
+    type=POSITIVE_INT,
+    help="Minimum class count filter for classification bundles",
+)
+@click.option(
     "--max-classes",
     default="2",
     show_default=True,
     help="Maximum class count filter, or 'auto' to widen to the highest eligible class count",
+)
+@click.option(
+    "--min-missing-pct",
+    default=0.0,
+    show_default=True,
+    type=float,
+    help="Minimum required percentage of instances with missing values",
 )
 @click.option(
     "--max-missing-pct",
@@ -127,7 +144,9 @@ def COMMAND(
     min_task_count: int,
     task_type: str,
     max_features: int,
+    min_classes: int | None,
     max_classes: str,
+    min_missing_pct: float,
     max_missing_pct: float,
     min_minority_class_pct: float,
 ) -> int:
@@ -142,7 +161,9 @@ def COMMAND(
         min_task_count=min_task_count,
         task_type=task_type,
         max_features=max_features,
+        min_classes=min_classes,
         max_classes=max_classes,
+        min_missing_pct=min_missing_pct,
         max_missing_pct=max_missing_pct,
         min_minority_class_pct=min_minority_class_pct,
     )

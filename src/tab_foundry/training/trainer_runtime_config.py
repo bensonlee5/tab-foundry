@@ -191,6 +191,16 @@ def _resolve_loader_pin_memory(runtime_cfg: DictConfig) -> bool:
     )
 
 
+def _resolve_loader_train_shuffle(runtime_cfg: DictConfig) -> bool:
+    raw_value = getattr(runtime_cfg, "loader_train_shuffle", True)
+    if raw_value is None:
+        return True
+    return _coerce_runtime_bool(
+        raw_value=raw_value,
+        name="runtime.loader_train_shuffle",
+    )
+
+
 def _resolve_loader_persistent_workers(runtime_cfg: DictConfig) -> bool:
     return _coerce_runtime_bool(
         raw_value=getattr(runtime_cfg, "loader_persistent_workers", False),

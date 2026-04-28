@@ -198,7 +198,59 @@ def test_build_openml_benchmark_bundle_rejects_empty_selection(
                 target=pd.Series(["no", "yes"]),
             )
         ),
+        )
+
+
+def test_build_openml_benchmark_bundle_filters_below_min_missing_pct(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prepared_by_task_id = {
+        10: prepared_task(
+            task_id=10,
+            dataset_name="too_clean",
+            n_rows=200,
+            n_features=3,
+            n_classes=2,
+            missing_pct=0.25,
+        )
+    }
+    monkeypatch.setattr(
+        selection_module,
+        "prepare_openml_benchmark_task",
+        lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
+    monkeypatch.setattr(
+        selection_module.openml.tasks,
+        "get_task",
+        lambda task_id, **_kwargs: FakeTask(
+            FakeDataset(
+                name=prepared_by_task_id[int(task_id)].dataset_name,
+                qualities={
+                    "NumberOfFeatures": prepared_by_task_id[int(task_id)].qualities["NumberOfFeatures"],
+                    "NumberOfClasses": prepared_by_task_id[int(task_id)].qualities["NumberOfClasses"],
+                    "PercentageOfInstancesWithMissingValues": prepared_by_task_id[int(task_id)].qualities[
+                        "PercentageOfInstancesWithMissingValues"
+                    ],
+                    "MinorityClassPercentage": prepared_by_task_id[int(task_id)].qualities[
+                        "MinorityClassPercentage"
+                    ],
+                },
+                frame=pd.DataFrame({"placeholder": [0, 1]}),
+                target=pd.Series(["no", "yes"]),
+            )
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="produced no eligible tasks"):
+        bundle_module.build_openml_benchmark_bundle(
+            bundle_module.OpenMLBenchmarkBundleConfig(
+                bundle_name="missing_wide",
+                version=1,
+                task_ids=(10,),
+                min_missing_pct=0.5,
+                max_missing_pct=20.0,
+            )
+        )
 
     with pytest.raises(RuntimeError, match="produced no eligible tasks"):
         bundle_module.build_openml_benchmark_bundle(

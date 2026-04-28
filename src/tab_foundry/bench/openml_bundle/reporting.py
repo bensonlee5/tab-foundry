@@ -21,10 +21,13 @@ def bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classes
         "new_instances": int(config.new_instances),
         "task_type": str(config.task_type),
         "max_features": int(config.max_features),
+        "min_missing_pct": float(config.min_missing_pct),
         "max_missing_pct": float(config.max_missing_pct),
     }
     if config.task_type == "supervised_classification":
         payload["max_classes"] = int(max_classes)
+        if config.min_classes is not None:
+            payload["min_classes"] = int(config.min_classes)
         payload["min_minority_class_pct"] = float(config.min_minority_class_pct)
     return payload
 

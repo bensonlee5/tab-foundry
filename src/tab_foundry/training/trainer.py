@@ -44,6 +44,7 @@ from .trainer_runtime_config import (
     _resolve_loader_pin_memory,
     _resolve_loader_persistent_workers,
     _resolve_loader_task_batch_cache_mode,
+    _resolve_loader_train_shuffle,
     _resolve_max_steps,
     _resolve_module_grad_norm_every,
     _resolve_non_blocking_device_transfer,
@@ -102,6 +103,7 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     val_batches = _resolve_val_batches(cfg.runtime)
     task_batch_size = resolve_task_batch_size(cfg.get("training"))
     loader_pin_memory = _resolve_loader_pin_memory(cfg.runtime)
+    loader_train_shuffle = _resolve_loader_train_shuffle(cfg.runtime)
     loader_persistent_workers = _resolve_loader_persistent_workers(cfg.runtime)
     loader_overlap_settings = resolve_loader_overlap_runtime_settings(cfg.runtime)
     loader_task_batch_cache_mode = _resolve_loader_task_batch_cache_mode(cfg.runtime)
@@ -144,8 +146,12 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
     )
 
     loader_setup_start = time.perf_counter()
+    train_data_cfg = cfg.data
+    if not loader_train_shuffle:
+        train_data_cfg = OmegaConf.create(OmegaConf.to_container(cfg.data, resolve=True))
+        train_data_cfg.loader_train_shuffle = False
     train_ds = build_task_dataset(
-        cfg.data,
+        train_data_cfg,
         split="train",
         task=task,
         seed=seed,
@@ -155,12 +161,12 @@ def train(cfg: DictConfig, *, profiler: Any | None = None) -> TrainResult:
         train_ds,
         task_batch_size=task_batch_size,
         model_spec=model_spec,
-        shuffle=True,
+        shuffle=loader_train_shuffle,
         context="training train split",
     )
     train_loader = build_task_loader(
         train_ds,
-        shuffle=True,
+        shuffle=loader_train_shuffle,
         num_workers=loader_overlap_settings.num_workers,
         seed=seed,
         task_batch_size=task_batch_size,

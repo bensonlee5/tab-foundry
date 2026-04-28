@@ -1122,6 +1122,7 @@ def test_cli_groups_register_expected_commands() -> None:
         "registry",
         "smoke",
         "tune",
+        "validate-openml-manifest",
     ]
     bench_ctx = click.Context(bench_group.GROUP)
     smoke_group = bench_group.GROUP.get_command(bench_ctx, "smoke")
@@ -1179,6 +1180,7 @@ def test_cli_groups_register_expected_commands() -> None:
         "inspect",
         "list-recipes",
         "materialize",
+        "materialize-execution-pack",
         "results",
     ]
 

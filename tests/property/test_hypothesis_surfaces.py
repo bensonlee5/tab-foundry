@@ -79,6 +79,7 @@ def test_normalize_benchmark_bundle_round_trips_valid_payloads(
         "task_type": "supervised_classification",
         "max_features": int(selection["max_features"]),
         "max_classes": int(selection["max_classes"]),
+        "min_missing_pct": 0.0,
         "max_missing_pct": float(selection["max_missing_pct"]),
         "min_minority_class_pct": float(selection["min_minority_class_pct"]),
     }

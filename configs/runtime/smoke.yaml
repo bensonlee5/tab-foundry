@@ -4,6 +4,7 @@ device: cpu
 mixed_precision: "no"
 num_workers: 0
 loader_pin_memory: false
+loader_train_shuffle: true
 loader_persistent_workers: false
 loader_prefetch_factor: null
 loader_task_batch_cache: false

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: the default OpenML benchmark anchor now targets
+  `openml_classification_missing_wide_v1`, a validated missing-valued
+  classification surface with `min_missing_pct: 0.5`, `max_features: 100`,
+  and class counts `2..10`. The paired fresh control-baseline id is
+  `cls_benchmark_linear_multiclass_missing_wide_v1`. Throughput probes also
+  gain the `tf_rd_010_dagzoo_mixed_missing_wide_v1` corpus recipe,
+  exact-shape execution-pack materialization, and an opt-in train-loader
+  shuffle disable switch for ordered exact-pack runs.
 - User-facing note: `tab-foundry dev run-inspect` now supports opt-in posthoc
   compute-accounting derivation for completed runs and surfaces a neutral
   bottleneck summary from existing step-timing buckets. Benchmark registration,
