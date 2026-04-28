@@ -458,6 +458,63 @@ def test_sparse_swiglu_moe_ffn_routes_only_top_k_experts() -> None:
     assert torch.isfinite(router_entropies[0])
 
 
+def test_sparse_swiglu_moe_ffn_routes_independently_per_token() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=2,
+        ff_expansion=2,
+        num_experts=2,
+        top_k=1,
+        router_init_std=0.01,
+    )
+
+    class _TagExpert(torch.nn.Module):
+        def __init__(self, tag: torch.Tensor) -> None:
+            super().__init__()
+            self.register_buffer("tag", tag)
+
+        def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+            return self.tag.to(device=hidden.device, dtype=hidden.dtype).expand_as(hidden)
+
+    block.experts = torch.nn.ModuleList(
+        [
+            _TagExpert(torch.tensor([1.0, 0.0])),
+            _TagExpert(torch.tensor([0.0, 1.0])),
+        ]
+    )
+    with torch.no_grad():
+        block.router.weight.copy_(
+            torch.tensor(
+                [
+                    [1.0, 0.0],
+                    [0.0, 1.0],
+                ]
+            )
+        )
+
+    hidden = torch.tensor(
+        [
+            [
+                [6.0, 0.0],
+                [0.0, 6.0],
+            ],
+            [
+                [0.0, 6.0],
+                [6.0, 0.0],
+            ],
+        ]
+    )
+
+    output = block(hidden)
+    _, _, expert_fractions, _ = block.aux_outputs()
+
+    assert tuple(output.shape) == tuple(hidden.shape)
+    routed_to_expert0 = output[..., 0] > output[..., 1]
+    routed_to_expert1 = output[..., 1] > output[..., 0]
+    assert torch.equal(routed_to_expert0, torch.tensor([[True, False], [False, True]]))
+    assert torch.equal(routed_to_expert1, torch.tensor([[False, True], [True, False]]))
+    torch.testing.assert_close(expert_fractions[0], torch.tensor([0.5, 0.5]))
+
+
 def test_grid_sandwich_moe_forward_emits_aux_losses_and_route_health() -> None:
     model = _grid_model(
         grid_ffn_mode="swiglu",
