@@ -16,7 +16,7 @@ rows:
     grid_moe_top_k: 1
     grid_moe_router_init_std: 0.01
   data:
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
     source: manifest
     surface_label: tf_rd_010_dagzoo_medium_control
   preprocessing: {}
@@ -70,7 +70,7 @@ rows:
     grid_moe_top_k: 1
     grid_moe_router_init_std: 0.01
   data:
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
     source: manifest
     surface_label: tf_rd_010_dagzoo_medium_control
   preprocessing: {}
@@ -122,7 +122,7 @@ rows:
     grid_moe_top_k: 1
     grid_moe_router_init_std: 0.01
   data:
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
     source: manifest
     surface_label: tf_rd_010_dagzoo_medium_control
   preprocessing: {}
@@ -174,7 +174,7 @@ rows:
     grid_moe_top_k: 1
     grid_moe_router_init_std: 0.01
   data:
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
     source: manifest
     surface_label: tf_rd_010_dagzoo_medium_control
   preprocessing: {}
@@ -226,7 +226,7 @@ rows:
     grid_moe_top_k: 2
     grid_moe_router_init_std: 0.01
   data:
-    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
     source: manifest
     surface_label: tf_rd_010_dagzoo_medium_control
   preprocessing: {}

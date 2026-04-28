@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_028_grid_moe_bal
 - Parent sweep id: `tf_rd_027_grid_stability_impl_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `0919185a99761b75560eff006763bdba3c483d7864b333609d23913b377c6441`
+- Resolved queue inputs fingerprint: `095f4f4be49c360f0946b8ccf5a925c1d6dee34324971706802d5aeee3782f22`
 
 ## Locked Surface
 
@@ -66,7 +66,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
 - Expected effect: Should prove that MoE config resolution, prior training, differentiable auxiliary losses, route-health metrics, checkpoint export, benchmark registration, and W&B logging all work before spending a full candidate budget.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `e22f10d0f5085e2c0a26cdb6ec8c748a048128884330921193921c9210493fb2`
+- Resolved surface fingerprint: `cc2080c3667182c8ae5cfd77a31df7389230fd011722cc62e611d99fadf6f8b6`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 100, 'signature_family_optimizer_step_block_length': 4}`
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 4, 'grid_moe_top_k': 1, 'grid_moe_router_init_std': 0.01}`
 - Parameter adequacy plan:
@@ -99,7 +99,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e2_top1_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
 - Expected effect: Adds a low-risk amount of sparse expert capacity while keeping active FFN compute near the dense anchor.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `8315967364764e0ac3174595c61566c3cc03dbba9c348ec7346d9be19115f6dd`
+- Resolved surface fingerprint: `4620c0f232ce62ce166f60ae682d2e7b74247ee5a123e26c1ee0cf165c48831c`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 2, 'grid_moe_top_k': 1, 'grid_moe_router_init_std': 0.01}`
 - Parameter adequacy plan:
@@ -132,7 +132,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
 - Expected effect: Adds the planned first meaningful sparse parameter increase while keeping active FFN compute near the dense anchor.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `33e88ecbe3cc98f9b6f23e9bc44e13cbf22a36e0fae9ca4d6fce6e2108dd3989`
+- Resolved surface fingerprint: `083acd4652e70d8a33036eb1d96c756d6a65cc6634fa8c43d91311c15bfba203`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 4, 'grid_moe_top_k': 1, 'grid_moe_router_init_std': 0.01}`
 - Parameter adequacy plan:
@@ -165,7 +165,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e8_top1_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
 - Expected effect: Adds substantially more total expert parameters while keeping active FFN compute near the dense anchor, exposing whether sparse capacity continues to scale before expert-parallel memory work.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `02ce9c5ece3b193e4a3a0adfcbcd877cffca57acb790cabc4745e3139be8626b`
+- Resolved surface fingerprint: `a69d4fa597506690ed28bd6d47bae53c6a371a2130f9579fee4685bf98d27f8d`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 8, 'grid_moe_top_k': 1, 'grid_moe_router_init_std': 0.01}`
 - Parameter adequacy plan:
@@ -198,7 +198,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
 - Expected effect: Increases active expert mixing and router gradient density relative to top-1, trading extra active FFN compute for a possible quality or route-health improvement.
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
-- Resolved surface fingerprint: `d5f11be2a9bcd4c836b219657dab7920cfa632f4c13520cee6ba4b484b0484e3`
+- Resolved surface fingerprint: `e4a31bc0de028f9c544a98bb229cdb7f355bd9d6601b6aa9fa3e14fdb46a93f1`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 4, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 4, 'grid_moe_top_k': 2, 'grid_moe_router_init_std': 0.01}`
 - Parameter adequacy plan:

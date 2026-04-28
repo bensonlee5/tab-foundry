@@ -22,6 +22,10 @@ anchor_surface:
     sourced from `openml_classification_medium` (242 tasks).
   - The anchor model surface is taken from the registry-resolved staged selection
     labeled `grid_sandwich`.
+  - TF-RD-028 rows pin the training corpus to the TF-RD-026 row `10` artifact
+    `tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5`
+    so MoE candidates train on the same synthetic materialization as the promoted
+    anchor.
   - Data and preprocessing remain part of the comparison surface and must stay fixed
     unless the queue row declares that exact dimension.
   - The manifest surface keeps the same bundle provenance (missing values permitted).
