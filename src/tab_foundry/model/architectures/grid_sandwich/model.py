@@ -197,7 +197,12 @@ class _SparseSwiGLUMoEFFN(nn.Module):
                 device=expert_output.device,
                 dtype=expert_output.dtype,
             )
-            output_flat.index_add_(0, token_positions, expert_output * weights.unsqueeze(-1))
+            contribution = expert_output * weights.unsqueeze(-1)
+            output_flat.index_add_(
+                0,
+                token_positions,
+                contribution.to(device=output_flat.device, dtype=output_flat.dtype),
+            )
 
         route_one_hot = F.one_hot(topk_indices, num_classes=self.num_experts).to(
             dtype=router_probs.dtype

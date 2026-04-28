@@ -515,6 +515,31 @@ def test_sparse_swiglu_moe_ffn_routes_independently_per_token() -> None:
     torch.testing.assert_close(expert_fractions[0], torch.tensor([0.5, 0.5]))
 
 
+def test_sparse_swiglu_moe_ffn_accumulates_mixed_precision_expert_output() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=8,
+        ff_expansion=2,
+        num_experts=2,
+        top_k=1,
+        router_init_std=0.01,
+    )
+
+    class _BFloatExpert(torch.nn.Module):
+        def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+            return torch.ones_like(hidden, dtype=torch.bfloat16)
+
+    block.experts = torch.nn.ModuleList([_BFloatExpert(), _BFloatExpert()])
+    with torch.no_grad():
+        block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 8, dtype=torch.float32)
+    output = block(hidden)
+
+    assert tuple(output.shape) == tuple(hidden.shape)
+    assert output.dtype == hidden.dtype
+    assert torch.isfinite(output).all()
+
+
 def test_grid_sandwich_moe_forward_emits_aux_losses_and_route_health() -> None:
     model = _grid_model(
         grid_ffn_mode="swiglu",
