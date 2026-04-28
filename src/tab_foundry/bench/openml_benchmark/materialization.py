@@ -21,6 +21,7 @@ from tab_realdata_hub.openml import (
 from .bundle import (
     benchmark_bundle_allows_missing_values,
     benchmark_bundle_summary,
+    canonical_benchmark_bundle_source_path,
     load_benchmark_bundle,
 )
 from .datasets import PreparedOpenMLBenchmarkTask, prepare_openml_benchmark_task
@@ -59,7 +60,7 @@ def materialize_benchmark_bundle(
     task_summaries: list[dict[str, Any]] = []
     provider = prepare_openml_benchmark_task if prepare_task_fn is None else prepare_task_fn
     persisted_bundle_source_path = (
-        str(resolved_bundle_path)
+        canonical_benchmark_bundle_source_path(resolved_bundle_path)
         if bundle_source_path_label is None
         else str(bundle_source_path_label)
     )

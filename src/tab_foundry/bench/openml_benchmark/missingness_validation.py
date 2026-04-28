@@ -9,6 +9,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from tab_foundry.repo_paths import normalize_repo_relative_path
+
 from .dataset_common import unpack_benchmark_dataset
 from .datasets import load_benchmark_manifest_datasets
 
@@ -103,7 +105,9 @@ def validate_openml_missingness_manifest(
         raise RuntimeError("OpenML benchmark manifest contains no observed missing feature cells")
 
     summary = {
-        "manifest_path": str(benchmark_manifest_path.expanduser().resolve()),
+        "manifest_path": normalize_repo_relative_path(
+            benchmark_manifest_path.expanduser().resolve()
+        ),
         "dataset_count": int(len(datasets)),
         "task_record_count": int(len(task_records)),
         "selection": dict(selection),

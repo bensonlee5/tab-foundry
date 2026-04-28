@@ -458,7 +458,7 @@
       "rows": 200
     }
   ],
-  "manifest_path": "/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_missing_wide_v1/manifest.parquet",
+  "manifest_path": "data/manifests/bench/openml_classification_missing_wide_v1/manifest.parquet",
   "selection": {
     "max_classes": 10,
     "max_features": 100,

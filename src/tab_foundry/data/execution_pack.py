@@ -15,6 +15,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from tab_foundry.repo_paths import normalize_repo_relative_path
+
 
 _REGIME_PATTERN = re.compile(r"(?:^|[/_-])(mcar|mar|mnar)(?=$|[/_-])", re.IGNORECASE)
 _REGIME_COLUMNS = ("missing_mechanism", "missingness_mechanism", "execution_pack_regime")
@@ -53,8 +55,8 @@ class ExecutionPackSummary:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "source_manifest_path": str(self.source_manifest_path),
-            "out_manifest_path": str(self.out_manifest_path),
+            "source_manifest_path": normalize_repo_relative_path(self.source_manifest_path),
+            "out_manifest_path": normalize_repo_relative_path(self.out_manifest_path),
             "selected_records": int(self.selected_records),
             "total_microbatches": int(self.total_microbatches),
             "total_blocks": int(self.total_blocks),
@@ -310,7 +312,9 @@ def materialize_exact_shape_execution_pack(
         ),
         axis=1,
     )
-    selected["execution_pack_source_manifest_path"] = str(resolved_source)
+    selected["execution_pack_source_manifest_path"] = normalize_repo_relative_path(
+        resolved_source
+    )
 
     _write_pack_manifest(
         selected,
