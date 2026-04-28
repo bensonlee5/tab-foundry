@@ -23,7 +23,7 @@ upstream_reference:
 anchor_surface:
   notes:
   - The locked anchor is benchmark registry run `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
-    on manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
     sourced from `openml_classification_medium` (242 tasks).
   - The anchor model surface is taken from the registry-resolved staged selection
     labeled `grid_sandwich`.
@@ -74,7 +74,7 @@ anchor_surface:
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark manifest `/Users/bensonlee/dev/tab-foundry/data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
       sourced from `openml_classification_medium` (242 tasks (missing values permitted))
       with data surface label `tf_rd_010_dagzoo_medium_control`.
     interpretation: Manifest and training-data changes are first-class sweep rows
@@ -1299,4 +1299,4 @@ rows:
       signature_family_optimizer_step_block_length: 4
   resolved_surface_fingerprint: d5f11be2a9bcd4c836b219657dab7920cfa632f4c13520cee6ba4b484b0484e3
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/resolved_queue.yaml
-inputs_fingerprint: c4634dc14e6e81833acea1194ce3273dd9e35f314faecde10eebe85f0822c791
+inputs_fingerprint: 0919185a99761b75560eff006763bdba3c483d7864b333609d23913b377c6441
