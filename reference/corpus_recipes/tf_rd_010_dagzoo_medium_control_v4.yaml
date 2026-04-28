@@ -29,7 +29,7 @@ generator:
     base_config_ref: configs/default.yaml
     num_datasets: 1111
     filter_max_attempts: 256
-  fingerprint: f781789b135e
+  fingerprint: 73b05141ae17
 review_summary:
   grid_family: balanced_rows_features_classes_v1
   config_refs:

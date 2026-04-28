@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import tab_foundry.cli.groups.train as train_cli_module
 import tab_foundry.training.trainer as trainer_module
 
 from tests.support.train_eval_smoke_cases import (
@@ -31,6 +32,75 @@ class _CountingProfiler:
 
     def step(self) -> None:
         self.steps += 1
+
+
+class _FakeKeyAverages(list[SimpleNamespace]):
+    def table(self, **_kwargs: object) -> str:
+        return "fake profiler table"
+
+
+class _FakeProfiler:
+    def __init__(self) -> None:
+        self.steps = 0
+
+    def __enter__(self) -> "_FakeProfiler":
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None
+
+    def step(self) -> None:
+        self.steps += 1
+
+    def key_averages(self) -> _FakeKeyAverages:
+        return _FakeKeyAverages(
+            [
+                SimpleNamespace(
+                    key="aten::matmul",
+                    count=2,
+                    self_cpu_time_total=10.0,
+                    cpu_time_total=20.0,
+                    self_cuda_time_total=100.0,
+                    cuda_time_total=120.0,
+                    cpu_memory_usage=0,
+                    cuda_memory_usage=256,
+                    flops=1024.0,
+                ),
+                SimpleNamespace(
+                    key="aten::copy_",
+                    count=1,
+                    self_cpu_time_total=5.0,
+                    cpu_time_total=7.0,
+                    self_cuda_time_total=20.0,
+                    cuda_time_total=25.0,
+                    cpu_memory_usage=128,
+                    cuda_memory_usage=512,
+                    flops=0.0,
+                ),
+                SimpleNamespace(
+                    key="ProfilerStep*",
+                    count=2,
+                    self_cpu_time_total=0.0,
+                    cpu_time_total=0.0,
+                    self_cuda_time_total=0.0,
+                    cuda_time_total=0.0,
+                    cpu_memory_usage=0,
+                    cuda_memory_usage=0,
+                    flops=0.0,
+                ),
+                SimpleNamespace(
+                    key="ProfilerStep#duplicate",
+                    count=2,
+                    self_cpu_time_total=0.0,
+                    cpu_time_total=0.0,
+                    self_cuda_time_total=0.0,
+                    cuda_time_total=0.0,
+                    cpu_memory_usage=0,
+                    cuda_memory_usage=0,
+                    flops=0.0,
+                ),
+            ]
+        )
 
 
 def _assert_train_compile_model_order_and_kwargs(
@@ -218,3 +288,55 @@ def test_train_profiler_steps_once_per_optimizer_step(
 
     assert result.global_step == 2
     assert profiler.steps == 2
+
+
+def test_train_profile_command_writes_structured_profiler_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.output_dir = str(tmp_path / "profile_run")
+    fake_profiler = _FakeProfiler()
+    monkeypatch.setattr(train_cli_module, "compose_config", lambda _overrides: cfg)
+    monkeypatch.setattr(
+        train_cli_module.torch.profiler,
+        "profile",
+        lambda **_kwargs: fake_profiler,
+    )
+    monkeypatch.setattr(
+        train_cli_module.torch.cuda,
+        "is_available",
+        lambda: False,
+    )
+
+    def _fake_run_training(profile_cfg: object, *, profiler: object) -> SimpleNamespace:
+        assert profile_cfg.runtime.checkpoint_every is None
+        assert profile_cfg.runtime.profile_step_timing is True
+        assert profiler is fake_profiler
+        profiler.step()
+        return SimpleNamespace(
+            output_dir=Path(profile_cfg.runtime.output_dir),
+            global_step=4,
+            metrics={},
+        )
+
+    monkeypatch.setattr(train_cli_module, "run_training", _fake_run_training)
+
+    result = train_cli_module._run_training_profile_command(
+        overrides=(),
+        max_steps=4,
+        wait=1,
+        warmup=1,
+        active=2,
+        repeat=1,
+    )
+
+    profile_dir = Path(cfg.runtime.output_dir) / "torch_profiler"
+    assert result == 0
+    assert (profile_dir / "key_averages.txt").read_text(encoding="utf-8") == "fake profiler table"
+    payload = json.loads((profile_dir / "profile_summary.json").read_text(encoding="utf-8"))
+    assert payload["schedule"]["expected_profiled_step_count"] == 2
+    assert payload["profiled_step_count"] == 2
+    assert payload["operator_class_totals"]["compute"]["flops"] == 1024.0
+    assert payload["operator_class_totals"]["memory_movement"]["cuda_memory_allocated_bytes"] == 512
+    assert payload["top_operators"][0]["name"] == "aten::matmul"

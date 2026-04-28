@@ -52,7 +52,7 @@ def _write_checkpoint(
             "config": {
                 "task": "classification",
                 "data": checkpoint_data_cfg,
-                "runtime": {"seed": int(seed)},
+                "runtime": {"seed": int(seed), "mixed_precision": "bf16"},
                 "model": model_cfg,
                 **({} if training_cfg is None else {"training": training_cfg}),
                 "schedule": {
@@ -438,6 +438,46 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
                     "compiled_families": ["96x32x6x2", "192x64x10x4", "384x128x20x8"],
                 },
             },
+            "diagnostics": {
+                "step_timing_summary": {
+                    "profiled_step_count": 10,
+                    "mean_profiled_step_seconds": 1.0,
+                    "buckets": {
+                        "data_wait": {
+                            "mean_seconds": 0.2,
+                            "fraction_of_profiled_step_time": 0.2,
+                        },
+                        "batch_diagnostics": {
+                            "mean_seconds": 0.1,
+                            "fraction_of_profiled_step_time": 0.1,
+                        },
+                        "h2d_transfer": {
+                            "mean_seconds": 0.01,
+                            "fraction_of_profiled_step_time": 0.01,
+                        },
+                        "forward_backward": {
+                            "mean_seconds": 0.6,
+                            "fraction_of_profiled_step_time": 0.6,
+                        },
+                        "activation_trace": {
+                            "mean_seconds": 0.0,
+                            "fraction_of_profiled_step_time": 0.0,
+                        },
+                        "grad_diagnostics": {
+                            "mean_seconds": 0.03,
+                            "fraction_of_profiled_step_time": 0.03,
+                        },
+                        "optimizer": {
+                            "mean_seconds": 0.06,
+                            "fraction_of_profiled_step_time": 0.06,
+                        },
+                        "checkpoint": {
+                            "mean_seconds": 0.0,
+                            "fraction_of_profiled_step_time": 0.0,
+                        },
+                    },
+                },
+            },
             "hardware_summary": {
                 "device_type": "cuda",
                 "raw_device_name": "NVIDIA A100-SXM4-80GB",
@@ -480,6 +520,16 @@ def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_s
     assert record["runtime_summary"]["throughput_tokens_per_second"] == pytest.approx(6400.0)
     assert record["runtime_summary"]["compile_shape_dispatch_mode"] == "signature_family"
     assert record["runtime_summary"]["compile_shape_dispatch_max_families"] == 16
+    assert record["utilization_summary"]["peak_vram_allocated_fraction"] == pytest.approx(
+        1024 / float(80 * 1024**3)
+    )
+    assert record["utilization_summary"]["achieved_train_tflops_per_second"] is not None
+    assert record["utilization_summary"]["theoretical_peak_tflops_per_second"] == 312.0
+    assert record["utilization_summary"]["compute_utilization_fraction"] is not None
+    assert record["utilization_summary"]["peak_compute_basis"] == "tensorcore_bf16_dense"
+    assert record["bottleneck_summary"]["dominant_bucket"] == "forward_backward"
+    assert record["bottleneck_summary"]["host_pipeline_fraction"] == pytest.approx(0.3)
+    assert record["bottleneck_summary"]["compute_utilization_fraction"] is not None
     assert record["runtime_summary"]["compile_shape_dispatch"] == {
         "compiled_family_count": 3,
         "family_switch_count": 7,
