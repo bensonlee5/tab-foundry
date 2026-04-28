@@ -631,6 +631,7 @@ def test_derive_benchmark_run_record_skips_export_timing_fallback_for_grid_moe(
     )
 
     assert record["inference_timing"] is None
+    assert record["compute_accounting"] is None
 
 
 def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface(

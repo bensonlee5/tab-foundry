@@ -16,6 +16,7 @@ from tab_foundry.bench.checkpoint_artifacts import (
 )
 from tab_foundry.bench.registry.record_helpers import (
     _bottleneck_summary_from_artifacts,
+    _checkpoint_cfg_uses_grid_moe,
     _count_parameters_from_cfg,
     _compute_accounting_from_cfg,
     _hardware_summary_from_telemetry,
@@ -422,21 +423,6 @@ def _inference_timing_from_checkpoint(
     if not isinstance(raw_timing, Mapping):
         return None
     return dict(cast(Mapping[str, Any], raw_timing))
-
-
-def _checkpoint_cfg_uses_grid_moe(raw_cfg: Mapping[str, Any]) -> bool:
-    model_cfg = raw_cfg.get("model")
-    if not isinstance(model_cfg, Mapping):
-        return False
-    scope = str(model_cfg.get("grid_moe_scope") or "none").strip().lower()
-    if scope in {"", "none"}:
-        return False
-    raw_experts = model_cfg.get("grid_moe_num_experts", 1)
-    try:
-        num_experts = int(raw_experts)
-    except (TypeError, ValueError):
-        num_experts = 2
-    return num_experts > 1
 
 
 def comparison_delta(

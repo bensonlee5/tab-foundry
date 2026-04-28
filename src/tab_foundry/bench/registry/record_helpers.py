@@ -140,6 +140,21 @@ def _checkpoint_model_spec_from_cfg(
     )
 
 
+def _checkpoint_cfg_uses_grid_moe(raw_cfg: Mapping[str, Any]) -> bool:
+    model_cfg = raw_cfg.get("model")
+    if not isinstance(model_cfg, Mapping):
+        return False
+    scope = str(model_cfg.get("grid_moe_scope") or "none").strip().lower()
+    if scope in {"", "none"}:
+        return False
+    raw_experts = model_cfg.get("grid_moe_num_experts", 1)
+    try:
+        num_experts = int(raw_experts)
+    except (TypeError, ValueError):
+        num_experts = 2
+    return num_experts > 1
+
+
 def _count_parameters_from_cfg(
     raw_cfg: dict[str, Any],
     *,
@@ -448,6 +463,8 @@ def _compute_accounting_from_cfg(
     state_dict: dict[str, Any] | None,
     telemetry_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
+    if _checkpoint_cfg_uses_grid_moe(raw_cfg):
+        return None
     return compute_accounting_from_checkpoint_config(
         raw_cfg,
         state_dict=state_dict,
