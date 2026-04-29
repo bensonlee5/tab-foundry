@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_029_grid_moe_top
 - Parent sweep id: `tf_rd_028_grid_moe_balanced_capacity_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_029_grid_moe_top2_normalized_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `62967b0d53c8b07bf7757bb9de5c96ab361b29c8a9df242bdac495149b5b834e`
+- Resolved queue inputs fingerprint: `364b1ab53d87d8da0409d319681deaff9b189efb3ed748b85994ea1dbbf43858`
 
 ## Locked Surface
 
@@ -45,15 +45,15 @@ Upstream reference: `Grid-Sandwich MoE normalized top-2 follow-up` from `Token-c
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1` | grid_sandwich_moe_top2_normalized | no | ready | none | Run a short benchmark-capable smoke of the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, top-2 routing, and per-token top-k probability normalization. | Execute first on the Vast VM and unblock the full normalized top-2 MoE row only after smoke training, benchmark artifacts, and W&B logging are clean. |
-| 2 | `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1` | grid_sandwich_moe_top2_normalized | no | ready | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, normalized top-2 routing, and a smaller task microbatch. | Execute after the normalized top-2 smoke row passes. |
+| 1 | `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1` | grid_sandwich_moe_top2_normalized | no | completed | none | Run a short benchmark-capable smoke of the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, top-2 routing, and per-token top-k probability normalization. | Execute first on the Vast VM and unblock the full normalized top-2 MoE row only after smoke training, benchmark artifacts, and W&B logging are clean. |
+| 2 | `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1` | grid_sandwich_moe_top2_normalized | no | completed | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, normalized top-2 routing, and a smaller task microbatch. | Execute after the normalized top-2 smoke row passes. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Run a short benchmark-capable smoke of the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, top-2 routing, and per-token top-k probability normalization.
@@ -65,6 +65,7 @@ Upstream reference: `Grid-Sandwich MoE normalized top-2 follow-up` from `Token-c
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `44c5bd0ba112fe745b55600a5f6000eedb8458fb780955427f00d62852c646f2`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 8, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 100, 'signature_family_optimizer_step_block_length': 4}`
+- Stage-local stability: row (grad `0.1072`)
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 4, 'grid_moe_top_k': 2, 'grid_moe_router_init_std': 0.01, 'grid_moe_normalize_top_k': True}`
 - Parameter adequacy plan:
   - Treat this row as diagnostic only; do not compare it as a quality candidate against the 5000-step anchor.
@@ -79,16 +80,19 @@ Upstream reference: `Grid-Sandwich MoE normalized top-2 follow-up` from `Token-c
   - train for exactly 100 prior-dump smoke steps before benchmark plumbing
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_029_grid_moe_top2_normalized_v1/delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1` with final log loss `0.7118`, delta final log loss `+0.2937`, final Brier score `0.4428`, delta final brier score `+0.1876`, final ROC AUC `0.6460`, delta final roc auc `-0.1673`, best ROC AUC `0.6460`, delta final training time `-3720.3s`
 
 ### 2. `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
 - Description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts, normalized top-2 routing, and a smaller task microbatch.
@@ -100,6 +104,7 @@ Upstream reference: `Grid-Sandwich MoE normalized top-2 follow-up` from `Token-c
 - Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Resolved surface fingerprint: `173473290a098291bd96c39cf7d7742537f053cf888ee089bcf86b58e94ab8bd`
 - Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 8, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
+- Stage-local stability: row (grad `0.0479`)
 - Model overrides: `{'grid_moe_scope': 'grid_core_ffn', 'grid_moe_num_experts': 4, 'grid_moe_top_k': 2, 'grid_moe_router_init_std': 0.01, 'grid_moe_normalize_top_k': True}`
 - Parameter adequacy plan:
   - Execute immediately after the normalized top-2 smoke row passes; do not spend another E=8 top-1 rung in this lane.
@@ -114,8 +119,11 @@ Upstream reference: `Grid-Sandwich MoE normalized top-2 follow-up` from `Token-c
   - train for the anchor-matched 5000-step prior-dump budget
 - Execution policy: `benchmark_full`
 - Benchmark checkpoint selection: `all`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_029_grid_moe_top2_normalized_v1/delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1` with final log loss `0.4219`, delta final log loss `+0.0037`, final Brier score `0.2575`, delta final brier score `+0.0024`, final ROC AUC `0.8111`, delta final roc auc `-0.0021`, best ROC AUC `0.8111`, delta final training time `+5738.8s`

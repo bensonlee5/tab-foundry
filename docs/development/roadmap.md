@@ -146,8 +146,8 @@ summarized later instead of occupying the active queue.
 | ---- | ---------- | ---- | ------ | --------- |
 | 1 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | in_progress | Next |
 | 2 | TF-RD-026 | Broad-ML Grid Sandwich performance campaign | implemented | Next |
-| 3 | TF-RD-029 | Grid MoE normalized top-2 follow-up | in_progress | Next |
-| 4 | TF-RD-030 | Grid MoE shared-expert follow-up | planned | Next |
+| 3 | TF-RD-029 | Grid MoE normalized top-2 follow-up | completed | Next |
+| 4 | TF-RD-030 | Grid MoE shared-expert follow-up | in_progress | Next |
 | 5 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
 | 6 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Later |
 | 7 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | research | Later |
@@ -277,7 +277,7 @@ Parallel/later lanes are intentionally off that main path:
 | Grid is the primary classification candidate | `implemented` | `grid_sandwich` is the carried architecture anchor after TF-RD-026 row `10` promoted the two-layer recurrent SwiGLU grid core at final log loss `0.4181767299`; `tabfoundry_sandwich` remains the previous carried comparison family and retains its compact hybrid, knob-screen, width/head, and direct-head evidence | Validate the promoted grid anchor on larger or harder rungs rather than reopening simplification-first sandwich work | `TF-RD-026`, `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010`, `TF-RD-009` |
 | Broad-ML grid follow-ons selected a new anchor | `completed` | TF-RD-026 completed the medium sweep, promoted row `10` (`grid_recurrence_steps=8`, `grid_recurrence_unique_layers=2`, `grid_ffn_mode=swiglu`) as the current `cls_workstation_grid_sandwich` surface, and left row `11` as close comparison evidence | Larger-rung validation remains before replacing external planning assumptions; row `09` is not planned after its early stop | `TF-RD-026`, `TF-RD-009` |
 | Expedited FFN and stability grid screens closed without replacing the anchor | `completed` | TF-RD-027 completed under issue [#289](https://github.com/bensonlee5/tab-foundry/issues/289): GELU 4:1 (`0.4254928909`), SwiGLU 8:3 (`0.4261833356`), GEGLU 8:3 (`0.4268446367`), weight decay `0.1` (`0.4263516327`), z-loss (`0.4243303110`), logit softcap (`0.4251839620`), and QK-norm (`0.4741464959`) all lost to the TF-RD-026 row `10` anchor `0.4181767299` | Keep the TF-RD-026 row `10` anchor unchanged; do not stack stability knobs or reopen FFN variants without a stronger hypothesis | `TF-RD-027`, `TF-RD-026` |
-| Sparse grid MoE is implemented but not promoted | `in_progress` | TF-RD-028 completed core-only SwiGLU MoE execution under issue [#295](https://github.com/bensonlee5/tab-foundry/issues/295); no row beat the TF-RD-026 row `10` anchor, raw top-2 was healthy but worse at `0.4234291888`; TF-RD-029 issue [#296](https://github.com/bensonlee5/tab-foundry/issues/296) is executing normalized top-2; and TF-RD-030 issue [#297](https://github.com/bensonlee5/tab-foundry/issues/297) now records the always-on shared-expert, router-temperature, and load-balance-schedule follow-up | Finish `tf_rd_029_grid_moe_top2_normalized_v1`, then run `tf_rd_030_grid_moe_shared_expert_v1` only after its shared-expert smoke row passes on the same Vast/W&B path | `TF-RD-028`, `TF-RD-029`, `TF-RD-030`, `TF-RD-026` |
+| Sparse grid MoE is implemented but not promoted | `in_progress` | TF-RD-028 completed core-only SwiGLU MoE execution under issue [#295](https://github.com/bensonlee5/tab-foundry/issues/295); no row beat the TF-RD-026 row `10` anchor, raw top-2 was healthy but worse at `0.4234291888`; TF-RD-029 issue [#296](https://github.com/bensonlee5/tab-foundry/issues/296) completed normalized top-2 at `0.4218944597`, making it the best MoE row so far but still `+0.0037177297` worse and much slower than the anchor; and TF-RD-030 issue [#297](https://github.com/bensonlee5/tab-foundry/issues/297) now records the always-on shared-expert, router-temperature, and load-balance-schedule follow-up | Run `tf_rd_030_grid_moe_shared_expert_v1` only after its shared-expert smoke row passes on the same Vast/W&B path; promote no MoE variant unless it beats the TF-RD-026 row `10` anchor without route collapse or unacceptable wall-time cost | `TF-RD-028`, `TF-RD-029`, `TF-RD-030`, `TF-RD-026` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, TF-RD-020 settled harder-front winners that can seed the sandwich benchmark program, and dagzoo epics [#249](https://github.com/bensonlee5/dagzoo/issues/249) and [#247](https://github.com/bensonlee5/dagzoo/issues/247) define later surface-expansion work | Keep TF-RD-021 and dagzoo RD-002/RD-005 as sidecar synthetic-data context while TF-RD-009 executes on the closed TF-RD-010 benchmark contract | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `implemented` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, `tab-foundry dev run-inspect` now exposes compact runtime and regime-budget summaries, sweep summaries now carry compact runtime columns, and TF-RD-022 closed on the kept bf16 plus activation-checkpointing `compile_eager_dynamic` runtime surface with an A100 wall-time improvement from `3848.0996s` to `3586.6358s` and matched-budget log loss improvement from `0.6820820744` to `0.6810689708` | Carry the kept TF-RD-022 runtime surface unchanged into TF-RD-009; any later runtime changes now need a new dedicated lane rather than reopening the closed gate | `TF-RD-022` |
 | Benchmark-backed classification validation contract is fixed, `medium_v4` completed the directional medium package, `medium_v5` now records the sorted-control replay, and `large_v2` now records the local large-rung replay | `implemented` | `many_class` is implemented, the sandwich evolution config fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) owns the medium and large validation manifests under `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, TF-RD-010 child issues [#197](https://github.com/bensonlee5/tab-foundry/issues/197), [#198](https://github.com/bensonlee5/tab-foundry/issues/198), [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and [#200](https://github.com/bensonlee5/tab-foundry/issues/200) froze the missing baselines plus corpora, `medium_v4` now records a kept medium control anchor plus exploratory MCAR, MAR, and MNAR defer rows, `medium_v5` now records the completed sorted-order control replay under [#202](https://github.com/bensonlee5/tab-foundry/issues/202) at `0.6849303354`, and `large_v2` now records the completed local all-rows benchmark-only large replay under [#203](https://github.com/bensonlee5/tab-foundry/issues/203) with control `0.8974410961`, `mcar=0.9155278224`, `mar=0.9418792099`, and `mnar=0.9411754209` | TF-RD-010 now explicitly keeps the original `medium_v4` control (`0.6811727401`) over the worse sorted-order `medium_v5` replay (`0.6849303354`), and the completed `large_v2` replay preserves the same ordering with control best on the harder rung. Later lanes inherit that closed benchmark contract and the no-missingness-promotion read, while the canonical metric key remains `final_log_loss_at_matched_regime_budget`, interpreted as label-target log loss per test cell | `TF-RD-010`, `TF-RD-022`, `TF-RD-024`, `TF-RD-014`, `TF-RD-017` |
@@ -905,13 +905,13 @@ Legacy wording note:
 
 ### TF-RD-029: Grid MoE Normalized Top-2 Follow-Up
 
-- Status: `in_progress`
+- Status: `completed`
 - Milestone: `Next`
 - Tracking issue: [#296](https://github.com/bensonlee5/tab-foundry/issues/296)
 - Goal: test whether token-centric top-2 routing works better when the selected
   router probabilities are renormalized per token before expert outputs are
   combined, without spending another candidate rung on `E=8` top-1.
-- Planned sweep:
+- Completed sweep:
   - `tf_rd_029_grid_moe_top2_normalized_v1` compares against the locked
     TF-RD-026 row `10` anchor final log loss `0.4181767299`
   - row `01`, `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1`, is a
@@ -928,19 +928,28 @@ Legacy wording note:
   - TF-RD-028 `E=4`, `top_k=1`: final log loss `0.4221998345`
   - TF-RD-028 `E=8`, `top_k=1`: final log loss `0.4219883094`
   - TF-RD-028 remediated raw `E=4`, `top_k=2`: final log loss `0.4234291888`
-- Execution gate:
-  - run CUDA forward-check and the smoke row on Vast with W&B online before the
-    full row
-  - require finite training losses, finite MoE auxiliary metrics, route-health
-    telemetry, checkpoint export, benchmark artifacts, and W&B logging before
-    row `02`
-  - if normalized top-2 still underperforms, close this follow-up without
-    promotion and consider an always-on shared expert only as a separate
-    explicit hypothesis
+- Completed outcomes:
+  - smoke row completed with W&B online, checkpoint export, benchmark artifacts,
+    and final log loss `0.7118454598`
+  - row `02` completed with W&B online run `sqoffpeo`, final log loss
+    `0.4218944597`, delta `+0.0037177297` versus the anchor, final Brier
+    `0.2575044437`, final ROC AUC `0.8111413310`, and train elapsed seconds
+    `9812.1306`
+  - route health was finite and non-collapsed at closeout: load-balance loss
+    `1.0079`, router z-loss `0.1010`, router entropy `1.2750`, expert fraction
+    range `0.2375` to `0.2618`, and expert fraction std `0.0093`
+  - normalized top-2 became the best MoE row so far, narrowly beating TF-RD-028
+    `E=8` top-1 by log loss, but it still underperformed the TF-RD-026 row `10`
+    dense anchor and took roughly `+5738.8s` more training time than the anchor
+- Exit decision:
+  - close TF-RD-029 without promotion
+  - continue MoE only through the separately scoped TF-RD-030 shared-expert and
+    auxiliary-schedule hypothesis; otherwise keep TF-RD-026 row `10` as the
+    active anchor
 
 ### TF-RD-030: Grid MoE Shared-Expert Follow-Up
 
-- Status: `planned`
+- Status: `in_progress`
 - Milestone: `Next`
 - Tracking issue: [#297](https://github.com/bensonlee5/tab-foundry/issues/297)
 - Goal: test whether preserving an always-on dense SwiGLU path inside the

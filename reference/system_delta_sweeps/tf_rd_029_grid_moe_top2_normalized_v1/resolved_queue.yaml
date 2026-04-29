@@ -109,7 +109,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1` against
     anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_029_grid_moe_top2_normalized_v1`.
@@ -152,18 +152,38 @@ rows:
     smoke row.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute first on the Vast VM and unblock the full normalized top-2
     MoE row only after smoke training, benchmark artifacts, and W&B logging are clean.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 100.0
+    max_grad_norm: 1.4770219796806532
+    best_roc_auc: 0.6459890686688934
+    best_log_loss: 0.7118454597926591
+    best_brier_score: 0.4427711619160975
+    final_roc_auc: 0.6459890686688934
+    final_log_loss: 0.7118454597926591
+    final_brier_score: 0.4427711619160975
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.2936687298459819
+    delta_final_brier_score: 0.18762986070582693
+    delta_final_roc_auc: -0.16726571641049803
+    row_pool_final_window_mean_grad_norm: 0.107218711483746
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_top2_normalized
@@ -444,7 +464,7 @@ rows:
   resolved_surface_fingerprint: 44c5bd0ba112fe745b55600a5f6000eedb8458fb780955427f00d62852c646f2
 - order: 2
   delta_id: delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1`
     against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_029_grid_moe_top2_normalized_v1`.
@@ -487,17 +507,37 @@ rows:
     telemetry, and wall-time cost.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after the normalized top-2 smoke row passes.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.182183281962695
+    best_roc_auc: 0.8111413309978361
+    best_log_loss: 0.42189445966089395
+    best_brier_score: 0.25750444372479525
+    final_roc_auc: 0.8111413309978361
+    final_log_loss: 0.42189445966089395
+    final_brier_score: 0.25750444372479525
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0037177297142167443
+    delta_final_brier_score: 0.0023631425145246854
+    delta_final_roc_auc: -0.002113454081555277
+    row_pool_final_window_mean_grad_norm: 0.04791508618847841
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_top2_normalized
@@ -778,4 +818,4 @@ rows:
       signature_family_optimizer_step_block_length: 4
   resolved_surface_fingerprint: 173473290a098291bd96c39cf7d7742537f053cf888ee089bcf86b58e94ab8bd
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_029_grid_moe_top2_normalized_v1/resolved_queue.yaml
-inputs_fingerprint: 62967b0d53c8b07bf7757bb9de5c96ab361b29c8a9df242bdac495149b5b834e
+inputs_fingerprint: 364b1ab53d87d8da0409d319681deaff9b189efb3ed748b85994ea1dbbf43858
