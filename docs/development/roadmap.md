@@ -866,27 +866,38 @@ Legacy wording note:
 
 ### TF-RD-028: Grid MoE Balanced Capacity Sweep
 
-- Status: `draft`
-- Milestone: `Active`
+- Status: `completed`
+- Milestone: `Completed`
 - Tracking issue: [#295](https://github.com/bensonlee5/tab-foundry/issues/295)
 - Goal: test whether sparse core-only SwiGLU MoE FFNs can add usable Grid-Sandwich
   capacity while keeping active FFN compute near the TF-RD-026 row `10` anchor.
-- Current plan:
+- Completed execution:
   - `tf_rd_028_grid_moe_balanced_capacity_v1` compares against the locked
     TF-RD-026 row `10` anchor final log loss `0.4181767299`
-  - row `01` is a 100-step benchmark-capable `E=4`, `top_k=1` smoke gate for
-    training, MoE aux metrics, checkpoint export, benchmark registration, and
-    W&B logging
-  - full candidate rows test `E=2`, `E=4`, and `E=8` top-1 routing at the
-    anchor-matched 5000-step budget
-  - row `05` tests `E=4`, `top_k=2` only after top-1 rows show finite losses and
-    usable route-health metrics
-- Exit criteria:
-  - smoke passes on the Vast VM before full candidate execution
-  - every executed row has queue status, W&B identity, rendered matrix output,
-    benchmark result card, and route-health metrics aligned
-  - interpret candidates by final log loss at matched budget plus route-health
-    telemetry, with the smoke row excluded from quality comparison
+  - row `01` completed the 100-step benchmark-capable `E=4`, `top_k=1` smoke
+    gate with W&B online, finite MoE aux metrics, checkpoint export, benchmark
+    registration, and final log loss `0.7274165025`
+  - `E=2`, `E=4`, and `E=8` top-1 rows completed at the 5000-step budget with
+    final log losses `0.4228972081`, `0.4221998345`, and `0.4219883094`
+  - the original `E=4`, `top_k=2` row failed from single-GPU CUDA OOM on the
+    L40S VM and is treated as resource-confounded
+  - the remediated `E=4`, `top_k=2`, `task_batch_size=8`,
+    `grad_accum_steps=8` row completed with final log loss `0.4234291888`
+  - W&B route-health telemetry stayed finite and non-collapsed across completed
+    MoE rows; the remediated top-2 row finished with load-balance `1.0115`,
+    router z-loss `0.1266`, entropy `1.3059`, and expert fractions
+    `0.2358` to `0.2619`
+- Exit decision:
+  - no TF-RD-028 row beat the TF-RD-026 row `10` anchor by
+    `final_log_loss_at_matched_regime_budget`
+  - best MoE candidate was `E=8`, `top_k=1` at final log loss `0.4219883094`,
+    still `+0.0038115794` worse than the anchor
+  - top-2/min-2 routing is technically healthy after microbatch remediation but
+    costs substantially more wall time and underperforms both the anchor and the
+    cheaper top-1 MoE rows
+  - close TF-RD-028 without promoting a MoE row; if MoE is revisited, run it as
+    a new follow-up focused on an always-on shared expert or normalized top-k
+    routing rather than extending this completed sweep
 
 ### TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
 

@@ -110,7 +110,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_028_grid_moe_e4_top1_smoke_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1` against anchor
     `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
@@ -150,18 +150,38 @@ rows:
     smoke row.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_01_delta_tf_rd_028_grid_moe_e4_top1_smoke_v1_v4
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute first on the Vast VM and unblock the full MoE ladder only after
     smoke training, benchmark artifacts, and W&B logging are clean.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_01_delta_tf_rd_028_grid_moe_e4_top1_smoke_v1_v4`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 100.0
+    max_grad_norm: 1.996083385691624
+    best_roc_auc: 0.6233182642067333
+    best_log_loss: 0.7274165024753083
+    best_brier_score: 0.4535792222617006
+    final_roc_auc: 0.6233182642067333
+    final_log_loss: 0.7274165024753083
+    final_brier_score: 0.4535792222617006
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.3092397725286311
+    delta_final_brier_score: 0.19843792105143004
+    delta_final_roc_auc: -0.1899365208726581
+    row_pool_final_window_mean_grad_norm: 0.11785552478515934
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_balanced_capacity
@@ -438,7 +458,7 @@ rows:
   resolved_surface_fingerprint: cc2080c3667182c8ae5cfd77a31df7389230fd011722cc62e611d99fadf6f8b6
 - order: 2
   delta_id: delta_tf_rd_028_grid_moe_e2_top1_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e2_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
   hypothesis: ''
@@ -475,18 +495,38 @@ rows:
     and route-health telemetry.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_02_delta_tf_rd_028_grid_moe_e2_top1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as the first full-budget TF-RD-028 top-1 MoE candidate after
     the smoke row passes.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_02_delta_tf_rd_028_grid_moe_e2_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.228722324088941
+    best_roc_auc: 0.8103493963966735
+    best_log_loss: 0.4228972080894019
+    best_brier_score: 0.2575201342312182
+    final_roc_auc: 0.8103493963966735
+    final_log_loss: 0.4228972080894019
+    final_brier_score: 0.2575201342312182
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.004720478142724693
+    delta_final_brier_score: 0.002378833020947657
+    delta_final_roc_auc: -0.0029053886827179465
+    row_pool_final_window_mean_grad_norm: 0.04727730923996361
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_balanced_capacity
@@ -759,7 +799,7 @@ rows:
   resolved_surface_fingerprint: 4620c0f232ce62ce166f60ae682d2e7b74247ee5a123e26c1ee0cf165c48831c
 - order: 3
   delta_id: delta_tf_rd_028_grid_moe_e4_top1_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
   hypothesis: ''
@@ -796,18 +836,38 @@ rows:
     and route-health telemetry.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_03_delta_tf_rd_028_grid_moe_e4_top1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as the main TF-RD-028 top-1 MoE candidate after the smoke row
     passes.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_03_delta_tf_rd_028_grid_moe_e4_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.2761304885531493
+    best_roc_auc: 0.8108639284627365
+    best_log_loss: 0.4221998344625348
+    best_brier_score: 0.2568966452058215
+    final_roc_auc: 0.8108639284627365
+    final_log_loss: 0.4221998344625348
+    final_brier_score: 0.2568966452058215
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0040231045158575784
+    delta_final_brier_score: 0.0017553439955509398
+    delta_final_roc_auc: -0.002390856616654946
+    row_pool_final_window_mean_grad_norm: 0.04876002194434827
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_balanced_capacity
@@ -1080,7 +1140,7 @@ rows:
   resolved_surface_fingerprint: 083acd4652e70d8a33036eb1d96c756d6a65cc6634fa8c43d91311c15bfba203
 - order: 4
   delta_id: delta_tf_rd_028_grid_moe_e8_top1_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e8_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
   hypothesis: ''
@@ -1117,18 +1177,38 @@ rows:
     and route-health telemetry.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_04_delta_tf_rd_028_grid_moe_e8_top1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after E=2 and E=4 top-1 rows show finite losses and usable
     route-health metrics.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_04_delta_tf_rd_028_grid_moe_e8_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.596459800565812
+    best_roc_auc: 0.8123147088373194
+    best_log_loss: 0.421988309351315
+    best_brier_score: 0.2573238548214438
+    final_roc_auc: 0.8123147088373194
+    final_log_loss: 0.421988309351315
+    final_brier_score: 0.2573238548214438
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.003811579404637777
+    delta_final_brier_score: 0.0021825536111732546
+    delta_final_roc_auc: -0.000940076242072041
+    row_pool_final_window_mean_grad_norm: 0.04827267751897754
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_balanced_capacity
@@ -1402,7 +1482,7 @@ rows:
   resolved_surface_fingerprint: a69d4fa597506690ed28bd6d47bae53c6a371a2130f9579fee4685bf98d27f8d
 - order: 5
   delta_id: delta_tf_rd_028_grid_moe_e4_top2_v1
-  status: ready
+  status: failed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
   hypothesis: ''
@@ -1440,14 +1520,19 @@ rows:
     route-health telemetry, and the additional active-compute cost.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_05_delta_tf_rd_028_grid_moe_e4_top2_v1_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
   confounders: []
   next_action: Execute only after the top-1 MoE rows pass route-health inspection
     and quality is not explained by a routing bug.
-  notes: []
+  notes:
+  - 'Execution attempt `sd_tf_rd_028_grid_moe_balanced_capacity_v1_05_delta_tf_rd_028_grid_moe_e4_top2_v1_v1`
+    failed: CUDA out of memory. Tried to allocate 180.00 MiB. GPU 0 has a total capacity
+    of 44.39 GiB of which 131.38 MiB is free. Process 2156433 has 44.24 GiB memory
+    in use. Of the allocated memory 43.55 GiB is allocated by PyTorch, and 200.59
+    MiB...'
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -1728,7 +1813,7 @@ rows:
   resolved_surface_fingerprint: e4a31bc0de028f9c544a98bb229cdb7f355bd9d6601b6aa9fa3e14fdb46a93f1
 - order: 6
   delta_id: delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` against
     anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_028_grid_moe_balanced_capacity_v1` after the uncheckpointed top-2
@@ -1772,18 +1857,38 @@ rows:
     additional active-compute and wall-time cost.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_06_delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after the uncheckpointed top-2 row OOMs and the top-1 rows
     show finite, non-collapsed route-health metrics.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_06_delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 2.7084608154145107
+    best_roc_auc: 0.809566672931926
+    best_log_loss: 0.4234291888316289
+    best_brier_score: 0.2577993558255014
+    final_roc_auc: 0.809566672931926
+    final_log_loss: 0.4234291888316289
+    final_brier_score: 0.2577993558255014
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.005252458884951683
+    delta_final_brier_score: 0.0026580546152308315
+    delta_final_roc_auc: -0.00368811214746545
+    row_pool_final_window_mean_grad_norm: 0.048277099533690054
   parent_delta_ref: null
   dimension_family: training
   family: grid_sandwich_moe_balanced_capacity
@@ -2062,4 +2167,4 @@ rows:
       signature_family_optimizer_step_block_length: 4
   resolved_surface_fingerprint: 25f8a7aae44ba307444c55fc17ed23c6a09a729c61f88e2b7f86af15cc3417f8
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/resolved_queue.yaml
-inputs_fingerprint: 798f06cbae52d3e41fb71615c935dc9bc89c63e6fb947239776591f993b18f3a
+inputs_fingerprint: 82e646c28a80ae2fb13f9e9dc35edf2096dd307c2edfe88bfc55595f369b8ce7
