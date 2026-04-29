@@ -895,9 +895,10 @@ Legacy wording note:
   - top-2/min-2 routing is technically healthy after microbatch remediation but
     costs substantially more wall time and underperforms both the anchor and the
     cheaper top-1 MoE rows
-  - close TF-RD-028 without promoting a MoE row; if MoE is revisited, run it as
-    a new follow-up focused on an always-on shared expert or normalized top-k
-    routing rather than extending this completed sweep
+  - close TF-RD-028 without promoting a MoE row; if MoE is revisited, do not
+    spend another rung on `E=8` top-1, and instead go directly to a top-2/min-2
+    follow-up, ideally with either normalized top-k routing or an always-on
+    shared expert rather than extending this completed sweep
 
 ### TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
 
