@@ -9,7 +9,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_028_grid_moe_bal
 - Parent sweep id: `tf_rd_027_grid_stability_impl_v1`
 - Complexity level: `classification_md`
 - Resolved queue path: `reference/system_delta_sweeps/tf_rd_028_grid_moe_balanced_capacity_v1/resolved_queue.yaml`
-- Resolved queue inputs fingerprint: `095f4f4be49c360f0946b8ccf5a925c1d6dee34324971706802d5aeee3782f22`
+- Resolved queue inputs fingerprint: `798f06cbae52d3e41fb71615c935dc9bc89c63e6fb947239776591f993b18f3a`
 
 ## Locked Surface
 
@@ -50,6 +50,7 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 | 3 | `delta_tf_rd_028_grid_moe_e4_top1_v1` | grid_sandwich_moe_balanced_capacity | no | ready | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts and top-1 routing. | Execute as the main TF-RD-028 top-1 MoE candidate after the smoke row passes. |
 | 4 | `delta_tf_rd_028_grid_moe_e8_top1_v1` | grid_sandwich_moe_balanced_capacity | no | ready | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using eight experts and top-1 routing. | Execute after E=2 and E=4 top-1 rows show finite losses and usable route-health metrics. |
 | 5 | `delta_tf_rd_028_grid_moe_e4_top2_v1` | grid_sandwich_moe_balanced_capacity | no | ready | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts and top-2 routing. | Execute only after the top-1 MoE rows pass route-health inspection and quality is not explained by a routing bug. |
+| 6 | `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` | grid_sandwich_moe_balanced_capacity | no | ready | none | Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts and top-2 routing under a smaller task microbatch so the min-2-expert path fits on the current L40S VM. | Execute after the uncheckpointed top-2 row OOMs and the top-1 rows show finite, non-collapsed route-health metrics. |
 
 ## Detailed Rows
 
@@ -216,4 +217,38 @@ Upstream reference: `Grid-Sandwich MoE balanced-capacity follow-up` from `Switch
 - Decision: `None`
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_028_grid_moe_balanced_capacity_v1/delta_tf_rd_028_grid_moe_e4_top2_v1/result_card.md`
+- Benchmark metrics: pending
+
+### 6. `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1`
+
+- Dimension family: `training`
+- Status: `ready`
+- Binary applicable: `False`
+- Recipe alias: `none`
+- Description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts and top-2 routing under a smaller task microbatch so the min-2-expert path fits on the current L40S VM.
+- Rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2` for sweep `tf_rd_028_grid_moe_balanced_capacity_v1` after the uncheckpointed top-2 row exceeds single-GPU active memory.
+- Hypothesis: none
+- Upstream delta: Resource-remediated TF-RD-028 top-k follow-up after the uncheckpointed E=4 top-2 row exceeded single-GPU active memory.
+- Anchor delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+- Expected effect: Preserves the top-2 routing hypothesis while reducing per-forward activation pressure; increased gradient accumulation keeps the effective optimizer batch comparable to the top-1 ladder, at higher wall time.
+- Effective labels: model=`grid_sandwich`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
+- Resolved surface fingerprint: `25f8a7aae44ba307444c55fc17ed23c6a09a729c61f88e2b7f86af15cc3417f8`
+- Resolved runtime surface: `{'seed': 1, 'mixed_precision': 'bf16', 'num_workers': 'auto', 'loader_pin_memory': True, 'loader_train_shuffle': True, 'loader_persistent_workers': False, 'loader_prefetch_factor': 'auto', 'loader_task_batch_cache': False, 'loader_task_batch_cache_mode': 'bounded_streaming', 'non_blocking_device_transfer': True, 'grad_clip': 0.0, 'grad_accum_steps': 8, 'compile_model': True, 'compile_dynamic': True, 'compile_backend': 'eager', 'compile_mode': 'max-autotune-no-cudagraphs', 'compile_shape_dispatch_mode': 'signature_family', 'compile_shape_dispatch_max_families': 16, 'trace_activations': False, 'signature_family_run_length': 4, 'module_grad_norm_every': 1, 'profile_step_timing': False, 'activation_checkpointing': False, 'eval_every': 25, 'checkpoint_every': None, 'val_batches': 0, 'max_steps': 5000, 'signature_family_optimizer_step_block_length': 4}`
+- Training overrides: `{'runtime': {'max_steps': 5000, 'grad_accum_steps': 8, 'activation_checkpointing': False, 'checkpoint_every': None}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 5000, 'lr_max': 0.001, 'lr_schedule': 'linear', 'warmup_ratio': 0.1}]}}`
+- Parameter adequacy plan:
+  - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent route collapse, and after the uncheckpointed E=4 top-2 row is confirmed resource-confounded on the target VM.
+  - Compare against the E=4 top-1 row, E=8 top-1 row, and locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget, route-health telemetry, and additional active-compute and wall-time cost.
+- Adequacy knobs to dimension explicitly:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with four sparse experts
+  - Switch-style top-2 routing with no token dropping
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for the anchor-matched 5000-step prior-dump budget
+- Execution policy: `benchmark_full`
+- Benchmark checkpoint selection: `all`
+- Interpretation status: `pending`
+- Decision: `None`
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tf_rd_028_grid_moe_balanced_capacity_v1/delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1/result_card.md`
 - Benchmark metrics: pending

@@ -265,3 +265,62 @@ rows:
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1` after the uncheckpointed
+    top-2 row exceeds single-GPU active memory.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent
+    route collapse, and after the uncheckpointed E=4 top-2 row is confirmed
+    resource-confounded on the target VM.
+  - Compare against the E=4 top-1 row, E=8 top-1 row, and locked TF-RD-026 row
+    10 anchor by final_log_loss_at_matched_regime_budget, route-health telemetry,
+    and additional active-compute and wall-time cost.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after the uncheckpointed top-2 row OOMs and the top-1 rows
+    show finite, non-collapsed route-health metrics.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
