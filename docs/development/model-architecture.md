@@ -275,10 +275,15 @@ runtime wiring.
 | `grid_moe_top_k` | `1` | selected experts per token for the optional sparse MoE path |
 | `grid_moe_router_init_std` | `0.01` | normal initialization scale for MoE router weights |
 | `grid_moe_normalize_top_k` | `false` | opt-in per-token renormalization of selected top-k probabilities before expert outputs are combined |
+| `grid_moe_shared_expert` | `false` | opt-in always-on SwiGLU shared expert added to the sparse routed expert output |
+| `grid_moe_shared_expert_scale` | `1.0` | non-negative scale on the always-on shared expert path |
+| `grid_moe_router_temperature` | `1.0` | positive router softmax temperature; higher values smooth routing and lower values sharpen it |
 | `classification_logit_softcap` | `null` | disabled by default; TF-RD-027 tests tanh logit softcapping as an isolated stability mechanism |
 | `attention_qk_norm` | `false` | disabled by default; TF-RD-027 tests QK-normalized grid attention as an isolated stability mechanism |
 | `training.classification_z_loss_coeff` | `0.0` | disabled by default; TF-RD-027 tests the auxiliary classification z-loss as an isolated training mechanism |
 | `training.moe_load_balance_loss_coeff` | `0.0` | disabled by default; recommended first MoE sweep value is `1e-2` |
+| `training.moe_load_balance_loss_schedule` | `constant` | optional prior-training schedule for the load-balancing coefficient: `constant`, `linear_decay`, or `warmup_decay` |
+| `training.moe_load_balance_loss_final_coeff` | `null` | optional final coefficient for MoE load-balancing decay schedules; null keeps the initial coefficient |
 | `training.moe_router_z_loss_coeff` | `0.0` | disabled by default; recommended first MoE sweep value is `1e-4` |
 | `feature_type_conditioning` | `film` | feature-type modulation after the shared feature encoder |
 | `runtime.activation_checkpointing` | `false` | disabled for the current recurrent SwiGLU anchor because the checkpointed path trips a TorchDynamo tracing assertion |

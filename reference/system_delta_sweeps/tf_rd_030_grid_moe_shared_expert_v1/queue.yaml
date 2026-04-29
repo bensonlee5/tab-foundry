@@ -1,0 +1,292 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_030_grid_moe_shared_expert_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 100
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 100
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Treat this row as diagnostic only; do not compare it as a quality candidate against
+    the 5000-step anchor.
+  - Full TF-RD-030 candidate execution is blocked on finite training losses, finite
+    MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+    smoke row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute first on the Vast VM and unblock shared-expert full rows only
+    after smoke training, benchmark artifacts, and W&B logging are clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute immediately after the shared-expert smoke row passes.
+  - Compare against TF-RD-026 row 10, TF-RD-028 top-1 MoE rows, and TF-RD-029 normalized
+    top-2 by final log loss, route-health telemetry, and wall time.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after the shared-expert smoke row passes.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the shared top-1 row unless smoke or resource health argues otherwise.
+  - Compare against TF-RD-029 normalized top-2 and TF-RD-030 shared top-1.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after the shared top-1 candidate if smoke health remains clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_load_balance_loss_schedule: warmup_decay
+    moe_load_balance_loss_final_coeff: 0.001
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after TF-RD-029 normalized top-2 completes and route-health metrics remain
+    finite.
+  - Compare against TF-RD-029 normalized top-2 to isolate the auxiliary-loss schedule
+    effect.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after TF-RD-029 normalized top-2 completes and shared-expert
+    smoke is clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+    grid_moe_router_temperature: 1.25
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the default-temperature shared top-1 row if route health or loss
+    oscillation suggests smoothing is worth isolating.
+  - Compare against default-temperature shared top-1 by final log loss, route entropy,
+    expert fraction spread, and wall time.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute only if the default-temperature shared top-1 row suggests routing
+    smoothness is the next bottleneck.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` MoE now exposes disabled-by-default shared
+  expert and router-temperature controls via `model.grid_moe_shared_expert`,
+  `model.grid_moe_shared_expert_scale`, and
+  `model.grid_moe_router_temperature`. Prior training can also schedule the MoE
+  load-balancing coefficient with
+  `training.moe_load_balance_loss_schedule` and
+  `training.moe_load_balance_loss_final_coeff`.
 - User-facing note: `grid_sandwich` MoE now exposes
   `model.grid_moe_normalize_top_k`, disabled by default, for top-k experiments
   that renormalize selected expert probabilities per token before combining

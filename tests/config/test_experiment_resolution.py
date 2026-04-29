@@ -141,8 +141,13 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert int(cfg.model.grid_moe_top_k) == 1
     assert float(cfg.model.grid_moe_router_init_std) == pytest.approx(0.01)
     assert bool(cfg.model.grid_moe_normalize_top_k) is False
+    assert bool(cfg.model.grid_moe_shared_expert) is False
+    assert float(cfg.model.grid_moe_shared_expert_scale) == pytest.approx(1.0)
+    assert float(cfg.model.grid_moe_router_temperature) == pytest.approx(1.0)
     assert float(cfg.training.classification_z_loss_coeff) == 0.0
     assert float(cfg.training.moe_load_balance_loss_coeff) == 0.0
+    assert str(cfg.training.moe_load_balance_loss_schedule) == "constant"
+    assert cfg.training.moe_load_balance_loss_final_coeff is None
     assert float(cfg.training.moe_router_z_loss_coeff) == 0.0
     assert bool(cfg.runtime.activation_checkpointing) is False
     assert cfg.runtime.checkpoint_every is None
@@ -162,6 +167,10 @@ def test_resolve_config_rejects_negative_classification_z_loss_coeff() -> None:
 def test_resolve_config_rejects_negative_moe_aux_loss_coeff() -> None:
     with pytest.raises(ValueError, match="moe_load_balance_loss_coeff"):
         _ = resolve_config_payload(("training.moe_load_balance_loss_coeff=-0.1",))
+    with pytest.raises(ValueError, match="moe_load_balance_loss_schedule"):
+        _ = resolve_config_payload(("training.moe_load_balance_loss_schedule=bogus",))
+    with pytest.raises(ValueError, match="moe_load_balance_loss_final_coeff"):
+        _ = resolve_config_payload(("training.moe_load_balance_loss_final_coeff=-0.1",))
     with pytest.raises(ValueError, match="moe_router_z_loss_coeff"):
         _ = resolve_config_payload(("training.moe_router_z_loss_coeff=-0.1",))
 

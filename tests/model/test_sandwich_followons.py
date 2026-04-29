@@ -104,6 +104,9 @@ def _grid_model(
     grid_moe_num_experts: int = 1,
     grid_moe_top_k: int = 1,
     grid_moe_normalize_top_k: bool = False,
+    grid_moe_shared_expert: bool = False,
+    grid_moe_shared_expert_scale: float = 1.0,
+    grid_moe_router_temperature: float = 1.0,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -128,6 +131,9 @@ def _grid_model(
         grid_moe_num_experts=grid_moe_num_experts,
         grid_moe_top_k=grid_moe_top_k,
         grid_moe_normalize_top_k=grid_moe_normalize_top_k,
+        grid_moe_shared_expert=grid_moe_shared_expert,
+        grid_moe_shared_expert_scale=grid_moe_shared_expert_scale,
+        grid_moe_router_temperature=grid_moe_router_temperature,
     )
 
 
@@ -429,6 +435,9 @@ def test_sparse_swiglu_moe_ffn_routes_only_top_k_experts() -> None:
         top_k=2,
         router_init_std=0.01,
         normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
     )
     calls = [0, 0, 0, 0]
 
@@ -469,6 +478,9 @@ def test_sparse_swiglu_moe_ffn_routes_independently_per_token() -> None:
         top_k=1,
         router_init_std=0.01,
         normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
     )
 
     class _TagExpert(torch.nn.Module):
@@ -527,6 +539,9 @@ def test_sparse_swiglu_moe_ffn_accumulates_mixed_precision_expert_output() -> No
         top_k=1,
         router_init_std=0.01,
         normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
     )
 
     class _BFloatExpert(torch.nn.Module):
@@ -553,6 +568,9 @@ def test_sparse_swiglu_moe_ffn_can_normalize_top_k_router_weights() -> None:
         top_k=2,
         router_init_std=0.01,
         normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
     )
     normalized_block = _SparseSwiGLUMoEFFN(
         embedding_size=4,
@@ -561,6 +579,9 @@ def test_sparse_swiglu_moe_ffn_can_normalize_top_k_router_weights() -> None:
         top_k=2,
         router_init_std=0.01,
         normalize_top_k=True,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
     )
     for block in (raw_block, normalized_block):
         block.experts = torch.nn.ModuleList([torch.nn.Identity() for _ in range(4)])
@@ -574,6 +595,30 @@ def test_sparse_swiglu_moe_ffn_can_normalize_top_k_router_weights() -> None:
 
     torch.testing.assert_close(raw_output, hidden * 0.5)
     torch.testing.assert_close(normalized_output, hidden)
+
+
+def test_sparse_swiglu_moe_ffn_can_add_shared_expert_path() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=1,
+        router_init_std=0.01,
+        normalize_top_k=True,
+        shared_expert=True,
+        shared_expert_scale=0.25,
+        router_temperature=1.0,
+    )
+    block.experts = torch.nn.ModuleList([torch.nn.Identity() for _ in range(4)])
+    block.shared_expert = torch.nn.Identity()
+    with torch.no_grad():
+        block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 4)
+
+    output = block(hidden)
+
+    torch.testing.assert_close(output, hidden * 1.25)
 
 
 def test_grid_sandwich_moe_forward_emits_aux_losses_and_route_health() -> None:

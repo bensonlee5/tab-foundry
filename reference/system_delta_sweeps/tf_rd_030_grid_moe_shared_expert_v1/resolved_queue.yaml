@@ -1,0 +1,1796 @@
+schema: tab-foundry-system-delta-resolved-queue-v1
+generated_from_sweep_id: tf_rd_030_grid_moe_shared_expert_v1
+catalog_path: reference/system_delta_catalog.yaml
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_030_grid_moe_shared_expert_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_030_grid_moe_shared_expert_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_030_grid_moe_shared_expert_v1/matrix.md
+sweep_id: tf_rd_030_grid_moe_shared_expert_v1
+parent_sweep_id: tf_rd_029_grid_moe_top2_normalized_v1
+sweep_status: draft
+complexity_level: classification_md
+anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+external_benchmarks: []
+training_experiment: cls_workstation_grid_sandwich
+training_config_profile: cls_workstation_grid_sandwich
+surface_role: classification_grid_moe_followup
+comparison_policy: anchor_only
+upstream_reference:
+  name: Grid-Sandwich MoE shared-expert follow-up
+  model_source: Token-centric sparse SwiGLU experts with an optional always-on shared
+    SwiGLU expert, router-temperature smoothing, and load-balancing schedule probes
+    for the promoted Grid-Sandwich core FFNs
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    on manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+    sourced from `openml_classification_medium` (242 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `grid_sandwich`.
+  - TF-RD-030 follows TF-RD-028 and TF-RD-029 by testing whether MoE improves when
+    a dense/shared FFN path remains always on instead of forcing all grid-core FFN
+    capacity through sparse routing.
+  - All TF-RD-030 rows use the exact TF-RD-026 row `10` corpus artifact `tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - The manifest surface keeps the same bundle provenance (missing values permitted).
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark manifest `data/manifests/bench/openml_classification_medium_v1/manifest.parquet`
+      sourced from `openml_classification_medium` (242 tasks (missing values permitted))
+      with data surface label `tf_rd_010_dagzoo_medium_control`.
+    interpretation: Manifest and training-data changes are first-class sweep rows
+      and should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+  experiment: cls_workstation_grid_sandwich
+  config_profile: cls_workstation_grid_sandwich
+  model:
+    arch: grid_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: tf_rd_010_dagzoo_medium_control
+    model: grid_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup
+rows:
+- order: 1
+  delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 100
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 100
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Treat this row as diagnostic only; do not compare it as a quality candidate against
+    the 5000-step anchor.
+  - Full TF-RD-030 candidate execution is blocked on finite training losses, finite
+    MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+    smoke row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute first on the Vast VM and unblock shared-expert full rows only
+    after smoke training, benchmark artifacts, and W&B logging are clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_shared_expert
+  binary_applicable: false
+  description: Run a short benchmark-capable smoke of the TF-RD-026 row 10 Grid-Sandwich
+    anchor with four sparse grid-core SwiGLU experts, top-1 routing, and one always-on
+    shared SwiGLU expert.
+  upstream_delta: Diagnostic execution gate for the TF-RD-030 shared-expert MoE follow-up.
+  entangled_legacy_stage: none
+  expected_effect: Should prove that the shared-expert MoE path resolves, trains with
+    finite MoE auxiliary metrics, exports checkpoints, registers benchmark artifacts,
+    and logs to W&B online before full-row execution.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs add an always-on shared expert plus four routed sparse experts
+  - top-1 routed expert contribution remains router-probability weighted
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+  parameter_adequacy_policy:
+    default_plan:
+    - Treat this row as diagnostic only; do not compare it as a quality candidate
+      against the 5000-step anchor.
+    - Full TF-RD-030 candidate execution is blocked on finite training losses, finite
+      MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+      smoke row.
+    default_negative_decision: defer
+    reject_requires:
+    - smoke_only_row
+    - benchmark_path_failed
+    - nonfinite_moe_auxiliary_metrics
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: false
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.0
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_load_balance_loss_schedule: constant
+      moe_load_balance_loss_final_coeff: null
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 8
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 100
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 100
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: cb0209d1a2eca537ddad9d23f405cb2904e5e7c1c4eb194c6a31d57f0d14fb34
+- order: 2
+  delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute immediately after the shared-expert smoke row passes.
+  - Compare against TF-RD-026 row 10, TF-RD-028 top-1 MoE rows, and TF-RD-029 normalized
+    top-2 by final log loss, route-health telemetry, and wall time.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after the shared-expert smoke row passes.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_shared_expert
+  binary_applicable: false
+  description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with four sparse grid-core
+    SwiGLU experts, top-1 routing, and one always-on shared SwiGLU expert.
+  upstream_delta: Main TF-RD-030 hypothesis that MoE should add a stable shared FFN
+    path instead of forcing all FFN capacity through routing.
+  entangled_legacy_stage: none
+  expected_effect: Tests whether a shared dense path plus one routed expert preserves
+    anchor-like optimization while adding specialist capacity at lower active routed
+    compute than top-2.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs add an always-on shared expert plus four routed sparse experts
+  - top-1 routed expert contribution remains router-probability weighted
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute immediately after the shared-expert smoke row passes.
+    - Compare against TF-RD-026 row 10, TF-RD-028 top-1 MoE rows, and TF-RD-029 normalized
+      top-2 by final log loss, route-health telemetry, and wall time.
+    default_negative_decision: defer
+    reject_requires:
+    - shared_expert_smoke_passed
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: false
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.0
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_load_balance_loss_schedule: constant
+      moe_load_balance_loss_final_coeff: null
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 8
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: c180ae671c183dc4758ec019293ef0aa00d0538ef621c7d4e27a3297915ca8ab
+- order: 3
+  delta_id: delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the shared top-1 row unless smoke or resource health argues otherwise.
+  - Compare against TF-RD-029 normalized top-2 and TF-RD-030 shared top-1.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after the shared top-1 candidate if smoke health remains clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_shared_expert
+  binary_applicable: false
+  description: Test four sparse grid-core SwiGLU experts with normalized top-2 routing
+    plus one always-on shared SwiGLU expert.
+  upstream_delta: Tests whether the TF-RD-029 normalized top-2 path benefits from
+    a stable always-on shared expert.
+  entangled_legacy_stage: none
+  expected_effect: Should preserve token-centric two-expert routing while the shared
+    path carries dense anchor-like capacity and reduces pressure on the router to
+    learn the whole FFN transformation.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs add an always-on shared expert plus four routed sparse experts
+  - selected top-2 router probabilities renormalized per token
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the shared top-1 row unless smoke or resource health argues otherwise.
+    - Compare against TF-RD-029 normalized top-2 and TF-RD-030 shared top-1.
+    default_negative_decision: defer
+    reject_requires:
+    - shared_expert_smoke_passed
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.0
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_load_balance_loss_schedule: constant
+      moe_load_balance_loss_final_coeff: null
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 8
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: 2bedf5195538ff11a72beea46e73d0aa40e4541c8a53150f02821d83d0bc39cf
+- order: 4
+  delta_id: delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_load_balance_loss_schedule: warmup_decay
+    moe_load_balance_loss_final_coeff: 0.001
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after TF-RD-029 normalized top-2 completes and route-health metrics remain
+    finite.
+  - Compare against TF-RD-029 normalized top-2 to isolate the auxiliary-loss schedule
+    effect.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute after TF-RD-029 normalized top-2 completes and shared-expert
+    smoke is clean.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_aux_schedule
+  binary_applicable: false
+  description: Retest normalized top-2 MoE with a decayed load-balancing coefficient
+    so routing is stabilized early but less constrained late.
+  upstream_delta: Tests whether the constant TF-RD-029 load-balancing loss is over-regularizing
+    once route health is already acceptable.
+  entangled_legacy_stage: none
+  expected_effect: Should retain finite, non-collapsed route health while reducing
+    late-training pressure toward perfectly uniform expert usage.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs replaced with four sparse experts
+  - selected top-2 router probabilities renormalized per token
+  - load-balance coefficient decays from 1e-2 to 1e-3 with warmup/decay
+  - router z-loss coefficient 1e-4 remains constant
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after TF-RD-029 normalized top-2 completes and route-health metrics
+      remain finite.
+    - Compare against TF-RD-029 normalized top-2 to isolate the auxiliary-loss schedule
+      effect.
+    default_negative_decision: defer
+    reject_requires:
+    - normalized_top2_route_health_gate_passed
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+        grid_moe_shared_expert: false
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.0
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_load_balance_loss_schedule: warmup_decay
+      moe_load_balance_loss_final_coeff: 0.001
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 8
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: a09397dffbf680e56f3d7cfc2b035ed29b4014de200387e052291b499c414f24
+- order: 5
+  delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1
+  status: ready
+  rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+    grid_moe_shared_expert: true
+    grid_moe_shared_expert_scale: 1.0
+    grid_moe_router_temperature: 1.25
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the default-temperature shared top-1 row if route health or loss
+    oscillation suggests smoothing is worth isolating.
+  - Compare against default-temperature shared top-1 by final log loss, route entropy,
+    expert fraction spread, and wall time.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute only if the default-temperature shared top-1 row suggests routing
+    smoothness is the next bottleneck.
+  notes: []
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+  dimension_family: model
+  family: grid_sandwich_moe_router_temperature
+  binary_applicable: false
+  description: Test shared-expert top-1 MoE with router-temperature smoothing by setting
+    the router softmax temperature to 1.25.
+  upstream_delta: Tests whether smoother early routing helps shared-expert top-1 MoE
+    avoid brittle expert assignment without paying top-2 compute.
+  entangled_legacy_stage: none
+  expected_effect: Should keep route entropy higher and expert fractions more even
+    than the default-temperature shared top-1 candidate while preserving lower routed
+    compute than top-2.
+  adequacy_knobs:
+  - current TF-RD-026 row 10 anchor shape held fixed
+  - grid-core SwiGLU FFNs add an always-on shared expert plus four routed sparse experts
+  - top-1 routing uses router softmax temperature 1.25
+  - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+  - task batch size reduced to 8 with grad accumulation increased to 8
+  - train for the anchor-matched 5000-step prior-dump budget
+  parameter_adequacy_policy:
+    default_plan:
+    - Execute after the default-temperature shared top-1 row if route health or loss
+      oscillation suggests smoothing is worth isolating.
+    - Compare against default-temperature shared top-1 by final log loss, route entropy,
+      expert fraction spread, and wall time.
+    default_negative_decision: defer
+    reject_requires:
+    - shared_expert_smoke_passed
+    - matched_5000_step_budget
+    - clearly_worse_without_route_health_offsetting_signal
+  applicability_guards: []
+  resolved_surface:
+    labels:
+      model: grid_sandwich
+      data: tf_rd_010_dagzoo_medium_control
+      preprocessing: runtime_default
+      training: prior_cosine_warmup
+    model:
+      arch: grid_sandwich
+      stage: null
+      stage_label: null
+      input_normalization: train_zscore_clip
+      feature_group_size: 1
+      many_class_base: 10
+      build_spec:
+        task: classification
+        arch: grid_sandwich
+        input_normalization: train_zscore_clip
+        feature_group_size: 1
+        many_class_train_mode: path_nll
+        max_mixed_radix_digits: 64
+        norm_type: layernorm
+        many_class_base: 10
+        d_col: 128
+        d_icl: 144
+        head_hidden_dim: 96
+        pre_encoder_clip: null
+        sandwich_layers: 4
+        sandwich_heads: 1
+        sandwich_ff_expansion: 2
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+        sandwich_pre_column_inducing_tokens: 16
+        sandwich_packed_attention: true
+        feature_type_conditioning: film
+        floating_likelihood: single_gaussian
+        integer_likelihood: hybrid_mixture
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: false
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.25
+      architecture:
+        input_tokens: row_feature_cell_grid
+        input_token_count: R_times_C
+        grid_core: alternating_row_self_attention_and_column_row_isab
+        pre_perceiver_cell_mixer: row_feature_self_attention_then_column_row_isab
+        pre_row_attention_layers: 1
+        pre_column_attention_layers: 1
+        grid_preservation: explicit_row_feature_grid_through_core
+        label_injection: train_row_feature_tokens_only
+        position_encoding: shared_fourier_row_col
+        feature_type_encoding: film
+        sandwich_activation: gelu
+        sandwich_block_norm: layernorm
+        sandwich_packed_attention: true
+        grid_residual_mode: prenorm
+        grid_attention_mode: standard
+        grid_ffn_mode: swiglu
+        grid_recurrence_steps: 8
+        grid_recurrence_unique_layers: 2
+        classification_logit_softcap: null
+        attention_qk_norm: false
+        grid_core_iterations: 8
+        grid_core_unique_layers: 2
+        layers: 4
+        heads: 1
+        ff_expansion: 2
+        column_inducing_tokens: 16
+        readout: per_test_row_feature_bundle_pool
+    data:
+      surface_label: tf_rd_010_dagzoo_medium_control
+      source: manifest
+      filter_policy: null
+      allow_missing_values: true
+      corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      requested_corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+      materialization_state: finalized
+      recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+      corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+      corpus_record_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/corpus_record.json
+      manifest:
+        manifest_path: outputs/corpora/tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5/manifest.parquet
+        manifest_sha256: b54f7409b6d563a08c38e106f23d68f866464fc8914d0cc4119d0d32de130842
+      dagzoo_provenance:
+        acceptance_rate: 0.9985587580558885
+        accepted_datasets: 1709944
+        comparator_role: control
+        config_refs:
+        - configs/default.yaml
+        corpus_id: tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        corpus_variant: tf_rd_010_dagzoo_medium_control
+        curated_accepted_datasets: 1493424
+        filter_policy: accepted_only
+        generator_fingerprint: d44739995b76
+        invocation_count: 144
+        manifest_record_count: 1493424
+        materialization_timing:
+          cumulative_copy_elapsed_seconds: 9029.037055122666
+          cumulative_filter_elapsed_seconds: 769.7464019064792
+          cumulative_generate_elapsed_seconds: 137186.75154553936
+          cumulative_generated_datasets: 1712412
+          cumulative_invocation_elapsed_seconds: 149788.86008265358
+          cumulative_local_overhead_elapsed_seconds: 2803.32508008508
+          cumulative_round_count: 144
+          cumulative_upstream_elapsed_seconds: 137956.49794744584
+          invocation_fanout_elapsed_seconds: 19271.46016815491
+          manifest_build_elapsed_seconds: 772.6144697689451
+          manifest_workers: 22
+          promotion_elapsed_seconds: 14.870547467842698
+          recipe_elapsed_seconds: 20059.05450632004
+          staged_compaction_elapsed_seconds: 19.91831662808545
+          staged_compaction_status: completed
+          timed_invocation_count: 144
+        provenance_labels:
+          balanced_front_shape: inherited_from_v1
+          benchmark_family: tf_rd_010
+          comparator_role: control
+          corpus_recipe_version: v6
+          corpus_variant: tf_rd_010_dagzoo_medium_control
+          downstream_issue: 205
+          manifest_record_count: 1493424
+          per_invocation_num_datasets: 10371
+          supersedes_for_tf_rd_009_phase2: tf_rd_010_dagzoo_medium_control_curated_v5
+          synthetic_epoch_regime: one_epoch_1493424_records_phase2_bcrit_5000x16x16
+          target_derivation: tabiclv2_latent_node
+          task_grid: balanced_rows_features_classes_v1
+        recipe_id: tf_rd_010_dagzoo_medium_control_curated_v6
+        recipe_kind: dagzoo_python_generated
+        rejected_datasets: 2468
+        review_summary:
+          class_counts:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          config_refs:
+          - configs/default.yaml
+          feature_counts:
+          - 6
+          - 10
+          - 14
+          - 20
+          grid_family: balanced_rows_features_classes_v1
+          invocation_count: 144
+          manifest_record_count: 1493424
+          missingness: null
+          num_datasets_per_invocation: 10371
+          row_totals:
+          - 128
+          - 256
+          - 512
+          - 1024
+          target_derivation: tabiclv2_latent_node
+        surface_label: tf_rd_010_dagzoo_medium_control
+        target_derivation: tabiclv2_latent_node
+        target_relevant_feature_count_range:
+          max: 20
+          min: 0
+        target_relevant_feature_fraction_range:
+          max: 1.0
+          min: 0.0
+      overrides:
+        source: manifest
+        manifest_path: null
+        surface_label: tf_rd_010_dagzoo_medium_control
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        filter_policy: null
+        dagzoo_provenance: null
+        allow_missing_values: null
+    preprocessing:
+      surface_label: runtime_default
+      impute_missing: true
+      all_nan_fill: 0.0
+      label_mapping: train_only_remap
+      unseen_test_label_policy: filter
+      feature_order_policy: positional_feature_ids
+      dtype_policy:
+        features: float32
+        classification_labels: int64
+        regression_targets: float32
+      overrides: {}
+    training:
+      surface_label: prior_cosine_warmup
+      loss_surface: classification
+      classification_z_loss_coeff: 0.0
+      moe_load_balance_loss_coeff: 0.01
+      moe_load_balance_loss_schedule: constant
+      moe_load_balance_loss_final_coeff: null
+      moe_router_z_loss_coeff: 0.0001
+      apply_schedule: true
+      task_batch_size: 8
+      optimizer_name: muon
+      optimizer_min_lr: 1.0e-06
+      schedule_stages:
+      - name: prior_dump
+        steps: 5000
+        lr_max: 0.001
+        lr_schedule: linear
+        warmup_ratio: 0.1
+      overrides: {}
+      backend: manifest
+    runtime:
+      seed: 1
+      mixed_precision: bf16
+      num_workers: auto
+      loader_pin_memory: true
+      loader_train_shuffle: true
+      loader_persistent_workers: false
+      loader_prefetch_factor: auto
+      loader_task_batch_cache: false
+      loader_task_batch_cache_mode: bounded_streaming
+      non_blocking_device_transfer: true
+      grad_clip: 0.0
+      grad_accum_steps: 8
+      compile_model: true
+      compile_dynamic: true
+      compile_backend: eager
+      compile_mode: max-autotune-no-cudagraphs
+      compile_shape_dispatch_mode: signature_family
+      compile_shape_dispatch_max_families: 16
+      trace_activations: false
+      signature_family_run_length: 4
+      module_grad_norm_every: 1
+      profile_step_timing: false
+      activation_checkpointing: false
+      eval_every: 25
+      checkpoint_every: null
+      val_batches: 0
+      max_steps: 5000
+      signature_family_optimizer_step_block_length: 4
+  resolved_surface_fingerprint: 2649b46f669aa37d8d616d83e153f99168ff14921297ca7cba9673413c45a411
+canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_030_grid_moe_shared_expert_v1/resolved_queue.yaml
+inputs_fingerprint: 6892b62465dfbe9e0545da8c8d12e6f6b0dbbaf424d216de381b526436a4a935

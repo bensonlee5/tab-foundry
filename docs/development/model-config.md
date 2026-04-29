@@ -152,6 +152,9 @@ did not yet serialize every reconstruction field.
 | `grid_moe_top_k` | `int` | `1` | grid | Number of experts selected per token. Must be no larger than `grid_moe_num_experts`; v1 uses dynamic sparse dispatch with no token dropping. |
 | `grid_moe_router_init_std` | `float` | `0.01` | grid | Normal initialization standard deviation for MoE router weights. |
 | `grid_moe_normalize_top_k` | `bool` | `false` | grid | When true, selected top-k router probabilities are renormalized per token before expert outputs are combined. Defaults false to preserve the original raw-probability weighting. |
+| `grid_moe_shared_expert` | `bool` | `false` | grid | When true, each sparse MoE FFN adds one always-on SwiGLU shared expert before routed expert contributions. |
+| `grid_moe_shared_expert_scale` | `float` | `1.0` | grid | Non-negative multiplier for the always-on shared expert path when `grid_moe_shared_expert` is enabled. |
+| `grid_moe_router_temperature` | `float` | `1.0` | grid | Positive softmax temperature for MoE router probabilities. Values above `1.0` smooth routing; values below `1.0` sharpen it. |
 | `classification_logit_softcap` | `float \| null` | `null` | grid | Optional classification-logit softcap. When set, grid logits are transformed as `cap * tanh(logits / cap)` before loss/eval/export consumers see them. |
 | `attention_qk_norm` | `bool` | `false` | grid | Optional QK normalization for grid-sandwich attention sites. Query/key heads are L2-normalized with a learnable per-head scale initialized to `sqrt(head_dim)`. |
 | `feature_type_conditioning` | `str` | `"film"` | sandwich, grid | Feature-type conditioning path for cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
@@ -210,6 +213,9 @@ block width.
 - `grid_moe_top_k`
 - `grid_moe_router_init_std`
 - `grid_moe_normalize_top_k`
+- `grid_moe_shared_expert`
+- `grid_moe_shared_expert_scale`
+- `grid_moe_router_temperature`
 - `classification_logit_softcap`
 - `attention_qk_norm`
 
@@ -300,6 +306,8 @@ removed legacy family.
     `grid_recurrence_steps`, `grid_recurrence_unique_layers`,
     `grid_moe_scope`, `grid_moe_num_experts`, `grid_moe_top_k`,
     `grid_moe_router_init_std`, `grid_moe_normalize_top_k`,
+    `grid_moe_shared_expert`, `grid_moe_shared_expert_scale`,
+    `grid_moe_router_temperature`,
     `input_normalization`, and `pre_encoder_clip`.
     `sandwich_layers` counts alternating row/column grid-mixer layers unless
     `grid_recurrence_steps` is positive. `feature_types` are required at

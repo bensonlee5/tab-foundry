@@ -175,6 +175,9 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             grid_moe_top_k=int(spec.grid_moe_top_k),
             grid_moe_router_init_std=float(spec.grid_moe_router_init_std),
             grid_moe_normalize_top_k=bool(spec.grid_moe_normalize_top_k),
+            grid_moe_shared_expert=bool(spec.grid_moe_shared_expert),
+            grid_moe_shared_expert_scale=float(spec.grid_moe_shared_expert_scale),
+            grid_moe_router_temperature=float(spec.grid_moe_router_temperature),
         )
 
     raise ValueError(f"Unsupported model arch: {spec.arch!r}")

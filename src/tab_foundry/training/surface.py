@@ -24,6 +24,8 @@ from tab_foundry.repo_paths import normalize_repo_relative_path
 from tab_foundry.training.loss_surface import (
     resolve_classification_z_loss_coeff,
     resolve_moe_load_balance_loss_coeff,
+    resolve_moe_load_balance_loss_final_coeff,
+    resolve_moe_load_balance_loss_schedule,
     resolve_moe_router_z_loss_coeff,
 )
 from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
@@ -454,6 +456,12 @@ def build_training_surface_record(
                 "loss_surface": str(training_cfg.get("loss_surface", "classification")),
                 "classification_z_loss_coeff": resolve_classification_z_loss_coeff(training_cfg),
                 "moe_load_balance_loss_coeff": resolve_moe_load_balance_loss_coeff(training_cfg),
+                "moe_load_balance_loss_schedule": resolve_moe_load_balance_loss_schedule(
+                    training_cfg
+                ),
+                "moe_load_balance_loss_final_coeff": resolve_moe_load_balance_loss_final_coeff(
+                    training_cfg
+                ),
                 "moe_router_z_loss_coeff": resolve_moe_router_z_loss_coeff(training_cfg),
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
                 "task_batch_size": int(training_cfg.get("task_batch_size", 1)),

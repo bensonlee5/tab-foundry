@@ -490,6 +490,9 @@ class _GridSandwichModelParams(_SandwichModelParams):
     grid_moe_top_k: int = Field(default=1, gt=0)
     grid_moe_router_init_std: float = Field(default=0.01, gt=0.0)
     grid_moe_normalize_top_k: bool = False
+    grid_moe_shared_expert: bool = False
+    grid_moe_shared_expert_scale: float = Field(default=1.0, ge=0.0)
+    grid_moe_router_temperature: float = Field(default=1.0, gt=0.0)
 
     @field_validator("grid_residual_mode", mode="before")
     @classmethod
@@ -561,6 +564,15 @@ class _GridSandwichModelParams(_SandwichModelParams):
     @field_validator("grid_moe_normalize_top_k", mode="before")
     @classmethod
     def _coerce_grid_moe_normalize_top_k(cls, value: Any) -> bool:
+        return cls._coerce_grid_bool(value, field_name="grid_moe_normalize_top_k")
+
+    @field_validator("grid_moe_shared_expert", mode="before")
+    @classmethod
+    def _coerce_grid_moe_shared_expert(cls, value: Any) -> bool:
+        return cls._coerce_grid_bool(value, field_name="grid_moe_shared_expert")
+
+    @classmethod
+    def _coerce_grid_bool(cls, value: Any, *, field_name: str) -> bool:
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
@@ -571,7 +583,23 @@ class _GridSandwichModelParams(_SandwichModelParams):
                 return False
         if isinstance(value, int) and value in {0, 1}:
             return bool(value)
-        raise ValueError(f"grid_moe_normalize_top_k must be boolean-compatible, got {value!r}")
+        raise ValueError(f"{field_name} must be boolean-compatible, got {value!r}")
+
+    @field_validator("grid_moe_shared_expert_scale", mode="before")
+    @classmethod
+    def _validate_grid_moe_shared_expert_scale(cls, value: Any) -> float:
+        scale = float(value)
+        if not math.isfinite(scale) or scale < 0.0:
+            raise ValueError("grid_moe_shared_expert_scale must be a finite float >= 0")
+        return scale
+
+    @field_validator("grid_moe_router_temperature", mode="before")
+    @classmethod
+    def _validate_grid_moe_router_temperature(cls, value: Any) -> float:
+        temperature = float(value)
+        if not math.isfinite(temperature) or temperature <= 0.0:
+            raise ValueError("grid_moe_router_temperature must be a finite float > 0")
+        return temperature
 
     @field_validator("classification_logit_softcap", mode="before")
     @classmethod

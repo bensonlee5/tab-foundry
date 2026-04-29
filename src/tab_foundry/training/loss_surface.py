@@ -15,6 +15,11 @@ SUPPORTED_TRAINING_LOSS_SURFACES = (
     CLASSIFICATION_LOSS_SURFACE,
     CELL_BPC_LOSS_SURFACE,
 )
+SUPPORTED_MOE_LOAD_BALANCE_LOSS_SCHEDULES = (
+    "constant",
+    "linear_decay",
+    "warmup_decay",
+)
 _CELL_BPC_DEPRECATION_MESSAGE = (
     "training.loss_surface='cell_bpc' is deprecated for active classification benchmarks; "
     "use 'classification' to optimize natural-log cross-entropy on label targets. "
@@ -69,6 +74,46 @@ def resolve_moe_load_balance_loss_coeff(training_cfg: Mapping[str, Any] | Any) -
         training_cfg,
         field_name="moe_load_balance_loss_coeff",
     )
+
+
+def resolve_moe_load_balance_loss_schedule(training_cfg: Mapping[str, Any] | Any) -> str:
+    raw_value = "constant"
+    if isinstance(training_cfg, Mapping):
+        raw_value = training_cfg.get("moe_load_balance_loss_schedule", "constant")
+    elif training_cfg is not None:
+        raw_value = getattr(training_cfg, "moe_load_balance_loss_schedule", "constant")
+    normalized = str(raw_value or "constant").strip().lower()
+    if normalized not in SUPPORTED_MOE_LOAD_BALANCE_LOSS_SCHEDULES:
+        raise ValueError(
+            "training.moe_load_balance_loss_schedule must be one of "
+            f"{SUPPORTED_MOE_LOAD_BALANCE_LOSS_SCHEDULES}, got {raw_value!r}"
+        )
+    return normalized
+
+
+def resolve_moe_load_balance_loss_final_coeff(training_cfg: Mapping[str, Any] | Any) -> float | None:
+    raw_value = None
+    if isinstance(training_cfg, Mapping):
+        raw_value = training_cfg.get("moe_load_balance_loss_final_coeff")
+    elif training_cfg is not None:
+        raw_value = getattr(training_cfg, "moe_load_balance_loss_final_coeff", None)
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str) and raw_value.strip().lower() in {"", "none", "null"}:
+        return None
+    try:
+        coeff = float(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "training.moe_load_balance_loss_final_coeff must be null or a finite "
+            "non-negative float"
+        ) from exc
+    if not math.isfinite(coeff) or coeff < 0.0:
+        raise ValueError(
+            "training.moe_load_balance_loss_final_coeff must be null or a finite "
+            "non-negative float"
+        )
+    return coeff
 
 
 def resolve_moe_router_z_loss_coeff(training_cfg: Mapping[str, Any] | Any) -> float:

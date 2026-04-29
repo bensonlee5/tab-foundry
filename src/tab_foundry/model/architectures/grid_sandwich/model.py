@@ -121,12 +121,17 @@ class _SparseSwiGLUMoEFFN(nn.Module):
         top_k: int,
         router_init_std: float,
         normalize_top_k: bool,
+        shared_expert: bool,
+        shared_expert_scale: float,
+        router_temperature: float,
     ) -> None:
         super().__init__()
         self.embedding_size = int(embedding_size)
         self.num_experts = int(num_experts)
         self.top_k = int(top_k)
         self.normalize_top_k = bool(normalize_top_k)
+        self.shared_expert_scale = float(shared_expert_scale)
+        self.router_temperature = float(router_temperature)
         if self.num_experts <= 1:
             raise ValueError("Sparse MoE requires num_experts > 1")
         if self.top_k <= 0 or self.top_k > self.num_experts:
@@ -134,8 +139,20 @@ class _SparseSwiGLUMoEFFN(nn.Module):
                 "Sparse MoE requires 1 <= top_k <= num_experts, "
                 f"got top_k={self.top_k}, num_experts={self.num_experts}"
             )
+        if not math.isfinite(self.shared_expert_scale) or self.shared_expert_scale < 0.0:
+            raise ValueError("Sparse MoE shared_expert_scale must be a finite float >= 0")
+        if not math.isfinite(self.router_temperature) or self.router_temperature <= 0.0:
+            raise ValueError("Sparse MoE router_temperature must be a finite float > 0")
         self.router = nn.Linear(self.embedding_size, self.num_experts, bias=False)
         nn.init.normal_(self.router.weight, mean=0.0, std=float(router_init_std))
+        self.shared_expert = (
+            _SwiGLUFFN(
+                embedding_size=self.embedding_size,
+                ff_expansion=ff_expansion,
+            )
+            if bool(shared_expert)
+            else None
+        )
         self.experts = nn.ModuleList(
             [
                 _SwiGLUFFN(
@@ -180,7 +197,7 @@ class _SparseSwiGLUMoEFFN(nn.Module):
         if token_count <= 0:
             return hidden
         router_logits = self._router_logits(flat_hidden)
-        router_probs = torch.softmax(router_logits, dim=-1)
+        router_probs = torch.softmax(router_logits / self.router_temperature, dim=-1)
         topk_probs, topk_indices = torch.topk(
             router_probs,
             k=self.top_k,
@@ -190,7 +207,13 @@ class _SparseSwiGLUMoEFFN(nn.Module):
             topk_probs = topk_probs / topk_probs.sum(dim=-1, keepdim=True).clamp_min(
                 torch.finfo(topk_probs.dtype).tiny
             )
-        output_flat = torch.zeros_like(flat_hidden)
+        if self.shared_expert is None:
+            output_flat = torch.zeros_like(flat_hidden)
+        else:
+            shared_output = self.shared_expert(flat_hidden)
+            output_flat = (
+                shared_output * self.shared_expert_scale
+            ).to(device=flat_hidden.device, dtype=flat_hidden.dtype)
         for expert_index, expert in enumerate(self.experts):
             token_positions, choice_positions = (topk_indices == expert_index).nonzero(
                 as_tuple=True
@@ -256,6 +279,9 @@ def _build_grid_ffn(
     moe_top_k: int = 1,
     moe_router_init_std: float = 0.01,
     moe_normalize_top_k: bool = False,
+    moe_shared_expert: bool = False,
+    moe_shared_expert_scale: float = 1.0,
+    moe_router_temperature: float = 1.0,
 ) -> nn.Module:
     normalized_mode = str(ffn_mode).strip().lower()
     if int(moe_num_experts) > 1:
@@ -271,6 +297,9 @@ def _build_grid_ffn(
             top_k=int(moe_top_k),
             router_init_std=float(moe_router_init_std),
             normalize_top_k=bool(moe_normalize_top_k),
+            shared_expert=bool(moe_shared_expert),
+            shared_expert_scale=float(moe_shared_expert_scale),
+            router_temperature=float(moe_router_temperature),
         )
     if normalized_mode == _GRID_FFN_SWIGLU:
         return _SwiGLUFFN(embedding_size=embedding_size, ff_expansion=ff_expansion)
@@ -486,6 +515,9 @@ class _GridCrossAttentionBlock(nn.Module):
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
         moe_normalize_top_k: bool = False,
+        moe_shared_expert: bool = False,
+        moe_shared_expert_scale: float = 1.0,
+        moe_router_temperature: float = 1.0,
     ) -> None:
         super().__init__()
         self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -508,6 +540,9 @@ class _GridCrossAttentionBlock(nn.Module):
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
             moe_normalize_top_k=moe_normalize_top_k,
+            moe_shared_expert=moe_shared_expert,
+            moe_shared_expert_scale=moe_shared_expert_scale,
+            moe_router_temperature=moe_router_temperature,
         )
 
     def forward(self, query: torch.Tensor, *, key_value: torch.Tensor) -> torch.Tensor:
@@ -536,6 +571,9 @@ class _GridSelfAttentionBlock(nn.Module):
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
         moe_normalize_top_k: bool = False,
+        moe_shared_expert: bool = False,
+        moe_shared_expert_scale: float = 1.0,
+        moe_router_temperature: float = 1.0,
     ) -> None:
         super().__init__()
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -557,6 +595,9 @@ class _GridSelfAttentionBlock(nn.Module):
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
             moe_normalize_top_k=moe_normalize_top_k,
+            moe_shared_expert=moe_shared_expert,
+            moe_shared_expert_scale=moe_shared_expert_scale,
+            moe_router_temperature=moe_router_temperature,
         )
 
     def forward(
@@ -590,6 +631,9 @@ class _GridInducedSetAttentionBlock(nn.Module):
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
         moe_normalize_top_k: bool = False,
+        moe_shared_expert: bool = False,
+        moe_shared_expert_scale: float = 1.0,
+        moe_router_temperature: float = 1.0,
     ) -> None:
         super().__init__()
         self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
@@ -608,6 +652,9 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
             moe_normalize_top_k=moe_normalize_top_k,
+            moe_shared_expert=moe_shared_expert,
+            moe_shared_expert_scale=moe_shared_expert_scale,
+            moe_router_temperature=moe_router_temperature,
         )
         self.inducing_self = _GridSelfAttentionBlock(
             embedding_size=embedding_size,
@@ -623,6 +670,9 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
             moe_normalize_top_k=moe_normalize_top_k,
+            moe_shared_expert=moe_shared_expert,
+            moe_shared_expert_scale=moe_shared_expert_scale,
+            moe_router_temperature=moe_router_temperature,
         )
         self.rows_from_inducing = _GridCrossAttentionBlock(
             embedding_size=embedding_size,
@@ -638,6 +688,9 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
             moe_normalize_top_k=moe_normalize_top_k,
+            moe_shared_expert=moe_shared_expert,
+            moe_shared_expert_scale=moe_shared_expert_scale,
+            moe_router_temperature=moe_router_temperature,
         )
 
 
@@ -703,6 +756,9 @@ class _GridMixerLayer(nn.Module):
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
         moe_normalize_top_k: bool = False,
+        moe_shared_expert: bool = False,
+        moe_shared_expert_scale: float = 1.0,
+        moe_router_temperature: float = 1.0,
     ) -> None:
         super().__init__()
         self.residual_mode = str(residual_mode).strip().lower()
@@ -713,6 +769,9 @@ class _GridMixerLayer(nn.Module):
         self.moe_top_k = int(moe_top_k)
         self.moe_router_init_std = float(moe_router_init_std)
         self.moe_normalize_top_k = bool(moe_normalize_top_k)
+        self.moe_shared_expert = bool(moe_shared_expert)
+        self.moe_shared_expert_scale = float(moe_shared_expert_scale)
+        self.moe_router_temperature = float(moe_router_temperature)
         use_moe = _uses_grid_core_moe(self.moe_scope, self.moe_num_experts)
         if self.moe_scope not in {_GRID_MOE_SCOPE_NONE, _GRID_MOE_SCOPE_GRID_CORE_FFN}:
             raise ValueError(
@@ -744,6 +803,9 @@ class _GridMixerLayer(nn.Module):
                 moe_top_k=self.moe_top_k,
                 moe_router_init_std=self.moe_router_init_std,
                 moe_normalize_top_k=self.moe_normalize_top_k,
+                moe_shared_expert=self.moe_shared_expert,
+                moe_shared_expert_scale=self.moe_shared_expert_scale,
+                moe_router_temperature=self.moe_router_temperature,
             )
             self.column_mixer = _GridInducedSetAttentionBlock(
                 embedding_size=embedding_size,
@@ -760,6 +822,9 @@ class _GridMixerLayer(nn.Module):
                 moe_top_k=self.moe_top_k,
                 moe_router_init_std=self.moe_router_init_std,
                 moe_normalize_top_k=self.moe_normalize_top_k,
+                moe_shared_expert=self.moe_shared_expert,
+                moe_shared_expert_scale=self.moe_shared_expert_scale,
+                moe_router_temperature=self.moe_router_temperature,
             )
         else:
             self.row_mixer = _SelfAttentionBlock(
@@ -827,6 +892,9 @@ class GridSandwichClassifier(nn.Module):
         grid_moe_top_k: int = _D["grid_moe_top_k"],
         grid_moe_router_init_std: float = _D["grid_moe_router_init_std"],
         grid_moe_normalize_top_k: bool = _D["grid_moe_normalize_top_k"],
+        grid_moe_shared_expert: bool = _D["grid_moe_shared_expert"],
+        grid_moe_shared_expert_scale: float = _D["grid_moe_shared_expert_scale"],
+        grid_moe_router_temperature: float = _D["grid_moe_router_temperature"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -860,6 +928,9 @@ class GridSandwichClassifier(nn.Module):
             grid_moe_top_k=grid_moe_top_k,
             grid_moe_router_init_std=grid_moe_router_init_std,
             grid_moe_normalize_top_k=grid_moe_normalize_top_k,
+            grid_moe_shared_expert=grid_moe_shared_expert,
+            grid_moe_shared_expert_scale=grid_moe_shared_expert_scale,
+            grid_moe_router_temperature=grid_moe_router_temperature,
         )
         self.arch = "grid_sandwich"
         self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
@@ -907,6 +978,9 @@ class GridSandwichClassifier(nn.Module):
         self.grid_moe_top_k = int(self.model_spec.grid_moe_top_k)
         self.grid_moe_router_init_std = float(self.model_spec.grid_moe_router_init_std)
         self.grid_moe_normalize_top_k = bool(self.model_spec.grid_moe_normalize_top_k)
+        self.grid_moe_shared_expert = bool(self.model_spec.grid_moe_shared_expert)
+        self.grid_moe_shared_expert_scale = float(self.model_spec.grid_moe_shared_expert_scale)
+        self.grid_moe_router_temperature = float(self.model_spec.grid_moe_router_temperature)
         self.grid_core_iterations = int(self.grid_recurrence_steps or self.sandwich_layers)
         self.grid_core_unique_layers = int(
             self.grid_recurrence_unique_layers
@@ -980,6 +1054,9 @@ class GridSandwichClassifier(nn.Module):
                     moe_top_k=self.grid_moe_top_k,
                     moe_router_init_std=self.grid_moe_router_init_std,
                     moe_normalize_top_k=self.grid_moe_normalize_top_k,
+                    moe_shared_expert=self.grid_moe_shared_expert,
+                    moe_shared_expert_scale=self.grid_moe_shared_expert_scale,
+                    moe_router_temperature=self.grid_moe_router_temperature,
                 )
                 for _ in range(grid_layer_count)
             ]

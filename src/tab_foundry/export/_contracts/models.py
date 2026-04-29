@@ -129,6 +129,9 @@ class _ManifestModelPayloadV3(_ContractsPayloadModel):
     grid_moe_top_k: StrictInt | None = None
     grid_moe_router_init_std: FiniteFloat | None = None
     grid_moe_normalize_top_k: StrictBool | None = None
+    grid_moe_shared_expert: StrictBool | None = None
+    grid_moe_shared_expert_scale: FiniteFloat | None = None
+    grid_moe_router_temperature: FiniteFloat | None = None
     stage_label: StrictStr | None = None
     module_overrides: dict[StrictStr, Any] | None = None
     staged_dropout: FiniteFloat | None = None
@@ -389,6 +392,9 @@ class ExportModelSpec:
     grid_moe_top_k: int
     grid_moe_router_init_std: float
     grid_moe_normalize_top_k: bool
+    grid_moe_shared_expert: bool
+    grid_moe_shared_expert_scale: float
+    grid_moe_router_temperature: float
 
     @classmethod
     def from_build_spec(
@@ -465,6 +471,9 @@ class ExportModelSpec:
             grid_moe_top_k=int(spec.grid_moe_top_k),
             grid_moe_router_init_std=float(spec.grid_moe_router_init_std),
             grid_moe_normalize_top_k=bool(spec.grid_moe_normalize_top_k),
+            grid_moe_shared_expert=bool(spec.grid_moe_shared_expert),
+            grid_moe_shared_expert_scale=float(spec.grid_moe_shared_expert_scale),
+            grid_moe_router_temperature=float(spec.grid_moe_router_temperature),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -532,6 +541,9 @@ class ExportModelSpec:
                 "grid_moe_top_k": self.grid_moe_top_k,
                 "grid_moe_router_init_std": self.grid_moe_router_init_std,
                 "grid_moe_normalize_top_k": self.grid_moe_normalize_top_k,
+                "grid_moe_shared_expert": self.grid_moe_shared_expert,
+                "grid_moe_shared_expert_scale": self.grid_moe_shared_expert_scale,
+                "grid_moe_router_temperature": self.grid_moe_router_temperature,
             },
         )
 
@@ -582,6 +594,9 @@ class ExportModelSpec:
                 "grid_moe_top_k",
                 "grid_moe_router_init_std",
                 "grid_moe_normalize_top_k",
+                "grid_moe_shared_expert",
+                "grid_moe_shared_expert_scale",
+                "grid_moe_router_temperature",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -610,6 +625,9 @@ class ExportModelSpec:
                 "grid_moe_top_k",
                 "grid_moe_router_init_std",
                 "grid_moe_normalize_top_k",
+                "grid_moe_shared_expert",
+                "grid_moe_shared_expert_scale",
+                "grid_moe_router_temperature",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -630,6 +648,9 @@ class ExportModelSpec:
                 "grid_moe_top_k",
                 "grid_moe_router_init_std",
                 "grid_moe_normalize_top_k",
+                "grid_moe_shared_expert",
+                "grid_moe_shared_expert_scale",
+                "grid_moe_router_temperature",
             ):
                 payload.pop(field_name, None)
             return payload
@@ -688,6 +709,9 @@ class ExportModelSpec:
                 "grid_moe_top_k",
                 "grid_moe_router_init_std",
                 "grid_moe_normalize_top_k",
+                "grid_moe_shared_expert",
+                "grid_moe_shared_expert_scale",
+                "grid_moe_router_temperature",
             ):
                 payload.pop(field_name, None)
             return payload

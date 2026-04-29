@@ -51,3 +51,6 @@ grid_moe_num_experts: 1
 grid_moe_top_k: 1
 grid_moe_router_init_std: 0.01
 grid_moe_normalize_top_k: false
+grid_moe_shared_expert: false
+grid_moe_shared_expert_scale: 1.0
+grid_moe_router_temperature: 1.0

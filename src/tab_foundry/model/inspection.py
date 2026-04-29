@@ -204,6 +204,9 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
                 "grid_moe_top_k": int(spec.grid_moe_top_k),
                 "grid_moe_router_init_std": float(spec.grid_moe_router_init_std),
                 "grid_moe_normalize_top_k": bool(spec.grid_moe_normalize_top_k),
+                "grid_moe_shared_expert": bool(spec.grid_moe_shared_expert),
+                "grid_moe_shared_expert_scale": float(spec.grid_moe_shared_expert_scale),
+                "grid_moe_router_temperature": float(spec.grid_moe_router_temperature),
                 "grid_core_iterations": int(spec.grid_recurrence_steps or spec.sandwich_layers),
                 "grid_core_unique_layers": int(
                     spec.grid_recurrence_unique_layers
