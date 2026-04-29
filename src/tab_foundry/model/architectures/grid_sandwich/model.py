@@ -120,11 +120,13 @@ class _SparseSwiGLUMoEFFN(nn.Module):
         num_experts: int,
         top_k: int,
         router_init_std: float,
+        normalize_top_k: bool,
     ) -> None:
         super().__init__()
         self.embedding_size = int(embedding_size)
         self.num_experts = int(num_experts)
         self.top_k = int(top_k)
+        self.normalize_top_k = bool(normalize_top_k)
         if self.num_experts <= 1:
             raise ValueError("Sparse MoE requires num_experts > 1")
         if self.top_k <= 0 or self.top_k > self.num_experts:
@@ -184,6 +186,10 @@ class _SparseSwiGLUMoEFFN(nn.Module):
             k=self.top_k,
             dim=-1,
         )
+        if self.normalize_top_k:
+            topk_probs = topk_probs / topk_probs.sum(dim=-1, keepdim=True).clamp_min(
+                torch.finfo(topk_probs.dtype).tiny
+            )
         output_flat = torch.zeros_like(flat_hidden)
         for expert_index, expert in enumerate(self.experts):
             token_positions, choice_positions = (topk_indices == expert_index).nonzero(
@@ -249,6 +255,7 @@ def _build_grid_ffn(
     moe_num_experts: int = 1,
     moe_top_k: int = 1,
     moe_router_init_std: float = 0.01,
+    moe_normalize_top_k: bool = False,
 ) -> nn.Module:
     normalized_mode = str(ffn_mode).strip().lower()
     if int(moe_num_experts) > 1:
@@ -263,6 +270,7 @@ def _build_grid_ffn(
             num_experts=int(moe_num_experts),
             top_k=int(moe_top_k),
             router_init_std=float(moe_router_init_std),
+            normalize_top_k=bool(moe_normalize_top_k),
         )
     if normalized_mode == _GRID_FFN_SWIGLU:
         return _SwiGLUFFN(embedding_size=embedding_size, ff_expansion=ff_expansion)
@@ -477,6 +485,7 @@ class _GridCrossAttentionBlock(nn.Module):
         moe_num_experts: int = 1,
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
+        moe_normalize_top_k: bool = False,
     ) -> None:
         super().__init__()
         self.query_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -498,6 +507,7 @@ class _GridCrossAttentionBlock(nn.Module):
             moe_num_experts=moe_num_experts,
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
+            moe_normalize_top_k=moe_normalize_top_k,
         )
 
     def forward(self, query: torch.Tensor, *, key_value: torch.Tensor) -> torch.Tensor:
@@ -525,6 +535,7 @@ class _GridSelfAttentionBlock(nn.Module):
         moe_num_experts: int = 1,
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
+        moe_normalize_top_k: bool = False,
     ) -> None:
         super().__init__()
         self.attn_norm = _build_sandwich_block_norm(block_norm, embedding_size)
@@ -545,6 +556,7 @@ class _GridSelfAttentionBlock(nn.Module):
             moe_num_experts=moe_num_experts,
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
+            moe_normalize_top_k=moe_normalize_top_k,
         )
 
     def forward(
@@ -577,6 +589,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
         moe_num_experts: int = 1,
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
+        moe_normalize_top_k: bool = False,
     ) -> None:
         super().__init__()
         self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
@@ -594,6 +607,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_num_experts=moe_num_experts,
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
+            moe_normalize_top_k=moe_normalize_top_k,
         )
         self.inducing_self = _GridSelfAttentionBlock(
             embedding_size=embedding_size,
@@ -608,6 +622,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_num_experts=moe_num_experts,
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
+            moe_normalize_top_k=moe_normalize_top_k,
         )
         self.rows_from_inducing = _GridCrossAttentionBlock(
             embedding_size=embedding_size,
@@ -622,6 +637,7 @@ class _GridInducedSetAttentionBlock(nn.Module):
             moe_num_experts=moe_num_experts,
             moe_top_k=moe_top_k,
             moe_router_init_std=moe_router_init_std,
+            moe_normalize_top_k=moe_normalize_top_k,
         )
 
 
@@ -686,6 +702,7 @@ class _GridMixerLayer(nn.Module):
         moe_num_experts: int = 1,
         moe_top_k: int = 1,
         moe_router_init_std: float = 0.01,
+        moe_normalize_top_k: bool = False,
     ) -> None:
         super().__init__()
         self.residual_mode = str(residual_mode).strip().lower()
@@ -695,6 +712,7 @@ class _GridMixerLayer(nn.Module):
         self.moe_num_experts = int(moe_num_experts)
         self.moe_top_k = int(moe_top_k)
         self.moe_router_init_std = float(moe_router_init_std)
+        self.moe_normalize_top_k = bool(moe_normalize_top_k)
         use_moe = _uses_grid_core_moe(self.moe_scope, self.moe_num_experts)
         if self.moe_scope not in {_GRID_MOE_SCOPE_NONE, _GRID_MOE_SCOPE_GRID_CORE_FFN}:
             raise ValueError(
@@ -725,6 +743,7 @@ class _GridMixerLayer(nn.Module):
                 moe_num_experts=self.moe_num_experts if use_moe else 1,
                 moe_top_k=self.moe_top_k,
                 moe_router_init_std=self.moe_router_init_std,
+                moe_normalize_top_k=self.moe_normalize_top_k,
             )
             self.column_mixer = _GridInducedSetAttentionBlock(
                 embedding_size=embedding_size,
@@ -740,6 +759,7 @@ class _GridMixerLayer(nn.Module):
                 moe_num_experts=self.moe_num_experts if use_moe else 1,
                 moe_top_k=self.moe_top_k,
                 moe_router_init_std=self.moe_router_init_std,
+                moe_normalize_top_k=self.moe_normalize_top_k,
             )
         else:
             self.row_mixer = _SelfAttentionBlock(
@@ -806,6 +826,7 @@ class GridSandwichClassifier(nn.Module):
         grid_moe_num_experts: int = _D["grid_moe_num_experts"],
         grid_moe_top_k: int = _D["grid_moe_top_k"],
         grid_moe_router_init_std: float = _D["grid_moe_router_init_std"],
+        grid_moe_normalize_top_k: bool = _D["grid_moe_normalize_top_k"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -838,6 +859,7 @@ class GridSandwichClassifier(nn.Module):
             grid_moe_num_experts=grid_moe_num_experts,
             grid_moe_top_k=grid_moe_top_k,
             grid_moe_router_init_std=grid_moe_router_init_std,
+            grid_moe_normalize_top_k=grid_moe_normalize_top_k,
         )
         self.arch = "grid_sandwich"
         self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
@@ -884,6 +906,7 @@ class GridSandwichClassifier(nn.Module):
         self.grid_moe_num_experts = int(self.model_spec.grid_moe_num_experts)
         self.grid_moe_top_k = int(self.model_spec.grid_moe_top_k)
         self.grid_moe_router_init_std = float(self.model_spec.grid_moe_router_init_std)
+        self.grid_moe_normalize_top_k = bool(self.model_spec.grid_moe_normalize_top_k)
         self.grid_core_iterations = int(self.grid_recurrence_steps or self.sandwich_layers)
         self.grid_core_unique_layers = int(
             self.grid_recurrence_unique_layers
@@ -956,6 +979,7 @@ class GridSandwichClassifier(nn.Module):
                     moe_num_experts=self.grid_moe_num_experts,
                     moe_top_k=self.grid_moe_top_k,
                     moe_router_init_std=self.grid_moe_router_init_std,
+                    moe_normalize_top_k=self.grid_moe_normalize_top_k,
                 )
                 for _ in range(grid_layer_count)
             ]

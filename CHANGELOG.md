@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- User-facing note: `grid_sandwich` MoE now exposes
+  `model.grid_moe_normalize_top_k`, disabled by default, for top-k experiments
+  that renormalize selected expert probabilities per token before combining
+  expert outputs. This preserves existing raw-probability MoE behavior unless
+  explicitly enabled.
 - User-facing note: `grid_sandwich` now exposes an opt-in core-only sparse
   SwiGLU MoE path through `model.grid_moe_scope`,
   `model.grid_moe_num_experts`, `model.grid_moe_top_k`, and

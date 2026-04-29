@@ -489,6 +489,7 @@ class _GridSandwichModelParams(_SandwichModelParams):
     grid_moe_num_experts: int = Field(default=1, gt=0)
     grid_moe_top_k: int = Field(default=1, gt=0)
     grid_moe_router_init_std: float = Field(default=0.01, gt=0.0)
+    grid_moe_normalize_top_k: bool = False
 
     @field_validator("grid_residual_mode", mode="before")
     @classmethod
@@ -556,6 +557,21 @@ class _GridSandwichModelParams(_SandwichModelParams):
         if not math.isfinite(std) or std <= 0.0:
             raise ValueError("grid_moe_router_init_std must be a finite float > 0")
         return std
+
+    @field_validator("grid_moe_normalize_top_k", mode="before")
+    @classmethod
+    def _coerce_grid_moe_normalize_top_k(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"grid_moe_normalize_top_k must be boolean-compatible, got {value!r}")
 
     @field_validator("classification_logit_softcap", mode="before")
     @classmethod

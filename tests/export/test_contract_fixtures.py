@@ -404,6 +404,7 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     model_payload["grid_moe_num_experts"] = 4
     model_payload["grid_moe_top_k"] = 2
     model_payload["grid_moe_router_init_std"] = 0.02
+    model_payload["grid_moe_normalize_top_k"] = True
     model_payload.pop("sandwich_latents", None)
     model_payload.pop("sandwich_summary_tokens_per_axis", None)
     model_payload.pop("sandwich_self_attention_per_cross", None)
@@ -448,6 +449,7 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     assert manifest.model.grid_moe_num_experts == 4
     assert manifest.model.grid_moe_top_k == 2
     assert manifest.model.grid_moe_router_init_std == pytest.approx(0.02)
+    assert manifest.model.grid_moe_normalize_top_k is True
     assert rebuilt.sandwich_pre_row_attention_layers == 3
     assert rebuilt.sandwich_pre_column_attention_layers == 2
     assert rebuilt.grid_recurrence_steps == 8
@@ -458,6 +460,7 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     assert rebuilt.grid_moe_num_experts == 4
     assert rebuilt.grid_moe_top_k == 2
     assert rebuilt.grid_moe_router_init_std == pytest.approx(0.02)
+    assert rebuilt.grid_moe_normalize_top_k is True
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "grid_sandwich"
     assert roundtrip.to_dict() == manifest.model.to_dict()

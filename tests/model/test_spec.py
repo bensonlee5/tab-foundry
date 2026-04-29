@@ -127,6 +127,7 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
         grid_moe_num_experts=4,
         grid_moe_top_k=2,
         grid_moe_router_init_std=0.02,
+        grid_moe_normalize_top_k=True,
     )
 
     assert isinstance(model, GridSandwichClassifier)
@@ -144,6 +145,7 @@ def test_build_model_supports_grid_sandwich_classification() -> None:
     assert model.grid_moe_num_experts == 4
     assert model.grid_moe_top_k == 2
     assert model.grid_moe_router_init_std == pytest.approx(0.02)
+    assert model.grid_moe_normalize_top_k is True
 
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
@@ -219,6 +221,7 @@ def test_grid_sandwich_model_spec_defaults_reuse_sandwich_core_fields() -> None:
     assert spec.grid_moe_num_experts == 1
     assert spec.grid_moe_top_k == 1
     assert spec.grid_moe_router_init_std == pytest.approx(0.01)
+    assert spec.grid_moe_normalize_top_k is False
 
 
 def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
@@ -239,6 +242,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
             "grid_moe_num_experts": 4,
             "grid_moe_top_k": 2,
             "grid_moe_router_init_std": 0.02,
+            "grid_moe_normalize_top_k": True,
         },
     )
 
@@ -255,6 +259,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.grid_moe_num_experts == 4
     assert spec.grid_moe_top_k == 2
     assert spec.grid_moe_router_init_std == pytest.approx(0.02)
+    assert spec.grid_moe_normalize_top_k is True
     assert spec.to_dict()["sandwich_pre_row_attention_layers"] == 2
     assert spec.to_dict()["sandwich_pre_column_attention_layers"] == 3
     assert spec.to_dict()["grid_residual_mode"] == "hyper_connection_lite"
@@ -268,6 +273,7 @@ def test_grid_sandwich_model_spec_round_trips_grid_experiment_fields() -> None:
     assert spec.to_dict()["grid_moe_num_experts"] == 4
     assert spec.to_dict()["grid_moe_top_k"] == 2
     assert spec.to_dict()["grid_moe_router_init_std"] == pytest.approx(0.02)
+    assert spec.to_dict()["grid_moe_normalize_top_k"] is True
 
 
 def test_sandwich_model_spec_to_dict_is_arch_scoped() -> None:
@@ -412,6 +418,7 @@ def test_routed_sandwich_model_spec_rejects_unsupported_residual_scale() -> None
         ("grid_moe_num_experts", 0),
         ("grid_moe_top_k", 0),
         ("grid_moe_router_init_std", 0.0),
+        ("grid_moe_normalize_top_k", "maybe"),
     ),
 )
 def test_grid_sandwich_model_spec_rejects_unsupported_experiment_fields(

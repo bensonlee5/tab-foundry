@@ -11978,3 +11978,137 @@ deltas:
     default_next_action: Execute after the uncheckpointed top-2 row OOMs and the
       top-1 rows show finite, non-collapsed route-health metrics.
     applicability_guards: []
+  delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_top2_normalized
+    binary_applicable: false
+    description: Run a short benchmark-capable smoke of the TF-RD-026 row 10
+      Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts,
+      top-2 routing, and per-token top-k probability normalization.
+    upstream_delta: Diagnostic execution gate for the TF-RD-029 top-2-first MoE
+      follow-up.
+    expected_effect: Should prove that normalized top-2 routing resolves config,
+      trains with finite MoE auxiliary metrics, exports checkpoints, registers
+      benchmarks, and logs to W&B before spending a full candidate budget.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - selected top-2 router probabilities renormalized per token before expert
+      outputs are combined
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+    parameter_adequacy_policy:
+      default_plan:
+      - Treat this row as diagnostic only; do not compare it as a quality
+        candidate against the 5000-step anchor.
+      - Full TF-RD-029 candidate execution is blocked on finite training losses,
+        finite MoE auxiliary metrics, completed benchmark artifacts, and W&B
+        logging from this smoke row.
+      default_negative_decision: defer
+      reject_requires:
+      - smoke_only_row
+      - benchmark_path_failed
+      - nonfinite_moe_auxiliary_metrics
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 100
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 100
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute first on the Vast VM and unblock the full
+      normalized top-2 MoE row only after smoke training, benchmark artifacts,
+      and W&B logging are clean.
+    applicability_guards: []
+  delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_top2_normalized
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using four experts, normalized top-2 routing, and a
+      smaller task microbatch.
+    upstream_delta: Top-2-first MoE follow-up after TF-RD-028 showed raw top-2
+      routing was healthy but underperformed and uncheckpointed top-2 exceeded
+      single-GPU active memory.
+    expected_effect: Tests whether per-token normalization of selected top-2
+      router probabilities removes the output-scale shrinkage of raw top-2
+      weighting while keeping all tokens routed to two experts.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - selected top-2 router probabilities renormalized per token before expert
+      outputs are combined
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute immediately after the normalized top-2 smoke row passes; do not
+        spend another E=8 top-1 rung in this lane.
+      - Compare against TF-RD-028 raw top-2 microbatch8, TF-RD-028 E=4 top-1,
+        and the locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget, route-health telemetry, and
+        wall-time cost.
+      default_negative_decision: defer
+      reject_requires:
+      - normalized_top2_route_health_gate_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after the normalized top-2 smoke row passes.
+    applicability_guards: []

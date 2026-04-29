@@ -274,6 +274,7 @@ runtime wiring.
 | `grid_moe_num_experts` | `1` | inactive default; enabled MoE requires more than one expert |
 | `grid_moe_top_k` | `1` | selected experts per token for the optional sparse MoE path |
 | `grid_moe_router_init_std` | `0.01` | normal initialization scale for MoE router weights |
+| `grid_moe_normalize_top_k` | `false` | opt-in per-token renormalization of selected top-k probabilities before expert outputs are combined |
 | `classification_logit_softcap` | `null` | disabled by default; TF-RD-027 tests tanh logit softcapping as an isolated stability mechanism |
 | `attention_qk_norm` | `false` | disabled by default; TF-RD-027 tests QK-normalized grid attention as an isolated stability mechanism |
 | `training.classification_z_loss_coeff` | `0.0` | disabled by default; TF-RD-027 tests the auxiliary classification z-loss as an isolated training mechanism |

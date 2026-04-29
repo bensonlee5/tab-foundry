@@ -103,6 +103,7 @@ def _grid_model(
     grid_moe_scope: str = "none",
     grid_moe_num_experts: int = 1,
     grid_moe_top_k: int = 1,
+    grid_moe_normalize_top_k: bool = False,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -126,6 +127,7 @@ def _grid_model(
         grid_moe_scope=grid_moe_scope,
         grid_moe_num_experts=grid_moe_num_experts,
         grid_moe_top_k=grid_moe_top_k,
+        grid_moe_normalize_top_k=grid_moe_normalize_top_k,
     )
 
 
@@ -426,6 +428,7 @@ def test_sparse_swiglu_moe_ffn_routes_only_top_k_experts() -> None:
         num_experts=4,
         top_k=2,
         router_init_std=0.01,
+        normalize_top_k=False,
     )
     calls = [0, 0, 0, 0]
 
@@ -465,6 +468,7 @@ def test_sparse_swiglu_moe_ffn_routes_independently_per_token() -> None:
         num_experts=2,
         top_k=1,
         router_init_std=0.01,
+        normalize_top_k=False,
     )
 
     class _TagExpert(torch.nn.Module):
@@ -522,6 +526,7 @@ def test_sparse_swiglu_moe_ffn_accumulates_mixed_precision_expert_output() -> No
         num_experts=2,
         top_k=1,
         router_init_std=0.01,
+        normalize_top_k=False,
     )
 
     class _BFloatExpert(torch.nn.Module):
@@ -538,6 +543,37 @@ def test_sparse_swiglu_moe_ffn_accumulates_mixed_precision_expert_output() -> No
     assert tuple(output.shape) == tuple(hidden.shape)
     assert output.dtype == hidden.dtype
     assert torch.isfinite(output).all()
+
+
+def test_sparse_swiglu_moe_ffn_can_normalize_top_k_router_weights() -> None:
+    raw_block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=2,
+        router_init_std=0.01,
+        normalize_top_k=False,
+    )
+    normalized_block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=2,
+        router_init_std=0.01,
+        normalize_top_k=True,
+    )
+    for block in (raw_block, normalized_block):
+        block.experts = torch.nn.ModuleList([torch.nn.Identity() for _ in range(4)])
+        with torch.no_grad():
+            block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 4)
+
+    raw_output = raw_block(hidden)
+    normalized_output = normalized_block(hidden)
+
+    torch.testing.assert_close(raw_output, hidden * 0.5)
+    torch.testing.assert_close(normalized_output, hidden)
 
 
 def test_grid_sandwich_moe_forward_emits_aux_losses_and_route_health() -> None:

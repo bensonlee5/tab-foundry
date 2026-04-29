@@ -140,6 +140,7 @@ def test_cls_workstation_grid_sandwich_resolution() -> None:
     assert int(cfg.model.grid_moe_num_experts) == 1
     assert int(cfg.model.grid_moe_top_k) == 1
     assert float(cfg.model.grid_moe_router_init_std) == pytest.approx(0.01)
+    assert bool(cfg.model.grid_moe_normalize_top_k) is False
     assert float(cfg.training.classification_z_loss_coeff) == 0.0
     assert float(cfg.training.moe_load_balance_loss_coeff) == 0.0
     assert float(cfg.training.moe_router_z_loss_coeff) == 0.0
