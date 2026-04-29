@@ -1083,7 +1083,7 @@ class GridSandwichClassifier(nn.Module):
         self._activation_trace: dict[str, tuple[float, int]] | None = None
         self._grid_core_intervention = GridCoreIntervention()
         self._last_moe_aux_losses: dict[str, torch.Tensor] | None = None
-        self._last_moe_aux_metrics: dict[str, float] | None = None
+        self._last_moe_aux_metrics: dict[str, torch.Tensor] | None = None
         self._fourier_position_cache: dict[
             tuple[int, int, torch.device, torch.dtype],
             torch.Tensor,
@@ -1189,7 +1189,9 @@ class GridSandwichClassifier(nn.Module):
         for module in self._moe_ffn_modules():
             module.clear_aux_outputs()
 
-    def _collect_moe_aux_output(self) -> tuple[dict[str, torch.Tensor] | None, dict[str, float] | None]:
+    def _collect_moe_aux_output(
+        self,
+    ) -> tuple[dict[str, torch.Tensor] | None, dict[str, torch.Tensor] | None]:
         load_losses: list[torch.Tensor] = []
         router_z_losses: list[torch.Tensor] = []
         expert_fractions: list[torch.Tensor] = []
@@ -1208,21 +1210,25 @@ class GridSandwichClassifier(nn.Module):
             aux_losses[_MOE_LOAD_BALANCE_LOSS_KEY] = torch.stack(load_losses).mean()
         if router_z_losses:
             aux_losses[_MOE_ROUTER_Z_LOSS_KEY] = torch.stack(router_z_losses).mean()
-        metrics: dict[str, float] = {}
+        metrics: dict[str, torch.Tensor] = {}
         if router_entropies:
-            metrics[_MOE_ROUTER_ENTROPY_KEY] = float(torch.stack(router_entropies).mean().item())
+            metrics[_MOE_ROUTER_ENTROPY_KEY] = torch.stack(router_entropies).mean().detach()
         if expert_fractions:
             fraction = torch.stack(expert_fractions).mean(dim=0)
-            metrics[_MOE_EXPERT_FRACTION_MIN_KEY] = float(fraction.min().item())
-            metrics[_MOE_EXPERT_FRACTION_MAX_KEY] = float(fraction.max().item())
-            metrics[_MOE_EXPERT_FRACTION_STD_KEY] = float(fraction.std(unbiased=False).item())
+            metrics[_MOE_EXPERT_FRACTION_MIN_KEY] = fraction.min().detach()
+            metrics[_MOE_EXPERT_FRACTION_MAX_KEY] = fraction.max().detach()
+            metrics[_MOE_EXPERT_FRACTION_STD_KEY] = fraction.std(unbiased=False).detach()
         return aux_losses or None, metrics or None
 
     def consume_moe_aux_output(
         self,
     ) -> tuple[dict[str, torch.Tensor] | None, dict[str, float] | None]:
         aux_losses = self._last_moe_aux_losses
-        aux_metrics = self._last_moe_aux_metrics
+        aux_metrics = (
+            {key: float(value.item()) for key, value in self._last_moe_aux_metrics.items()}
+            if self._last_moe_aux_metrics is not None
+            else None
+        )
         self._last_moe_aux_losses = None
         self._last_moe_aux_metrics = None
         return aux_losses, aux_metrics
