@@ -112,7 +112,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1` against
     anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
@@ -156,18 +156,38 @@ rows:
     smoke row.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_030_grid_moe_shared_expert_v1_01_delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute first on the Vast VM and unblock shared-expert full rows only
     after smoke training, benchmark artifacts, and W&B logging are clean.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_030_grid_moe_shared_expert_v1_01_delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 100.0
+    max_grad_norm: 1.885097640722625
+    best_roc_auc: 0.6393688304123168
+    best_log_loss: 0.7138092794207749
+    best_brier_score: 0.44414102006351175
+    final_roc_auc: 0.6393688304123168
+    final_log_loss: 0.7138092794207749
+    final_brier_score: 0.44414102006351175
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.2956325494740977
+    delta_final_brier_score: 0.18899971885324118
+    delta_final_roc_auc: -0.17388595466707457
+    row_pool_final_window_mean_grad_norm: 0.11701150907695015
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_shared_expert
@@ -451,7 +471,7 @@ rows:
   resolved_surface_fingerprint: cb0209d1a2eca537ddad9d23f405cb2904e5e7c1c4eb194c6a31d57f0d14fb34
 - order: 2
   delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1`
     against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
@@ -493,17 +513,37 @@ rows:
     top-2 by final log loss, route-health telemetry, and wall time.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_030_grid_moe_shared_expert_v1_02_delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after the shared-expert smoke row passes.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_030_grid_moe_shared_expert_v1_02_delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 2.7658273312774795
+    best_roc_auc: 0.8121134206898635
+    best_log_loss: 0.4210020363740584
+    best_brier_score: 0.256362686665362
+    final_roc_auc: 0.8121134206898635
+    final_log_loss: 0.4210020363740584
+    final_brier_score: 0.256362686665362
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0028253064273812134
+    delta_final_brier_score: 0.0012213854550914283
+    delta_final_roc_auc: -0.0011413643895279435
+    row_pool_final_window_mean_grad_norm: 0.047132617972065693
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_shared_expert
@@ -785,7 +825,7 @@ rows:
   resolved_surface_fingerprint: c180ae671c183dc4758ec019293ef0aa00d0538ef621c7d4e27a3297915ca8ab
 - order: 3
   delta_id: delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1`
     against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
@@ -827,17 +867,37 @@ rows:
   - Compare against TF-RD-029 normalized top-2 and TF-RD-030 shared top-1.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_030_grid_moe_shared_expert_v1_03_delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after the shared top-1 candidate if smoke health remains clean.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_030_grid_moe_shared_expert_v1_03_delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 2.366725708889073
+    best_roc_auc: 0.8109049166023723
+    best_log_loss: 0.42234329254440733
+    best_brier_score: 0.2575472809069773
+    final_roc_auc: 0.8109049166023723
+    final_log_loss: 0.42234329254440733
+    final_brier_score: 0.2575472809069773
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.004166562597730128
+    delta_final_brier_score: 0.0024059796967067504
+    delta_final_roc_auc: -0.0023498684770191236
+    row_pool_final_window_mean_grad_norm: 0.04664954257179159
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_shared_expert
@@ -1118,7 +1178,7 @@ rows:
   resolved_surface_fingerprint: 2bedf5195538ff11a72beea46e73d0aa40e4541c8a53150f02821d83d0bc39cf
 - order: 4
   delta_id: delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1
-  status: ready
+  status: completed
   rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1`
     against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
@@ -1162,18 +1222,38 @@ rows:
     effect.
   execution_policy: benchmark_full
   benchmark_checkpoint_selection: all
-  run_id: null
+  run_id: sd_tf_rd_030_grid_moe_shared_expert_v1_04_delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute after TF-RD-029 normalized top-2 completes and shared-expert
     smoke is clean.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_030_grid_moe_shared_expert_v1_04_delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.1624620509927275
+    best_roc_auc: 0.8116866554719026
+    best_log_loss: 0.42289770235407953
+    best_brier_score: 0.2578621903046254
+    final_roc_auc: 0.8116866554719026
+    final_log_loss: 0.42289770235407953
+    final_brier_score: 0.2578621903046254
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.004720972407402324
+    delta_final_brier_score: 0.0027208890943548614
+    delta_final_roc_auc: -0.0015681296074888662
+    row_pool_final_window_mean_grad_norm: 0.04675958464044342
   parent_delta_ref: null
   dimension_family: model
   family: grid_sandwich_moe_aux_schedule
@@ -1456,7 +1536,7 @@ rows:
   resolved_surface_fingerprint: a09397dffbf680e56f3d7cfc2b035ed29b4014de200387e052291b499c414f24
 - order: 5
   delta_id: delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1
-  status: ready
+  status: screened
   rationale: Contextualize `delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1`
     against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
     for sweep `tf_rd_030_grid_moe_shared_expert_v1`.
@@ -1502,12 +1582,17 @@ rows:
   benchmark_checkpoint_selection: all
   run_id: null
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Execute only if the default-temperature shared top-1 row suggests routing
-    smoothness is the next bottleneck.
-  notes: []
+  next_action: Do not execute in TF-RD-030 closeout; completed rows showed healthy
+    route balance, so router-temperature smoothing does not target the observed quality
+    gap.
+  notes:
+  - Screened out after rows 02 through 04 completed with finite, non-collapsed route
+    health but all remained worse than the TF-RD-026 row 10 dense anchor.
+  - Row 02 shared top-1 was the best TF-RD-030 MoE quality result at final log loss
+    0.4210, still +0.0028 worse than the locked anchor.
   dynamic_model_overrides: null
   reuse_train_artifact: null
   screen_metrics: null
@@ -1793,4 +1878,4 @@ rows:
       signature_family_optimizer_step_block_length: 4
   resolved_surface_fingerprint: 2649b46f669aa37d8d616d83e153f99168ff14921297ca7cba9673413c45a411
 canonical_resolved_queue_path: reference/system_delta_sweeps/tf_rd_030_grid_moe_shared_expert_v1/resolved_queue.yaml
-inputs_fingerprint: 6892b62465dfbe9e0545da8c8d12e6f6b0dbbaf424d216de381b526436a4a935
+inputs_fingerprint: ae185f6fe8bcc29b01fc00f2d2f4345f668906c976b8054ec332c394050fef52
