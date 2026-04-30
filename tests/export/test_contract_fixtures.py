@@ -400,6 +400,14 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     model_payload["grid_recurrence_unique_layers"] = 2
     model_payload["classification_logit_softcap"] = 30.0
     model_payload["attention_qk_norm"] = True
+    model_payload["grid_moe_scope"] = "grid_core_ffn"
+    model_payload["grid_moe_num_experts"] = 4
+    model_payload["grid_moe_top_k"] = 2
+    model_payload["grid_moe_router_init_std"] = 0.02
+    model_payload["grid_moe_normalize_top_k"] = True
+    model_payload["grid_moe_shared_expert"] = True
+    model_payload["grid_moe_shared_expert_scale"] = 0.5
+    model_payload["grid_moe_router_temperature"] = 1.25
     model_payload.pop("sandwich_latents", None)
     model_payload.pop("sandwich_summary_tokens_per_axis", None)
     model_payload.pop("sandwich_self_attention_per_cross", None)
@@ -440,12 +448,28 @@ def test_manifest_validation_preserves_grid_sandwich_pre_mixer_fields() -> None:
     assert manifest.model.grid_recurrence_unique_layers == 2
     assert manifest.model.classification_logit_softcap == pytest.approx(30.0)
     assert manifest.model.attention_qk_norm is True
+    assert manifest.model.grid_moe_scope == "grid_core_ffn"
+    assert manifest.model.grid_moe_num_experts == 4
+    assert manifest.model.grid_moe_top_k == 2
+    assert manifest.model.grid_moe_router_init_std == pytest.approx(0.02)
+    assert manifest.model.grid_moe_normalize_top_k is True
+    assert manifest.model.grid_moe_shared_expert is True
+    assert manifest.model.grid_moe_shared_expert_scale == pytest.approx(0.5)
+    assert manifest.model.grid_moe_router_temperature == pytest.approx(1.25)
     assert rebuilt.sandwich_pre_row_attention_layers == 3
     assert rebuilt.sandwich_pre_column_attention_layers == 2
     assert rebuilt.grid_recurrence_steps == 8
     assert rebuilt.grid_recurrence_unique_layers == 2
     assert rebuilt.classification_logit_softcap == pytest.approx(30.0)
     assert rebuilt.attention_qk_norm is True
+    assert rebuilt.grid_moe_scope == "grid_core_ffn"
+    assert rebuilt.grid_moe_num_experts == 4
+    assert rebuilt.grid_moe_top_k == 2
+    assert rebuilt.grid_moe_router_init_std == pytest.approx(0.02)
+    assert rebuilt.grid_moe_normalize_top_k is True
+    assert rebuilt.grid_moe_shared_expert is True
+    assert rebuilt.grid_moe_shared_expert_scale == pytest.approx(0.5)
+    assert rebuilt.grid_moe_router_temperature == pytest.approx(1.25)
     assert manifest.inference is not None
     assert manifest.inference.model_arch == "grid_sandwich"
     assert roundtrip.to_dict() == manifest.model.to_dict()

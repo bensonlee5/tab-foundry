@@ -1,0 +1,158 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_029_grid_moe_top2_normalized_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_029_grid_moe_top2_normalized_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 100
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 100
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Treat this row as diagnostic only; do not compare it as a quality candidate against
+    the 5000-step anchor.
+  - Full TF-RD-029 candidate execution is blocked on finite training losses, finite
+    MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+    smoke row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute first on the Vast VM and unblock the full normalized top-2
+    MoE row only after smoke training, benchmark artifacts, and W&B logging are clean.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_01_delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 100.0
+    max_grad_norm: 1.4770219796806532
+    best_roc_auc: 0.6459890686688934
+    best_log_loss: 0.7118454597926591
+    best_brier_score: 0.4427711619160975
+    final_roc_auc: 0.6459890686688934
+    final_log_loss: 0.7118454597926591
+    final_brier_score: 0.4427711619160975
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.2936687298459819
+    delta_final_brier_score: 0.18762986070582693
+    delta_final_roc_auc: -0.16726571641049803
+    row_pool_final_window_mean_grad_norm: 0.107218711483746
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1`
+    against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_029_grid_moe_top2_normalized_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+    grid_moe_normalize_top_k: true
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute immediately after the normalized top-2 smoke row passes; do not spend
+    another E=8 top-1 rung in this lane.
+  - Compare against TF-RD-028 raw top-2 microbatch8, TF-RD-028 E=4 top-1, and the
+    locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget, route-health
+    telemetry, and wall-time cost.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute after the normalized top-2 smoke row passes.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_029_grid_moe_top2_normalized_v1_02_delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.182183281962695
+    best_roc_auc: 0.8111413309978361
+    best_log_loss: 0.42189445966089395
+    best_brier_score: 0.25750444372479525
+    final_roc_auc: 0.8111413309978361
+    final_log_loss: 0.42189445966089395
+    final_brier_score: 0.25750444372479525
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0037177297142167443
+    delta_final_brier_score: 0.0023631425145246854
+    delta_final_roc_auc: -0.002113454081555277
+    row_pool_final_window_mean_grad_norm: 0.04791508618847841
+  parent_delta_ref: null

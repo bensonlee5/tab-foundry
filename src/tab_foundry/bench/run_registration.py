@@ -16,6 +16,7 @@ from tab_foundry.bench.checkpoint_artifacts import (
 )
 from tab_foundry.bench.registry.record_helpers import (
     _bottleneck_summary_from_artifacts,
+    _checkpoint_cfg_uses_grid_moe,
     _count_parameters_from_cfg,
     _compute_accounting_from_cfg,
     _hardware_summary_from_telemetry,
@@ -588,7 +589,7 @@ def derive_benchmark_run_record(
         ),
     )
     inference_timing = _inference_timing_from_summary(tab_foundry)
-    if inference_timing is None:
+    if inference_timing is None and not _checkpoint_cfg_uses_grid_moe(raw_cfg):
         inference_timing = _inference_timing_from_checkpoint(
             checkpoint_path=best_checkpoint_path,
             telemetry_payload=telemetry_payload,

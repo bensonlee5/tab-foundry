@@ -11,7 +11,13 @@ from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.inspection import model_surface_payload, parameter_counts_from_model_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
-from tab_foundry.training.loss_surface import resolve_classification_z_loss_coeff
+from tab_foundry.training.loss_surface import (
+    resolve_classification_z_loss_coeff,
+    resolve_moe_load_balance_loss_coeff,
+    resolve_moe_load_balance_loss_final_coeff,
+    resolve_moe_load_balance_loss_schedule,
+    resolve_moe_router_z_loss_coeff,
+)
 from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.training.surface import resolve_training_backend_from_data_cfg
 
@@ -104,6 +110,10 @@ def _training_surface_payload(
         "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
         "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
         "classification_z_loss_coeff": resolve_classification_z_loss_coeff(training_cfg),
+        "moe_load_balance_loss_coeff": resolve_moe_load_balance_loss_coeff(training_cfg),
+        "moe_load_balance_loss_schedule": resolve_moe_load_balance_loss_schedule(training_cfg),
+        "moe_load_balance_loss_final_coeff": resolve_moe_load_balance_loss_final_coeff(training_cfg),
+        "moe_router_z_loss_coeff": resolve_moe_router_z_loss_coeff(training_cfg),
         "overrides": dict(cast(dict[str, Any], training_cfg.get("overrides", {}))),
         "optimizer_name": None if optimizer_cfg.get("name") is None else str(optimizer_cfg["name"]),
         "optimizer_min_lr": None

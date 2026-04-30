@@ -147,6 +147,14 @@ did not yet serialize every reconstruction field.
 | `grid_ffn_mode` | `str` | `"gelu"` | grid | Grid-core FFN family. `swiglu` and `geglu` use hidden width `round_up(ceil((2/3) * sandwich_ff_expansion * d_icl), 8)` to stay near the GELU FFN parameter budget. |
 | `grid_recurrence_steps` | `int \| null` | `null` | grid | When null, the grid core uses `sandwich_layers` distinct layers. When positive, the grid core runs for this many recurrent refinement steps. |
 | `grid_recurrence_unique_layers` | `int \| null` | `null` | grid | Optional recurrent-core cycle size. When null with `grid_recurrence_steps` set, one `_GridMixerLayer` is shared; when positive, that many distinct grid layers are cycled through the recurrent steps. |
+| `grid_moe_scope` | `str` | `"none"` | grid | Optional sparse MoE scope. `none` keeps dense FFNs; `grid_core_ffn` replaces only grid-core SwiGLU FFNs with sparse experts. |
+| `grid_moe_num_experts` | `int` | `1` | grid | Number of MoE experts when `grid_moe_scope` is enabled. Enabled MoE requires a value greater than `1`. |
+| `grid_moe_top_k` | `int` | `1` | grid | Number of experts selected per token. Must be no larger than `grid_moe_num_experts`; v1 uses dynamic sparse dispatch with no token dropping. |
+| `grid_moe_router_init_std` | `float` | `0.01` | grid | Normal initialization standard deviation for MoE router weights. |
+| `grid_moe_normalize_top_k` | `bool` | `false` | grid | When true, selected top-k router probabilities are renormalized per token before expert outputs are combined. Defaults false to preserve the original raw-probability weighting. |
+| `grid_moe_shared_expert` | `bool` | `false` | grid | When true, each sparse MoE FFN adds one always-on SwiGLU shared expert before routed expert contributions. |
+| `grid_moe_shared_expert_scale` | `float` | `1.0` | grid | Non-negative multiplier for the always-on shared expert path when `grid_moe_shared_expert` is enabled. |
+| `grid_moe_router_temperature` | `float` | `1.0` | grid | Positive softmax temperature for MoE router probabilities. Values above `1.0` smooth routing; values below `1.0` sharpen it. |
 | `classification_logit_softcap` | `float \| null` | `null` | grid | Optional classification-logit softcap. When set, grid logits are transformed as `cap * tanh(logits / cap)` before loss/eval/export consumers see them. |
 | `attention_qk_norm` | `bool` | `false` | grid | Optional QK normalization for grid-sandwich attention sites. Query/key heads are L2-normalized with a learnable per-head scale initialized to `sqrt(head_dim)`. |
 | `feature_type_conditioning` | `str` | `"film"` | sandwich, grid | Feature-type conditioning path for cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
@@ -158,6 +166,12 @@ Training-side classification stability also exposes
 active training objective adds `coeff * mean(logsumexp(logits)^2)` for
 classification-logit outputs; evaluation and benchmark metrics remain plain
 classification loss/metrics.
+
+Training-side grid MoE losses expose `training.moe_load_balance_loss_coeff` and
+`training.moe_router_z_loss_coeff`, both defaulting to `0.0`. When positive,
+classification training adds the model-emitted MoE auxiliary losses to the
+task loss; evaluation keeps the task objective unchanged while still reporting
+detached route-health metrics when the model emits them.
 
 ## Configuration Groups
 
@@ -194,6 +208,14 @@ block width.
 - `grid_ffn_mode`
 - `grid_recurrence_steps`
 - `grid_recurrence_unique_layers`
+- `grid_moe_scope`
+- `grid_moe_num_experts`
+- `grid_moe_top_k`
+- `grid_moe_router_init_std`
+- `grid_moe_normalize_top_k`
+- `grid_moe_shared_expert`
+- `grid_moe_shared_expert_scale`
+- `grid_moe_router_temperature`
 - `classification_logit_softcap`
 - `attention_qk_norm`
 
@@ -211,6 +233,12 @@ The `grid_*` knobs are grid-only experiment gates. Defaults preserve the current
 anchor topology and parameter count. Non-default values change only the
 row/column grid core: pre-grid mixers and test-row pooling keep the shared
 sandwich blocks.
+
+`grid_moe_scope=grid_core_ffn` is classification-only and currently requires
+`grid_ffn_mode=swiglu`. It replaces only recurrent grid-core row/column FFNs
+with sparse SwiGLU experts. Router probabilities remain differentiable, the
+selected experts are evaluated dynamically, and v1 does not drop tokens or
+apply a capacity factor.
 
 ### Tokenization And Preprocessing
 
@@ -276,6 +304,10 @@ removed legacy family.
     `sandwich_pre_column_inducing_tokens`, `d_icl`, `head_hidden_dim`,
     `grid_residual_mode`, `grid_attention_mode`, `grid_ffn_mode`,
     `grid_recurrence_steps`, `grid_recurrence_unique_layers`,
+    `grid_moe_scope`, `grid_moe_num_experts`, `grid_moe_top_k`,
+    `grid_moe_router_init_std`, `grid_moe_normalize_top_k`,
+    `grid_moe_shared_expert`, `grid_moe_shared_expert_scale`,
+    `grid_moe_router_temperature`,
     `input_normalization`, and `pre_encoder_clip`.
     `sandwich_layers` counts alternating row/column grid-mixer layers unless
     `grid_recurrence_steps` is positive. `feature_types` are required at
@@ -396,6 +428,17 @@ two-layer recurrent SwiGLU grid core:
 ```bash
 tab-foundry train run \
   experiment=cls_workstation_grid_sandwich
+```
+
+Core-only grid MoE screen row:
+
+```bash
+tab-foundry train run \
+  experiment=cls_workstation_grid_sandwich \
+  model.grid_moe_scope=grid_core_ffn \
+  model.grid_moe_num_experts=4 \
+  training.moe_load_balance_loss_coeff=1e-2 \
+  training.moe_router_z_loss_coeff=1e-4
 ```
 
 Use `experiment=cls_workstation_sandwich` when you need the previous

@@ -547,3 +547,27 @@ sweeps:
     benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
+  tf_rd_028_grid_moe_balanced_capacity_v1:
+    parent_sweep_id: tf_rd_027_grid_stability_impl_v1
+    status: completed
+    anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_029_grid_moe_top2_normalized_v1:
+    parent_sweep_id: tf_rd_028_grid_moe_balanced_capacity_v1
+    status: draft
+    anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []
+  tf_rd_030_grid_moe_shared_expert_v1:
+    parent_sweep_id: tf_rd_029_grid_moe_top2_normalized_v1
+    status: draft
+    anchor_run_id: sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2
+    complexity_level: classification_md
+    benchmark_manifest_path: data/manifests/bench/openml_classification_medium_v1/manifest.parquet
+    control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
+    external_benchmarks: []

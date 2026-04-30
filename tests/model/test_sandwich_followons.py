@@ -9,6 +9,7 @@ from tab_foundry.model.architectures.tabfoundry_sandwich.blocks import (
     _NativePackedCrossAttention,
     _NativePackedSelfAttention,
 )
+from tab_foundry.model.architectures.grid_sandwich.model import _SparseSwiGLUMoEFFN
 from tab_foundry.types import TaskBatch
 
 
@@ -99,6 +100,13 @@ def _grid_model(
     sandwich_packed_attention: bool = False,
     classification_logit_softcap: float | None = None,
     attention_qk_norm: bool = False,
+    grid_moe_scope: str = "none",
+    grid_moe_num_experts: int = 1,
+    grid_moe_top_k: int = 1,
+    grid_moe_normalize_top_k: bool = False,
+    grid_moe_shared_expert: bool = False,
+    grid_moe_shared_expert_scale: float = 1.0,
+    grid_moe_router_temperature: float = 1.0,
 ) -> GridSandwichClassifier:
     return GridSandwichClassifier(
         d_icl=32,
@@ -119,6 +127,13 @@ def _grid_model(
         grid_recurrence_unique_layers=grid_recurrence_unique_layers,
         classification_logit_softcap=classification_logit_softcap,
         attention_qk_norm=attention_qk_norm,
+        grid_moe_scope=grid_moe_scope,
+        grid_moe_num_experts=grid_moe_num_experts,
+        grid_moe_top_k=grid_moe_top_k,
+        grid_moe_normalize_top_k=grid_moe_normalize_top_k,
+        grid_moe_shared_expert=grid_moe_shared_expert,
+        grid_moe_shared_expert_scale=grid_moe_shared_expert_scale,
+        grid_moe_router_temperature=grid_moe_router_temperature,
     )
 
 
@@ -410,6 +425,243 @@ def test_grid_sandwich_experimental_modes_preserve_forward_shapes(
     assert output.logits is not None
     assert tuple(output.logits.shape) == (2, 4)
     assert tuple(batched_logits.shape) == (1, 2, 4)
+
+
+def test_sparse_swiglu_moe_ffn_routes_only_top_k_experts() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=8,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=2,
+        router_init_std=0.01,
+        normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
+    )
+    calls = [0, 0, 0, 0]
+
+    class _RecordingExpert(torch.nn.Module):
+        def __init__(self, expert_index: int) -> None:
+            super().__init__()
+            self.expert_index = int(expert_index)
+
+        def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+            calls[self.expert_index] += int(hidden.shape[0])
+            return torch.full_like(hidden, float(self.expert_index + 1))
+
+    block.experts = torch.nn.ModuleList([_RecordingExpert(index) for index in range(4)])
+    with torch.no_grad():
+        block.router.weight.zero_()
+        block.router.weight[0].fill_(1.0)
+        block.router.weight[1].fill_(0.5)
+        block.router.weight[2].fill_(-0.5)
+        block.router.weight[3].fill_(-1.0)
+
+    hidden = torch.ones(2, 3, 8)
+    output = block(hidden)
+    load_losses, router_z_losses, expert_fractions, router_entropies = block.aux_outputs()
+
+    assert tuple(output.shape) == tuple(hidden.shape)
+    assert calls == [6, 6, 0, 0]
+    torch.testing.assert_close(expert_fractions[0], torch.tensor([0.5, 0.5, 0.0, 0.0]))
+    assert torch.isfinite(load_losses[0])
+    assert torch.isfinite(router_z_losses[0])
+    assert torch.isfinite(router_entropies[0])
+
+
+def test_sparse_swiglu_moe_ffn_routes_independently_per_token() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=2,
+        ff_expansion=2,
+        num_experts=2,
+        top_k=1,
+        router_init_std=0.01,
+        normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
+    )
+
+    class _TagExpert(torch.nn.Module):
+        def __init__(self, tag: torch.Tensor) -> None:
+            super().__init__()
+            self.register_buffer("tag", tag)
+
+        def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+            return self.tag.to(device=hidden.device, dtype=hidden.dtype).expand_as(hidden)
+
+    block.experts = torch.nn.ModuleList(
+        [
+            _TagExpert(torch.tensor([1.0, 0.0])),
+            _TagExpert(torch.tensor([0.0, 1.0])),
+        ]
+    )
+    with torch.no_grad():
+        block.router.weight.copy_(
+            torch.tensor(
+                [
+                    [1.0, 0.0],
+                    [0.0, 1.0],
+                ]
+            )
+        )
+
+    hidden = torch.tensor(
+        [
+            [
+                [6.0, 0.0],
+                [0.0, 6.0],
+            ],
+            [
+                [0.0, 6.0],
+                [6.0, 0.0],
+            ],
+        ]
+    )
+
+    output = block(hidden)
+    _, _, expert_fractions, _ = block.aux_outputs()
+
+    assert tuple(output.shape) == tuple(hidden.shape)
+    routed_to_expert0 = output[..., 0] > output[..., 1]
+    routed_to_expert1 = output[..., 1] > output[..., 0]
+    assert torch.equal(routed_to_expert0, torch.tensor([[True, False], [False, True]]))
+    assert torch.equal(routed_to_expert1, torch.tensor([[False, True], [True, False]]))
+    torch.testing.assert_close(expert_fractions[0], torch.tensor([0.5, 0.5]))
+
+
+def test_sparse_swiglu_moe_ffn_accumulates_mixed_precision_expert_output() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=8,
+        ff_expansion=2,
+        num_experts=2,
+        top_k=1,
+        router_init_std=0.01,
+        normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
+    )
+
+    class _BFloatExpert(torch.nn.Module):
+        def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+            return torch.ones_like(hidden, dtype=torch.bfloat16)
+
+    block.experts = torch.nn.ModuleList([_BFloatExpert(), _BFloatExpert()])
+    with torch.no_grad():
+        block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 8, dtype=torch.float32)
+    output = block(hidden)
+
+    assert tuple(output.shape) == tuple(hidden.shape)
+    assert output.dtype == hidden.dtype
+    assert torch.isfinite(output).all()
+
+
+def test_sparse_swiglu_moe_ffn_can_normalize_top_k_router_weights() -> None:
+    raw_block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=2,
+        router_init_std=0.01,
+        normalize_top_k=False,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
+    )
+    normalized_block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=2,
+        router_init_std=0.01,
+        normalize_top_k=True,
+        shared_expert=False,
+        shared_expert_scale=1.0,
+        router_temperature=1.0,
+    )
+    for block in (raw_block, normalized_block):
+        block.experts = torch.nn.ModuleList([torch.nn.Identity() for _ in range(4)])
+        with torch.no_grad():
+            block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 4)
+
+    raw_output = raw_block(hidden)
+    normalized_output = normalized_block(hidden)
+
+    torch.testing.assert_close(raw_output, hidden * 0.5)
+    torch.testing.assert_close(normalized_output, hidden)
+
+
+def test_sparse_swiglu_moe_ffn_can_add_shared_expert_path() -> None:
+    block = _SparseSwiGLUMoEFFN(
+        embedding_size=4,
+        ff_expansion=2,
+        num_experts=4,
+        top_k=1,
+        router_init_std=0.01,
+        normalize_top_k=True,
+        shared_expert=True,
+        shared_expert_scale=0.25,
+        router_temperature=1.0,
+    )
+    block.experts = torch.nn.ModuleList([torch.nn.Identity() for _ in range(4)])
+    block.shared_expert = torch.nn.Identity()
+    with torch.no_grad():
+        block.router.weight.zero_()
+
+    hidden = torch.ones(2, 3, 4)
+
+    output = block(hidden)
+
+    torch.testing.assert_close(output, hidden * 1.25)
+
+
+def test_grid_sandwich_moe_forward_emits_aux_losses_and_route_health() -> None:
+    model = _grid_model(
+        grid_ffn_mode="swiglu",
+        grid_moe_scope="grid_core_ffn",
+        grid_moe_num_experts=4,
+    )
+    batch = _task_batch()
+
+    output = model(batch)
+
+    assert output.logits is not None
+    assert output.aux_losses is not None
+    assert torch.isfinite(output.aux_losses["moe_load_balance_loss"])
+    assert torch.isfinite(output.aux_losses["moe_router_z_loss"])
+    assert output.aux_metrics is not None
+    assert 0.0 <= output.aux_metrics["moe_expert_fraction_min"] <= 1.0
+    assert 0.0 <= output.aux_metrics["moe_expert_fraction_max"] <= 1.0
+    assert output.aux_metrics["moe_router_entropy"] > 0.0
+
+
+def test_grid_sandwich_forward_batched_leaves_moe_aux_output_for_prior_loop() -> None:
+    model = _grid_model(
+        grid_ffn_mode="swiglu",
+        grid_moe_scope="grid_core_ffn",
+        grid_moe_num_experts=4,
+    )
+    x_all, y_train, split_index, feature_types = _batched_inputs()
+
+    _ = model.forward_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=split_index,
+        feature_types=feature_types,
+    )
+    aux_losses, aux_metrics = model.consume_moe_aux_output()
+
+    assert aux_losses is not None
+    assert torch.isfinite(aux_losses["moe_load_balance_loss"])
+    assert torch.isfinite(aux_losses["moe_router_z_loss"])
+    assert aux_metrics is not None
+    assert aux_metrics["moe_expert_fraction_max"] >= aux_metrics["moe_expert_fraction_min"]
 
 
 def test_grid_sandwich_hyper_connection_uses_two_streams_and_collapses_to_cells() -> None:

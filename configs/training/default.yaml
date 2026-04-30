@@ -4,3 +4,7 @@ overrides: {}
 task_batch_size: 1
 loss_surface: classification
 classification_z_loss_coeff: 0.0
+moe_load_balance_loss_coeff: 0.0
+moe_load_balance_loss_schedule: constant
+moe_load_balance_loss_final_coeff: null
+moe_router_z_loss_coeff: 0.0

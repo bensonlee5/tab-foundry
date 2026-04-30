@@ -43,7 +43,13 @@ from tab_foundry.training.instability import (
     write_training_telemetry,
 )
 from tab_foundry.training.losses import classification_loss, classification_z_loss
-from tab_foundry.training.loss_surface import resolve_classification_z_loss_coeff
+from tab_foundry.training.loss_surface import (
+    resolve_classification_z_loss_coeff,
+    resolve_moe_load_balance_loss_coeff,
+    resolve_moe_load_balance_loss_final_coeff,
+    resolve_moe_load_balance_loss_schedule,
+    resolve_moe_router_z_loss_coeff,
+)
 from tab_foundry.training.prior.io import stack_prior_step
 from tab_foundry.training.prior.missingness import (
     _accumulate_missingness,
@@ -164,6 +170,70 @@ def _merge_activation_norms(
     return merged or None
 
 
+def _add_prior_moe_aux_losses(
+    loss: torch.Tensor,
+    *,
+    model: torch.nn.Module,
+    weighted_metrics: dict[str, float],
+    weight: float,
+    moe_load_balance_loss_coeff: float,
+    moe_router_z_loss_coeff: float,
+) -> torch.Tensor:
+    consumer = getattr(model, "consume_moe_aux_output", None)
+    if not callable(consumer):
+        return loss
+    aux_losses, aux_metrics = consumer()
+    for key, value in (aux_metrics or {}).items():
+        weighted_metrics[key] = weighted_metrics.get(key, 0.0) + (float(value) * weight)
+    load_loss = aux_losses.get("moe_load_balance_loss") if aux_losses is not None else None
+    load_coeff = max(0.0, float(moe_load_balance_loss_coeff))
+    if load_loss is not None and load_coeff > 0.0:
+        loss = loss + (load_coeff * load_loss)
+        weighted_metrics["moe_load_balance_loss"] = weighted_metrics.get(
+            "moe_load_balance_loss",
+            0.0,
+        ) + (float(load_loss.detach().item()) * weight)
+        weighted_metrics["moe_load_balance_loss_coeff"] = float(load_coeff)
+    router_z_loss = aux_losses.get("moe_router_z_loss") if aux_losses is not None else None
+    router_z_coeff = max(0.0, float(moe_router_z_loss_coeff))
+    if router_z_loss is not None and router_z_coeff > 0.0:
+        loss = loss + (router_z_coeff * router_z_loss)
+        weighted_metrics["moe_router_z_loss"] = weighted_metrics.get(
+            "moe_router_z_loss",
+            0.0,
+        ) + (float(router_z_loss.detach().item()) * weight)
+        weighted_metrics["moe_router_z_loss_coeff"] = float(router_z_coeff)
+    return loss
+
+
+def _scheduled_moe_load_balance_loss_coeff(
+    *,
+    base_coeff: float,
+    final_coeff: float | None,
+    schedule: str,
+    step: int,
+    max_steps: int,
+) -> float:
+    base = max(0.0, float(base_coeff))
+    final = base if final_coeff is None else max(0.0, float(final_coeff))
+    normalized_schedule = str(schedule).strip().lower()
+    if normalized_schedule == "constant" or max_steps <= 1:
+        return base
+    progress = min(1.0, max(0.0, (float(step) - 1.0) / float(max_steps - 1)))
+    if normalized_schedule == "linear_decay":
+        decay_progress = progress
+    elif normalized_schedule == "warmup_decay":
+        warmup_end = 0.10
+        if progress <= warmup_end:
+            return base
+        decay_progress = (progress - warmup_end) / max(1.0e-12, 1.0 - warmup_end)
+    else:
+        raise ValueError(
+            "moe_load_balance_loss_schedule must be constant, linear_decay, or warmup_decay"
+        )
+    return base + ((final - base) * decay_progress)
+
+
 def _run_prior_step_with_microbatch_retry(
     *,
     model: torch.nn.Module,
@@ -175,6 +245,8 @@ def _run_prior_step_with_microbatch_retry(
     train_test_split_index: int,
     loss_surface: str,
     classification_z_loss_coeff: float,
+    moe_load_balance_loss_coeff: float,
+    moe_router_z_loss_coeff: float,
     trace_activations: bool,
     flush_activation_trace: object,
 ) -> tuple[float, dict[str, float], dict[str, float] | None, int, int]:
@@ -259,6 +331,14 @@ def _run_prior_step_with_microbatch_retry(
                     )
                 else:
                     loss = classification_loss(flat_logits, targets)
+                loss = _add_prior_moe_aux_losses(
+                    loss,
+                    model=model,
+                    weighted_metrics=weighted_metrics,
+                    weight=weight,
+                    moe_load_balance_loss_coeff=moe_load_balance_loss_coeff,
+                    moe_router_z_loss_coeff=moe_router_z_loss_coeff,
+                )
                 weighted_metrics["acc"] = weighted_metrics.get("acc", 0.0) + (
                     float(
                         (
@@ -789,6 +869,18 @@ def run_prior_training(
     classification_z_loss_coeff = resolve_classification_z_loss_coeff(
         getattr(cfg, "training", None)
     )
+    moe_load_balance_loss_coeff = resolve_moe_load_balance_loss_coeff(
+        getattr(cfg, "training", None)
+    )
+    moe_load_balance_loss_schedule = resolve_moe_load_balance_loss_schedule(
+        getattr(cfg, "training", None)
+    )
+    moe_load_balance_loss_final_coeff = resolve_moe_load_balance_loss_final_coeff(
+        getattr(cfg, "training", None)
+    )
+    moe_router_z_loss_coeff = resolve_moe_router_z_loss_coeff(
+        getattr(cfg, "training", None)
+    )
 
     training_surface_path = output_dir / "training_surface_record.json"
     run = None
@@ -910,6 +1002,14 @@ def run_prior_training(
                 train_test_split_index=prior_step.train_test_split_index,
                 loss_surface=loss_surface,
                 classification_z_loss_coeff=classification_z_loss_coeff,
+                moe_load_balance_loss_coeff=_scheduled_moe_load_balance_loss_coeff(
+                    base_coeff=moe_load_balance_loss_coeff,
+                    final_coeff=moe_load_balance_loss_final_coeff,
+                    schedule=moe_load_balance_loss_schedule,
+                    step=int(prior_step.step_index),
+                    max_steps=max_steps,
+                ),
+                moe_router_z_loss_coeff=moe_router_z_loss_coeff,
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
             )

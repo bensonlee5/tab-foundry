@@ -11624,3 +11624,815 @@ deltas:
               warmup_ratio: 0.1
     default_next_action: Unblock only after the config-only winner is selected.
     applicability_guards: []
+  delta_tf_rd_028_grid_moe_e4_top1_smoke_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Run a short benchmark-capable smoke of the TF-RD-026 row 10
+      Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts and
+      top-1 routing.
+    upstream_delta: Diagnostic execution gate for the TF-RD-028 Grid-Sandwich
+      MoE capacity ladder.
+    expected_effect: Should prove that MoE config resolution, prior training,
+      differentiable auxiliary losses, route-health metrics, checkpoint export,
+      benchmark registration, and W&B logging all work before spending a full
+      candidate budget.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-1 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+    parameter_adequacy_policy:
+      default_plan:
+      - Treat this row as diagnostic only; do not compare it as a quality
+        candidate against the 5000-step anchor.
+      - Full TF-RD-028 candidate execution is blocked on finite training losses,
+        finite MoE auxiliary metrics, completed benchmark artifacts, and W&B
+        logging from this smoke row.
+      default_negative_decision: defer
+      reject_requires:
+      - smoke_only_row
+      - benchmark_path_failed
+      - nonfinite_moe_auxiliary_metrics
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      training:
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 100
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 100
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute first on the Vast VM and unblock the full MoE
+      ladder only after smoke training, benchmark artifacts, and W&B logging are
+      clean.
+    applicability_guards: []
+  delta_tf_rd_028_grid_moe_e2_top1_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using two experts and top-1 routing.
+    upstream_delta: First full-budget TF-RD-028 sparse expert count rung.
+    expected_effect: Adds a low-risk amount of sparse expert capacity while
+      keeping active FFN compute near the dense anchor.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with two sparse experts
+    - Switch-style top-1 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the diagnostic smoke row passes.
+      - Compare directly against the locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget and route-health telemetry.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_moe_expert_count_change
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 2
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      training:
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute as the first full-budget TF-RD-028 top-1 MoE
+      candidate after the smoke row passes.
+    applicability_guards: []
+  delta_tf_rd_028_grid_moe_e4_top1_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using four experts and top-1 routing.
+    upstream_delta: Main recommended TF-RD-028 sparse capacity row.
+    expected_effect: Adds the planned first meaningful sparse parameter increase
+      while keeping active FFN compute near the dense anchor.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-1 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the diagnostic smoke row passes.
+      - Compare directly against the locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget and route-health telemetry.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_moe_expert_count_change
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      training:
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute as the main TF-RD-028 top-1 MoE candidate after
+      the smoke row passes.
+    applicability_guards: []
+  delta_tf_rd_028_grid_moe_e8_top1_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using eight experts and top-1 routing.
+    upstream_delta: Higher sparse expert count rung for the TF-RD-028 MoE ladder.
+    expected_effect: Adds substantially more total expert parameters while keeping
+      active FFN compute near the dense anchor, exposing whether sparse capacity
+      continues to scale before expert-parallel memory work.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with eight sparse experts
+    - Switch-style top-1 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after lower expert-count top-1 rows pass basic route-health
+        checks.
+      - Compare directly against the locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget and route-health telemetry.
+      default_negative_decision: defer
+      reject_requires:
+      - isolated_moe_expert_count_change
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 8
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+      training:
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after E=2 and E=4 top-1 rows show finite losses
+      and usable route-health metrics.
+    applicability_guards: []
+  delta_tf_rd_028_grid_moe_e4_top2_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using four experts and top-2 routing.
+    upstream_delta: Conditional TF-RD-028 top-k follow-up after top-1 route health
+      is known.
+    expected_effect: Increases active expert mixing and router gradient density
+      relative to top-1, trading extra active FFN compute for a possible quality
+      or route-health improvement.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute only after top-1 MoE rows have finite auxiliary metrics and no
+        persistent route collapse.
+      - Compare against the E=4 top-1 row and locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget, route-health telemetry, and the
+        additional active-compute cost.
+      default_negative_decision: defer
+      reject_requires:
+      - top1_route_health_gate_passed
+      - isolated_top_k_change
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+      training:
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute only after the top-1 MoE rows pass route-health
+      inspection and quality is not explained by a routing bug.
+    applicability_guards: []
+  delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1:
+    dimension_family: training
+    family: grid_sandwich_moe_balanced_capacity
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using four experts and top-2 routing under a smaller task
+      microbatch so the min-2-expert path fits on the current L40S VM.
+    upstream_delta: Resource-remediated TF-RD-028 top-k follow-up after the
+      uncheckpointed E=4 top-2 row exceeded single-GPU active memory.
+    expected_effect: Preserves the top-2 routing hypothesis while reducing
+      per-forward activation pressure; increased gradient accumulation keeps the
+      effective optimizer batch comparable to the top-1 ladder, at higher wall
+      time.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute only after the uncheckpointed E=4 top-2 row is confirmed
+        resource-confounded on the target VM.
+      - Compare against the E=4 top-1 row, E=8 top-1 row, and locked TF-RD-026
+        row 10 anchor by final_log_loss_at_matched_regime_budget, route-health
+        telemetry, and the additional active-compute and wall-time cost.
+      default_negative_decision: defer
+      reject_requires:
+      - top1_route_health_gate_passed
+      - uncheckpointed_top2_resource_confounded
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after the uncheckpointed top-2 row OOMs and the
+      top-1 rows show finite, non-collapsed route-health metrics.
+    applicability_guards: []
+  delta_tf_rd_029_grid_moe_e4_top2_norm_smoke_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_top2_normalized
+    binary_applicable: false
+    description: Run a short benchmark-capable smoke of the TF-RD-026 row 10
+      Grid-Sandwich anchor with core-only SwiGLU MoE FFNs using four experts,
+      top-2 routing, and per-token top-k probability normalization.
+    upstream_delta: Diagnostic execution gate for the TF-RD-029 top-2-first MoE
+      follow-up.
+    expected_effect: Should prove that normalized top-2 routing resolves config,
+      trains with finite MoE auxiliary metrics, exports checkpoints, registers
+      benchmarks, and logs to W&B before spending a full candidate budget.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - selected top-2 router probabilities renormalized per token before expert
+      outputs are combined
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+    parameter_adequacy_policy:
+      default_plan:
+      - Treat this row as diagnostic only; do not compare it as a quality
+        candidate against the 5000-step anchor.
+      - Full TF-RD-029 candidate execution is blocked on finite training losses,
+        finite MoE auxiliary metrics, completed benchmark artifacts, and W&B
+        logging from this smoke row.
+      default_negative_decision: defer
+      reject_requires:
+      - smoke_only_row
+      - benchmark_path_failed
+      - nonfinite_moe_auxiliary_metrics
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 100
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 100
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute first on the Vast VM and unblock the full
+      normalized top-2 MoE row only after smoke training, benchmark artifacts,
+      and W&B logging are clean.
+    applicability_guards: []
+  delta_tf_rd_029_grid_moe_e4_top2_norm_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_top2_normalized
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with core-only
+      SwiGLU MoE FFNs using four experts, normalized top-2 routing, and a
+      smaller task microbatch.
+    upstream_delta: Top-2-first MoE follow-up after TF-RD-028 showed raw top-2
+      routing was healthy but underperformed and uncheckpointed top-2 exceeded
+      single-GPU active memory.
+    expected_effect: Tests whether per-token normalization of selected top-2
+      router probabilities removes the output-scale shrinkage of raw top-2
+      weighting while keeping all tokens routed to two experts.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - Switch-style top-2 routing with no token dropping
+    - selected top-2 router probabilities renormalized per token before expert
+      outputs are combined
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute immediately after the normalized top-2 smoke row passes; do not
+        spend another E=8 top-1 rung in this lane.
+      - Compare against TF-RD-028 raw top-2 microbatch8, TF-RD-028 E=4 top-1,
+        and the locked TF-RD-026 row 10 anchor by
+        final_log_loss_at_matched_regime_budget, route-health telemetry, and
+        wall-time cost.
+      default_negative_decision: defer
+      reject_requires:
+      - normalized_top2_route_health_gate_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after the normalized top-2 smoke row passes.
+    applicability_guards: []
+  delta_tf_rd_030_grid_moe_e4_top1_shared_smoke_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_shared_expert
+    binary_applicable: false
+    description: Run a short benchmark-capable smoke of the TF-RD-026 row 10
+      Grid-Sandwich anchor with four sparse grid-core SwiGLU experts, top-1
+      routing, and one always-on shared SwiGLU expert.
+    upstream_delta: Diagnostic execution gate for the TF-RD-030 shared-expert
+      MoE follow-up.
+    expected_effect: Should prove that the shared-expert MoE path resolves,
+      trains with finite MoE auxiliary metrics, exports checkpoints, registers
+      benchmark artifacts, and logs to W&B online before full-row execution.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs add an always-on shared expert plus four routed
+      sparse experts
+    - top-1 routed expert contribution remains router-probability weighted
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for exactly 100 prior-dump smoke steps before benchmark plumbing
+    parameter_adequacy_policy:
+      default_plan:
+      - Treat this row as diagnostic only; do not compare it as a quality
+        candidate against the 5000-step anchor.
+      - Full TF-RD-030 candidate execution is blocked on finite training losses,
+        finite MoE auxiliary metrics, completed benchmark artifacts, and W&B
+        logging from this smoke row.
+      default_negative_decision: defer
+      reject_requires:
+      - smoke_only_row
+      - benchmark_path_failed
+      - nonfinite_moe_auxiliary_metrics
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 100
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 100
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute first on the Vast VM and unblock shared-expert
+      full rows only after smoke training, benchmark artifacts, and W&B logging
+      are clean.
+    applicability_guards: []
+  delta_tf_rd_030_grid_moe_e4_top1_shared_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_shared_expert
+    binary_applicable: false
+    description: Test the TF-RD-026 row 10 Grid-Sandwich anchor with four sparse
+      grid-core SwiGLU experts, top-1 routing, and one always-on shared SwiGLU
+      expert.
+    upstream_delta: Main TF-RD-030 hypothesis that MoE should add a stable
+      shared FFN path instead of forcing all FFN capacity through routing.
+    expected_effect: Tests whether a shared dense path plus one routed expert
+      preserves anchor-like optimization while adding specialist capacity at
+      lower active routed compute than top-2.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs add an always-on shared expert plus four routed
+      sparse experts
+    - top-1 routed expert contribution remains router-probability weighted
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute immediately after the shared-expert smoke row passes.
+      - Compare against TF-RD-026 row 10, TF-RD-028 top-1 MoE rows, and TF-RD-029
+        normalized top-2 by final log loss, route-health telemetry, and wall
+        time.
+      default_negative_decision: defer
+      reject_requires:
+      - shared_expert_smoke_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after the shared-expert smoke row passes.
+    applicability_guards: []
+  delta_tf_rd_030_grid_moe_e4_top2_shared_norm_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_shared_expert
+    binary_applicable: false
+    description: Test four sparse grid-core SwiGLU experts with normalized
+      top-2 routing plus one always-on shared SwiGLU expert.
+    upstream_delta: Tests whether the TF-RD-029 normalized top-2 path benefits
+      from a stable always-on shared expert.
+    expected_effect: Should preserve token-centric two-expert routing while the
+      shared path carries dense anchor-like capacity and reduces pressure on
+      the router to learn the whole FFN transformation.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs add an always-on shared expert plus four routed
+      sparse experts
+    - selected top-2 router probabilities renormalized per token
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the shared top-1 row unless smoke or resource health
+        argues otherwise.
+      - Compare against TF-RD-029 normalized top-2 and TF-RD-030 shared top-1.
+      default_negative_decision: defer
+      reject_requires:
+      - shared_expert_smoke_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after the shared top-1 candidate if smoke
+      health remains clean.
+    applicability_guards: []
+  delta_tf_rd_030_grid_moe_e4_top2_norm_lb_decay_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_aux_schedule
+    binary_applicable: false
+    description: Retest normalized top-2 MoE with a decayed load-balancing
+      coefficient so routing is stabilized early but less constrained late.
+    upstream_delta: Tests whether the constant TF-RD-029 load-balancing loss is
+      over-regularizing once route health is already acceptable.
+    expected_effect: Should retain finite, non-collapsed route health while
+      reducing late-training pressure toward perfectly uniform expert usage.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs replaced with four sparse experts
+    - selected top-2 router probabilities renormalized per token
+    - load-balance coefficient decays from 1e-2 to 1e-3 with warmup/decay
+    - router z-loss coefficient 1e-4 remains constant
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after TF-RD-029 normalized top-2 completes and route-health
+        metrics remain finite.
+      - Compare against TF-RD-029 normalized top-2 to isolate the auxiliary-loss
+        schedule effect.
+      default_negative_decision: defer
+      reject_requires:
+      - normalized_top2_route_health_gate_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 2
+        grid_moe_router_init_std: 0.01
+        grid_moe_normalize_top_k: true
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_load_balance_loss_schedule: warmup_decay
+        moe_load_balance_loss_final_coeff: 0.001
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute after TF-RD-029 normalized top-2 completes and
+      shared-expert smoke is clean.
+    applicability_guards: []
+  delta_tf_rd_030_grid_moe_e4_top1_shared_temp125_microbatch8_v1:
+    dimension_family: model
+    family: grid_sandwich_moe_router_temperature
+    binary_applicable: false
+    description: Test shared-expert top-1 MoE with router-temperature smoothing
+      by setting the router softmax temperature to 1.25.
+    upstream_delta: Tests whether smoother early routing helps shared-expert
+      top-1 MoE avoid brittle expert assignment without paying top-2 compute.
+    expected_effect: Should keep route entropy higher and expert fractions more
+      even than the default-temperature shared top-1 candidate while preserving
+      lower routed compute than top-2.
+    adequacy_knobs:
+    - current TF-RD-026 row 10 anchor shape held fixed
+    - grid-core SwiGLU FFNs add an always-on shared expert plus four routed
+      sparse experts
+    - top-1 routing uses router softmax temperature 1.25
+    - load-balance coefficient 1e-2 and router z-loss coefficient 1e-4
+    - task batch size reduced to 8 with grad accumulation increased to 8
+    - train for the anchor-matched 5000-step prior-dump budget
+    parameter_adequacy_policy:
+      default_plan:
+      - Execute after the default-temperature shared top-1 row if route health
+        or loss oscillation suggests smoothing is worth isolating.
+      - Compare against default-temperature shared top-1 by final log loss,
+        route entropy, expert fraction spread, and wall time.
+      default_negative_decision: defer
+      reject_requires:
+      - shared_expert_smoke_passed
+      - matched_5000_step_budget
+      - clearly_worse_without_route_health_offsetting_signal
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      data:
+        corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+        source: manifest
+        surface_label: tf_rd_010_dagzoo_medium_control
+      model:
+        grid_moe_scope: grid_core_ffn
+        grid_moe_num_experts: 4
+        grid_moe_top_k: 1
+        grid_moe_router_init_std: 0.01
+        grid_moe_shared_expert: true
+        grid_moe_shared_expert_scale: 1.0
+        grid_moe_router_temperature: 1.25
+      training:
+        task_batch_size: 8
+        moe_load_balance_loss_coeff: 0.01
+        moe_router_z_loss_coeff: 0.0001
+        overrides:
+          runtime:
+            max_steps: 5000
+            grad_accum_steps: 8
+            activation_checkpointing: false
+            checkpoint_every: null
+          schedule:
+            stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.001
+              lr_schedule: linear
+              warmup_ratio: 0.1
+    default_next_action: Execute only if the default-temperature shared top-1
+      row suggests routing smoothness is the next bottleneck.
+    applicability_guards: []

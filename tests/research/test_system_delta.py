@@ -1414,7 +1414,7 @@ def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None
 
 def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
-    manifest_path = REPO_ROOT / "data" / "manifests" / "bench" / "openml_classification_medium_v1" / "manifest.parquet"
+    manifest_path = "data/manifests/bench/openml_classification_medium_v1/manifest.parquet"
 
     result = create_sweep(
         sweep_id="binary_sm_v2",

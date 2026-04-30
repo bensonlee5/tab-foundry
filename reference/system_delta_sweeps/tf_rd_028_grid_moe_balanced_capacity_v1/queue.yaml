@@ -1,0 +1,431 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_028_grid_moe_balanced_capacity_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_028_grid_moe_e4_top1_smoke_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1` against anchor
+    `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_smoke_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 100
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 100
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Treat this row as diagnostic only; do not compare it as a quality candidate against
+    the 5000-step anchor.
+  - Full TF-RD-028 candidate execution is blocked on finite training losses, finite
+    MoE auxiliary metrics, completed benchmark artifacts, and W&B logging from this
+    smoke row.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_01_delta_tf_rd_028_grid_moe_e4_top1_smoke_v1_v4
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute first on the Vast VM and unblock the full MoE ladder only after
+    smoke training, benchmark artifacts, and W&B logging are clean.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_01_delta_tf_rd_028_grid_moe_e4_top1_smoke_v1_v4`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 100.0
+    max_grad_norm: 1.996083385691624
+    best_roc_auc: 0.6233182642067333
+    best_log_loss: 0.7274165024753083
+    best_brier_score: 0.4535792222617006
+    final_roc_auc: 0.6233182642067333
+    final_log_loss: 0.7274165024753083
+    final_brier_score: 0.4535792222617006
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.3092397725286311
+    delta_final_brier_score: 0.19843792105143004
+    delta_final_roc_auc: -0.1899365208726581
+    row_pool_final_window_mean_grad_norm: 0.11785552478515934
+  parent_delta_ref: null
+- order: 2
+  delta_ref: delta_tf_rd_028_grid_moe_e2_top1_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e2_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e2_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 2
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the diagnostic smoke row passes.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_02_delta_tf_rd_028_grid_moe_e2_top1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute as the first full-budget TF-RD-028 top-1 MoE candidate after
+    the smoke row passes.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_02_delta_tf_rd_028_grid_moe_e2_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.228722324088941
+    best_roc_auc: 0.8103493963966735
+    best_log_loss: 0.4228972080894019
+    best_brier_score: 0.2575201342312182
+    final_roc_auc: 0.8103493963966735
+    final_log_loss: 0.4228972080894019
+    final_brier_score: 0.2575201342312182
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.004720478142724693
+    delta_final_brier_score: 0.002378833020947657
+    delta_final_roc_auc: -0.0029053886827179465
+    row_pool_final_window_mean_grad_norm: 0.04727730923996361
+  parent_delta_ref: null
+- order: 3
+  delta_ref: delta_tf_rd_028_grid_moe_e4_top1_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after the diagnostic smoke row passes.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_03_delta_tf_rd_028_grid_moe_e4_top1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute as the main TF-RD-028 top-1 MoE candidate after the smoke row
+    passes.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_03_delta_tf_rd_028_grid_moe_e4_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.2761304885531493
+    best_roc_auc: 0.8108639284627365
+    best_log_loss: 0.4221998344625348
+    best_brier_score: 0.2568966452058215
+    final_roc_auc: 0.8108639284627365
+    final_log_loss: 0.4221998344625348
+    final_brier_score: 0.2568966452058215
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.0040231045158575784
+    delta_final_brier_score: 0.0017553439955509398
+    delta_final_roc_auc: -0.002390856616654946
+    row_pool_final_window_mean_grad_norm: 0.04876002194434827
+  parent_delta_ref: null
+- order: 4
+  delta_ref: delta_tf_rd_028_grid_moe_e8_top1_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e8_top1_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e8_top1_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 8
+    grid_moe_top_k: 1
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute after lower expert-count top-1 rows pass basic route-health checks.
+  - Compare directly against the locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget
+    and route-health telemetry.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_04_delta_tf_rd_028_grid_moe_e8_top1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute after E=2 and E=4 top-1 rows show finite losses and usable
+    route-health metrics.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_04_delta_tf_rd_028_grid_moe_e8_top1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 3.596459800565812
+    best_roc_auc: 0.8123147088373194
+    best_log_loss: 0.421988309351315
+    best_brier_score: 0.2573238548214438
+    final_roc_auc: 0.8123147088373194
+    final_log_loss: 0.421988309351315
+    final_brier_score: 0.2573238548214438
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.003811579404637777
+    delta_final_brier_score: 0.0021825536111732546
+    delta_final_roc_auc: -0.000940076242072041
+    row_pool_final_window_mean_grad_norm: 0.04827267751897754
+  parent_delta_ref: null
+- order: 5
+  delta_ref: delta_tf_rd_028_grid_moe_e4_top2_v1
+  status: failed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_v1` against anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1`.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent
+    route collapse.
+  - Compare against the E=4 top-1 row and locked TF-RD-026 row 10 anchor by final_log_loss_at_matched_regime_budget,
+    route-health telemetry, and the additional active-compute cost.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_05_delta_tf_rd_028_grid_moe_e4_top2_v1_v1
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Execute only after the top-1 MoE rows pass route-health inspection
+    and quality is not explained by a routing bug.
+  notes:
+  - 'Execution attempt `sd_tf_rd_028_grid_moe_balanced_capacity_v1_05_delta_tf_rd_028_grid_moe_e4_top2_v1_v1`
+    failed: CUDA out of memory. Tried to allocate 180.00 MiB. GPU 0 has a total capacity
+    of 44.39 GiB of which 131.38 MiB is free. Process 2156433 has 44.24 GiB memory
+    in use. Of the allocated memory 43.55 GiB is allocated by PyTorch, and 200.59
+    MiB...'
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: null
+- order: 6
+  delta_ref: delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1
+  status: completed
+  rationale: Contextualize `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1` against
+    anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`
+    for sweep `tf_rd_028_grid_moe_balanced_capacity_v1` after the uncheckpointed top-2
+    row exceeds single-GPU active memory.
+  hypothesis: ''
+  anchor_delta: Delta description pending for `delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1`
+    against locked anchor `sd_tf_rd_026_grid_sandwich_broad_ml_v1_10_delta_tf_rd_026_grid_recurrent_8_unique2_swiglu_v1_v2`.
+  model:
+    grid_moe_scope: grid_core_ffn
+    grid_moe_num_experts: 4
+    grid_moe_top_k: 2
+    grid_moe_router_init_std: 0.01
+  data:
+    corpus_ref: tf_rd_010_dagzoo_medium_control_curated_v6/tf_rd_010_dagzoo_medium_control_curated_v6__b54f7409b6d5
+    source: manifest
+    surface_label: tf_rd_010_dagzoo_medium_control
+  preprocessing: {}
+  training:
+    task_batch_size: 8
+    moe_load_balance_loss_coeff: 0.01
+    moe_router_z_loss_coeff: 0.0001
+    overrides:
+      runtime:
+        max_steps: 5000
+        grad_accum_steps: 8
+        activation_checkpointing: false
+        checkpoint_every: null
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 5000
+          lr_max: 0.001
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Execute only after top-1 MoE rows have finite auxiliary metrics and no persistent
+    route collapse, and after the uncheckpointed E=4 top-2 row is confirmed resource-confounded
+    on the target VM.
+  - Compare against the E=4 top-1 row, E=8 top-1 row, and locked TF-RD-026 row 10
+    anchor by final_log_loss_at_matched_regime_budget, route-health telemetry, and
+    additional active-compute and wall-time cost.
+  execution_policy: benchmark_full
+  benchmark_checkpoint_selection: all
+  run_id: sd_tf_rd_028_grid_moe_balanced_capacity_v1_06_delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Execute after the uncheckpointed top-2 row OOMs and the top-1 rows
+    show finite, non-collapsed route-health metrics.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_028_grid_moe_balanced_capacity_v1_06_delta_tf_rd_028_grid_moe_e4_top2_microbatch8_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  dynamic_model_overrides: null
+  reuse_train_artifact: null
+  screen_metrics: null
+  benchmark_metrics:
+    best_step: 5000.0
+    max_grad_norm: 2.7084608154145107
+    best_roc_auc: 0.809566672931926
+    best_log_loss: 0.4234291888316289
+    best_brier_score: 0.2577993558255014
+    final_roc_auc: 0.809566672931926
+    final_log_loss: 0.4234291888316289
+    final_brier_score: 0.2577993558255014
+    final_minus_best_roc_auc: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    objective_metric: final_log_loss_at_matched_regime_budget
+    drift: 0.0
+    delta_final_log_loss: 0.005252458884951683
+    delta_final_brier_score: 0.0026580546152308315
+    delta_final_roc_auc: -0.00368811214746545
+    row_pool_final_window_mean_grad_norm: 0.048277099533690054
+  parent_delta_ref: null

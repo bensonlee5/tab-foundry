@@ -69,6 +69,7 @@ class ClassificationOutput:
     path_logits: list[torch.Tensor] | None = None
     path_targets: list[torch.Tensor] | None = None
     path_sample_counts: list[int] | None = None
+    aux_losses: dict[str, torch.Tensor] | None = None
     aux_metrics: dict[str, float] | None = None
 
 

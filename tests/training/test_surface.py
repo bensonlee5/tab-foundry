@@ -760,6 +760,10 @@ def test_build_training_surface_record_includes_optional_training_surface(
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,
                 "classification_z_loss_coeff": 1.0e-4,
+                "moe_load_balance_loss_coeff": 1.0e-2,
+                "moe_load_balance_loss_schedule": "warmup_decay",
+                "moe_load_balance_loss_final_coeff": 1.0e-3,
+                "moe_router_z_loss_coeff": 1.0e-4,
                 "overrides": {
                     "optimizer": {"min_lr": 4.0e-4},
                 },
@@ -786,6 +790,10 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["labels"]["training"] == "prior_linear_warmup_decay"
     assert record["training"]["apply_schedule"] is True
     assert record["training"]["classification_z_loss_coeff"] == pytest.approx(1.0e-4)
+    assert record["training"]["moe_load_balance_loss_coeff"] == pytest.approx(1.0e-2)
+    assert record["training"]["moe_load_balance_loss_schedule"] == "warmup_decay"
+    assert record["training"]["moe_load_balance_loss_final_coeff"] == pytest.approx(1.0e-3)
+    assert record["training"]["moe_router_z_loss_coeff"] == pytest.approx(1.0e-4)
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05

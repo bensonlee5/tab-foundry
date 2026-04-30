@@ -10,7 +10,7 @@ from tab_foundry.bench.openml_benchmark import load_benchmark_manifest_datasets
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec
 
-from .paths_io import _copy_jsonable, default_registry_path
+from .paths_io import _copy_jsonable, _render_path, default_registry_path
 
 
 LEGACY_PRIOR_CONSTANT_LR_LABEL = "prior_constant_lr"
@@ -320,6 +320,7 @@ def build_anchor_surface(
             "system-delta sweeps now require benchmark_manifest_path to reference a manifest parquet, "
             f"not a legacy JSON benchmark bundle: {manifest_path}"
         )
+    manifest_display_path = _render_path(manifest_path)
     _datasets, task_records, benchmark_surface = load_benchmark_manifest_datasets(
         benchmark_manifest_path=manifest_path,
     )
@@ -367,7 +368,7 @@ def build_anchor_surface(
         "notes": [
             (
                 f"The locked anchor is benchmark registry run `{anchor_run_id}` on manifest "
-                f"`{manifest_path}` sourced from `{bundle_name}` ({task_count} tasks)."
+                f"`{manifest_display_path}` sourced from `{bundle_name}` ({task_count} tasks)."
             ),
             f"The anchor model surface is taken from the registry-resolved staged selection labeled `{model_label}`.",
             "Data and preprocessing remain part of the comparison surface and must stay fixed unless the queue row declares that exact dimension.",
@@ -426,7 +427,7 @@ def build_anchor_surface(
                 "dimension": "training data surface",
                 "upstream": "OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.",
                 "anchor": (
-                    f"Benchmark manifest `{manifest_path}` sourced from `{bundle_name}` "
+                    f"Benchmark manifest `{manifest_display_path}` sourced from `{bundle_name}` "
                     f"({task_count} tasks{bundle_surface_suffix}) with data surface label "
                     f"`{data_label}`."
                 ),

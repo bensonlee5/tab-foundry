@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import StrEnum
+import math
 from typing import Annotated, Any, Final, Literal
 
 from pydantic import (
@@ -49,6 +50,7 @@ SUPPORTED_ROUTED_RESIDUAL_SCALES = ("deepnorm",)
 SUPPORTED_GRID_RESIDUAL_MODES = ("prenorm", "hyper_connection_lite")
 SUPPORTED_GRID_ATTENTION_MODES = ("standard", "differential")
 SUPPORTED_GRID_FFN_MODES = ("gelu", "swiglu", "geglu")
+SUPPORTED_GRID_MOE_SCOPES = ("none", "grid_core_ffn")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -483,6 +485,14 @@ class _GridSandwichModelParams(_SandwichModelParams):
     grid_recurrence_unique_layers: int | None = Field(default=None, gt=0)
     classification_logit_softcap: float | None = Field(default=None, gt=0.0)
     attention_qk_norm: bool = False
+    grid_moe_scope: str = "none"
+    grid_moe_num_experts: int = Field(default=1, gt=0)
+    grid_moe_top_k: int = Field(default=1, gt=0)
+    grid_moe_router_init_std: float = Field(default=0.01, gt=0.0)
+    grid_moe_normalize_top_k: bool = False
+    grid_moe_shared_expert: bool = False
+    grid_moe_shared_expert_scale: float = Field(default=1.0, ge=0.0)
+    grid_moe_router_temperature: float = Field(default=1.0, gt=0.0)
 
     @field_validator("grid_residual_mode", mode="before")
     @classmethod
@@ -517,6 +527,17 @@ class _GridSandwichModelParams(_SandwichModelParams):
             )
         return normalized
 
+    @field_validator("grid_moe_scope", mode="before")
+    @classmethod
+    def _validate_grid_moe_scope(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_GRID_MOE_SCOPES:
+            raise ValueError(
+                "grid_moe_scope must be one of "
+                f"{SUPPORTED_GRID_MOE_SCOPES}, got {value!r}"
+            )
+        return normalized
+
     @field_validator("attention_qk_norm", mode="before")
     @classmethod
     def _coerce_attention_qk_norm(cls, value: Any) -> bool:
@@ -531,6 +552,54 @@ class _GridSandwichModelParams(_SandwichModelParams):
         if isinstance(value, int) and value in {0, 1}:
             return bool(value)
         raise ValueError(f"attention_qk_norm must be boolean-compatible, got {value!r}")
+
+    @field_validator("grid_moe_router_init_std", mode="before")
+    @classmethod
+    def _validate_grid_moe_router_init_std(cls, value: Any) -> float:
+        std = float(value)
+        if not math.isfinite(std) or std <= 0.0:
+            raise ValueError("grid_moe_router_init_std must be a finite float > 0")
+        return std
+
+    @field_validator("grid_moe_normalize_top_k", mode="before")
+    @classmethod
+    def _coerce_grid_moe_normalize_top_k(cls, value: Any) -> bool:
+        return cls._coerce_grid_bool(value, field_name="grid_moe_normalize_top_k")
+
+    @field_validator("grid_moe_shared_expert", mode="before")
+    @classmethod
+    def _coerce_grid_moe_shared_expert(cls, value: Any) -> bool:
+        return cls._coerce_grid_bool(value, field_name="grid_moe_shared_expert")
+
+    @classmethod
+    def _coerce_grid_bool(cls, value: Any, *, field_name: str) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            token = value.strip().lower()
+            if token in {"1", "true", "yes", "on"}:
+                return True
+            if token in {"0", "false", "no", "off"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        raise ValueError(f"{field_name} must be boolean-compatible, got {value!r}")
+
+    @field_validator("grid_moe_shared_expert_scale", mode="before")
+    @classmethod
+    def _validate_grid_moe_shared_expert_scale(cls, value: Any) -> float:
+        scale = float(value)
+        if not math.isfinite(scale) or scale < 0.0:
+            raise ValueError("grid_moe_shared_expert_scale must be a finite float >= 0")
+        return scale
+
+    @field_validator("grid_moe_router_temperature", mode="before")
+    @classmethod
+    def _validate_grid_moe_router_temperature(cls, value: Any) -> float:
+        temperature = float(value)
+        if not math.isfinite(temperature) or temperature <= 0.0:
+            raise ValueError("grid_moe_router_temperature must be a finite float > 0")
+        return temperature
 
     @field_validator("classification_logit_softcap", mode="before")
     @classmethod
@@ -577,16 +646,20 @@ class _GridSandwichModelParams(_SandwichModelParams):
     @model_validator(mode="after")
     def _validate_grid_recurrence_layer_cycle(self) -> "_GridSandwichModelParams":
         if self.grid_recurrence_unique_layers is None:
-            return self
-        if self.grid_recurrence_steps is None:
+            pass
+        elif self.grid_recurrence_steps is None:
             raise ValueError(
                 "grid_recurrence_unique_layers requires grid_recurrence_steps to be set"
             )
-        if int(self.grid_recurrence_unique_layers) > int(self.grid_recurrence_steps):
+        elif int(self.grid_recurrence_unique_layers) > int(self.grid_recurrence_steps):
             raise ValueError(
                 "grid_recurrence_unique_layers must be less than or equal to "
                 "grid_recurrence_steps"
             )
+        if self.grid_moe_scope != "none" and int(self.grid_moe_num_experts) <= 1:
+            raise ValueError("grid_moe_num_experts must be > 1 when grid_moe_scope is enabled")
+        if int(self.grid_moe_top_k) > int(self.grid_moe_num_experts):
+            raise ValueError("grid_moe_top_k must be <= grid_moe_num_experts")
         return self
 
 
