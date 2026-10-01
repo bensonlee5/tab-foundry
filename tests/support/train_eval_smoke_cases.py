@@ -2558,15 +2558,10 @@ def test_train_skips_activation_rank_reduction_when_tracing_disabled(
         ),
     )
     monkeypatch.setattr(
-        distributed_module,
-        "gather_object",
-        lambda *_args, **_kwargs: pytest.fail("gather_object should not run when tracing is disabled"),
-    )
-    monkeypatch.setattr(
-        distributed_module,
-        "broadcast_object_list",
+        trainer_loop_module,
+        "_reduce_keyed_weighted_scalars",
         lambda *_args, **_kwargs: pytest.fail(
-            "broadcast_object_list should not run when tracing is disabled"
+            "activation rank reduction should not run when tracing is disabled"
         ),
     )
     cfg = _classification_cfg(tmp_path)

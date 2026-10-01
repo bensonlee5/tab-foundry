@@ -21,6 +21,11 @@ from tab_foundry.task_batching import (
 )
 from tab_foundry.types import EvalResult
 
+from .loss_surface import (
+    CELL_BPC_LOSS_SURFACE,
+    configure_model_loss_surface,
+    resolve_training_loss_surface,
+)
 from .runtime import build_accelerator_from_runtime
 from .task_batching_validation import validate_task_batching_support
 from .trainer_metrics import _evaluate_loader
@@ -239,6 +244,10 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     non_blocking_device_transfer = _resolve_non_blocking_device_transfer(cfg.runtime)
     model = build_model_from_spec(model_spec)
     model.load_state_dict(state_dict)
+    loss_surface = resolve_training_loss_surface(
+        training_cfg, model_spec=model_spec, backend=data_cfg.get("source")
+    )
+    configure_model_loss_surface(model, loss_surface=loss_surface)
 
     split = str(cfg.eval.split)
     max_batches = int(cfg.eval.max_batches)
@@ -279,7 +288,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         enabled=bool(use_wandb and accelerator.is_main_process),
     )
 
-    metric_name = "acc"
+    metric_names = ("bpc", "bpf") if loss_surface == CELL_BPC_LOSS_SURFACE else ("acc",)
 
     try:
         eval_metrics = _evaluate_loader(
@@ -292,7 +301,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         )
         result_metrics = {
             "loss": float(eval_metrics["val_loss"]),
-            metric_name: float(eval_metrics[metric_name]),
+            **{name: float(eval_metrics[name]) for name in metric_names},
         }
         log_wandb_metrics(
             run,

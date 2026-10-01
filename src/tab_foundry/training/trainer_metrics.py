@@ -19,7 +19,7 @@ from tab_foundry.model.outputs import (
 from tab_foundry.task_batching import move_batch, task_batch_diagnostics
 from tab_foundry.types import TaskBatch
 
-from .distributed import _global_mean_from_local
+from .distributed import _global_mean_from_local, _reduce_keyed_weighted_scalars
 from .losses import classification_loss, classification_z_loss, hierarchical_nll_loss
 
 _TASK_BATCH_TENSOR_DIMENSIONS = 3
@@ -167,7 +167,6 @@ def _evaluate_loader(
     non_blocking_device_transfer: bool = False,
     model_forward: Callable[[TaskBatch], Any] | None = None,
 ) -> dict[str, float]:
-    model.eval()
     loss_sum = 0.0
     count = 0
     tasks_seen = 0
@@ -179,31 +178,34 @@ def _evaluate_loader(
     metric_sums: dict[str, float] = {}
     metric_counts: dict[str, int] = {}
 
-    with torch.no_grad():
-        for batch in loader:
-            if max_batches <= 0:
-                break
-            if tasks_seen >= max_batches:
-                break
-            actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
-            if tasks_seen > 0 and tasks_seen + actual_task_count > max_batches:
-                break
-            batch = move_batch(
-                batch,
-                accelerator.device,
-                non_blocking=non_blocking_device_transfer,
-            )
-            with accelerator.autocast():
-                output = model(batch) if model_forward is None else model_forward(batch)
-                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-            loss_sum += float(loss.detach().item()) * float(actual_task_count)
-            for key, value in metrics.items():
-                metric_sums[key] = metric_sums.get(key, 0.0) + (float(value) * float(actual_task_count))
-                metric_counts[key] = metric_counts.get(key, 0) + actual_task_count
-            count += actual_task_count
-            tasks_seen += actual_task_count
-
-    model.train()
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            for batch in loader:
+                if max_batches <= 0:
+                    break
+                if tasks_seen >= max_batches:
+                    break
+                actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
+                if tasks_seen > 0 and tasks_seen + actual_task_count > max_batches:
+                    break
+                batch = move_batch(
+                    batch,
+                    accelerator.device,
+                    non_blocking=non_blocking_device_transfer,
+                )
+                with accelerator.autocast():
+                    output = model(batch) if model_forward is None else model_forward(batch)
+                    loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                loss_sum += float(loss.detach().item()) * float(actual_task_count)
+                for key, value in metrics.items():
+                    metric_sums[key] = metric_sums.get(key, 0.0) + (float(value) * float(actual_task_count))
+                    metric_counts[key] = metric_counts.get(key, 0) + actual_task_count
+                count += actual_task_count
+                tasks_seen += actual_task_count
+    finally:
+        model.train(was_training)
     dev = accelerator.device
     val_loss = _global_mean_from_local(
         accelerator,
@@ -212,15 +214,18 @@ def _evaluate_loader(
         device=dev,
         default=float("inf"),
     )
+    # Metrics can vary across tasks/ranks (and uneven shards can be empty).
+    # Reduce one shared key union so collectives never pair unrelated metrics.
+    global_sums, global_counts = _reduce_keyed_weighted_scalars(
+        accelerator,
+        weighted_sums=metric_sums,
+        weights=metric_counts,
+        device=dev,
+    )
     reduced_metrics = {"val_loss": val_loss}
-    for key, local_sum in metric_sums.items():
-        reduced_metrics[key] = _global_mean_from_local(
-            accelerator,
-            local_sum=local_sum,
-            local_count=metric_counts.get(key, 0),
-            device=dev,
-            default=0.0,
-        )
+    for key, global_sum in global_sums.items():
+        global_count = global_counts.get(key, 0.0)
+        reduced_metrics[key] = global_sum / global_count if global_count > 0 else 0.0
     return reduced_metrics
 
 
