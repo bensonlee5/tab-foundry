@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Checkpoint evaluation restores the saved training loss surface and reports
+  BPC/BPF for legacy cell-likelihood checkpoints instead of silently evaluating
+  their classification head. Classification checkpoints continue to report loss
+  and accuracy.
+- Evaluation reduces a shared union of metric keys across distributed ranks,
+  including ranks with empty shards, preventing mismatched metric collectives.
+  It also restores the caller's model mode after success or failure.
+
 ### Changed
 
 - User-facing note: the default OpenML benchmark anchor now targets
