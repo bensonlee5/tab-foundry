@@ -27,7 +27,9 @@ robustness of the carried dense recurrent grid before more architecture variants
   `data/manifests/bench/openml_classification_medium_v1/manifest.parquet` and
   `data/manifests/bench/openml_classification_large_v1/manifest.parquet`.
   Their controls are `cls_benchmark_linear_multiclass_medium_v1` and
-  `cls_benchmark_linear_multiclass_large_v1`.
+  `cls_benchmark_linear_multiclass_large_v1`. The [large bundle](../../src/tab_foundry/bench/openml_classification_large_v1.json)
+  contains only three pinned tasks; treat its intervals as descriptive and any
+  transfer conclusion as provisional, not population-level generalization evidence.
 
 The [TF-RD-026 matrix](../system_delta_sweeps/tf_rd_026_grid_sandwich_broad_ml_v1/matrix.md)
 shows only a `0.0001598` G2/G4 gap, without independent training-seed replication.
